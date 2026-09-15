@@ -1,0 +1,35 @@
+{
+  "name": "neurojitsu",
+  "private": true,
+  "version": "12.7.0",
+  "type": "module",
+  "description": "Tatame OS — sistema pessoal de evolucao em Jiu-Jitsu (PWA offline-first)",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint:copy": "node scripts/lint-copy.mjs",
+    "lint:ciclos": "node scripts/ciclos.mjs",
+    "check": "npm run lint:copy && npm run lint:simbolos && npm run lint:ciclos && npm run build && npm run lint:chunks && npm run teste:boot",
+    "lint:chunks": "node scripts/chunks.mjs",
+    "teste:boot": "node scripts/teste-boot.mjs",
+    "lint:simbolos": "node scripts/simbolos.mjs"
+  },
+  "dependencies": {
+    "@sentry/react": "^10.74.0",
+    "@supabase/supabase-js": "^2.112.3",
+    "dexie": "^4.0.11",
+    "dexie-react-hooks": "^1.1.7",
+    "fake-indexeddb": "^6.2.5",
+    "lucide-react": "^0.469.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-remove-scroll": "^2.7.2",
+    "vaul": "^1.1.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "jsdom": "^30.0.1",
+    "vite": "^6.0.7"
+  }
+}

@@ -1,0 +1,293 @@
+import { hoje, addDias, diasEntre, fmtData } from './utils';
+import { placarDaRola } from './game';
+import { semanaDe } from './xp';
+
+/* ============================================================
+   SEQUÊNCIA E RESUMO DA SEMANA
+
+   A sequência conta semanas em que você treinou, não dias
+   seguidos. Ninguém treina jiu-jitsu sete dias por semana, e
+   uma sequência que quebra toda segunda não serviria pra nada.
+
+   O tom nunca cobra. Quem parou de treinar não precisa de app
+   dizendo que falhou.
+   ============================================================ */
+
+export function sequencia(sessions) {
+  if (!sessions.length) {
+    return { semanas: 0, recorde: 0, ativa: false, ultimoTreino: null, diasParados: null };
+  }
+
+  const semanas = [...new Set(sessions.map((s) => semanaDe(s.data)))].sort();
+  const atual = semanaDe();
+  const passada = semanaDe(addDias(hoje(), -7));
+
+  let corrente = 0;
+  let recorde = 0;
+  let anterior = null;
+  for (const w of semanas) {
+    if (anterior && diasEntre(anterior, w) === 7) corrente++;
+    else corrente = 1;
+    recorde = Math.max(recorde, corrente);
+    anterior = w;
+  }
+
+  const ultima = semanas[semanas.length - 1];
+  /* a sequência só quebra depois que a semana passada fecha
+     sem treino, então você tem a semana inteira pra manter */
+  const ativa = ultima === atual || ultima === passada;
+  const ultimoTreino = sessions.map((s) => s.data).sort().pop();
+
+  return {
+    semanas: ativa ? corrente : 0,
+    recorde,
+    ativa,
+    treinouEstaSemana: ultima === atual,
+    ultimoTreino,
+    diasParados: ultimoTreino ? diasEntre(ultimoTreino, hoje()) : null,
+  };
+}
+
+/* ---------- a frase da sequência, sem cobrança ---------- */
+export function textoSequencia(seq, sessions = []) {
+  if (!sessions.length) {
+    return { titulo: 'Comece pelo primeiro treino', texto: 'A partir dele o app começa a enxergar o seu jogo.', tom: '' };
+  }
+
+  if (seq.treinouEstaSemana) {
+    if (seq.semanas >= 12) {
+      return { titulo: `${seq.semanas} semanas seguidas`, texto: 'Três meses sem falhar uma semana. É esse tipo de constância que vira faixa.', tom: 'jade' };
+    }
+    if (seq.semanas >= 4) {
+      return { titulo: `${seq.semanas} semanas seguidas`, texto: 'Um mês inteiro de presença. A diferença entre quem evolui e quem some é exatamente isso.', tom: 'jade' };
+    }
+    if (seq.semanas >= 2) {
+      return { titulo: `${seq.semanas} semanas seguidas`, texto: 'Está criando o hábito. As primeiras semanas são as mais difíceis.', tom: 'accent' };
+    }
+    return { titulo: 'Treinou esta semana', texto: 'Bom. Semana que vem a sequência começa a contar.', tom: 'accent' };
+  }
+
+  if (seq.ativa && seq.semanas >= 1) {
+    return {
+      titulo: `${seq.semanas} ${seq.semanas === 1 ? 'semana' : 'semanas'} seguidas`,
+      texto: 'Ainda dá tempo de manter. Um treino nesta semana já conta.',
+      tom: 'accent',
+    };
+  }
+
+  const d = seq.diasParados;
+  if (d !== null && d >= 30) {
+    return { titulo: 'Faz um tempo', texto: `Seu último treino registrado foi há ${d} dias. Quando voltar, é só registrar que o resto continua de onde parou.`, tom: '' };
+  }
+  if (d !== null && d >= 14) {
+    return { titulo: 'Duas semanas sem registro', texto: 'Se você treinou e esqueceu de anotar, dá pra registrar com a data de trás. Se parou mesmo, sem problema, acontece com todo mundo.', tom: '' };
+  }
+  return { titulo: 'Nenhum treino nesta semana', texto: 'Um treino já reativa a contagem.', tom: '' };
+}
+
+/* ============================================================
+   RESUMO DA SEMANA
+   O que você fez, em quatro linhas, sem gráfico.
+   ============================================================ */
+export function resumoSemana(sessions, rolls, tecnicas = [], pontos = [], semana = null) {
+  const alvo = semana || semanaDe();
+  const fim = addDias(alvo, 6);
+
+  const doPeriodo = sessions.filter((s) => s.data >= alvo && s.data <= fim);
+  const ids = new Set(doPeriodo.map((s) => s.id));
+  const rs = rolls.filter((r) => ids.has(r.sessionId));
+
+  let venceu = 0, perdeu = 0, fin = 0, tap = 0;
+  const tecUsadas = new Set();
+  for (const r of rs) {
+    const p = placarDaRola(r);
+    if (p.ganhou) venceu++; else if (p.perdeu) perdeu++;
+    fin += (r.subsAplicadas || []).length;
+    tap += (r.subsSofridas || []).length;
+    for (const n of r.subsAplicadas || []) tecUsadas.add(n);
+    for (const nomes of Object.values(r.tecMeus || {})) for (const n of nomes) tecUsadas.add(n);
+  }
+
+  const minutos = doPeriodo.reduce((a, s) => a + (Number(s.duracao) || 0), 0);
+  const xp = pontos.filter((p) => p.semana === alvo).reduce((a, p) => a + p.xp, 0);
+
+  /* comparação com a semana anterior */
+  const ant = addDias(alvo, -7);
+  const antSes = sessions.filter((s) => s.data >= ant && s.data < alvo);
+  const variacao = antSes.length ? doPeriodo.length - antSes.length : null;
+
+  /* subiu alguma técnica de grau nesta semana */
+  const subiram = tecnicas.filter((t) => t.grau >= 2 && t.ultima >= alvo && t.ultima <= fim && t.progresso <= 20);
+
+  return {
+    semana: alvo,
+    inicio: alvo,
+    fim,
+    treinos: doPeriodo.length,
+    horas: Math.round((minutos / 60) * 10) / 10,
+    rolas: rs.length,
+    venceu, perdeu, fin, tap,
+    tecnicas: tecUsadas.size,
+    xp,
+    variacao,
+    subiram,
+    vazia: doPeriodo.length === 0,
+  };
+}
+
+/* ---------- a leitura da semana, em uma frase ---------- */
+export function lerSemana(r, faixa = 'branca') {
+  if (r.vazia) {
+    return 'Nenhum treino registrado nesta semana. Se você foi e esqueceu de anotar, dá pra registrar com a data certa.';
+  }
+
+  const partes = [];
+  partes.push(`${r.treinos} ${r.treinos === 1 ? 'treino' : 'treinos'}`);
+  if (r.horas) partes.push(`${r.horas}h de tatame`);
+  if (r.rolas) partes.push(`${r.rolas} ${r.rolas === 1 ? 'rola' : 'rolas'}`);
+
+  let txt = partes.join(', ') + '.';
+
+  if (r.fin > 0) {
+    txt += ` Você finalizou ${r.fin} ${r.fin === 1 ? 'vez' : 'vezes'}`;
+    txt += r.tap > 0 ? ` e bateu ${r.tap}.` : '.';
+  } else if (r.tap > 0) {
+    txt += ` Bateu ${r.tap} ${r.tap === 1 ? 'vez' : 'vezes'} e não finalizou ninguém, o que é normal quando se está rolando com gente mais graduada.`;
+  }
+
+  if (r.tecnicas >= 5) {
+    txt += ` Apareceram ${r.tecnicas} técnicas diferentes, o que mostra um jogo variado.`;
+  } else if (r.tecnicas > 0 && r.tecnicas <= 2 && faixa !== 'branca') {
+    txt += ` Só ${r.tecnicas} ${r.tecnicas === 1 ? 'técnica apareceu' : 'técnicas apareceram'}. Vale abrir o repertório.`;
+  }
+
+  if (r.variacao !== null) {
+    if (r.variacao > 0) txt += ` Foram ${r.variacao} ${r.variacao === 1 ? 'treino' : 'treinos'} a mais que na semana passada.`;
+    else if (r.variacao < 0) txt += ` Foi ${Math.abs(r.variacao)} a menos que na semana passada, e uma semana mais leve faz parte.`;
+  }
+
+  return txt;
+}
+
+export function semanasComTreino(sessions, limite = 8) {
+  const set = [...new Set(sessions.map((s) => semanaDe(s.data)))].sort().reverse();
+  return set.slice(0, limite);
+}
+
+export const rotuloSemana = (w) => `${fmtData(w, { curto: true })} a ${fmtData(addDias(w, 6), { curto: true })}`;
+
+/* ============================================================
+   ESCUDO DE CONSTÂNCIA
+
+   A ideia: quem é constante não pode ser punido por uma semana
+   ruim. Lesão acontece, viagem acontece, trabalho aperta.
+
+   Como funciona: a cada 4 semanas seguidas de treino você
+   ganha um escudo, até três guardados. Se você perder uma
+   semana, o escudo é gasto e a sequência continua de pé.
+
+   Só falha de verdade quem passa semanas seguidas fora e já
+   gastou tudo que tinha acumulado. E mesmo aí, os pontos da
+   Jornada continuam intactos, porque o que foi treinado foi.
+   ============================================================ */
+
+export const SEMANAS_POR_ESCUDO = 4;
+export const MAX_ESCUDOS = 3;
+
+/* ============================================================
+   SEMANA COBERTA POR LESÃO
+
+   Quem está fora do tatame por lesão não pode ser punido pela
+   ausência. A semana conta como cumprida se a pessoa estudou,
+   porque estudar é o que dá pra fazer machucado.
+   ============================================================ */
+export function semanasProtegidas(lesoes = [], aulas = []) {
+  const cobertas = new Set();
+
+  for (const l of lesoes) {
+    if (l.impacto !== 'parado') continue;
+    const fim = l.dataCura || l.fechadaEm || hoje();
+    let w = semanaDe(l.data);
+    const wFim = semanaDe(fim);
+    let guarda = 0;
+    while (w <= wFim && guarda < 60) {
+      /* só protege a semana em que ela estudou alguma coisa */
+      const estudou = aulas.some((a) => semanaDe(a.data || a.ultima) === w);
+      if (estudou) cobertas.add(w);
+      w = addDias(w, 7);
+      guarda += 1;
+    }
+  }
+  return cobertas;
+}
+
+export function escudos(sessions, protegidas = new Set()) {
+  /* semana com treino, mais semana em que a pessoa estava
+     machucada e estudou. As duas contam como presença. */
+  const comTreino = new Set(sessions.map((s) => semanaDe(s.data)));
+  for (const w of protegidas) comTreino.add(w);
+  const semanas = [...comTreino].sort();
+  if (!semanas.length) return { tem: 0, gastos: 0, faltaPro: SEMANAS_POR_ESCUDO, protegida: null };
+
+  let corrente = 0;
+  let ganhos = 0;
+  let gastos = 0;
+  let anterior = null;
+  let ultimaProtegida = null;
+
+  for (const w of semanas) {
+    if (!anterior) { corrente = 1; anterior = w; continue; }
+
+    const distancia = diasEntre(anterior, w) / 7;
+
+    if (distancia === 1) {
+      corrente += 1;
+    } else if (distancia > 1) {
+      /* buracos entre uma semana e outra */
+      const perdidas = distancia - 1;
+      const cobertas = Math.min(perdidas, ganhos - gastos);
+      gastos += cobertas;
+      if (cobertas > 0) ultimaProtegida = w;
+      corrente = cobertas >= perdidas ? corrente + 1 : 1;
+    }
+
+    if (corrente > 0 && corrente % SEMANAS_POR_ESCUDO === 0) {
+      ganhos = Math.min(MAX_ESCUDOS + gastos, ganhos + 1);
+    }
+    anterior = w;
+  }
+
+  const tem = Math.max(0, Math.min(MAX_ESCUDOS, ganhos - gastos));
+  /* quem acabou de ganhar um escudo recomeça a contagem inteira */
+  const resto = corrente % SEMANAS_POR_ESCUDO;
+  const faltaPro = resto === 0 ? SEMANAS_POR_ESCUDO : SEMANAS_POR_ESCUDO - resto;
+
+  return {
+    tem,
+    gastos,
+    faltaPro: tem >= MAX_ESCUDOS ? 0 : faltaPro,
+    protegida: ultimaProtegida,
+    corrente,
+  };
+}
+
+export function textoEscudo(e) {
+  if (!e.tem && !e.gastos) {
+    return {
+      titulo: 'Sem escudo ainda',
+      texto: `Quatro semanas seguidas de treino e você ganha o primeiro. Ele segura a sua sequência quando a vida atrapalhar.`,
+    };
+  }
+  if (!e.tem) {
+    return {
+      titulo: 'Escudo gasto',
+      texto: `Ele já salvou a sua sequência ${e.gastos === 1 ? 'uma vez' : `${e.gastos} vezes`}. Mais ${e.faltaPro} ${e.faltaPro === 1 ? 'semana' : 'semanas'} de treino e você ganha outro.`,
+    };
+  }
+  return {
+    titulo: e.tem === 1 ? '1 escudo guardado' : `${e.tem} escudos guardados`,
+    texto: e.tem >= MAX_ESCUDOS
+      ? 'Você está no máximo. Cada um segura uma semana que você precisar faltar.'
+      : `Cada um segura uma semana que você precisar faltar. Mais ${e.faltaPro} ${e.faltaPro === 1 ? 'semana' : 'semanas'} e você ganha outro.`,
+  };
+}

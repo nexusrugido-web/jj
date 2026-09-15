@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5" />
+    <title>NeuroJitsu</title>
+    <meta name="description" content="Sistema pessoal de evolucao em Jiu-Jitsu: diario de rola, arvore de tecnicas, game plans, respiracao, fisico e metas." />
+
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0B0C0E" />
+    <meta name="color-scheme" content="dark" />
+
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Tatame" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <!-- Se o app não carregar em 8 segundos, isto aparece.
+         Tela preta sem explicação é a pior coisa que pode acontecer. -->
+    <div id="socorro" style="display:none;position:fixed;inset:0;z-index:9999;background:#0B0C0E;color:#e8e6e1;font-family:system-ui,-apple-system,sans-serif;padding:28px;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:18px">
+      <img src="/icon-192.png" alt="" style="width:56px;height:56px;border-radius:16px" />
+      <div>
+        <div style="font-size:19px;font-weight:700;margin-bottom:8px">O app travou ao abrir</div>
+        <p style="font-size:14px;color:#8b938f;line-height:1.6;max-width:340px;margin:0 auto">
+          Quase sempre é uma versão antiga presa na memória do aparelho. O botão abaixo limpa e abre de novo.
+          Seus treinos ficam guardados, nada é apagado.
+        </p>
+      </div>
+      <button id="btn-socorro" style="background:#F0A830;color:#0B0C0E;border:0;border-radius:12px;padding:14px 24px;font-size:15px;font-weight:700;cursor:pointer">
+        Limpar e abrir de novo
+      </button>
+      <p id="socorro-erro" style="font-size:11px;color:#5a615e;font-family:ui-monospace,monospace;max-width:340px;word-break:break-word"></p>
+    </div>
+
+    <script>
+      (function () {
+        /* Rota de emergência: abrir o app com ?limpar=1 apaga o service
+           worker e todo o cache antes de carregar qualquer coisa. Funciona
+           mesmo se o resto do app estiver quebrado, porque roda aqui. */
+        if (location.search.indexOf('limpar=1') > -1) {
+          document.documentElement.innerHTML =
+            '<body style="background:#0B0C0E;color:#e8e6e1;font-family:system-ui;display:grid;place-items:center;height:100vh;margin:0;text-align:center;padding:24px">' +
+            '<div><div style="font-size:17px;font-weight:700">Limpando</div>' +
+            '<p style="font-size:13px;color:#8b938f;margin-top:8px">Seus treinos não são apagados.</p></div></body>';
+
+          var fim = function () { location.replace(location.origin + location.pathname); };
+          var t = [];
+          if ('serviceWorker' in navigator) {
+            t.push(navigator.serviceWorker.getRegistrations()
+              .then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); })
+              .catch(function () {}));
+          }
+          if (window.caches) {
+            t.push(caches.keys()
+              .then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); })
+              .catch(function () {}));
+          }
+          Promise.all(t).then(fim, fim);
+          setTimeout(fim, 2500);
+          return;
+        }
+
+        var ultimoErro = '';
+        window.addEventListener('error', function (e) {
+          ultimoErro = (e.message || '') + ' ' + (e.filename || '').split('/').pop();
+        });
+        window.addEventListener('unhandledrejection', function (e) {
+          ultimoErro = 'promessa: ' + ((e.reason && e.reason.message) || e.reason || '');
+        });
+
+        var relogio = setTimeout(function () {
+          var raiz = document.getElementById('root');
+          if (raiz && raiz.children.length > 0) return;
+          var s = document.getElementById('socorro');
+          s.style.display = 'flex';
+          if (ultimoErro) document.getElementById('socorro-erro').textContent = ultimoErro;
+        }, 4500);
+
+        window.__appSubiu = function () { clearTimeout(relogio); };
+
+        document.getElementById('btn-socorro').addEventListener('click', function () {
+          var pronto = function () { location.reload(true); };
+          var tarefas = [];
+
+          if ('serviceWorker' in navigator) {
+            tarefas.push(
+              navigator.serviceWorker.getRegistrations()
+                .then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); })
+                .catch(function () {})
+            );
+          }
+          if (window.caches) {
+            tarefas.push(
+              caches.keys()
+                .then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); })
+                .catch(function () {})
+            );
+          }
+
+          Promise.all(tarefas).then(pronto, pronto);
+          setTimeout(pronto, 3000);
+        });
+      })();
+    </script>
+
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

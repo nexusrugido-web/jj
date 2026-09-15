@@ -1,0 +1,55 @@
+{
+  "name": "NeuroJitsu",
+  "short_name": "NeuroJitsu",
+  "description": "Registre treino e rola, entenda o porque das tecnicas e veja sua evolucao no jiu-jitsu.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0B0C0E",
+  "theme_color": "#0B0C0E",
+  "lang": "pt-BR",
+  "categories": [
+    "health",
+    "fitness",
+    "sports",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Registrar treino",
+      "short_name": "Treino",
+      "url": "/?go=treinos&novo=1"
+    },
+    {
+      "name": "Planos de ataque",
+      "short_name": "Ataques",
+      "url": "/?go=ataques"
+    },
+    {
+      "name": "Meu domínio",
+      "short_name": "Domínio",
+      "url": "/?go=dominio"
+    }
+  ]
+}
