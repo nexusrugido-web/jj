@@ -100,6 +100,31 @@ db.version(6).stores({
   recFeitas: '++id, uid, chave, intencao, alvo, data, resultado, updatedAt',
 });
 
+/* ============================================================
+   DUAS ABAS ABERTAS
+
+   Toda vez que o app ganha uma tabela nova, o banco do aparelho
+   sobe de versão. E subir de versão exige que nenhuma outra aba
+   esteja segurando a versão antiga.
+
+   No celular isso quase nunca acontece, porque o app fica numa
+   tela só. No computador acontece o tempo todo: a pessoa deixa
+   o app aberto numa aba, abre outra, e a aba nova fica esperando
+   pra sempre por um banco que a aba velha não solta. A tela não
+   carrega e não aparece erro nenhum.
+
+   A resposta é a aba velha soltar o banco quando a nova pede.
+   Ela perde o acesso e avisa, em vez de travar as duas.
+   ============================================================ */
+db.on('versionchange', () => {
+  console.warn('[banco] outra aba está atualizando, soltando esta');
+  db.close();
+});
+
+db.on('blocked', () => {
+  console.warn('[banco] outra aba está segurando a versão antiga');
+});
+
 /* v7: o acervo de aulas saiu do código e virou tabela no servidor.
    Aqui fica a cópia local, pra o Estudo abrir sem rede. Não entra
    em TABELAS_SYNC de propósito: é conteúdo do app, igual pra todo

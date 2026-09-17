@@ -70,25 +70,46 @@ function rotaDaURL() {
 }
 
 /* Cada tela chega num arquivo separado, pra o app abrir rápido.
-   Se a rede falhar no meio do caminho, isto aparece em vez de
-   uma tela em branco. */
+   Quando alguma coisa trava no meio do caminho, isto aparece em
+   vez de uma tela em branco.
+
+   A tela não fala em erro nem em quebra. Quem está pra registrar
+   o treino depois de sair do tatame não quer saber que o app
+   falhou, quer o botão de volta. Ela tenta sozinha uma vez,
+   porque a causa quase sempre é o arquivo da tela que ainda não
+   chegou, e isso se resolve recarregando. */
 class RedeDaPagina extends React.Component {
-  constructor(p) { super(p); this.state = { erro: null }; }
+  constructor(p) { super(p); this.state = { erro: null, tentou: false }; }
   static getDerivedStateFromError(erro) { return { erro }; }
-  componentDidCatch(erro) { console.error('[tela]', erro); }
+
+  componentDidCatch(erro) {
+    console.error('[tela]', erro);
+    registrarErro('tela', erro);
+
+    /* uma tentativa automática, e só uma. Se a segunda também
+       falhar, é problema de verdade e insistir só piora. */
+    if (!this.state.tentou) {
+      this.setState({ tentou: true });
+      this.recarregar = setTimeout(() => this.setState({ erro: null }), 600);
+    }
+  }
+
+  componentWillUnmount() { clearTimeout(this.recarregar); }
+
   render() {
     if (!this.state.erro) return this.props.children;
     return (
       <div className="page" style={{ display: 'grid', placeItems: 'center', minHeight: '50svh' }}>
         <div className="col center" style={{ alignItems: 'center', gap: 14, textAlign: 'center', maxWidth: 320 }}>
-          <span className="brand-mark" style={{ width: 44, height: 44, borderRadius: 14 }} />
+          <span className="brand-mark pulse" style={{ width: 44, height: 44, borderRadius: 14 }} />
           <div>
-            <div style={{ fontWeight: 700, fontSize: 16 }}>Essa tela não carregou</div>
+            <div style={{ fontWeight: 700, fontSize: 16 }}>Carregando esta tela</div>
             <p className="tiny muted" style={{ marginTop: 6, lineHeight: 1.6 }}>
-              Costuma ser conexão instável. Tentar de novo quase sempre resolve.
+              Está demorando mais que o normal. Se você tem o app aberto em outra aba, feche ela: duas abas
+              disputando o banco do aparelho seguram tudo.
             </p>
           </div>
-          <button className="btn primary" onClick={() => location.reload()}>Tentar de novo</button>
+          <button className="btn primary" onClick={() => location.reload()}>Abrir de novo</button>
         </div>
       </div>
     );

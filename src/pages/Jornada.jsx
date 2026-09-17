@@ -8,23 +8,19 @@ import { useApp } from '../contexto';
 import { Card, Btn, Stat, Empty, Bar, Sheet } from '../components/UI';
 import Liga from '../components/Liga';
 import Par from '../components/Par';
-import { EVENTOS, DIVISOES, divisaoPorXp, proximaDivisao, semanaDe, mesDe } from '../lib/xp';
+import { EVENTOS, DIVISOES, divisaoPorXp, proximaDivisao, semanaDe } from '../lib/xp';
 import { relativo, hoje, addDias } from '../lib/utils';
 
-/* Semana, Mês e Sempre não diziam nada sobre jiu-jitsu.
-   Estes três nomes dizem o que cada intervalo mede de verdade. */
+/* Duas janelas, e não quatro.
+
+   A liga já mede a semana e zera toda segunda. A temporada
+   mensal saiu. O que sobra aqui são as duas perguntas que a
+   liga não responde: estou mantendo o passo, e de que tamanho
+   é o caminho que eu já fiz. */
 const JANELAS = [
   {
-    id: 'ritmo', nome: 'Ritmo', intervalo: 'últimos 7 dias',
-    texto: 'O que você fez nesta semana. Serve pra saber se está mantendo o passo, não pra comparar com o seu total.',
-  },
-  {
-    id: 'constancia', nome: 'Constância', intervalo: 'últimos 30 dias',
+    id: 'ritmo', nome: 'Ritmo', intervalo: 'últimos 30 dias',
     texto: 'Um mês é o intervalo em que dá pra ver hábito. Semana ruim acontece com todo mundo, mês inteiro parado é outra conversa.',
-  },
-  {
-    id: 'temporada', nome: 'Temporada', intervalo: 'de janeiro até hoje',
-    texto: 'O ano corrente. Zera em primeiro de janeiro, e é por isso que uma aula vista há mais de um ano volta a valer ponto: nesse tempo você mudou, e ela vai te dizer outra coisa.',
   },
   {
     id: 'jornada', nome: 'Jornada', intervalo: 'desde o primeiro registro',
@@ -79,7 +75,6 @@ export default function Jornada() {
     const soma = (f) => pontos.filter(f).reduce((a, x) => a + (x.xp || 0), 0);
     const sem = semanaDe();
     const semPassada = semanaDe(addDias(hoje(), -7));
-    const mes = mesDe();
     const total = soma(() => true);
     const porEvento = {};
     for (const l of pontos) porEvento[l.evento] = (porEvento[l.evento] || 0) + l.xp;
@@ -106,14 +101,11 @@ export default function Jornada() {
       semana: soma((x) => x.semana === sem),
       semanaPassada: soma((x) => x.semana === semPassada),
       recordeSemana: recorde,
-      mes: soma((x) => x.mes === mes),
       porEvento,
       divisao: div,
       proxima: prox,
       janelas: {
-        ritmo: janela((x) => x.data >= dias(6)),
-        constancia: janela((x) => x.data >= dias(29)),
-        temporada: janela((x) => String(x.data).slice(0, 4) === new Date().getFullYear().toString()),
+        ritmo: janela((x) => x.data >= dias(29)),
         jornada: janela(() => true),
       },
     };
@@ -481,7 +473,7 @@ function ComoFunciona({ aberto, onClose }) {
       </div>
 
       <div className="divider" />
-      <div className="eyebrow">as quatro janelas</div>
+      <div className="eyebrow">as duas janelas</div>
       <div className="col" style={{ gap: 10 }}>
         {JANELAS.map((j) => (
           <div key={j.id} className="row" style={{ gap: 11, alignItems: 'flex-start', padding: '10px 12px', background: 'var(--void)', borderRadius: 10 }}>
@@ -490,14 +482,14 @@ function ComoFunciona({ aberto, onClose }) {
               <p className="micro muted" style={{ marginTop: 3 }}>{j.intervalo}</p>
             </div>
             <span className="micro" style={{ color: j.id === 'jornada' ? 'var(--jade)' : 'var(--dimmer)' }}>
-              {j.id === 'jornada' ? 'nunca zera' : 'zera'}
+              {j.id === 'jornada' ? 'nunca zera' : 'anda com você'}
             </span>
           </div>
         ))}
       </div>
       <p className="micro muted" style={{ lineHeight: 1.65 }}>
-        As três primeiras zeram porque medem ritmo. A última guarda tudo, porque o que você já treinou não
-        deixa de ter acontecido.
+        O Ritmo olha sempre pros últimos trinta dias, então ele anda junto com você e mede hábito. A Jornada
+        guarda tudo, porque o que você já treinou não deixa de ter acontecido.
       </p>
 
       <div className="divider" />
