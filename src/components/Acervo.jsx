@@ -24,6 +24,31 @@ import { duracaoTexto, TEMAS_AULA } from '../db/aulas';
 
 const nomeTema = (id) => TEMAS_AULA.find((t) => t.id === id)?.nome || id;
 
+/* ============================================================
+   DE QUEM E O VIDEO
+
+   Tres respostas possiveis, e a lista precisa deixar isso claro
+   sem ninguem abrir nada. Antes era um booleano de premium, e
+   olhando a lista nao dava pra saber se o video era da
+   assinatura ou vendido separado.
+   ============================================================ */
+export const ACESSOS = [
+  {
+    id: 'todos', nome: 'Gratuito', chip: 'grátis', tom: 'jade',
+    resumo: 'Qualquer conta abre, dentro do limite do dia do plano grátis.',
+  },
+  {
+    id: 'assinantes', nome: 'Só assinantes', chip: 'premium', tom: 'accent',
+    resumo: 'Faz parte da assinatura e não é vendido separado. Quem assina abre, quem não assina vê o convite.',
+  },
+  {
+    id: 'avulso', nome: 'Vendido à parte', chip: 'avulso', tom: 'roar',
+    resumo: 'Não entra na assinatura. Tem checkout próprio, e nem quem assina abre sem comprar.',
+  },
+];
+
+const acessoDe = (id) => ACESSOS.find((a) => a.id === id) || ACESSOS[0];
+
 export default function Acervo() {
   const toast = useToast();
 
@@ -122,6 +147,7 @@ export default function Acervo() {
         posicoes: v.posicoes,
         faixa: v.faixa,
         revisar: v.precisaRevisar,
+        acesso: 'todos',
       }));
 
       const { data, error } = await supabase
@@ -170,8 +196,9 @@ export default function Acervo() {
     const q = busca.trim().toLowerCase();
     return lista.filter((a) => {
       if (filtro === 'revisar' && !a.revisar) return false;
-      if (filtro === 'premium' && !a.premium) return false;
+      if (filtro === 'pagos' && a.acesso === 'todos') return false;
       if (filtro === 'entrada' && !a.destaque) return false;
+      if (filtro === 'inativos' && a.ativo !== false) return false;
       if (filtro === 'aula' && a.tipo !== 'aula') return false;
       if (filtro === 'short' && a.tipo !== 'short') return false;
       return !q || a.titulo.toLowerCase().includes(q);
@@ -183,7 +210,7 @@ export default function Acervo() {
     aulas: lista.filter((a) => a.tipo === 'aula').length,
     shorts: lista.filter((a) => a.tipo === 'short').length,
     revisar: lista.filter((a) => a.revisar).length,
-    premium: lista.filter((a) => a.premium).length,
+    pagos: lista.filter((a) => a.acesso !== 'todos').length,
     entrada: lista.filter((a) => a.destaque).length,
   }), [lista]);
 
@@ -226,8 +253,9 @@ export default function Acervo() {
             { id: 'todos', nome: 'Tudo' },
             { id: 'aula', nome: 'Aulas' },
             { id: 'short', nome: 'Shorts' },
-            { id: 'premium', nome: 'Pagos' },
+            { id: 'pagos', nome: 'Pagos' },
             { id: 'entrada', nome: 'Entrada' },
+            { id: 'inativos', nome: 'Fora do ar' },
             { id: 'revisar', nome: 'Revisar' },
           ].map((o) => (
             <button key={o.id} className={filtro === o.id ? 'on' : ''} onClick={() => setFiltro(o.id)}>{o.nome}</button>
@@ -257,8 +285,14 @@ export default function Acervo() {
                 <div className="row wrap" style={{ gap: 6, marginTop: 6 }}>
                   <span className="micro muted num">{duracaoTexto(a.duracao)}</span>
                   <Chip>{a.tipo === 'aula' ? 'aula' : 'short'}</Chip>
-                  {a.premium && <Chip tone="roar">pago</Chip>}
+                  {a.acesso !== 'todos' && (
+                    <Chip tone={acessoDe(a.acesso).tom}>{acessoDe(a.acesso).chip}</Chip>
+                  )}
                   {a.destaque && <Chip tone="jade">entrada</Chip>}
+                  {a.acesso === 'avulso' && !a.checkout_url && (
+                    <Chip tone="blood">falta o link</Chip>
+                  )}
+                  {a.curso_id && <Chip tone="ice">curso {a.curso_id}</Chip>}
                   {a.revisar && <Chip tone="roar">revisar</Chip>}
                   {!a.ativo && <Chip>fora do ar</Chip>}
                   {(a.temas || []).map((t) => <Chip key={t}>{nomeTema(t)}</Chip>)}
@@ -414,9 +448,20 @@ export default function Acervo() {
 /* ============================================================
    UM VÍDEO
 
-   É aqui que o vídeo vira pago e ganha o link de compra dele.
-   O link fica no banco e não no código porque preço e produto
-   mudam por vídeo.
+/* ============================================================
+   UM VÍDEO
+
+   Tudo que decide a vida do vídeo dentro do app fica aqui,
+   agrupado por pergunta em vez de por campo:
+
+     o que é          título, descrição
+     de quem é        gratuito, de assinante ou vendido à parte
+     onde aparece     categorias, etiquetas, ordem, capa
+     está no ar       ativo, e se abre pra quem acabou de chegar
+
+   O link de compra só aparece quando o vídeo é vendido à parte.
+   Campo de checkout em vídeo gratuito não tem sentido e só dá
+   margem pra cadastrar errado.
    ============================================================ */
 function EditarAula({ aula, onClose, onSalvar }) {
   const toast = useToast();
@@ -425,42 +470,56 @@ function EditarAula({ aula, onClose, onSalvar }) {
 
   useEffect(() => {
     setF(aula ? {
-      titulo: aula.titulo,
-      premium: !!aula.premium,
+      titulo: aula.titulo || '',
+      descricao: aula.descricao || '',
+      acesso: aula.acesso || 'todos',
       checkout_url: aula.checkout_url || '',
-      destaque: !!aula.destaque,
+      capa_url: aula.capa_url || '',
+      ordem: aula.ordem ?? '',
       ativo: aula.ativo !== false,
+      destaque: !!aula.destaque,
       temas: (aula.temas || []).join(', '),
+      tags: (aula.tags || []).join(', '),
+      curso_id: aula.curso_id ?? '',
       revisar: !!aula.revisar,
     } : null);
   }, [aula]);
 
   if (!aula || !f) return null;
 
+  const listar = (txt) => String(txt).split(',').map((x) => x.trim()).filter(Boolean);
+  const acesso = acessoDe(f.acesso);
+  const faltaLink = f.acesso === 'avulso' && !f.checkout_url.trim();
+  const sugerido = categorizar(f.titulo);
+
   async function salvar() {
     setSalvando(true);
-    const temas = f.temas.split(',').map((x) => x.trim()).filter(Boolean);
+    const temas = listar(f.temas);
     const r = await onSalvar(aula, {
       titulo: f.titulo.trim(),
-      premium: f.premium,
-      destaque: f.destaque,
-      checkout_url: f.premium ? (f.checkout_url.trim() || null) : null,
+      descricao: f.descricao.trim() || null,
+      acesso: f.acesso,
+      checkout_url: f.acesso === 'avulso' ? (f.checkout_url.trim() || null) : null,
+      capa_url: f.capa_url.trim() || null,
+      ordem: f.ordem === '' ? null : Number(f.ordem),
       ativo: f.ativo,
+      destaque: f.destaque,
       temas: temas.length ? temas : ['geral'],
-      /* escolheu a categoria, então não precisa mais de revisão */
+      tags: listar(f.tags),
+      curso_id: f.curso_id === '' ? null : Number(f.curso_id),
       revisar: temas.length ? false : f.revisar,
     });
     setSalvando(false);
     if (r) { toast('Salvo'); onClose(); }
   }
 
-  const sugerido = categorizar(f.titulo);
-
   return (
     <Sheet
       aberto={!!aula}
       onClose={onClose}
       titulo="Vídeo"
+      subtitulo={duracaoTexto(aula.duracao)}
+      wide
       footer={
         <>
           <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
@@ -468,11 +527,16 @@ function EditarAula({ aula, onClose, onSalvar }) {
         </>
       }
     >
-      <div className="row" style={{ gap: 12, alignItems: 'flex-start', marginBottom: 6 }}>
+      <div className="row" style={{ gap: 12, alignItems: 'flex-start', marginBottom: 10 }}>
         <Capa id={aula.id} tamanho="mq" />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="micro muted num">{duracaoTexto(aula.duracao)}</div>
-          <div className="micro muted" style={{ marginTop: 3 }}>{aula.tipo === 'aula' ? 'aula longa' : 'short'}</div>
+          <div className="row wrap" style={{ gap: 6 }}>
+            <Chip>{aula.tipo === 'aula' ? 'aula longa' : 'short'}</Chip>
+            <Chip tone={acesso.tom}>{acesso.chip}</Chip>
+            {!f.ativo && <Chip>fora do ar</Chip>}
+            {f.destaque && <Chip tone="jade">entrada</Chip>}
+          </div>
+          <div className="micro muted num" style={{ marginTop: 6 }}>{aula.id}</div>
         </div>
       </div>
 
@@ -480,10 +544,67 @@ function EditarAula({ aula, onClose, onSalvar }) {
         <Input value={f.titulo} onChange={(e) => setF({ ...f, titulo: e.target.value })} />
       </Field>
 
+      <Field label="Descrição" hint="Uma ou duas frases sobre o que esta aula resolve.">
+        <Textarea
+          value={f.descricao}
+          onChange={(e) => setF({ ...f, descricao: e.target.value })}
+          rows={3}
+          placeholder="O que muda no jogo de quem assistir isto."
+        />
+      </Field>
+
+      <div className="eyebrow" style={{ marginTop: 6, marginBottom: 8 }}>de quem é este vídeo</div>
+      <div className="col" style={{ gap: 8, marginBottom: 12 }}>
+        {ACESSOS.map((a) => (
+          <button
+            key={a.id}
+            type="button"
+            className={'opcao-meta ' + (f.acesso === a.id ? 'on' : '')}
+            onClick={() => setF({ ...f, acesso: a.id })}
+          >
+            <div className="row" style={{ gap: 9, alignItems: 'flex-start' }}>
+              {a.id === 'todos'
+                ? <Unlock size={15} style={{ flex: 'none', marginTop: 2 }} />
+                : <Lock size={15} style={{ flex: 'none', marginTop: 2 }} />}
+              <div>
+                <div className="tiny" style={{ fontWeight: 600 }}>{a.nome}</div>
+                <p className="micro muted" style={{ marginTop: 3, lineHeight: 1.6 }}>{a.resumo}</p>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {f.acesso === 'avulso' && (
+        <Field
+          label="Link de compra"
+          hint="O checkout da Hotmart deste vídeo. Sem ele, quem clicar não tem pra onde ir."
+        >
+          <Input
+            value={f.checkout_url}
+            onChange={(e) => setF({ ...f, checkout_url: e.target.value })}
+            placeholder="https://pay.hotmart.com/..."
+            inputMode="url"
+          />
+        </Field>
+      )}
+
+      {faltaLink && (
+        <div className="valida ruim" style={{ marginBottom: 12 }}>
+          <TriangleAlert size={14} className="valida-ico" style={{ color: 'var(--blood)' }} />
+          <p className="micro muted" style={{ lineHeight: 1.6 }}>
+            Dá pra salvar assim, e o app avisa quem clicar que o link não foi cadastrado. Mas enquanto ele
+            estiver vazio, este vídeo não vende.
+          </p>
+        </div>
+      )}
+
+      <div className="eyebrow" style={{ marginTop: 6, marginBottom: 8 }}>onde aparece</div>
+
       <Field
         label="Categorias"
         hint={sugerido.temas.length
-          ? `Pelo título, o app diria: ${sugerido.temas.join(', ')}.`
+          ? 'Pelo título, o app diria: ' + sugerido.temas.join(', ') + '.'
           : 'O título não bate com nenhuma categoria existente. Escolha uma.'}
       >
         <Input
@@ -493,14 +614,14 @@ function EditarAula({ aula, onClose, onSalvar }) {
         />
       </Field>
 
-      <div className="row wrap" style={{ gap: 7, marginTop: -4, marginBottom: 10 }}>
+      <div className="row wrap" style={{ gap: 7, marginTop: -4, marginBottom: 12 }}>
         {TEMAS_AULA.map((t) => (
           <button
             key={t.id}
             type="button"
             className="chip"
             onClick={() => {
-              const atuais = f.temas.split(',').map((x) => x.trim()).filter(Boolean);
+              const atuais = listar(f.temas);
               if (atuais.includes(t.id)) return;
               setF({ ...f, temas: [...atuais, t.id].join(', ') });
             }}
@@ -510,14 +631,53 @@ function EditarAula({ aula, onClose, onSalvar }) {
         ))}
       </div>
 
+      <Field label="Etiquetas" hint="Suas, livres, só pra você achar depois. Não mudam o que o app recomenda.">
+        <Input
+          value={f.tags}
+          onChange={(e) => setF({ ...f, tags: e.target.value })}
+          placeholder="regravar, campeonato 2026"
+        />
+      </Field>
+
+      <div className="grid g2" style={{ gap: 12 }}>
+        <Field label="Ordem" hint="Menor vem primeiro. Vazio deixa o app ordenar.">
+          <Input
+            type="number"
+            inputMode="numeric"
+            value={f.ordem}
+            onChange={(e) => setF({ ...f, ordem: e.target.value })}
+            placeholder="vazio"
+          />
+        </Field>
+        <Field label="Curso" hint="Nenhum curso cadastrado ainda. O campo fica pronto pra quando existir.">
+          <Input
+            type="number"
+            inputMode="numeric"
+            value={f.curso_id}
+            onChange={(e) => setF({ ...f, curso_id: e.target.value })}
+            placeholder="nenhum"
+          />
+        </Field>
+      </div>
+
+      <Field label="Miniatura própria" hint="Vazio usa a do YouTube, que é o normal.">
+        <Input
+          value={f.capa_url}
+          onChange={(e) => setF({ ...f, capa_url: e.target.value })}
+          placeholder="https://..."
+          inputMode="url"
+        />
+      </Field>
+
+      <div className="eyebrow" style={{ marginTop: 6, marginBottom: 8 }}>está no ar</div>
+
       <button
         type="button"
-        className={`opcao-meta ${f.destaque ? 'on' : ''}`}
+        className={'opcao-meta ' + (f.destaque ? 'on' : '')}
         onClick={() => setF({ ...f, destaque: !f.destaque })}
-        style={{ marginTop: 6 }}
       >
-        <div className="row" style={{ gap: 9 }}>
-          <Sparkles size={15} style={{ flex: 'none' }} />
+        <div className="row" style={{ gap: 9, alignItems: 'flex-start' }}>
+          <Sparkles size={15} style={{ flex: 'none', marginTop: 2 }} />
           <div>
             <div className="tiny" style={{ fontWeight: 600 }}>
               {f.destaque ? 'Aparece pra quem acabou de chegar' : 'Mostrar pra quem acabou de chegar'}
@@ -532,42 +692,12 @@ function EditarAula({ aula, onClose, onSalvar }) {
 
       <button
         type="button"
-        className={`opcao-meta ${f.premium ? 'on' : ''}`}
-        onClick={() => setF({ ...f, premium: !f.premium })}
-      >
-        <div className="row" style={{ gap: 9 }}>
-          {f.premium ? <Lock size={15} style={{ flex: 'none' }} /> : <Unlock size={15} style={{ flex: 'none' }} />}
-          <div>
-            <div className="tiny" style={{ fontWeight: 600 }}>
-              {f.premium ? 'Este vídeo é pago' : 'Este vídeo está liberado'}
-            </div>
-            <p className="micro muted" style={{ marginTop: 3, lineHeight: 1.6 }}>
-              {f.premium
-                ? 'Quem assina vê o link de compra avulsa. Quem está no grátis vê o link da assinatura.'
-                : 'Entra nos limites normais do plano, sem cobrança à parte.'}
-            </p>
-          </div>
-        </div>
-      </button>
-
-      {f.premium && (
-        <Field label="Link de compra avulsa" hint="O checkout da Hotmart deste vídeo. Deixe vazio se ainda não criou.">
-          <Input
-            value={f.checkout_url}
-            onChange={(e) => setF({ ...f, checkout_url: e.target.value })}
-            placeholder="https://pay.hotmart.com/..."
-          />
-        </Field>
-      )}
-
-      <button
-        type="button"
-        className={`opcao-meta ${!f.ativo ? 'on' : ''}`}
+        className={'opcao-meta ' + (!f.ativo ? 'on' : '')}
         onClick={() => setF({ ...f, ativo: !f.ativo })}
-        style={{ marginTop: 10 }}
+        style={{ marginTop: 8 }}
       >
-        <div className="row" style={{ gap: 9 }}>
-          <Trash2 size={15} style={{ flex: 'none' }} />
+        <div className="row" style={{ gap: 9, alignItems: 'flex-start' }}>
+          <Trash2 size={15} style={{ flex: 'none', marginTop: 2 }} />
           <div>
             <div className="tiny" style={{ fontWeight: 600 }}>
               {f.ativo ? 'Tirar do ar' : 'Vai ficar fora do ar'}
@@ -581,3 +711,4 @@ function EditarAula({ aula, onClose, onSalvar }) {
     </Sheet>
   );
 }
+

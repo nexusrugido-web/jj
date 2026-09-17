@@ -2452,3 +2452,80 @@ body.player-cheio .sheet-overlay { backdrop-filter: none; -webkit-backdrop-filte
 }
 
 .player-barra .player-linha .micro { color: var(--chalk); }
+
+/* ============ CASCA DO PAINEL ============
+   O painel tem a navegação dele. Quem administra não precisa do
+   menu de Treinos e Nutrição do lado, e ter aquilo em volta fazia
+   a tela parecer uma aba perdida do app em vez de ferramenta. */
+.admin-casca {
+  display: flex; min-height: 100svh;
+  background: var(--void);
+}
+
+.admin-lado {
+  width: 232px; flex: none;
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 16px 12px calc(16px + env(safe-area-inset-bottom));
+  border-right: 1px solid var(--seam);
+  background: var(--mat);
+  position: sticky; top: 0; align-self: flex-start; max-height: 100svh;
+  overflow-y: auto;
+}
+
+.admin-voltar {
+  display: flex; align-items: center; gap: 7px;
+  padding: 8px 10px; margin-bottom: 8px;
+  border: 1px solid var(--seam); border-radius: 10px;
+  background: transparent; color: var(--dim);
+  font-size: 12px; cursor: pointer;
+  transition: color .18s var(--ease), border-color .18s var(--ease);
+}
+.admin-voltar:hover { color: var(--chalk); border-color: var(--seam-hi); }
+
+.admin-marca {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 10px 14px;
+  border-bottom: 1px solid var(--seam); margin-bottom: 10px;
+}
+
+.admin-nav { display: flex; flex-direction: column; gap: 2px; }
+
+.admin-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 11px; border: 0; border-radius: 10px;
+  background: transparent; color: var(--dim);
+  font-size: 13px; text-align: left; cursor: pointer; width: 100%;
+  transition: background .18s var(--ease), color .18s var(--ease);
+}
+.admin-item:hover { background: var(--mat-hi); color: var(--chalk); }
+.admin-item.on {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--chalk); font-weight: 600;
+}
+.admin-item.on svg { color: var(--accent); }
+
+.admin-corpo {
+  flex: 1; min-width: 0;
+  padding: 24px 22px calc(40px + env(safe-area-inset-bottom));
+  max-width: 1040px;
+}
+
+.admin-topo {
+  display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 760px) {
+  .admin-casca { flex-direction: column; }
+  .admin-lado {
+    width: 100%; max-height: none; position: static;
+    border-right: 0; border-bottom: 1px solid var(--seam);
+    padding-bottom: 10px;
+  }
+  .admin-marca { display: none; }
+  .admin-nav { flex-direction: row; overflow-x: auto; gap: 6px; padding-bottom: 2px; }
+  .admin-nav::-webkit-scrollbar { display: none; }
+  .admin-item { white-space: nowrap; padding: 9px 13px; }
+  .admin-item span { font-size: 12.5px; }
+  .admin-corpo { padding: 18px 16px calc(40px + env(safe-area-inset-bottom)); }
+}

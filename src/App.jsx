@@ -468,16 +468,27 @@ export default function App() {
   return (
     <ToastProvider>
       <AppCtx.Provider value={ctx}>
-        <Layout
-          ehAdmin={ehAdmin}
-          recado={recado}
-          ligada={ligadaAgora}
-          onComoUsar={() => setTourAberto(true)}
-          rota={rota} irPara={irPara} settings={settings} badges={badges} sync={sync}
-          onInstalar={() => setInstalarAberto(true)}
-        >
-          <Pagina key={rota} />
-        </Layout>
+        {/* O painel tem a casca dele. Quem administra nao precisa do
+            menu de Treinos e Nutricao em volta, e ter aquilo do lado
+            fazia o painel parecer uma aba perdida do app. */}
+        {rota === 'admin' ? (
+          <RedeDaPagina>
+            <Suspense fallback={<div className="entrada"><span className="brand-mark pulse" /></div>}>
+              <Pagina key={rota} />
+            </Suspense>
+          </RedeDaPagina>
+        ) : (
+          <Layout
+            ehAdmin={ehAdmin}
+            recado={recado}
+            ligada={ligadaAgora}
+            onComoUsar={() => setTourAberto(true)}
+            rota={rota} irPara={irPara} settings={settings} badges={badges} sync={sync}
+            onInstalar={() => setInstalarAberto(true)}
+          >
+            <Pagina key={rota} />
+          </Layout>
+        )}
         <InstallPrompt forcarAberto={instalarAberto} onFechar={() => setInstalarAberto(false)} />
         {atualizar && (
           <div className="aviso-update">

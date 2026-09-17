@@ -24,7 +24,7 @@ import Quiz from '../components/Quiz';
 import { PERGUNTAS } from '../db/quiz';
 import { useLimite } from '../components/Limite';
 import { limitarLista, LIMITES, RECOMENDACOES_NA_TELA } from '../lib/plano';
-import { jaComprou } from '../lib/pago';
+import { jaComprou, ehLivre } from '../lib/pago';
 
 export default function Estudo() {
   const { settings, rolls, partners, sessions, techniques, irPara, ligada, acesso, acervoVer } = useApp();
@@ -355,13 +355,17 @@ function ListaAulas({ aulas, vistas, onTocar, grade = false }) {
             <Capa id={a.id} tamanho="mq" />
             <span className="aula-dur">{duracaoTexto(a.d)}</span>
             {v.has(a.id) && <span className="aula-visto"><Check size={11} /></span>}
-            <span className="aula-play">{a.premium && !jaComprou(a.id) ? <Lock size={15} /> : <Play size={16} />}</span>
+            <span className="aula-play">{!ehLivre(a) && !jaComprou(a.id) ? <Lock size={15} /> : <Play size={16} />}</span>
           </div>
           <div className="aula-txt">
             <div className="aula-titulo">{a.t}</div>
             <div className="row wrap" style={{ gap: 5, marginTop: 6 }}>
               {a.k === 'short' ? <Chip>short</Chip> : <Chip tone="warn">aula</Chip>}
-              {a.premium && <Chip tone="roar">{jaComprou(a.id) ? 'sua' : 'à parte'}</Chip>}
+              {!ehLivre(a) && (
+                <Chip tone="roar">
+                  {jaComprou(a.id) ? 'sua' : a.acesso === 'assinantes' ? 'premium' : 'à parte'}
+                </Chip>
+              )}
               {a.f && <Chip>{a.f}</Chip>}
               {a.tm?.includes('logica') && <Chip tone="ice">lógica</Chip>}
             </div>

@@ -68,13 +68,29 @@ export async function carregarCompras() {
    Devolve { pode } quando é pra tocar, e quando não é devolve
    pra onde mandar a pessoa e o que dizer pra ela.
    ------------------------------------------------------------ */
+/* de quem o video e, e o que isso significa pra quem esta olhando */
+export const ehLivre = (aula) => !aula?.acesso || aula.acesso === 'todos';
+
 export function rotaDoVideo(aula, acesso, { cobrando, comprado, link }) {
-  if (!aula?.premium) return { pode: true };
+  if (ehLivre(aula)) return { pode: true };
 
   /* com a cobrança desligada no painel, nada é pago ainda */
   if (!cobrando) return { pode: true };
 
   if (comprado) return { pode: true, comprado: true };
+
+  /* video de assinante nao vende separado: quem assina, ve */
+  if (aula.acesso === 'assinantes') {
+    if (acesso?.premium) return { pode: true };
+    return {
+      pode: false,
+      motivo: 'assinatura',
+      link: link || null,
+      titulo: 'Esta aula é do premium',
+      texto: 'Ela faz parte da assinatura. Assinando, a biblioteca abre inteira.',
+      acao: 'Ver o premium',
+    };
+  }
 
   if (acesso?.premium) {
     return {

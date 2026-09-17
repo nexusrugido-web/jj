@@ -32,8 +32,11 @@ function daTabela(l) {
     tm: l.temas?.length ? l.temas : ['geral'],
     p: l.posicoes || [],
     f: l.faixa || undefined,
-    premium: !!l.premium,
+    acesso: l.acesso || 'todos',
     destaque: !!l.destaque,
+    ordem: l.ordem ?? null,
+    descricao: l.descricao || null,
+    capa: l.capa_url || null,
     checkout: l.checkout_url || null,
   };
 }

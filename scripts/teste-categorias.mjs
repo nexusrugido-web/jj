@@ -117,28 +117,41 @@ ok('o formato curto das telas foi mantido', acervo()[0].t && acervo()[0].k && Ar
 console.log('');
 const { rotaDoVideo } = await import('../src/lib/pago.js');
 
-const pago = { id: 'v1', premium: true, checkout: 'https://pay.hotmart.com/avulso' };
-const livre = { id: 'v2', premium: false };
+/* de quem o video e: todos, assinantes ou avulso */
+const avulso = { id: 'v1', acesso: 'avulso', checkout: 'https://pay.hotmart.com/avulso' };
+const soAssinante = { id: 'v2', acesso: 'assinantes' };
+const livre = { id: 'v3', acesso: 'todos' };
 const ASS = 'https://pay.hotmart.com/assinatura';
 const ctx = (x) => ({ cobrando: true, comprado: false, link: ASS, ...x });
 
-ok('video livre toca pra qualquer um', rotaDoVideo(livre, null, ctx()).pode === true);
+ok('video de todos toca pra qualquer um', rotaDoVideo(livre, null, ctx()).pode === true);
+ok('video sem acesso definido conta como de todos',
+  rotaDoVideo({ id: 'v4' }, null, ctx()).pode === true);
 ok('cobranca desligada libera ate o video pago',
-  rotaDoVideo(pago, null, ctx({ cobrando: false })).pode === true);
+  rotaDoVideo(avulso, null, ctx({ cobrando: false })).pode === true);
 
-const free = rotaDoVideo(pago, { premium: false }, ctx());
-ok('gratuito nao toca video pago', free.pode === false);
+/* o de assinante nao vende separado: quem assina, ve */
+const assNoSeu = rotaDoVideo(soAssinante, { premium: true }, ctx());
+ok('assinante abre o video de assinante', assNoSeu.pode === true);
+
+const freeNoAss = rotaDoVideo(soAssinante, { premium: false }, ctx());
+ok('gratuito nao abre o video de assinante', freeNoAss.pode === false);
+ok('e vai pro link da assinatura', freeNoAss.link === ASS, freeNoAss.link);
+
+/* o avulso nem o assinante abre sem comprar */
+const free = rotaDoVideo(avulso, { premium: false }, ctx());
+ok('gratuito nao toca video avulso', free.pode === false);
 ok('gratuito vai pro link da assinatura', free.link === ASS, free.link);
 
-const assinante = rotaDoVideo(pago, { premium: true }, ctx());
+const assinante = rotaDoVideo(avulso, { premium: true }, ctx());
 ok('assinante tambem nao toca video vendido a parte', assinante.pode === false);
 ok('assinante vai pro link de compra avulsa daquele video',
   assinante.link === 'https://pay.hotmart.com/avulso', assinante.link);
 
-ok('quem comprou toca', rotaDoVideo(pago, { premium: true }, ctx({ comprado: true })).pode === true);
-ok('quem comprou toca mesmo sem assinar', rotaDoVideo(pago, null, ctx({ comprado: true })).pode === true);
-ok('video pago sem link cadastrado nao inventa link',
-  rotaDoVideo({ id: 'v3', premium: true }, { premium: true }, ctx()).link === null);
+ok('quem comprou toca', rotaDoVideo(avulso, { premium: true }, ctx({ comprado: true })).pode === true);
+ok('quem comprou toca mesmo sem assinar', rotaDoVideo(avulso, null, ctx({ comprado: true })).pode === true);
+ok('video avulso sem link cadastrado nao inventa link',
+  rotaDoVideo({ id: 'v5', acesso: 'avulso' }, { premium: true }, ctx()).link === null);
 
 /* ============================================================
    QUEM ACABOU DE CHEGAR TEM O QUE VER

@@ -11,6 +11,8 @@ import {
 import { carregarChaves, souAdminNoServidor } from '../lib/chaves';
 import Acervo from '../components/Acervo';
 import Numeros from '../components/Numeros';
+import Contas from '../components/Contas';
+import CascaAdmin from '../components/CascaAdmin';
 
 /* ============================================================
    PAINEL DO ADMINISTRADOR
@@ -42,7 +44,7 @@ export default function Admin() {
   /* null = ainda perguntando, false = a tela abriu pelo atalho do
      aparelho e o servidor não reconhece esta conta */
   const [permissaoReal, setPermissaoReal] = useState(null);
-  const [aba, setAba] = useState('produto');
+  const [aba, setAba] = useState('visao');
 
   async function buscar() {
     if (!supabase) return;
@@ -234,35 +236,13 @@ export default function Admin() {
   }
 
   return (
-    <div className="page">
-      <div className="page-head">
-        <div>
-          <div className="eyebrow">só você vê esta tela</div>
-          <h1 className="h-page">Painel</h1>
-        </div>
-        <Btn icon={RefreshCw} onClick={buscar} disabled={carregando}>Atualizar</Btn>
-      </div>
-
-      <div className="seletor-pill" style={{ marginBottom: 14 }}>
-        {[{ id: 'produto', nome: 'Produto' }, { id: 'acervo', nome: 'Acervo' }].map((o) => (
-          <button key={o.id} className={aba === o.id ? 'on' : ''} onClick={() => setAba(o.id)}>{o.nome}</button>
-        ))}
-      </div>
-
-      {aba === 'acervo' && <Acervo />}
-
-
-      {permissaoReal === true && (
-        <div className="valida bom" style={{ marginBottom: 14 }}>
-          <Check size={15} className="valida-ico" style={{ color: 'var(--jade)' }} />
-          <p className="micro muted" style={{ lineHeight: 1.65 }}>
-            O servidor reconhece esta conta. O que você ligar aqui vale pra todo mundo assim que o app abrir.
-          </p>
-        </div>
-      )}
-
-      {aba === 'produto' && (<>
-
+    <CascaAdmin
+      secao={aba}
+      onSecao={setAba}
+      onSair={() => irPara('painel')}
+      acoes={<Btn icon={RefreshCw} onClick={buscar} disabled={carregando}>Atualizar</Btn>}
+    >
+      {aba === 'visao' && (<>
       {/* números */}
       {numeros && (
         <Card style={{ marginBottom: 14 }}>
@@ -351,6 +331,11 @@ export default function Admin() {
         </Card>
       )}
 
+      </>)}
+
+      {aba === 'acervo' && <Acervo />}
+
+      {aba === 'acessos' && (<>
       {/* chaves por grupo */}
       {GRUPOS.map((g) => {
         const doGrupo = chaves.filter((c) => c.grupo === g.id);
@@ -399,8 +384,16 @@ export default function Admin() {
         );
       })}
 
+      </>)}
+
+      {aba === 'contas' && <Contas />}
+
+      {aba === 'ajustes' && (<>
       <Numeros />
 
+      </>)}
+
+      {aba === 'recado' && (<>
       {/* recado */}
       <Card>
         <div className="card-head">
@@ -437,7 +430,7 @@ export default function Admin() {
         </div>
       </Card>
       </>)}
-    </div>
+    </CascaAdmin>
   );
 }
 
