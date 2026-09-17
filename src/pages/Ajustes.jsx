@@ -6,7 +6,6 @@ import {
 } from 'lucide-react';
 import { useApp } from '../contexto';
 import Plano from '../components/Plano';
-import { ligarAdminLocal } from '../lib/chaves';
 import TesteVideo from '../components/TesteVideo';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, exportAll, importAll, wipeAll, toCSV, ensureSeed } from '../db/db';
@@ -41,7 +40,7 @@ const CARDS_DASH = [
 
 export default function Ajustes() {
   const [toquesVersao, setToquesVersao] = useState(0);
-  const { settings, salvarSettings, sessions, rolls, techniques, partners, abrirInstalar, sessao, sync, abrirLogin, erroBoot, abrirTour, refazerOnboarding, acesso, recarregarAcesso, ligada, ehAdmin, irPara } = useApp();
+  const { settings, salvarSettings, sessions, rolls, techniques, partners, abrirInstalar, sessao, sync, abrirLogin, erroBoot, abrirTour, refazerOnboarding, acesso, recarregarAcesso, ligada, irPara } = useApp();
   const [temIA, setTemIA] = useState(null);
   const [sincronizando, setSincronizando] = useState(false);
   const toast = useToast();
@@ -202,39 +201,6 @@ export default function Ajustes() {
           <Btn icon={Info} onClick={abrirTour}>Ver o tour</Btn>
           <Btn variant="ghost" onClick={refazerOnboarding}>Refazer meu perfil</Btn>
         </div>
-      </Card>
-
-      <Card style={{ marginBottom: 14 }}>
-        <div className="card-head">
-          <div>
-            <div className="eyebrow">só aparece pra quem procura</div>
-            <h2 className="h-sec">Painel do administrador</h2>
-          </div>
-          {ehAdmin && <Chip tone="jade">liberado</Chip>}
-        </div>
-        <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-          {ehAdmin
-            ? 'O painel está no menu, em Sistema. De lá dá pra ligar e desligar recurso, ver os números e testar a liga.'
-            : 'Se você cuida deste app, dá pra destravar o painel aqui. Ele mostra os números, as chaves de recurso e o estado da liga.'}
-        </p>
-        <div className="row wrap" style={{ gap: 8, marginTop: 13 }}>
-          {ehAdmin ? (
-            <>
-              <Btn size="sm" variant="primary" onClick={() => irPara('admin')}>Abrir o painel</Btn>
-              <Btn size="sm" variant="ghost" onClick={() => { ligarAdminLocal(false); location.reload(); }}>
-                Travar de novo
-              </Btn>
-            </>
-          ) : (
-            <Btn size="sm" onClick={() => { ligarAdminLocal(true); location.reload(); }}>
-              Destravar o painel
-            </Btn>
-          )}
-        </div>
-        <p className="micro muted" style={{ marginTop: 10, lineHeight: 1.6 }}>
-          Destravar aqui só abre a tela neste aparelho. Salvar qualquer coisa continua exigindo permissão de
-          verdade no servidor.
-        </p>
       </Card>
 
       <TesteVideo />

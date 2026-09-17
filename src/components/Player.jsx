@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Check, Play, Pause, TriangleAlert, Maximize, Minimize } from 'lucide-react';
+import { Check, Play, Pause, TriangleAlert, Maximize, Minimize, Subtitles } from 'lucide-react';
 import { Btn, Sheet, Bar } from './UI';
 import { embed, duracaoTexto } from '../db/aulas';
-import { trechoValido } from '../lib/aulas';
+import { trechoValido, ondePodeVoltar } from '../lib/aulas';
 
 /* ============================================================
    PLAYER DE AULA
@@ -43,11 +43,15 @@ export default function Player({ aula, onClose, onConcluir }) {
   const [semApi, setSemApi] = useState(false);
   const [rodando, setRodando] = useState(false);
   const [naTela, setNaTela] = useState(0);
+  const [agora, setAgora] = useState(0);      // onde a agulha está
+  const [ate, setAte] = useState(0);          // até onde já foi assistido
+  const [legendas, setLegendas] = useState(false);
 
   const player = useRef(null);
   const timer = useRef(null);
   const assistido = useRef(0);   // segundos de aula que passaram de verdade
   const ultimo = useRef(0);      // onde a agulha estava na última conferida
+  const limite = useRef(0);      // o ponto mais longe que a aula já chegou
 
   useEffect(() => {
     if (!aula) return;
@@ -55,6 +59,8 @@ export default function Player({ aula, onClose, onConcluir }) {
     setRodando(false); setNaTela(0);
     assistido.current = 0;
     ultimo.current = 0;
+    limite.current = 0;
+    setAgora(0); setAte(0); setLegendas(false);
 
     const iniciar = () => {
       if (!ref.current || !window.YT?.Player) return;
@@ -68,9 +74,18 @@ export default function Player({ aula, onClose, onConcluir }) {
           iv_load_policy: 3,  // sem cartão clicável por cima
           playsinline: 1,
           modestbranding: 1,
+          cc_load_policy: 0,  // legenda não entra sozinha
         },
         events: {
-          onReady: () => { setPronto(true); ultimo.current = 0; },
+          onReady: () => {
+            setPronto(true);
+            ultimo.current = 0;
+            /* a conta do YouTube da pessoa pode forçar legenda
+               automática mesmo com cc_load_policy zerado. Tirar o
+               módulo é o único jeito que funciona sempre. */
+            try { player.current?.unloadModule?.('captions'); } catch { /* sem o módulo */ }
+            try { player.current?.unloadModule?.('cc'); } catch { /* sem o módulo */ }
+          },
           onStateChange: (e) => {
             setRodando(e.data === 1);
 
@@ -82,12 +97,18 @@ export default function Player({ aula, onClose, onConcluir }) {
                   const d = p.getDuration();
                   if (!(d > 0)) return;
 
-                  const agora = p.getCurrentTime();
                   const vel = p.getPlaybackRate?.() || 1;
 
-                  assistido.current += trechoValido(ultimo.current, agora, vel);
-                  ultimo.current = agora;
+                  const onde = p.getCurrentTime();
+                  assistido.current += trechoValido(ultimo.current, onde, vel);
+                  ultimo.current = onde;
 
+                  /* o ponto mais longe que a aula chegou tocando. É até
+                     aqui que a barra deixa voltar, e nem um segundo além. */
+                  limite.current = Math.max(limite.current, onde);
+
+                  setAgora(onde);
+                  setAte(limite.current);
                   setProgresso(Math.min(100, Math.round((assistido.current / d) * 100)));
                 } catch { /* player fechando */ }
               }, 1000);
@@ -152,6 +173,37 @@ export default function Player({ aula, onClose, onConcluir }) {
   useEffect(() => {
     if (progresso >= FRACAO_PRA_CONCLUIR * 100 && !concluida) setConcluida(true);
   }, [progresso, concluida]);
+
+  /* ------------------------------------------------------------
+     VOLTAR SIM, PULAR NAO
+
+     A barra anda ate onde a aula ja chegou tocando, e nem um
+     segundo alem. Da pra voltar e rever o pedaco que nao entrou,
+     que e o motivo de existir barra numa aula, sem abrir a porta
+     pra jogar a agulha no fim e marcar como vista.
+     ------------------------------------------------------------ */
+  function irPara(seg) {
+    const pt = player.current;
+    if (!pt) return;
+    const alvo = ondePodeVoltar(seg, limite.current);
+    try {
+      pt.seekTo(alvo, true);
+      ultimo.current = alvo;
+      setAgora(alvo);
+    } catch { /* player fechando */ }
+    acordarControles();
+  }
+
+  function virarLegendas() {
+    const pt = player.current;
+    if (!pt) return;
+    try {
+      if (legendas) { pt.unloadModule('captions'); pt.unloadModule('cc'); }
+      else { pt.loadModule('captions'); pt.loadModule('cc'); }
+      setLegendas(!legendas);
+    } catch { /* o video pode nao ter legenda */ }
+    acordarControles();
+  }
 
   function virarPlay() {
     const p = player.current;
@@ -237,6 +289,30 @@ export default function Player({ aula, onClose, onConcluir }) {
 
   if (!aula) return null;
 
+  /* a mesma barra serve pra tela cheia e pra janela */
+  const barra = (
+    <div className="player-linha">
+      <input
+        className="player-range"
+        type="range"
+        min={0}
+        max={Math.max(1, aula.d)}
+        value={Math.round(agora)}
+        step={1}
+        disabled={semApi || ate < 2}
+        onChange={(e) => irPara(e.target.value)}
+        aria-label="Voltar na aula"
+        style={{
+          '--visto': Math.min(100, (ate / Math.max(1, aula.d)) * 100) + '%',
+          '--agulha': Math.min(100, (agora / Math.max(1, aula.d)) * 100) + '%',
+        }}
+      />
+      <span className="micro num muted" style={{ minWidth: 78, textAlign: 'right' }}>
+        {duracaoTexto(Math.round(agora))} de {duracaoTexto(aula.d)}
+      </span>
+    </div>
+  );
+
   const vistos = Math.round((progresso / 100) * aula.d);
 
   return (
@@ -286,8 +362,12 @@ export default function Player({ aula, onClose, onConcluir }) {
                   {rodando ? 'Pausar' : 'Tocar'}
                 </button>
               )}
-              <Bar v={progresso} max={100} tone={concluida ? 'jade' : ''} />
-              <span className="micro num" style={{ color: 'var(--chalk)' }}>{progresso}%</span>
+              {barra}
+              {!semApi && (
+                <button className="btn ghost xs" onClick={virarLegendas} disabled={!pronto}>
+                  <Subtitles size={13} /> {legendas ? 'Tirar legenda' : 'Legenda'}
+                </button>
+              )}
               <button className="btn ghost xs" onClick={virarCheio}>
                 <Minimize size={13} /> Sair
               </button>
@@ -314,14 +394,21 @@ export default function Player({ aula, onClose, onConcluir }) {
             </Btn>
           )}
           <Btn size="sm" icon={Maximize} onClick={virarCheio}>Tela cheia</Btn>
+          {!semApi && (
+            <Btn size="sm" icon={Subtitles} onClick={virarLegendas} disabled={!pronto}>
+              {legendas ? 'Tirar legenda' : 'Legenda'}
+            </Btn>
+          )}
         </div>
+
+        {!semApi && barra}
 
         <Bar v={progresso} max={100} tone={concluida ? 'jade' : ''} />
         <span className="micro muted">
           {concluida
             ? 'Pode marcar como vista.'
             : progresso > 0
-              ? `${progresso}% assistido. O botão libera aos 90%, e pular pra frente não conta.`
+              ? `${progresso}% assistido. O botão libera aos 90%. Dá pra voltar e rever, mas não dá pra adiantar.`
               : pronto || semApi ? 'Toque no play pra começar.' : 'Carregando a aula.'}
         </span>
       </div>

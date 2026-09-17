@@ -469,6 +469,19 @@ export function aulaParaSituacao({
    assiste em 2x está assistindo, e rede travada faz a conferida
    atrasar e o passo sair maior que um segundo.
    ============================================================ */
+/* Até onde a barra deixa voltar.
+
+   Voltar é parte de estudar: o pedaço que não entrou a pessoa
+   precisa rever. Adiantar não é, porque adiantar é não assistir.
+   Então a agulha anda livre dentro do que já passou e para na
+   marca do ponto mais longe que a aula chegou. */
+export function ondePodeVoltar(pedido, limite) {
+  const p = Number(pedido);
+  const l = Number(limite);
+  if (!(l > 0) || !Number.isFinite(p)) return 0;
+  return Math.max(0, Math.min(p, l));
+}
+
 export function trechoValido(de, para, velocidade = 1) {
   const passo = Number(para) - Number(de);
   if (!(passo > 0)) return 0;

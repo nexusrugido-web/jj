@@ -19,7 +19,7 @@ import 'fake-indexeddb/auto';
 
 const { db } = await import('../src/db/db.js');
 const { usadoHoje, LIMITES } = await import('../src/lib/plano.js');
-const { trechoValido } = await import('../src/lib/aulas.js');
+const { trechoValido, ondePodeVoltar } = await import('../src/lib/aulas.js');
 
 const hoje = new Date().toISOString().slice(0, 10);
 const ontem = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
@@ -82,5 +82,20 @@ console.log(
   `\nlimites do gratuito: rola ${LIMITES.rolasPorDia}, aula ${LIMITES.aulasPorDia}, ` +
   `short ${LIMITES.shortsPorDia}, quiz ${LIMITES.perguntasPorDia}, recomendacao ${LIMITES.recomendacoesAbertas}`
 );
+/* ============================================================
+   VOLTAR SIM, ADIANTAR NAO
+
+   A barra existe pra rever o pedaco que nao entrou. Se ela
+   deixasse adiantar, seria a mesma cola de arrastar pro fim,
+   so que com outro nome.
+   ============================================================ */
+console.log('');
+ok('volta pro comeco', ondePodeVoltar(0, 300), 0);
+ok('volta pra um ponto ja assistido', ondePodeVoltar(120, 300), 120);
+ok('para na marca do que ja foi assistido', ondePodeVoltar(900, 300), 300);
+ok('nao aceita numero negativo', ondePodeVoltar(-50, 300), 0);
+ok('sem nada assistido, nao sai do lugar', ondePodeVoltar(100, 0), 0);
+ok('lixo no lugar do numero nao move a agulha', ondePodeVoltar('abc', 300), 0);
+
 console.log(falhas ? `\n${falhas} FALHA(S)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

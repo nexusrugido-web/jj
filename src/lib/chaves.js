@@ -122,33 +122,15 @@ export async function carregarRecado() {
 /* ============================================================
    SOU ADMINISTRADOR?
 
-   Tem duas respostas diferentes, e misturar as duas é o que
-   faz o painel parecer quebrado:
+   Só o servidor responde isso. Antes existia um atalho que
+   destravava a tela neste aparelho, e ele estava num botão
+   dentro dos Ajustes, à vista de qualquer aluno. A tela abria,
+   não salvava nada, e dava a impressão de app quebrado pra
+   quem só estava curioso.
 
-   - a do aparelho, que só abre a tela. Serve pra desenvolver.
-   - a do servidor, que é a que deixa salvar de verdade.
-
-   Quem entra por ?admin=1 vê a tela inteira, clica em tudo e
-   não grava nada, porque a regra do banco não conhece ele.
-   Por isso o painel pergunta as duas coisas e avisa quando as
-   respostas são diferentes.
+   Agora a resposta é uma só, e ela vem da tabela admin.
    ============================================================ */
-const CHAVE_LOCAL = 'tatame:admin';
-
-export function adminLocal() {
-  try { return localStorage.getItem(CHAVE_LOCAL) === '1'; } catch { return false; }
-}
-
-export function ligarAdminLocal(ligado) {
-  try {
-    if (ligado) localStorage.setItem(CHAVE_LOCAL, '1');
-    else localStorage.removeItem(CHAVE_LOCAL);
-  } catch { /* sem armazenamento */ }
-}
-
-/* a resposta do servidor, sem atalho nenhum. É esta que diz se
-   o que o painel salvar vai ficar salvo. */
-export async function souAdminNoServidor() {
+export async function souAdmin() {
   if (!supabase) return false;
   try {
     const { data, error } = await supabase.rpc('sou_admin');
@@ -159,17 +141,5 @@ export async function souAdminNoServidor() {
   }
 }
 
-export async function souAdmin() {
-  /* atalho de desenvolvimento pela URL */
-  try {
-    const q = new URLSearchParams(location.search);
-    if (q.get('admin') === '1') ligarAdminLocal(true);
-    if (q.get('admin') === '0') ligarAdminLocal(false);
-  } catch { /* sem URL */ }
-
-  if (adminLocal()) return true;
-
-  const real = await souAdminNoServidor();
-  if (real) ligarAdminLocal(true);
-  return real;
-}
+/* o painel pergunta de novo antes de deixar salvar */
+export const souAdminNoServidor = souAdmin;

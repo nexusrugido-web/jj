@@ -167,6 +167,72 @@ export default function Admin() {
     );
   }
 
+  /* ------------------------------------------------------------
+     A PORTA
+
+     Enquanto o servidor nao confirmar que esta conta administra
+     o app, o painel nao aparece. Nem os numeros, nem as chaves,
+     nem o acervo.
+
+     O painel abre pela resposta do servidor e por nada mais. Um
+     atalho no aparelho abriria a tela sem conseguir salvar, e
+     tela que abre e nao funciona parece app quebrado pra quem
+     so estava curioso.
+     ------------------------------------------------------------ */
+  if (permissaoReal === null) {
+    return (
+      <div className="page" style={{ display: 'grid', placeItems: 'center', minHeight: '50svh' }}>
+        <div className="col center" style={{ alignItems: 'center', gap: 12 }}>
+          <span className="brand-mark pulse" style={{ width: 40, height: 40, borderRadius: 13 }} />
+          <p className="tiny muted">Conferindo o seu acesso.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (permissaoReal === false) {
+    return (
+      <div className="page">
+        <div className="page-head">
+          <div>
+            <div className="eyebrow">area restrita</div>
+            <h1 className="h-page">Painel</h1>
+          </div>
+        </div>
+
+        <Card>
+          <div className="row" style={{ gap: 12, alignItems: 'flex-start' }}>
+            <span className="stat-ico" style={{ color: 'var(--roar)' }}><ShieldAlert size={16} /></span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="h-sec">Esta conta nao administra o app</div>
+              <p className="tiny muted" style={{ marginTop: 6, lineHeight: 1.7 }}>
+                O painel e onde se liga e desliga recurso pra todo mundo, entao ele so abre pra quem cuida
+                deste app. Se e o seu caso, rode a linha abaixo uma vez no SQL Editor do Supabase e
+                recarregue.
+              </p>
+              <pre className="codigo">{SQL_ADMIN(sessao?.user?.email)}</pre>
+              <div className="row wrap" style={{ gap: 8, marginTop: 10 }}>
+                <Btn
+                  size="sm"
+                  icon={Copy}
+                  onClick={() => {
+                    navigator.clipboard?.writeText(SQL_ADMIN(sessao?.user?.email))
+                      .then(() => toast('Copiado, cole no SQL Editor'))
+                      .catch(() => toast('Copie o texto na mao', 'err'));
+                  }}
+                >
+                  Copiar o comando
+                </Btn>
+                <Btn size="sm" variant="ghost" icon={RefreshCw} onClick={buscar}>Conferir de novo</Btn>
+                <Btn size="sm" variant="ghost" onClick={() => irPara('painel')}>Voltar</Btn>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="page">
       <div className="page-head">
@@ -185,36 +251,6 @@ export default function Admin() {
 
       {aba === 'acervo' && <Acervo />}
 
-      {permissaoReal === false && (
-        <Card style={{ marginBottom: 14, borderLeft: '3px solid var(--blood)' }}>
-          <div className="row" style={{ gap: 12, alignItems: 'flex-start' }}>
-            <span className="stat-ico" style={{ color: 'var(--blood)' }}><ShieldAlert size={16} /></span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="h-sec">Esta tela abriu, mas nada daqui vai ficar salvo</div>
-              <p className="tiny muted" style={{ marginTop: 6, lineHeight: 1.7 }}>
-                O painel destravou neste aparelho, e o servidor não conhece esta conta como administradora.
-                Os interruptores viram na tela e voltam sozinhos no próximo Atualizar. Rode a linha abaixo
-                uma vez no SQL Editor do Supabase e recarregue o app.
-              </p>
-              <pre className="codigo">{SQL_ADMIN(sessao?.user?.email)}</pre>
-              <div className="row wrap" style={{ gap: 8, marginTop: 10 }}>
-                <Btn
-                  size="sm"
-                  icon={Copy}
-                  onClick={() => {
-                    navigator.clipboard?.writeText(SQL_ADMIN(sessao?.user?.email))
-                      .then(() => toast('Copiado, cole no SQL Editor'))
-                      .catch(() => toast('Copie o texto na mão', 'err'));
-                  }}
-                >
-                  Copiar o comando
-                </Btn>
-                <Btn size="sm" variant="ghost" icon={RefreshCw} onClick={buscar}>Conferir de novo</Btn>
-              </div>
-            </div>
-          </div>
-        </Card>
-      )}
 
       {permissaoReal === true && (
         <div className="valida bom" style={{ marginBottom: 14 }}>
