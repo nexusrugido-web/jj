@@ -456,6 +456,26 @@ export function aulaParaSituacao({
 }
 
 /* ============================================================
+   O PEDAÇO QUE CONTA COMO ASSISTIDO
+
+   O player confere onde a agulha está uma vez por segundo. A
+   diferença entre duas conferidas é o que passou de aula, e é
+   isso que soma. Mas só quando ela cabe num segundo: passo
+   grande é a pessoa arrastando a barra pra frente, e passo
+   negativo é ela voltando. Nenhum dos dois é aula assistida.
+
+   A folga em cima da velocidade cobre duas coisas reais: quem
+   assiste em 2x está assistindo, e rede travada faz a conferida
+   atrasar e o passo sair maior que um segundo.
+   ============================================================ */
+export function trechoValido(de, para, velocidade = 1) {
+  const passo = Number(para) - Number(de);
+  if (!(passo > 0)) return 0;
+  if (passo > (Number(velocidade) || 1) * 1.6) return 0;
+  return passo;
+}
+
+/* ============================================================
    MARCAR AULA COMO VISTA
 
    Uma função só, usada no Estudo e no Painel. Antes o Painel

@@ -19,6 +19,7 @@ import 'fake-indexeddb/auto';
 
 const { db } = await import('../src/db/db.js');
 const { usadoHoje, LIMITES } = await import('../src/lib/plano.js');
+const { trechoValido } = await import('../src/lib/aulas.js');
 
 const hoje = new Date().toISOString().slice(0, 10);
 const ontem = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
@@ -52,6 +53,30 @@ await db.pontos.add({ evento: 'quizErro', data: hoje, xp: 3 });
 await db.pontos.add({ evento: 'treino', data: hoje, xp: 20 });
 await db.pontos.add({ evento: 'quizAcerto', data: ontem, xp: 10 });
 ok('quiz de hoje conta 2, treino nao entra', await usadoHoje('quiz'), 2);
+
+/* ============================================================
+   ARRASTAR A BARRA NAO CONTA COMO ASSISTIR
+
+   Sem isto, dava pra abrir uma aula de meia hora, jogar a barra
+   pro fim e marcar como vista. O ponto de estudo viraria um
+   ponto de clique.
+   ============================================================ */
+console.log('');
+ok('um segundo normal soma um segundo', trechoValido(10, 11, 1), 1);
+ok('assistir em 2x soma os dois segundos', trechoValido(10, 12, 2), 2);
+ok('rede travada, passo de 1.5s ainda soma', trechoValido(10, 11.5, 1), 1.5);
+ok('pulo de 5 minutos pra frente nao soma', trechoValido(10, 310, 1), 0);
+ok('pulo curto pra frente nao soma', trechoValido(10, 14, 1), 0);
+ok('voltar a barra nao soma', trechoValido(300, 10, 1), 0);
+ok('parado no mesmo lugar nao soma', trechoValido(10, 10, 1), 0);
+ok('em 2x, pulo de 10s continua sem somar', trechoValido(10, 20, 2), 0);
+
+/* a cola de verdade: abrir e arrastar direto pro fim */
+const aulaDe30min = 1800;
+let somado = 0;
+somado += trechoValido(0, 1, 1);          // tocou um segundo
+somado += trechoValido(1, aulaDe30min - 5, 1);  // arrastou pro fim
+ok('abrir e arrastar pro fim nao conclui', Math.round((somado / aulaDe30min) * 100), 0);
 
 console.log(
   `\nlimites do gratuito: rola ${LIMITES.rolasPorDia}, aula ${LIMITES.aulasPorDia}, ` +

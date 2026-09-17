@@ -15,7 +15,7 @@ import {
   aulasDoTema, aulasParaEstilo, aulasParaDor, aulasParaTecnica, aulaParaSituacao,
   resumoAcervo, capa, duracaoTexto, registrarAulaVista,
 } from '../lib/aulas';
-import { TEMAS_AULA, TEMA_POR_DOR, linkAula } from '../db/aulas';
+import { TEMAS_AULA, TEMA_POR_DOR } from '../db/aulas';
 import { minhasTecnicas, meusBuracos } from '../lib/graus';
 import { gerarRecomendacoes } from '../lib/recomendar';
 import { estiloPorId } from '../db/scoring';
