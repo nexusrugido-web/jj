@@ -16,6 +16,7 @@ import { subirPerfil, mexeuNoPerfil } from './lib/perfil';
 import { acervoLocal, sincronizarAcervo, observarAcervo } from './lib/acervo';
 import { carregarCompras } from './lib/pago';
 import { carregarAjustes, observarAjustes } from './lib/ajustes';
+import { carregarLinks, observarLinks } from './lib/links';
 import { registrarErro, marcarPasso, erroDeAcesso } from './lib/monitor';
 import { carregarChaves, carregarRecado, souAdmin, ligada, observarChaves, todasAsChaves } from './lib/chaves';
 import { sincronizarMarcos } from './lib/milestones';
@@ -149,6 +150,7 @@ export default function App() {
   const [acervoVer, setAcervoVer] = useState(0);
   useEffect(() => observarAcervo(() => setAcervoVer((n) => n + 1)), []);
   useEffect(() => observarAjustes(() => setAcervoVer((n) => n + 1)), []);
+  useEffect(() => observarLinks(() => setAcervoVer((n) => n + 1)), []);
   const ligadaAgora = useCallback(
     (id) => (chaves ? (chaves[id] ?? ligada(id)) : ligada(id)),
     [chaves]
@@ -234,6 +236,7 @@ export default function App() {
       sincronizarAcervo().catch(() => {});
       carregarCompras().catch(() => {});
       carregarAjustes().catch(() => {});
+      carregarLinks().catch(() => {});
       acessoLocal().then(setAcesso).catch(() => {});
       sincronizarAcesso().then(setAcesso).catch(erroDeAcesso);
       marcarEngajamento();

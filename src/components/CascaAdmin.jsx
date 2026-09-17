@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  LayoutDashboard, Film, CreditCard, Users, Sliders, Megaphone, ArrowLeft,
+  LayoutDashboard, Film, CreditCard, Users, Sliders, Megaphone, ArrowLeft, Link as LinkIcon,
 } from 'lucide-react';
 
 /* ============================================================
@@ -43,10 +43,16 @@ export const SECOES = [
     resumo: 'Quem usa o app, em que faixa está, o que assinou e o que comprou.',
   },
   {
+    id: 'links',
+    nome: 'Links',
+    icone: LinkIcon,
+    resumo: 'Para onde o app manda a pessoa: assinar, ver o anual, pedir suporte.',
+  },
+  {
     id: 'ajustes',
     nome: 'Números',
     icone: Sliders,
-    resumo: 'Tamanho do grupo da liga, cortes, limites e os links da Hotmart.',
+    resumo: 'Tamanho do grupo da liga, quantos sobem e descem, e os limites do plano grátis.',
   },
   {
     id: 'recado',

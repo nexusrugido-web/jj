@@ -6,6 +6,7 @@ import { Card, Btn, Chip, Input, Field, Sheet, useToast } from './UI';
 import { RECURSOS, LIMITES, ativarCodigo, diasParaVencer } from '../lib/plano';
 import { MOTIVOS_PAUSA, ofertaDeSaida, pausar, pausaAtiva, retomar } from '../lib/retencao';
 import { fmtData } from '../lib/utils';
+import { abrirLink, linkDe } from '../lib/links';
 
 /* ============================================================
    PLANO
@@ -143,8 +144,13 @@ export default function Plano({ acesso, recarregar, compacto = false }) {
         </div>
 
         <div className="row wrap" style={{ gap: 9, marginTop: 18 }}>
-          <Btn variant="primary" icon={Sparkles} onClick={() => window.open('https://hotmart.com', '_blank')}>
-            Assinar
+          <Btn
+            variant="primary"
+            icon={Sparkles}
+            disabled={!linkDe('assinatura_mensal')}
+            onClick={() => abrirLink('assinatura_mensal')}
+          >
+            {linkDe('assinatura_mensal') ? 'Assinar' : 'Assinatura ainda não abriu'}
           </Btn>
           <Btn variant="ghost" icon={Ticket} onClick={() => setAtivando(true)}>
             Já assinei
@@ -338,7 +344,11 @@ function Saida({ aberto, onClose, onPausar }) {
           )}
 
           {oferta.tipo === 'anual' && (
-            <Btn variant="primary" onClick={() => window.open('https://hotmart.com', '_blank')}>
+            <Btn
+              variant="primary"
+              disabled={!linkDe('assinatura_anual')}
+              onClick={() => abrirLink('assinatura_anual')}
+            >
               Ver o plano anual
             </Btn>
           )}

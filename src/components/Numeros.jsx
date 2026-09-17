@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Sliders, Check, Link as LinkIcon } from 'lucide-react';
+import { Sliders } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { Card, Btn, Field, Input, Stepper, useToast } from './UI';
+import { Card, Stepper, useToast } from './UI';
 import { carregarAjustes } from '../lib/ajustes';
 
 /* ============================================================
@@ -25,18 +25,16 @@ const ESCONDIDOS = ['zerado_em'];
 export default function Numeros() {
   const toast = useToast();
   const [lista, setLista] = useState([]);
-  const [rascunho, setRascunho] = useState({});
   const [salvando, setSalvando] = useState(null);
 
   async function buscar() {
     if (!supabase) return;
     try {
       const { data, error } = await supabase
-        .from('ajuste').select('*').order('grupo').order('nome');
+        .from('ajuste').select('*').not('valor', 'is', null).order('grupo').order('nome');
       if (error) throw error;
       const itens = (data || []).filter((a) => !ESCONDIDOS.includes(a.id));
       setLista(itens);
-      setRascunho(Object.fromEntries(itens.map((a) => [a.id, a.texto || ''])));
     } catch (e) {
       console.error('[ajustes]', e);
     }
@@ -74,8 +72,7 @@ export default function Numeros() {
 
   if (!lista.length) return null;
 
-  const numeros = lista.filter((a) => Number.isFinite(a.valor));
-  const textos = lista.filter((a) => !Number.isFinite(a.valor));
+  const numeros = lista;
 
   return (
     <Card style={{ marginBottom: 14 }}>
@@ -105,42 +102,6 @@ export default function Numeros() {
           </div>
         ))}
       </div>
-
-      {/* ---------- os links ---------- */}
-      {textos.length > 0 && (
-        <div className="col" style={{ gap: 4, marginTop: 16 }}>
-          <div className="eyebrow row" style={{ gap: 7 }}><LinkIcon size={12} /> links</div>
-
-          {textos.map((a) => {
-            const mudou = (rascunho[a.id] || '') !== (a.texto || '');
-            return (
-              <Field
-                key={a.id}
-                label={a.nome}
-                hint={a.descricao}
-              >
-                <div className="row" style={{ gap: 8 }}>
-                  <Input
-                    value={rascunho[a.id] ?? ''}
-                    onChange={(e) => setRascunho({ ...rascunho, [a.id]: e.target.value })}
-                    placeholder="https://pay.hotmart.com/..."
-                    inputMode="url"
-                  />
-                  <Btn
-                    size="sm"
-                    variant={mudou ? 'primary' : 'ghost'}
-                    icon={Check}
-                    disabled={!mudou || salvando === a.id}
-                    onClick={() => salvar(a, { texto: (rascunho[a.id] || '').trim() || null })}
-                  >
-                    Salvar
-                  </Btn>
-                </div>
-              </Field>
-            );
-          })}
-        </div>
-      )}
 
       <p className="micro muted" style={{ marginTop: 10, lineHeight: 1.6 }}>
         O app pega isto na próxima vez que abrir. Quem já está com a tela aberta continua com o de antes até

@@ -12,6 +12,7 @@ import { carregarChaves, souAdminNoServidor } from '../lib/chaves';
 import Acervo from '../components/Acervo';
 import Numeros from '../components/Numeros';
 import Contas from '../components/Contas';
+import Links from '../components/Links';
 import CascaAdmin from '../components/CascaAdmin';
 
 /* ============================================================
@@ -387,6 +388,8 @@ export default function Admin() {
       </>)}
 
       {aba === 'contas' && <Contas />}
+
+      {aba === 'links' && <Links />}
 
       {aba === 'ajustes' && (<>
       <Numeros />
