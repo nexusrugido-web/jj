@@ -106,5 +106,39 @@ await acervoLocal();
 ok('com copia local, o app passa a ler dela', acervo().length === 2, `${acervo().length} videos`);
 ok('o formato curto das telas foi mantido', acervo()[0].t && acervo()[0].k && Array.isArray(acervo()[0].tm));
 
+/* ============================================================
+   QUAL LINK APARECE
+
+   A regra do prompt 6: o mesmo video travado manda a pessoa pra
+   lugares diferentes. Quem esta no gratuito precisa assinar,
+   quem ja assina so tem a porta do avulso. Errar isso e mandar
+   assinante pra pagina de assinatura que ele ja pagou.
+   ============================================================ */
+console.log('');
+const { rotaDoVideo } = await import('../src/lib/pago.js');
+
+const pago = { id: 'v1', premium: true, checkout: 'https://pay.hotmart.com/avulso' };
+const livre = { id: 'v2', premium: false };
+const ASS = 'https://pay.hotmart.com/assinatura';
+const ctx = (x) => ({ cobrando: true, comprado: false, link: ASS, ...x });
+
+ok('video livre toca pra qualquer um', rotaDoVideo(livre, null, ctx()).pode === true);
+ok('cobranca desligada libera ate o video pago',
+  rotaDoVideo(pago, null, ctx({ cobrando: false })).pode === true);
+
+const free = rotaDoVideo(pago, { premium: false }, ctx());
+ok('gratuito nao toca video pago', free.pode === false);
+ok('gratuito vai pro link da assinatura', free.link === ASS, free.link);
+
+const assinante = rotaDoVideo(pago, { premium: true }, ctx());
+ok('assinante tambem nao toca video vendido a parte', assinante.pode === false);
+ok('assinante vai pro link de compra avulsa daquele video',
+  assinante.link === 'https://pay.hotmart.com/avulso', assinante.link);
+
+ok('quem comprou toca', rotaDoVideo(pago, { premium: true }, ctx({ comprado: true })).pode === true);
+ok('quem comprou toca mesmo sem assinar', rotaDoVideo(pago, null, ctx({ comprado: true })).pode === true);
+ok('video pago sem link cadastrado nao inventa link',
+  rotaDoVideo({ id: 'v3', premium: true }, { premium: true }, ctx()).link === null);
+
 console.log(falhas ? `\n${falhas} FALHA(S)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

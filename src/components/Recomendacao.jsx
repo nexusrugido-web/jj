@@ -24,13 +24,13 @@ import { useLimite } from './Limite';
 export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFeito, comAula = true }) {
   const toast = useToast();
   const { acesso, irPara } = useApp();
-  const { liberado, aviso } = useLimite(acesso, irPara);
+  const { liberarVideo, aviso } = useLimite(acesso, irPara);
   const [marcando, setMarcando] = useState(false);
   const [resposta, setResposta] = useState(null);
   const [tocando, setTocando] = useState(null);
 
   async function tocar(a) {
-    if (await liberado(a.k === 'aula' ? 'aula' : 'short')) setTocando(a);
+    if (await liberarVideo(a)) setTocando(a);
   }
 
   const info = INTENCOES[rec.intencao] || INTENCOES.repetir;

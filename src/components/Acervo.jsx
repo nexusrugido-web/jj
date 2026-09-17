@@ -7,7 +7,7 @@ import {
   Card, Btn, Chip, Field, Input, Textarea, Busca, Empty, Stat, Sheet, useToast,
 } from './UI';
 import Capa from './Capa';
-import { lerColado, categorizar } from '../lib/categorizar';
+import { lerColado, lerLinha, categorizar } from '../lib/categorizar';
 import { duracaoTexto, TEMAS_AULA } from '../db/aulas';
 
 /* ============================================================
@@ -33,7 +33,10 @@ export default function Acervo() {
   const [filtro, setFiltro] = useState('todos');
 
   const [colando, setColando] = useState(false);
+  const [modo, setModo] = useState('um');
   const [texto, setTexto] = useState('');
+  const [fila, setFila] = useState([]);
+  const [um, setUm] = useState({ t: '', link: '', d: '' });
   const [gravando, setGravando] = useState(false);
 
   const [editando, setEditando] = useState(null);
@@ -59,21 +62,58 @@ export default function Acervo() {
 
   useEffect(() => { buscar(); }, []);
 
-  /* o que o texto colado vira, antes de gravar qualquer coisa */
-  const previa = useMemo(() => (texto.trim() ? lerColado(texto) : []), [texto]);
-  const validas = previa.filter((x) => !x.erro);
-  const comErro = previa.filter((x) => x.erro);
-  const jaExistem = useMemo(() => {
-    const ids = new Set(lista.map((a) => a.id));
-    return validas.filter((x) => ids.has(x.id));
-  }, [validas, lista]);
-  const aRevisar = validas.filter((x) => x.precisaRevisar);
+  /* ------------------------------------------------------------
+     A FILA
+
+     Os dois jeitos de cadastrar terminam no mesmo lugar: um campo
+     de cada vez, pra quando você está copiando do YouTube com o
+     vídeo aberto do lado, e o colar de uma vez, pra quando você
+     tem a lista pronta. Nada é gravado até você conferir a fila.
+     ------------------------------------------------------------ */
+  const idsNoAcervo = useMemo(() => new Set(lista.map((a) => a.id)), [lista]);
+  const jaExistem = fila.filter((x) => idsNoAcervo.has(x.id));
+  const aRevisar = fila.filter((x) => x.precisaRevisar);
+
+  const umPronto = lerLinha(`${um.t} | ${um.link} | ${um.d}`);
+
+  function porNaFila(itens) {
+    const novos = itens.filter((x) => !x.erro);
+    if (!novos.length) return 0;
+    setFila((f) => {
+      const mapa = new Map(f.map((x) => [x.id, x]));
+      for (const v of novos) mapa.set(v.id, v);
+      return [...mapa.values()];
+    });
+    return novos.length;
+  }
+
+  function adicionarUm() {
+    if (umPronto.erro) { toast(umPronto.erro, 'err'); return; }
+    porNaFila([umPronto]);
+    setUm({ t: '', link: '', d: '' });
+  }
+
+  function adicionarColados() {
+    const lidas = lerColado(texto);
+    const ruins = lidas.filter((x) => x.erro);
+    const n = porNaFila(lidas);
+    setTexto('');
+    if (!n) { toast('Não consegui ler nenhuma linha', 'err'); return; }
+    toast(ruins.length ? `${n} na fila, ${ruins.length} com problema` : `${n} na fila`);
+  }
+
+  function fecharCadastro() {
+    setColando(false);
+    setFila([]);
+    setTexto('');
+    setUm({ t: '', link: '', d: '' });
+  }
 
   async function gravar() {
-    if (!validas.length) return;
+    if (!fila.length) return;
     setGravando(true);
     try {
-      const linhas = validas.map((v) => ({
+      const linhas = fila.map((v) => ({
         id: v.id,
         titulo: v.t,
         duracao: v.d,
@@ -93,8 +133,7 @@ export default function Acervo() {
       if (!data?.length) throw new Error('sem permissão');
 
       toast(`${data.length} ${data.length === 1 ? 'vídeo gravado' : 'vídeos gravados'}`);
-      setTexto('');
-      setColando(false);
+      fecharCadastro();
       await buscar();
     } catch (e) {
       toast(
@@ -229,62 +268,110 @@ export default function Acervo() {
         </div>
       )}
 
-      {/* ---------- colar vídeos novos ---------- */}
+      {/* ---------- cadastrar vídeos novos ---------- */}
       <Sheet
         aberto={colando}
-        onClose={() => setColando(false)}
+        onClose={fecharCadastro}
         titulo="Adicionar vídeos"
+        subtitulo={fila.length ? `${fila.length} na fila` : undefined}
         wide
         footer={
           <>
-            <Btn variant="ghost" onClick={() => setColando(false)}>Cancelar</Btn>
-            <Btn variant="primary" icon={Check} onClick={gravar} disabled={!validas.length || gravando}>
-              {gravando ? 'Gravando…' : `Gravar ${validas.length || ''}`}
+            <Btn variant="ghost" onClick={fecharCadastro}>Cancelar</Btn>
+            <Btn variant="primary" icon={Check} onClick={gravar} disabled={!fila.length || gravando}>
+              {gravando ? 'Gravando…' : `Gravar ${fila.length || ''}`}
             </Btn>
           </>
         }
       >
-        <Field
-          label="Uma linha por vídeo"
-          hint="título | link do YouTube | duração. A duração aceita 2:07, 1:04:37 ou o número de segundos."
-        >
-          <Textarea
-            value={texto}
-            onChange={(e) => setTexto(e.target.value)}
-            rows={7}
-            placeholder={'Como raspar na guarda laço | https://www.youtube.com/watch?v=qMr-tps8s70 | 2:07'}
-          />
-        </Field>
+        <div className="seletor-pill">
+          {[{ id: 'um', nome: 'Um de cada vez' }, { id: 'varios', nome: 'Colar vários' }].map((o) => (
+            <button key={o.id} className={modo === o.id ? 'on' : ''} onClick={() => setModo(o.id)}>{o.nome}</button>
+          ))}
+        </div>
 
-        {previa.length > 0 && (
-          <div className="col" style={{ gap: 10, marginTop: 4 }}>
+        {modo === 'um' ? (
+          <div className="col" style={{ gap: 2, marginTop: 14 }}>
+            <Field label="Título">
+              <Input
+                value={um.t}
+                onChange={(e) => setUm({ ...um, t: e.target.value })}
+                placeholder="Como raspar na guarda laço"
+              />
+            </Field>
+            <Field label="Link do YouTube">
+              <Input
+                value={um.link}
+                onChange={(e) => setUm({ ...um, link: e.target.value })}
+                placeholder="https://www.youtube.com/watch?v=..."
+              />
+            </Field>
+            <Field label="Duração" hint="Aceita 2:07, 1:04:37 ou o número de segundos.">
+              <Input
+                value={um.d}
+                onChange={(e) => setUm({ ...um, d: e.target.value })}
+                onKeyDown={(e) => { if (e.key === 'Enter') adicionarUm(); }}
+                placeholder="2:07"
+                inputMode="numeric"
+              />
+            </Field>
+
+            {/* o que o app entendeu, antes de entrar na fila */}
+            {!umPronto.erro && (
+              <div className="valida bom" style={{ marginBottom: 10 }}>
+                <Check size={14} className="valida-ico" style={{ color: 'var(--jade)' }} />
+                <div className="row wrap" style={{ gap: 6 }}>
+                  <Chip>{umPronto.tipo === 'aula' ? 'aula longa' : 'short'}</Chip>
+                  {umPronto.faixa && <Chip>{umPronto.faixa}</Chip>}
+                  {umPronto.temas.map((t) => <Chip key={t} tone="jade">{nomeTema(t)}</Chip>)}
+                  {umPronto.precisaRevisar && <Chip tone="roar">sem categoria, você escolhe depois</Chip>}
+                </div>
+              </div>
+            )}
+
+            <Btn variant="primary" icon={Plus} onClick={adicionarUm} disabled={!!umPronto.erro}>
+              Pôr na fila
+            </Btn>
+          </div>
+        ) : (
+          <div className="col" style={{ gap: 2, marginTop: 14 }}>
+            <Field
+              label="Uma linha por vídeo"
+              hint="título | link do YouTube | duração"
+            >
+              <Textarea
+                value={texto}
+                onChange={(e) => setTexto(e.target.value)}
+                rows={6}
+                placeholder={'Como raspar na guarda laço | https://www.youtube.com/watch?v=qMr-tps8s70 | 2:07'}
+              />
+            </Field>
+            <Btn variant="primary" icon={Plus} onClick={adicionarColados} disabled={!texto.trim()}>
+              Pôr tudo na fila
+            </Btn>
+          </div>
+        )}
+
+        {/* ---------- a fila ---------- */}
+        {fila.length > 0 && (
+          <div className="col" style={{ gap: 10, marginTop: 18 }}>
             <div className="row wrap" style={{ gap: 7 }}>
-              <Chip tone="jade">{validas.length} {validas.length === 1 ? 'linha lida' : 'linhas lidas'}</Chip>
-              {comErro.length > 0 && <Chip tone="blood">{comErro.length} com problema</Chip>}
+              <div className="eyebrow" style={{ flex: 1 }}>na fila pra gravar</div>
               {jaExistem.length > 0 && <Chip>{jaExistem.length} já no acervo</Chip>}
               {aRevisar.length > 0 && <Chip tone="roar">{aRevisar.length} sem categoria</Chip>}
             </div>
-
-            {comErro.map((x) => (
-              <div key={x.linha} className="valida ruim">
-                <X size={14} className="valida-ico" style={{ color: 'var(--blood)' }} />
-                <p className="micro muted" style={{ lineHeight: 1.6 }}>
-                  Linha {x.linha}: {x.erro}
-                </p>
-              </div>
-            ))}
 
             {jaExistem.length > 0 && (
               <div className="valida atencao">
                 <TriangleAlert size={14} className="valida-ico" style={{ color: 'var(--roar)' }} />
                 <p className="micro muted" style={{ lineHeight: 1.6 }}>
-                  {jaExistem.length} {jaExistem.length === 1 ? 'vídeo já está' : 'vídeos já estão'} no acervo.
-                  Gravar vai atualizar o título, a duração e as categorias, e não vai criar linha repetida.
+                  {jaExistem.length} {jaExistem.length === 1 ? 'já está' : 'já estão'} no acervo. Gravar atualiza
+                  o título, a duração e as categorias, sem criar linha repetida.
                 </p>
               </div>
             )}
 
-            {validas.slice(0, 30).map((x) => (
+            {fila.map((x) => (
               <div key={x.id} className="row" style={{ gap: 10, alignItems: 'flex-start', padding: '10px 12px', background: 'var(--void)', borderRadius: 10 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="tiny" style={{ fontWeight: 600 }}>{x.t}</div>
@@ -293,14 +380,19 @@ export default function Acervo() {
                     <Chip>{x.tipo === 'aula' ? 'aula' : 'short'}</Chip>
                     {x.faixa && <Chip>{x.faixa}</Chip>}
                     {x.temas.map((t) => <Chip key={t} tone="jade">{nomeTema(t)}</Chip>)}
-                    {x.precisaRevisar && <Chip tone="roar">não bateu com nenhuma</Chip>}
+                    {x.precisaRevisar && <Chip tone="roar">sem categoria</Chip>}
+                    {idsNoAcervo.has(x.id) && <Chip>já no acervo</Chip>}
                   </div>
                 </div>
+                <button
+                  className="btn ghost xs"
+                  aria-label="Tirar da fila"
+                  onClick={() => setFila((f) => f.filter((y) => y.id !== x.id))}
+                >
+                  <X size={13} />
+                </button>
               </div>
             ))}
-            {validas.length > 30 && (
-              <p className="micro muted">e mais {validas.length - 30}.</p>
-            )}
           </div>
         )}
       </Sheet>

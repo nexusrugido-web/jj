@@ -3,7 +3,7 @@ import Capa from '../components/Capa';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Play, Check, Clock, GraduationCap, Search, Filter, Sparkles,
-  BookOpen, ChevronRight, X, Film, Layers, TriangleAlert,
+  BookOpen, ChevronRight, X, Film, Layers, TriangleAlert, Lock,
 } from 'lucide-react';
 import { db } from '../db/db';
 import Player from '../components/Player';
@@ -24,11 +24,12 @@ import Quiz from '../components/Quiz';
 import { PERGUNTAS } from '../db/quiz';
 import { useLimite } from '../components/Limite';
 import { limitarLista, LIMITES, RECOMENDACOES_NA_TELA } from '../lib/plano';
+import { jaComprou } from '../lib/pago';
 
 export default function Estudo() {
   const { settings, rolls, partners, sessions, techniques, irPara, ligada, acesso, acervoVer } = useApp();
   const toast = useToast();
-  const { liberado, aviso } = useLimite(acesso, irPara);
+  const { liberarVideo, aviso } = useLimite(acesso, irPara);
   const faixa = settings.faixa || 'branca';
 
   const assistidas = useLiveQuery(() => db.aulasVistas.toArray(), [], []) || [];
@@ -49,11 +50,11 @@ export default function Estudo() {
   const [pagina, setPagina] = useState(0);
   const [tocando, setTocando] = useState(null);
 
-  /* no plano grátis é uma aula e um short por dia, então o
-     player só abre depois de perguntar se ainda cabe */
+  /* antes de abrir, o app pergunta duas coisas: este vídeo é
+     vendido à parte, e ainda cabe um hoje no plano grátis */
   async function tocar(a) {
     if (!a) return;
-    if (await liberado(a.k === 'aula' ? 'aula' : 'short')) setTocando(a);
+    if (await liberarVideo(a)) setTocando(a);
   }
   const [dorAberta, setDorAberta] = useState(null);
 
@@ -341,12 +342,13 @@ function ListaAulas({ aulas, vistas, onTocar, grade = false }) {
             <Capa id={a.id} tamanho="mq" />
             <span className="aula-dur">{duracaoTexto(a.d)}</span>
             {v.has(a.id) && <span className="aula-visto"><Check size={11} /></span>}
-            <span className="aula-play"><Play size={16} /></span>
+            <span className="aula-play">{a.premium && !jaComprou(a.id) ? <Lock size={15} /> : <Play size={16} />}</span>
           </div>
           <div className="aula-txt">
             <div className="aula-titulo">{a.t}</div>
             <div className="row wrap" style={{ gap: 5, marginTop: 6 }}>
               {a.k === 'short' ? <Chip>short</Chip> : <Chip tone="warn">aula</Chip>}
+              {a.premium && <Chip tone="roar">{jaComprou(a.id) ? 'sua' : 'à parte'}</Chip>}
               {a.f && <Chip>{a.f}</Chip>}
               {a.tm?.includes('logica') && <Chip tone="ice">lógica</Chip>}
             </div>

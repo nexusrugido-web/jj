@@ -14,6 +14,7 @@ import { minhasTecnicas, resumoGraus } from './lib/graus';
 import { sincronizarAcesso, acessoLocal } from './lib/plano';
 import { subirPerfil, mexeuNoPerfil } from './lib/perfil';
 import { acervoLocal, sincronizarAcervo, observarAcervo } from './lib/acervo';
+import { carregarCompras } from './lib/pago';
 import { registrarErro, marcarPasso, erroDeAcesso } from './lib/monitor';
 import { carregarChaves, carregarRecado, souAdmin, ligada, observarChaves, todasAsChaves } from './lib/chaves';
 import { sincronizarMarcos } from './lib/milestones';
@@ -208,6 +209,7 @@ export default function App() {
       souAdmin().then(setEhAdmin).catch(() => {});
       subirPerfil(s).catch(() => {});
       sincronizarAcervo().catch(() => {});
+      carregarCompras().catch(() => {});
       acessoLocal().then(setAcesso).catch(() => {});
       sincronizarAcesso().then(setAcesso).catch(erroDeAcesso);
       marcarEngajamento();
