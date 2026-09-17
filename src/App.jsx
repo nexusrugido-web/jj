@@ -12,6 +12,7 @@ import { enfileirar, iniciarSync, onSync, sincronizar, migrarParaNuvem } from '.
 import { resumo as calcResumo } from './lib/stats';
 import { minhasTecnicas, resumoGraus } from './lib/graus';
 import { sincronizarAcesso, acessoLocal } from './lib/plano';
+import { subirPerfil, mexeuNoPerfil } from './lib/perfil';
 import { registrarErro, marcarPasso, erroDeAcesso } from './lib/monitor';
 import { carregarChaves, carregarRecado, souAdmin, ligada, observarChaves, todasAsChaves } from './lib/chaves';
 import { sincronizarMarcos } from './lib/milestones';
@@ -196,6 +197,7 @@ export default function App() {
         .then(setRecado)
         .catch(() => {});
       souAdmin().then(setEhAdmin).catch(() => {});
+      subirPerfil(s).catch(() => {});
       acessoLocal().then(setAcesso).catch(() => {});
       sincronizarAcesso().then(setAcesso).catch(erroDeAcesso);
       marcarEngajamento();
@@ -272,6 +274,12 @@ export default function App() {
     settingsRef.current = novo;
     setSettings(novo);
     try { await setMeta('settings', novo); } catch (e) { console.error('[settings]', e); }
+
+    /* faixa, graus, nome e ritmo aparecem pros outros na liga.
+       Só sobe quando um deles muda, pra não falar com o servidor
+       toda vez que alguém fecha o tour. */
+    if (mexeuNoPerfil(patch)) subirPerfil(novo).catch(() => {});
+
     return novo;
   }, []);
 

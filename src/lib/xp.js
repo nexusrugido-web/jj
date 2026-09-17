@@ -45,13 +45,22 @@ export const EVENTOS = {
     familia: 'estudo',
     desc: 'Rever aula longa vale um terço. Você já sabia, mas voltar é o que fixa.',
   },
+  revistaShort: {
+    id: 'revistaShort',
+    nome: 'Short revisto',
+    xp: 1,
+    tetoDia: 3,
+    familia: 'estudo',
+    premium: true,
+    desc: 'Rever short vale um ponto, e só no premium. No grátis o short vale uma vez só.',
+  },
   short: {
     id: 'short',
     nome: 'Short visto',
     xp: 1,
     tetoDia: 6,
     familia: 'estudo',
-    desc: 'Custa trinta segundos, então vale um ponto. Rever short não vale nada.',
+    desc: 'Custa trinta segundos, então vale um ponto.',
   },
   quizAcerto: {
     id: 'quizAcerto',
@@ -164,6 +173,19 @@ export const DIAS_PRA_REVER = 365;
 export async function darXp(evento, { refId = null, data = hoje(), detalhe = '' } = {}) {
   const e = EVENTOS[evento];
   if (!e) return null;
+
+  /* evento que só vale pra quem paga. O servidor recusa do mesmo
+     jeito, então dar o ponto aqui só mostraria um número na tela
+     que some depois. Com a cobrança desligada no painel, vale
+     pra todo mundo, igual ao resto do app. */
+  if (e.premium) {
+    const { ligada } = await import('./chaves');
+    if (ligada('cobranca')) {
+      const { acessoLocal } = await import('./plano');
+      const a = await acessoLocal();
+      if (!a?.premium) return null;
+    }
+  }
 
   /* não repete o mesmo evento pro mesmo item */
   if (refId) {
