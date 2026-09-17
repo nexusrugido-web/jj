@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Check, Play, Pause, TriangleAlert } from 'lucide-react';
+import { Check, Play, Pause, TriangleAlert, Maximize, Minimize } from 'lucide-react';
 import { Btn, Sheet, Bar } from './UI';
 import { embed, duracaoTexto } from '../db/aulas';
 import { trechoValido } from '../lib/aulas';
@@ -21,6 +21,11 @@ import { trechoValido } from '../lib/aulas';
       sem ver nada. Agora ele soma só o que passou de verdade, um
       pedaço por vez. Pulo pra frente não soma, e pulo pra trás
       também não, porque o que já foi somado continua somado.
+
+   A tela cheia é nossa e não a do YouTube, porque a dele devolve
+   a interface inteira junto, com a barra pra arrastar e o botão
+   que leva pra fora. Aqui o vídeo ocupa o aparelho e os controles
+   continuam sendo os do app.
    ============================================================ */
 
 /* o quanto da aula precisa ter passado pra contar como vista */
@@ -28,6 +33,8 @@ const FRACAO_PRA_CONCLUIR = 0.9;
 
 export default function Player({ aula, onClose, onConcluir }) {
   const ref = useRef(null);
+  const caixa = useRef(null);
+  const [cheio, setCheio] = useState(false);
   const [pronto, setPronto] = useState(false);
   const [progresso, setProgresso] = useState(0);
   const [concluida, setConcluida] = useState(false);
@@ -150,6 +157,54 @@ export default function Player({ aula, onClose, onConcluir }) {
     try { rodando ? p.pauseVideo() : p.playVideo(); } catch { /* player fechando */ }
   }
 
+  /* ---------- tela cheia ----------
+     Tenta a de verdade do navegador. O iPhone não deixa um
+     elemento qualquer entrar nela, e nesse caso a classe do CSS
+     faz o mesmo efeito esticando o vídeo pelo aparelho todo. O
+     app instalado na tela inicial nem tem barra de navegador,
+     então o resultado fica igual. */
+  function virarCheio() {
+    const alvo = caixa.current;
+    if (!alvo) return;
+
+    if (cheio) {
+      try { if (document.fullscreenElement) document.exitFullscreen(); } catch { /* sem suporte */ }
+      setCheio(false);
+      return;
+    }
+
+    setCheio(true);
+    try { alvo.requestFullscreen?.({ navigationUI: 'hide' }); } catch { /* fica com a classe do CSS */ }
+  }
+
+  /* solta o recorte da folha enquanto a tela cheia estiver aberta */
+  useEffect(() => {
+    document.body.classList.toggle('player-cheio', cheio);
+    return () => document.body.classList.remove('player-cheio');
+  }, [cheio]);
+
+  /* sair pelo gesto do aparelho ou pelo Esc precisa desmarcar */
+  useEffect(() => {
+    const sincronizar = () => { if (!document.fullscreenElement) setCheio(false); };
+    document.addEventListener('fullscreenchange', sincronizar);
+    return () => document.removeEventListener('fullscreenchange', sincronizar);
+  }, []);
+
+  useEffect(() => {
+    if (!cheio) return;
+    const esc = (e) => { if (e.key === 'Escape') virarCheio(); };
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
+  });
+
+  /* fechar a aula com a tela cheia aberta deixaria o aparelho preso nela */
+  useEffect(() => {
+    if (!aula && document.fullscreenElement) {
+      try { document.exitFullscreen(); } catch { /* sem suporte */ }
+    }
+    if (!aula) setCheio(false);
+  }, [aula]);
+
   if (!aula) return null;
 
   const vistos = Math.round((progresso / 100) * aula.d);
@@ -175,8 +230,9 @@ export default function Player({ aula, onClose, onConcluir }) {
         </>
       }
     >
-      {/* o player fica sozinho, sem nada por cima. O YouTube exige isso. */}
-      <div className="player-caixa">
+      {/* o vídeo fica sozinho, sem nada por cima dele. O YouTube
+          exige isso. Os controles ficam embaixo, fora da área. */}
+      <div ref={caixa} className={`player-caixa ${cheio ? 'cheio' : ''}`}>
         {semApi ? (
           <iframe
             src={embed(aula.id)}
@@ -185,6 +241,22 @@ export default function Player({ aula, onClose, onConcluir }) {
           />
         ) : (
           <div ref={ref} />
+        )}
+
+        {cheio && (
+          <div className="player-barra">
+            {!semApi && (
+              <button className="btn ghost xs" onClick={virarPlay} disabled={!pronto}>
+                {rodando ? <Pause size={13} /> : <Play size={13} />}
+                {rodando ? 'Pausar' : 'Tocar'}
+              </button>
+            )}
+            <Bar v={progresso} max={100} tone={concluida ? 'jade' : ''} />
+            <span className="micro num" style={{ color: 'var(--chalk)' }}>{progresso}%</span>
+            <button className="btn ghost xs" onClick={virarCheio}>
+              <Minimize size={13} /> Sair
+            </button>
+          </div>
         )}
       </div>
 
@@ -199,17 +271,14 @@ export default function Player({ aula, onClose, onConcluir }) {
       )}
 
       <div className="col" style={{ gap: 9 }}>
-        {!semApi && (
-          <Btn
-            size="sm"
-            icon={rodando ? Pause : Play}
-            onClick={virarPlay}
-            disabled={!pronto}
-            style={{ alignSelf: 'flex-start' }}
-          >
-            {rodando ? 'Pausar' : 'Tocar'}
-          </Btn>
-        )}
+        <div className="row" style={{ gap: 8 }}>
+          {!semApi && (
+            <Btn size="sm" icon={rodando ? Pause : Play} onClick={virarPlay} disabled={!pronto}>
+              {rodando ? 'Pausar' : 'Tocar'}
+            </Btn>
+          )}
+          <Btn size="sm" icon={Maximize} onClick={virarCheio}>Tela cheia</Btn>
+        </div>
 
         <Bar v={progresso} max={100} tone={concluida ? 'jade' : ''} />
         <span className="micro muted">

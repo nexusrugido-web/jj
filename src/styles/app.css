@@ -1229,6 +1229,34 @@ button.chip:hover { color: var(--chalk); border-color: var(--dimmer); }
 }
 .player-caixa iframe, .player-caixa > div { width: 100%; height: 100%; border: 0; }
 
+/* ---------- tela cheia nossa ----------
+   A tela cheia do YouTube traz a interface dele junto, com barra
+   pra arrastar e caminho pra sair do app. Esta aqui é só o vídeo
+   ocupando o aparelho inteiro, com os controles do app por cima.
+   Vale tanto na tela cheia de verdade do navegador quanto no
+   iPhone, que não deixa um elemento qualquer entrar nela. */
+.player-caixa.cheio {
+  position: fixed; inset: 0; z-index: 300;
+  aspect-ratio: auto; border-radius: 0;
+  background: #000;
+}
+
+/* A folha recorta o que está dentro dela, e o desfoque do fundo
+   ainda prende elemento fixo. Sem soltar os dois, a tela cheia
+   fica presa na janelinha em quem não tem a tela cheia de
+   verdade do navegador, que é o caso do iPhone. */
+body.player-cheio .sheet { overflow: visible; }
+body.player-cheio .sheet-overlay { backdrop-filter: none; -webkit-backdrop-filter: none; }
+.player-caixa.cheio iframe, .player-caixa.cheio > div { height: 100%; }
+
+.player-barra {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, rgba(0,0,0,.82), transparent);
+}
+.player-barra .bar { flex: 1; }
+
 .tema-card { text-align: left; width: 100%; }
 
 @media (max-width: 560px) {
