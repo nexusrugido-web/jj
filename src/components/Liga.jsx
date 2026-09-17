@@ -9,16 +9,26 @@ import {
 } from './UI';
 import { db } from '../db/db';
 import { semanaDe } from '../lib/xp';
+import { ajusteDe } from '../lib/ajustes';
 
 /* ============================================================
    LIGA
 
-   Grupos de trinta pessoas com ritmo parecido, pra o ranking
-   ser disputável de verdade.
+   Grupos pequenos, pra o ranking ser disputável desde a primeira
+   semana. O tamanho vem do painel e não do código.
+
+   A divisão tem nome de faixa, e não é a faixa da pessoa. Ela é
+   o degrau em que você está no jogo: um faixa branca que vai bem
+   chega na divisão Roxa e continua sendo faixa branca. Foi por
+   isso que a faixa de cada um saiu da lista, senão a tela diria
+   duas coisas com a mesma palavra.
 
    Ninguém entra sem escolher entrar, e dá pra participar com
    apelido em vez do nome.
    ============================================================ */
+
+const ACIMA = { branca: 'azul', azul: 'roxa', roxa: 'marrom', marrom: 'preta', preta: 'preta' };
+const acima = (d) => ACIMA[d] || 'azul';
 
 export default function Liga({ compacto = false }) {
   const { sessao, irPara, ligada } = useApp();
@@ -125,12 +135,17 @@ export default function Liga({ compacto = false }) {
             </div>
           </div>
           <p className="tiny muted" style={{ lineHeight: 1.75 }}>
-            Você entra num grupo de até trinta pessoas com ritmo parecido com o seu, e durante a semana vocês
-            acumulam pontos treinando e estudando. Na segunda-feira o placar zera e começa de novo.
+            Você entra num grupo de até {ajusteDe('liga_tamanho', 10)} pessoas e durante a semana vocês acumulam
+            pontos treinando e estudando. Na segunda-feira o placar zera, os primeiros sobem de divisão e os
+            últimos descem.
           </p>
           <p className="tiny muted" style={{ marginTop: 10, lineHeight: 1.75 }}>
-            Só aparece pros outros o seu nome, sua faixa e quantos pontos você fez. Nada do que você registra
-            nos treinos fica visível pra ninguém.
+            Todo mundo começa na divisão Branca. Ela tem nome de faixa mas não é a sua faixa: é o degrau em que
+            você chegou. Dá pra ser faixa branca e estar na divisão Roxa.
+          </p>
+          <p className="tiny muted" style={{ marginTop: 10, lineHeight: 1.75 }}>
+            Só aparece pros outros o seu nome e quantos pontos você fez. Nada do que você registra nos treinos
+            fica visível pra ninguém.
           </p>
           <Btn variant="primary" icon={Trophy} onClick={() => setEntrando(true)} style={{ marginTop: 16 }}>
             Quero participar
@@ -208,17 +223,22 @@ export default function Liga({ compacto = false }) {
   }
 
   const eu = linhas.find((l) => l.sou_eu);
-  const divisao = linhas[0]?.divisao;
+  const divisao = linhas[0]?.divisao || 'branca';
+  const corte = ajusteDe('liga_corte', 3);
+  const total = linhas[0]?.total || linhas.length;
+  /* com o grupo pequeno demais ninguém desce, e a tela precisa
+     dizer isso antes da segunda-feira e não depois */
+  const temQueda = total >= corte * 2;
 
   return (
     <Card style={{ marginBottom: compacto ? 0 : 14 }}>
       <div className="card-head">
         <div>
           <div className="eyebrow">
-            {linhas[0]?.total} pessoas, zera segunda-feira
+            {total} {total === 1 ? 'pessoa' : 'pessoas'}, zera segunda-feira
           </div>
           <h2 className="h-sec row" style={{ gap: 8 }}>
-            <Trophy size={16} /> Liga {divisao}
+            <Trophy size={16} /> Divisão <BeltTag faixa={divisao} graus={0} />
           </h2>
         </div>
         <Btn size="sm" variant="ghost" icon={RefreshCw} onClick={() => { subirPontos().then(buscar); }} disabled={carregando}>
@@ -244,15 +264,30 @@ export default function Liga({ compacto = false }) {
       )}
 
       <div className="col" style={{ gap: 6, marginTop: 12 }}>
-        {linhas.slice(0, compacto ? 5 : 30).map((l) => (
-          <div key={l.user_id} className={`liga-linha ${l.sou_eu ? 'eu' : ''}`}>
-            <span className="liga-pos num">{l.posicao}</span>
-            <span className="tiny" style={{ flex: 1, fontWeight: l.sou_eu ? 600 : 400 }}>{l.nome}</span>
-            <BeltTag faixa={l.faixa} graus={l.graus} />
-            <span className="num micro" style={{ minWidth: 38, textAlign: 'right' }}>{l.xp_semana}</span>
-          </div>
-        ))}
+        {linhas.slice(0, compacto ? 5 : ajusteDe('liga_tamanho', 10)).map((l) => {
+          const sobe = l.posicao <= corte && l.xp_semana > 0 && divisao !== 'preta';
+          const desce = temQueda && l.posicao > total - corte && divisao !== 'branca';
+          return (
+            <div key={l.user_id} className={`liga-linha ${l.sou_eu ? 'eu' : ''}`}>
+              <span className="liga-pos num">{l.posicao}</span>
+              <span className="tiny" style={{ flex: 1, fontWeight: l.sou_eu ? 600 : 400 }}>{l.nome}</span>
+              {sobe && <Chip tone="jade">sobe</Chip>}
+              {desce && <Chip tone="blood">desce</Chip>}
+              <span className="num micro" style={{ minWidth: 38, textAlign: 'right' }}>{l.xp_semana}</span>
+            </div>
+          );
+        })}
       </div>
+
+      {!compacto && (
+        <p className="micro muted" style={{ marginTop: 12, lineHeight: 1.65 }}>
+          Na segunda-feira os {corte} primeiros que pontuaram sobem de divisão
+          {divisao === 'preta' ? '' : ', e quem sobe daqui vai pra ' + acima(divisao)}.
+          {temQueda
+            ? ` Os ${corte} últimos descem.`
+            : ' Ninguém desce esta semana, porque o grupo ainda é pequeno demais pra ter um fundo de verdade.'}
+        </p>
+      )}
 
       {!compacto && (
         <button className="btn ghost xs" onClick={sair} style={{ marginTop: 14, opacity: 0.7 }}>

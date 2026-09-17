@@ -59,7 +59,6 @@ export const RECURSOS = {
   quizIlimitado: { premium: true, nome: 'Quiz sem limite', desc: `No grátis é uma rodada por dia.` },
   tecnicas:      { premium: true, nome: 'Técnicas sem limite', desc: `No grátis o app acompanha ${LIMITES.tecnicasAcompanhadas}.` },
   planos:        { premium: true, nome: 'Planos de ataque', desc: `No grátis é ${LIMITES.planosAtaque}.` },
-  liga:          { premium: true, nome: 'Liga entre praticantes', desc: 'Ranking semanal com gente do seu nível.' },
   musculacao:    { premium: true, nome: 'Musculação com histórico', desc: 'Recordes e progressão de carga.' },
 };
 

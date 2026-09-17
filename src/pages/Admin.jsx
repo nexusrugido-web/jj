@@ -10,6 +10,7 @@ import {
 } from '../components/UI';
 import { carregarChaves, souAdminNoServidor } from '../lib/chaves';
 import Acervo from '../components/Acervo';
+import Numeros from '../components/Numeros';
 
 /* ============================================================
    PAINEL DO ADMINISTRADOR
@@ -361,6 +362,8 @@ export default function Admin() {
           </Card>
         );
       })}
+
+      <Numeros />
 
       {/* recado */}
       <Card>
