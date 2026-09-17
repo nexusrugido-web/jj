@@ -79,10 +79,6 @@ returns text language sql immutable as $$
   end;
 $$;
 
-/* a antiga divisao_de() decidia por XP acumulado. A divisao agora
-   so muda no fechamento da semana, entao ela deixa de existir. */
-drop function if exists public.divisao_de(int);
-
 -- todo mundo que ja existe comeca na branca
 update public.total_xp set divisao = 'branca'
   where divisao is null or divisao not in ('branca', 'azul', 'roxa', 'marrom', 'preta');
@@ -138,13 +134,26 @@ update public.liga_membro set xp_semana = 0;
 -- ninguem: com tres pessoas, todas seriam as tres ultimas.
 --
 -- Agende com pg_cron: domingo 23h50 em Sao Paulo.
+--
+-- A versao antiga devolvia so um numero. O Postgres nao troca o
+-- tipo de retorno num create or replace, entao ela precisa cair
+-- antes. Se houver um agendamento no pg_cron apontando pra ela,
+-- ele continua valendo, porque o nome e o mesmo.
 -- ------------------------------------------------------------
+drop function if exists public.fechar_semana();
+
 create or replace function public.fechar_semana()
 returns table (subiram int, desceram int, grupos int)
 language plpgsql security definer set search_path = public as $$
 declare
+  /* A semana que fecha e a ultima que tem grupo montado, e nao a
+     de hoje. Sem isso, rodar depois da meia-noite de domingo ja
+     cai na semana seguinte, nao acha grupo nenhum pra apurar e
+     ninguem sobe nem desce, em silencio. O agendamento em UTC
+     faz isso acontecer facil: domingo 23h50 de Sao Paulo ja e
+     segunda de madrugada no servidor. */
+  v_atual   date := (select max(semana) from public.liga where semana <= current_date);
   v_sem     date := date_trunc('week', current_date + interval '1 week')::date;
-  v_atual   date := date_trunc('week', current_date)::date;
   v_tam     int  := public.ajuste_de('liga_tamanho', 10);
   v_corte   int  := public.ajuste_de('liga_corte', 3);
   v_sobe    int  := 0;
@@ -156,6 +165,13 @@ declare
   v_n       int;
   v_total   int;
 begin
+  /* Se os grupos da proxima semana ja existem, esta semana ja foi
+     fechada. Rodar de novo promoveria a mesma gente duas vezes. */
+  if exists (select 1 from public.liga where semana = v_sem) then
+    return query select 0, 0, 0;
+    return;
+  end if;
+
   -- ---------- quem sobe e quem desce ----------
   for v_liga in select id from public.liga where semana = v_atual loop
     select count(*) into v_total from public.liga_membro where liga_id = v_liga;
@@ -228,7 +244,27 @@ end $$;
 
 revoke all on function public.fechar_semana() from public, authenticated;
 
--- select cron.schedule('fechar-semana', '50 23 * * 0', $$select public.fechar_semana()$$);
+-- ------------------------------------------------------------
+-- AGENDAR O FECHAMENTO
+--
+-- O pg_cron nao vem ligado. Ligue uma vez, e so depois agende:
+--
+--   create extension if not exists pg_cron;
+--   select cron.schedule('fechar-semana', '50 23 * * 0',
+--                        $$select public.fechar_semana()$$);
+--
+-- ATENCAO AO FUSO: o pg_cron conta em UTC, nao no horario de
+-- Sao Paulo. O '50 23 * * 0' acima e domingo 23h50 UTC, que da
+-- domingo 20h50 em Sao Paulo. Serve, e e o mais seguro, porque
+-- ainda esta dentro da semana que vai fechar.
+--
+-- Nao agende pra depois da meia-noite UTC de domingo achando que
+-- esta pegando a noite de domingo no Brasil: la ja e segunda
+-- pro banco.
+--
+-- Pra conferir o que esta agendado:
+--   select * from cron.job;
+-- ------------------------------------------------------------
 
 
 -- ------------------------------------------------------------
