@@ -2,7 +2,7 @@ import React, { useMemo, useState, useRef, useEffect } from 'react';
 import Capa from '../components/Capa';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
-  Play, Check, Clock, GraduationCap, Search, Filter, Sparkles,
+  Play, Check, Clock, GraduationCap, Search, Filter,
   BookOpen, ChevronRight, X, Film, Layers, TriangleAlert, Lock,
 } from 'lucide-react';
 import { db } from '../db/db';
@@ -13,7 +13,7 @@ import {
 } from '../components/UI';
 import {
   aulasDoTema, aulasParaEstilo, aulasParaDor, aulasParaTecnica, aulaParaSituacao,
-  resumoAcervo, capa, duracaoTexto, registrarAulaVista,
+  resumoAcervo, capa, duracaoTexto, registrarAulaVista, aulasDeEntrada,
 } from '../lib/aulas';
 import { TEMAS_AULA, TEMA_POR_DOR } from '../db/aulas';
 import { minhasTecnicas, meusBuracos } from '../lib/graus';
@@ -109,6 +109,13 @@ export default function Estudo() {
     return blocos;
   }, [recs, faixa, vistas, settings.estiloDeclarado, acervoVer]);
 
+  /* quem ainda não registrou nada precisa de algo pra ver hoje,
+     e não de um aviso dizendo que a tela enche depois */
+  const entrada = useMemo(
+    () => aulasDeEntrada({ faixa, vistas, quantidade: RECOMENDACOES_NA_TELA }),
+    [faixa, vistas, acervoVer]
+  );
+
   const doTema = useMemo(
     () => (tema ? aulasDoTema(tema, { faixa, vistas, busca, tipo, pagina }) : null),
     [tema, faixa, vistas, busca, tipo, pagina, acervoVer]
@@ -159,12 +166,18 @@ export default function Estudo() {
       {aba === 'pravoce' && (
         paraVoce.length === 0 ? (
           <Card>
-            <Empty
-              icon={Sparkles}
-              titulo="Registre alguns treinos primeiro"
-              texto="Com o que você anota nos rolas, o app escolhe as aulas que atacam exatamente o que está travando. Enquanto isso, dá pra navegar por tema ali do lado."
-              acao={<Btn variant="primary" onClick={() => setAba('temas')}>Ver por tema</Btn>}
-            />
+            <div className="card-head">
+              <div>
+                <div className="eyebrow">por onde começar</div>
+                <h2 className="h-sec">Comece por estas</h2>
+              </div>
+            </div>
+            <p className="tiny muted" style={{ marginBottom: 14, lineHeight: 1.65 }}>
+              Depois que você registrar alguns rolas, esta lista muda: o app passa a escolher a aula que ataca
+              exatamente o que está te travando. Por enquanto, estas são as que mais destravam quem está
+              chegando.
+            </p>
+            <ListaAulas aulas={entrada} vistas={vistas} onTocar={tocar} />
           </Card>
         ) : (
           <div className="col" style={{ gap: 16 }}>

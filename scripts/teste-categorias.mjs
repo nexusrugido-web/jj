@@ -140,5 +140,37 @@ ok('quem comprou toca mesmo sem assinar', rotaDoVideo(pago, null, ctx({ comprado
 ok('video pago sem link cadastrado nao inventa link',
   rotaDoVideo({ id: 'v3', premium: true }, { premium: true }, ctx()).link === null);
 
+/* ============================================================
+   QUEM ACABOU DE CHEGAR TEM O QUE VER
+
+   O lead cria conta e abre o Estudo sem ter registrado nada.
+   Antes ele via uma tela vazia pedindo pra registrar treino,
+   que e o contrario do que faz alguem voltar no dia seguinte.
+   ============================================================ */
+console.log('');
+const { aulasDeEntrada } = await import('../src/lib/aulas.js');
+
+/* sem nada marcado no painel, o app escolhe sozinho */
+const automatica = aulasDeEntrada({ faixa: 'branca', vistas: [], quantidade: 10 });
+ok('sem nada marcado, o app ainda tem o que mostrar', automatica.length > 0, automatica.length + ' aulas');
+ok('nenhuma delas passa de trinta minutos', automatica.every((a) => a.d <= 1800));
+ok('todas sao aula longa e nao short', automatica.every((a) => a.k === 'aula'));
+
+/* com videos marcados, manda o que o administrador escolheu */
+await db.acervo.clear();
+await db.acervo.bulkPut([
+  { id: 'e1', t: 'Escolhida a dedo', d: 600, k: 'aula', tm: ['logica'], p: [], destaque: true, atualizadoEm: '2026-01-01' },
+  { id: 'e2', t: 'Outra escolhida', d: 700, k: 'aula', tm: ['guarda'], p: [], destaque: true, atualizadoEm: '2026-01-01' },
+  { id: 'x1', t: 'Nao escolhida', d: 800, k: 'aula', tm: ['logica'], p: [], destaque: false, atualizadoEm: '2026-01-01' },
+]);
+await acervoLocal();
+const escolhidas = aulasDeEntrada({ quantidade: 10 });
+ok('manda o que o painel marcou', escolhidas.length === 2, escolhidas.map((a) => a.id).join(','));
+ok('nao mistura o que nao foi marcado', !escolhidas.some((a) => a.id === 'x1'));
+
+/* o que a pessoa ja viu vai pro fim, e nao some */
+const comVistas = aulasDeEntrada({ vistas: ['e1'], quantidade: 10 });
+ok('o ja visto desce pro fim', comVistas[comVistas.length - 1].id === 'e1', comVistas.map((a) => a.id).join(','));
+
 console.log(falhas ? `\n${falhas} FALHA(S)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

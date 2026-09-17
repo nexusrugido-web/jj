@@ -33,6 +33,7 @@ function daTabela(l) {
     p: l.posicoes || [],
     f: l.faixa || undefined,
     premium: !!l.premium,
+    destaque: !!l.destaque,
     checkout: l.checkout_url || null,
   };
 }

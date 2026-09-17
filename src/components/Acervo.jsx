@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Film, Check, X, TriangleAlert, Plus, Search, Lock, Unlock, Trash2, RefreshCw,
+  Film, Check, X, TriangleAlert, Plus, Search, Lock, Unlock, Trash2, RefreshCw, Sparkles,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import {
@@ -171,6 +171,7 @@ export default function Acervo() {
     return lista.filter((a) => {
       if (filtro === 'revisar' && !a.revisar) return false;
       if (filtro === 'premium' && !a.premium) return false;
+      if (filtro === 'entrada' && !a.destaque) return false;
       if (filtro === 'aula' && a.tipo !== 'aula') return false;
       if (filtro === 'short' && a.tipo !== 'short') return false;
       return !q || a.titulo.toLowerCase().includes(q);
@@ -183,6 +184,7 @@ export default function Acervo() {
     shorts: lista.filter((a) => a.tipo === 'short').length,
     revisar: lista.filter((a) => a.revisar).length,
     premium: lista.filter((a) => a.premium).length,
+    entrada: lista.filter((a) => a.destaque).length,
   }), [lista]);
 
   return (
@@ -225,6 +227,7 @@ export default function Acervo() {
             { id: 'aula', nome: 'Aulas' },
             { id: 'short', nome: 'Shorts' },
             { id: 'premium', nome: 'Pagos' },
+            { id: 'entrada', nome: 'Entrada' },
             { id: 'revisar', nome: 'Revisar' },
           ].map((o) => (
             <button key={o.id} className={filtro === o.id ? 'on' : ''} onClick={() => setFiltro(o.id)}>{o.nome}</button>
@@ -255,6 +258,7 @@ export default function Acervo() {
                   <span className="micro muted num">{duracaoTexto(a.duracao)}</span>
                   <Chip>{a.tipo === 'aula' ? 'aula' : 'short'}</Chip>
                   {a.premium && <Chip tone="roar">pago</Chip>}
+                  {a.destaque && <Chip tone="jade">entrada</Chip>}
                   {a.revisar && <Chip tone="roar">revisar</Chip>}
                   {!a.ativo && <Chip>fora do ar</Chip>}
                   {(a.temas || []).map((t) => <Chip key={t}>{nomeTema(t)}</Chip>)}
@@ -424,6 +428,7 @@ function EditarAula({ aula, onClose, onSalvar }) {
       titulo: aula.titulo,
       premium: !!aula.premium,
       checkout_url: aula.checkout_url || '',
+      destaque: !!aula.destaque,
       ativo: aula.ativo !== false,
       temas: (aula.temas || []).join(', '),
       revisar: !!aula.revisar,
@@ -438,6 +443,7 @@ function EditarAula({ aula, onClose, onSalvar }) {
     const r = await onSalvar(aula, {
       titulo: f.titulo.trim(),
       premium: f.premium,
+      destaque: f.destaque,
       checkout_url: f.premium ? (f.checkout_url.trim() || null) : null,
       ativo: f.ativo,
       temas: temas.length ? temas : ['geral'],
@@ -503,6 +509,26 @@ function EditarAula({ aula, onClose, onSalvar }) {
           </button>
         ))}
       </div>
+
+      <button
+        type="button"
+        className={`opcao-meta ${f.destaque ? 'on' : ''}`}
+        onClick={() => setF({ ...f, destaque: !f.destaque })}
+        style={{ marginTop: 6 }}
+      >
+        <div className="row" style={{ gap: 9 }}>
+          <Sparkles size={15} style={{ flex: 'none' }} />
+          <div>
+            <div className="tiny" style={{ fontWeight: 600 }}>
+              {f.destaque ? 'Aparece pra quem acabou de chegar' : 'Mostrar pra quem acabou de chegar'}
+            </div>
+            <p className="micro muted" style={{ marginTop: 3, lineHeight: 1.6 }}>
+              Quem cria conta ainda não registrou nada, então o app não tem o que recomendar. Estes vídeos
+              aparecem no lugar da tela vazia.
+            </p>
+          </div>
+        </div>
+      </button>
 
       <button
         type="button"

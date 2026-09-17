@@ -530,3 +530,36 @@ export async function registrarAulaVista(aula, segundos = 0) {
 
   return { xp: p?.xp || 0, revisao: false };
 }
+
+/* ============================================================
+   OS VÍDEOS DE QUEM ACABOU DE CHEGAR
+
+   Sem registro nenhum, o app não tem o que recomendar. Mas é
+   justamente aí que a pessoa mais precisa de um motivo pra
+   voltar amanhã, então tela vazia é o pior desfecho possível.
+
+   A lista sai dos vídeos que o administrador marcou no painel.
+   Quando ele ainda não marcou nada, o app escolhe sozinho:
+   aula que explica o porquê, mirando a faixa de quem chegou, e
+   nunca a mais longa do acervo, porque uma hora de vídeo no
+   primeiro dia não é convite, é muro.
+   ============================================================ */
+export function aulasDeEntrada({ faixa = 'branca', vistas = [], quantidade = 10 } = {}) {
+  const escolhidas = acervo().filter((a) => a.destaque);
+
+  if (escolhidas.length) {
+    const vistasSet = new Set(vistas);
+    return [...escolhidas]
+      .sort((a, b) => (vistasSet.has(a.id) === vistasSet.has(b.id) ? 0 : vistasSet.has(a.id) ? 1 : -1))
+      .slice(0, quantidade);
+  }
+
+  return escolherAulas({
+    temas: ['logica', 'guarda', 'defesa'],
+    faixa,
+    vistas,
+    quantidade,
+    preferirCurto: true,
+    soAula: true,
+  }).filter((a) => a.d <= 1800);
+}
