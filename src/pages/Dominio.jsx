@@ -16,9 +16,10 @@ import { faltaPara, gerarRecomendacoes, INTENCOES, filtrarFeitas, aderencia } fr
 import Recomendacao from '../components/Recomendacao';
 import { buscaMatch, relativo } from '../lib/utils';
 import { posInicialPorId } from '../db/scoring';
+import { limitarLista, LIMITES, RECOMENDACOES_NA_TELA } from '../lib/plano';
 
 export default function Dominio() {
-  const { rolls, partners, sessions, techniques, categories, goals, settings, irPara } = useApp();
+  const { rolls, partners, sessions, techniques, categories, goals, settings, irPara, acesso } = useApp();
   const [filtro, setFiltro] = useState('todas');
   const [busca, setBusca] = useState('');
   const [detalhe, setDetalhe] = useState(null);
@@ -35,12 +36,18 @@ export default function Dominio() {
   const buracos = useMemo(() => meusBuracos(rolls, partners, sessions, faixa), [rolls, partners, sessions, faixa]);
   const resumo = useMemo(() => resumoGraus(tecnicas), [tecnicas]);
   const principal = useMemo(() => jogoPrincipal(tecnicas), [tecnicas]);
-  const recs = useMemo(
+  const todasRecs = useMemo(
     () => filtrarFeitas(
-      gerarRecomendacoes({ tecnicas, buracos, partners, sessions, rolls, faixa, limite: 6 }),
+      gerarRecomendacoes({ tecnicas, buracos, partners, sessions, rolls, faixa, limite: RECOMENDACOES_NA_TELA }),
       feitas
-    ).slice(0, 3),
+    ),
     [tecnicas, buracos, partners, sessions, faixa, feitas]
+  );
+
+  /* no grátis abre uma, e o resto vira o tamanho do que falta */
+  const { itens: recs, cortados } = useMemo(
+    () => limitarLista(todasRecs, acesso, LIMITES.recomendacoesAbertas),
+    [todasRecs, acesso]
   );
   const adesao = useMemo(() => aderencia(feitas), [feitas]);
   const catById = useMemo(() => Object.fromEntries(categories.map((c) => [c.id, c])), [categories]);
@@ -109,6 +116,15 @@ export default function Dominio() {
               />
             ))}
           </div>
+
+          {cortados > 0 && (
+            <button className="valida atencao" onClick={() => irPara('ajustes')} style={{ width: '100%', textAlign: 'left', marginTop: 12 }}>
+              <p className="micro muted" style={{ lineHeight: 1.65 }}>
+                O app achou mais {cortados} {cortados === 1 ? 'coisa' : 'coisas'} pra você treinar a partir dos seus
+                registros. No plano grátis abre uma por vez. Toque aqui pra ver o premium.
+              </p>
+            </button>
+          )}
 
           {adesao && adesao.total >= 2 && (
             <p className="micro muted" style={{ marginTop: 12, lineHeight: 1.6 }}>

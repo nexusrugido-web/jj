@@ -11,8 +11,10 @@ import { ligada } from './chaves';
    funcionando offline sem precisar de internet toda vez.
 
    Duas regras que não se quebram:
-   1. Registrar treino é grátis e ilimitado, sempre. É o dado
-      que dá sentido a tudo, e limitar isso mataria o produto.
+   1. Registrar o treino é grátis e ilimitado, sempre. O que tem
+      dose no plano grátis é o detalhe: um rola por dia, uma
+      aula, um short, uma rodada de quiz. Aparecer no tatame e
+      marcar que apareceu nunca custa.
    2. Assinatura vencida não bloqueia os seus dados. Você
       continua vendo e exportando tudo que registrou.
    ============================================================ */
@@ -21,12 +23,28 @@ export const LIMITES = {
   historicoDias: 30,
   tecnicasAcompanhadas: 10,
   planosAtaque: 1,
-  aulasPorSemana: 5,
   metasAtivas: 2,
+
+  /* Por dia, não por semana. No grátis o app funciona inteiro,
+     só que na dose de quem está conhecendo: dá pra registrar
+     um rola por dia, ver uma aula, ver um short e responder
+     uma rodada de quiz. Quem treina todo dia sente o limite,
+     e é esse o ponto. */
+  rolasPorDia: 1,
+  aulasPorDia: 1,
+  shortsPorDia: 1,
+  perguntasPorDia: 5,
+  recomendacoesAbertas: 1,
 };
 
+/* Quantas recomendações o app monta pra mostrar na tela. Não é
+   limite de plano, é tamanho de lista: quanto mais a pessoa
+   registra, mais o app tem o que apontar. Quem está no grátis vê
+   quantas existem e abre uma. */
+export const RECOMENDACOES_NA_TELA = 10;
+
 export const RECURSOS = {
-  registro:      { premium: false, nome: 'Registrar treinos e rolas', desc: 'Ilimitado, sempre grátis.' },
+  registro:      { premium: false, nome: 'Registrar treino', desc: 'Todo treino que você fizer, sempre grátis.' },
   biblioteca:    { premium: false, nome: 'Biblioteca de técnicas', desc: 'As 626 técnicas, completa.' },
   offline:       { premium: false, nome: 'Funciona sem internet', desc: 'E sem conta, se você quiser.' },
   exportar:      { premium: false, nome: 'Exportar os seus dados', desc: 'Seus dados são seus, com ou sem assinatura.' },
@@ -36,7 +54,9 @@ export const RECURSOS = {
   meujogo:       { premium: true, nome: 'Estilo detectado', desc: 'O que os seus números dizem sobre o seu jogo.' },
   ia:            { premium: true, nome: 'Leitura da IA', desc: 'Insights e sugestões em cima do seu histórico.' },
   sync:          { premium: true, nome: 'Sincronizar aparelhos', desc: 'Celular, tablet e computador no mesmo lugar.' },
-  aulasIlimitadas:{ premium: true, nome: 'Aulas sem limite', desc: `No grátis são ${LIMITES.aulasPorSemana} por semana.` },
+  registroIlimitado:{ premium: true, nome: 'Rolas sem limite', desc: `No grátis é ${LIMITES.rolasPorDia} rola por dia.` },
+  aulasIlimitadas:{ premium: true, nome: 'Aulas sem limite', desc: `No grátis é ${LIMITES.aulasPorDia} aula e ${LIMITES.shortsPorDia} short por dia.` },
+  quizIlimitado: { premium: true, nome: 'Quiz sem limite', desc: `No grátis é uma rodada por dia.` },
   tecnicas:      { premium: true, nome: 'Técnicas sem limite', desc: `No grátis o app acompanha ${LIMITES.tecnicasAcompanhadas}.` },
   planos:        { premium: true, nome: 'Planos de ataque', desc: `No grátis é ${LIMITES.planosAtaque}.` },
   liga:          { premium: true, nome: 'Liga entre praticantes', desc: 'Ranking semanal com gente do seu nível.' },
@@ -125,22 +145,59 @@ export function limitarLista(lista, acesso, limite) {
   return { itens: lista.slice(0, limite), cortados: Math.max(0, lista.length - limite) };
 }
 
-/* quantas aulas você já viu nesta semana */
-export async function aulasDaSemana() {
-  const ini = (() => {
-    const d = new Date();
-    const dow = (d.getDay() + 6) % 7;
-    d.setDate(d.getDate() - dow);
-    return d.toISOString().slice(0, 10);
-  })();
-  const vistas = await db.aulasVistas.toArray();
-  return vistas.filter((v) => (v.data || '') >= ini).length;
+/* ============================================================
+   O LIMITE DO DIA
+
+   Uma função só pros quatro limites, porque a pergunta é sempre
+   a mesma: quantos disto você já fez hoje, e quantos você pode.
+
+   Conta o que está no aparelho, e não o ponto que o servidor
+   concedeu. São coisas diferentes: rola sem parceiro preenchido
+   não ganha ponto, mas ocupa o lugar do rola do dia do mesmo
+   jeito, porque foi registrado.
+   ============================================================ */
+const TETO_DO_DIA = {
+  rola:  LIMITES.rolasPorDia,
+  aula:  LIMITES.aulasPorDia,
+  short: LIMITES.shortsPorDia,
+  quiz:  LIMITES.perguntasPorDia,
+};
+
+export async function usadoHoje(tipo) {
+  const d = hoje();
+  try {
+    if (tipo === 'rola') return await db.rolls.where('data').equals(d).count();
+    if (tipo === 'aula' || tipo === 'short') {
+      /* conta vídeo aberto hoje, não vídeo descoberto hoje. Se
+         contasse só o primeiro acesso, dava pra passar o dia
+         revendo o que já tinha visto e o limite não existiria. */
+      const vistas = await db.aulasVistas.toArray();
+      return vistas.filter((a) => a.tipo === tipo && (a.ultima || a.data) === d).length;
+    }
+    if (tipo === 'quiz') {
+      const p = await db.pontos.where('data').equals(d).toArray();
+      return p.filter((x) => x.evento === 'quizAcerto' || x.evento === 'quizErro').length;
+    }
+  } catch { /* banco fechado, não trava a tela */ }
+  return 0;
 }
 
-export async function podeVerAula(acesso) {
-  if (!ligada('cobranca') || acesso?.premium) return { pode: true, restantes: null };
-  const n = await aulasDaSemana();
-  return { pode: n < LIMITES.aulasPorSemana, restantes: Math.max(0, LIMITES.aulasPorSemana - n) };
+export async function limiteDoDia(acesso, tipo) {
+  const teto = TETO_DO_DIA[tipo];
+  if (!teto) return { pode: true, usados: 0, teto: null, restantes: null };
+
+  /* com a cobrança desligada no painel, ninguém esbarra em nada */
+  if (!ligada('cobranca') || acesso?.premium) {
+    return { pode: true, usados: 0, teto: null, restantes: null };
+  }
+
+  const usados = await usadoHoje(tipo);
+  return {
+    pode: usados < teto,
+    usados,
+    teto,
+    restantes: Math.max(0, teto - usados),
+  };
 }
 
 /* ---------- o texto que aparece quando bate no limite ---------- */

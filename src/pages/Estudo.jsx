@@ -22,10 +22,13 @@ import { estiloPorId } from '../db/scoring';
 import { relativo } from '../lib/utils';
 import Quiz from '../components/Quiz';
 import { PERGUNTAS } from '../db/quiz';
+import { useLimite } from '../components/Limite';
+import { limitarLista, LIMITES, RECOMENDACOES_NA_TELA } from '../lib/plano';
 
 export default function Estudo() {
-  const { settings, rolls, partners, sessions, techniques, irPara, ligada } = useApp();
+  const { settings, rolls, partners, sessions, techniques, irPara, ligada, acesso } = useApp();
   const toast = useToast();
+  const { liberado, aviso } = useLimite(acesso, irPara);
   const faixa = settings.faixa || 'branca';
 
   const assistidas = useLiveQuery(() => db.aulasVistas.toArray(), [], []) || [];
@@ -45,6 +48,13 @@ export default function Estudo() {
   const [tipo, setTipo] = useState('todos');
   const [pagina, setPagina] = useState(0);
   const [tocando, setTocando] = useState(null);
+
+  /* no plano grátis é uma aula e um short por dia, então o
+     player só abre depois de perguntar se ainda cabe */
+  async function tocar(a) {
+    if (!a) return;
+    if (await liberado(a.k === 'aula' ? 'aula' : 'short')) setTocando(a);
+  }
   const [dorAberta, setDorAberta] = useState(null);
 
   const resumo = useMemo(() => resumoAcervo(vistas), [vistas]);
@@ -54,9 +64,15 @@ export default function Estudo() {
     [rolls, partners, sessions, techniques, faixa]
   );
   const buracos = useMemo(() => meusBuracos(rolls, partners, sessions, faixa), [rolls, partners, sessions, faixa]);
-  const recs = useMemo(
-    () => gerarRecomendacoes({ tecnicas, buracos, partners, sessions, faixa, limite: 3 }),
+  const todasRecs = useMemo(
+    () => gerarRecomendacoes({ tecnicas, buracos, partners, sessions, faixa, limite: RECOMENDACOES_NA_TELA }),
     [tecnicas, buracos, partners, sessions, faixa]
+  );
+
+  /* no grátis abre uma, e o resto conta como o que está faltando */
+  const { itens: recs, cortados: recsCortadas } = useMemo(
+    () => limitarLista(todasRecs, acesso, LIMITES.recomendacoesAbertas),
+    [todasRecs, acesso]
   );
 
   /* o que o app acha que você precisa ver agora */
@@ -160,9 +176,18 @@ export default function Estudo() {
                   </div>
                 </div>
                 <p className="tiny muted" style={{ marginBottom: 14, lineHeight: 1.65 }}>{b.texto}</p>
-                <ListaAulas aulas={b.aulas} vistas={vistas} onTocar={setTocando} />
+                <ListaAulas aulas={b.aulas} vistas={vistas} onTocar={tocar} />
               </Card>
             ))}
+
+            {recsCortadas > 0 && (
+              <button className="valida atencao" onClick={() => irPara('ajustes')} style={{ width: '100%', textAlign: 'left' }}>
+                <p className="micro muted" style={{ lineHeight: 1.65 }}>
+                  Tem mais {recsCortadas} {recsCortadas === 1 ? 'assunto' : 'assuntos'} que saíram dos seus registros.
+                  No plano grátis abre um por vez. Toque aqui pra ver o premium.
+                </p>
+              </button>
+            )}
           </div>
         )
       )}
@@ -209,7 +234,7 @@ export default function Estudo() {
                 ))}
               </div>
             </Card>
-            <ListaAulas aulas={doTema.itens} vistas={vistas} onTocar={setTocando} grade />
+            <ListaAulas aulas={doTema.itens} vistas={vistas} onTocar={tocar} grade />
             {doTema.temMais && (
               <Btn onClick={() => setPagina(pagina + 1)} style={{ width: '100%', marginTop: 14 }}>
                 Ver mais
@@ -242,7 +267,7 @@ export default function Estudo() {
                 </button>
                 {dorAberta === id && (
                   <div style={{ marginTop: 14 }}>
-                    <ListaAulas aulas={aulasParaDor(id, { faixa, vistas, quantidade: 5 })} vistas={vistas} onTocar={setTocando} />
+                    <ListaAulas aulas={aulasParaDor(id, { faixa, vistas, quantidade: 5 })} vistas={vistas} onTocar={tocar} />
                   </div>
                 )}
               </Card>
@@ -280,7 +305,7 @@ export default function Estudo() {
               <button
                 key={a.id}
                 className="vista-item"
-                onClick={() => setTocando({ id: a.videoId, t: a.titulo, d: a.duracao, k: a.tipo })}
+                onClick={() => tocar({ id: a.videoId, t: a.titulo, d: a.duracao, k: a.tipo })}
               >
                 <Capa id={a.videoId} tamanho="mq" />
                 <div className="vista-txt">
@@ -299,6 +324,7 @@ export default function Estudo() {
       )}
 
       <Player aula={tocando} onClose={() => setTocando(null)} onConcluir={marcarVista} />
+      {aviso}
     </div>
   );
 }

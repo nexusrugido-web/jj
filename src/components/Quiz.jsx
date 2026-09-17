@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Check, X, Lightbulb, ChevronRight, Brain, RotateCcw } from 'lucide-react';
 import { db } from '../db/db';
@@ -6,6 +6,9 @@ import { Card, Btn, Chip, Empty, Bar, useToast } from './UI';
 import { PERGUNTAS, perguntasPara, proximaRevisao } from '../db/quiz';
 import { darXp } from '../lib/xp';
 import { hoje } from '../lib/utils';
+import { useApp } from '../contexto';
+import { limiteDoDia } from '../lib/plano';
+import { LimiteDoDia } from './Plano';
 
 /* ============================================================
    QUIZ
@@ -14,7 +17,16 @@ import { hoje } from '../lib/utils';
 
 export default function Quiz({ faixa = 'branca', dor = null, tema = null, onSair }) {
   const toast = useToast();
+  const { acesso, irPara } = useApp();
   const respondidas = useLiveQuery(() => db.quizRespostas.toArray(), [], []) || [];
+
+  /* No plano grátis é uma rodada por dia. A conta é feita ao
+     abrir e ao pedir outra rodada, nunca no meio: quem começou
+     a responder termina e vê o resultado. */
+  const [travado, setTravado] = useState(false);
+  useEffect(() => {
+    limiteDoDia(acesso, 'quiz').then((l) => setTravado(!l.pode)).catch(() => {});
+  }, [acesso]);
 
   const [fila, setFila] = useState(null);
   const [i, setI] = useState(0);
@@ -62,9 +74,20 @@ export default function Quiz({ faixa = 'branca', dor = null, tema = null, onSair
     setI(i + 1);
   }
 
-  function recomecar() {
+  async function recomecar() {
+    const l = await limiteDoDia(acesso, 'quiz');
+    if (!l.pode) { setTravado(true); return; }
     setFila(perguntasPara({ faixa, dor, tema, limite: 5, respondidas }));
     setI(0); setEscolha(null); setAcertos(0); setGanho(0);
+  }
+
+  if (travado) {
+    return (
+      <div className="col" style={{ gap: 12 }}>
+        <LimiteDoDia tipo="quiz" onAssinar={() => irPara?.('ajustes')} />
+        {onSair && <button className="btn ghost xs" onClick={onSair}>Voltar</button>}
+      </div>
+    );
   }
 
   if (!lista.length) {

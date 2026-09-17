@@ -210,6 +210,56 @@ export function Travado({ recurso, acesso, onAssinar, children }) {
   );
 }
 
+/* ============================================================
+   O LIMITE DO DIA BATEU
+
+   O texto fala do que a pessoa acabou de fazer, não do que ela
+   não pode. Quem viu a aula de hoje fez a coisa certa, e a
+   mensagem começa reconhecendo isso.
+
+   Volta amanhã é informação útil: o limite é diário, então o
+   grátis continua servindo pra quem treina três vezes por
+   semana. Sem essa frase parece bloqueio permanente.
+   ============================================================ */
+const TEXTO_LIMITE = {
+  rola: {
+    feito: 'Você já registrou o rola de hoje.',
+    premium: 'No premium você registra quantos rolas quiser, e o app enxerga muito mais do seu jogo.',
+  },
+  aula: {
+    feito: 'Você já viu a aula de hoje.',
+    premium: 'No premium a biblioteca abre inteira, com as aulas longas que puxam o seu assunto.',
+  },
+  short: {
+    feito: 'Você já viu o short de hoje.',
+    premium: 'No premium dá pra ver quantos quiser, e rever também conta ponto.',
+  },
+  quiz: {
+    feito: 'Você já fez a rodada de quiz de hoje.',
+    premium: 'No premium o quiz não acaba, e ele puxa pergunta do que você anda errando.',
+  },
+};
+
+export function LimiteDoDia({ tipo, onAssinar }) {
+  const t = TEXTO_LIMITE[tipo];
+  if (!t) return null;
+
+  return (
+    <Card style={{ borderStyle: 'dashed' }}>
+      <div className="col center" style={{ alignItems: 'center', gap: 12, padding: '10px 0' }}>
+        <span className="stat-ico" style={{ color: 'var(--accent)' }}><Lock size={17} /></span>
+        <div className="center">
+          <div className="tiny" style={{ fontWeight: 600 }}>{t.feito}</div>
+          <p className="micro muted" style={{ marginTop: 5, maxWidth: 320, lineHeight: 1.6 }}>
+            {t.premium} Amanhã libera de novo.
+          </p>
+        </div>
+        <Btn size="sm" variant="primary" onClick={onAssinar}>Ver o premium</Btn>
+      </div>
+    </Card>
+  );
+}
+
 /* ---------- aviso de corte no histórico ---------- */
 export function HistoricoCortado({ cortados, onAssinar }) {
   if (!cortados) return null;

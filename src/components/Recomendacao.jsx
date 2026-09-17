@@ -8,6 +8,8 @@ import { aulaParaSituacao, capa, duracaoTexto, registrarAulaVista } from '../lib
 import Player from './Player';
 import { darXp } from '../lib/xp';
 import { hoje } from '../lib/utils';
+import { useApp } from '../contexto';
+import { useLimite } from './Limite';
 
 /* ============================================================
    A RECOMENDAÇÃO QUE FECHA O LAÇO
@@ -21,9 +23,15 @@ import { hoje } from '../lib/utils';
 
 export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFeito, comAula = true }) {
   const toast = useToast();
+  const { acesso, irPara } = useApp();
+  const { liberado, aviso } = useLimite(acesso, irPara);
   const [marcando, setMarcando] = useState(false);
   const [resposta, setResposta] = useState(null);
   const [tocando, setTocando] = useState(null);
+
+  async function tocar(a) {
+    if (await liberado(a.k === 'aula' ? 'aula' : 'short')) setTocando(a);
+  }
 
   const info = INTENCOES[rec.intencao] || INTENCOES.repetir;
 
@@ -89,7 +97,7 @@ export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFei
       )}
 
       {aulas.length > 0 && (
-        <button className="rec-aula" onClick={() => setTocando(aulas[0])}>
+        <button className="rec-aula" onClick={() => tocar(aulas[0])}>
           <Capa id={aulas[0].id} tamanho="mq" />
           <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
             <div className="micro" style={{ color: 'var(--dimmer)' }}>aula sobre isso</div>
@@ -128,6 +136,7 @@ export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFei
           }}
         />
       )}
+      {aviso}
     </div>
   );
 }
