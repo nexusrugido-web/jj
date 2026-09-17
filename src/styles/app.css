@@ -1247,15 +1247,27 @@ button.chip:hover { color: var(--chalk); border-color: var(--dimmer); }
    verdade do navegador, que é o caso do iPhone. */
 body.player-cheio .sheet { overflow: visible; }
 body.player-cheio .sheet-overlay { backdrop-filter: none; -webkit-backdrop-filter: none; }
-.player-caixa.cheio iframe, .player-caixa.cheio > div { height: 100%; }
+.player-caixa.cheio iframe, .player-caixa.cheio > div { width: 100%; height: 100%; }
 
+/* Os controles somem sozinhos depois de alguns segundos. Em tela
+   cheia o que a pessoa quer é a aula, e barra parada em cima do
+   vídeo atrapalha mais do que ajuda. Um toque embaixo traz de
+   volta. */
 .player-barra {
-  position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 302;
   display: flex; align-items: center; gap: 10px;
   padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
-  background: linear-gradient(to top, rgba(0,0,0,.82), transparent);
+  background: linear-gradient(to top, rgba(0,0,0,.88), transparent);
+  transition: opacity 0.25s var(--ease);
 }
 .player-barra .bar { flex: 1; }
+.player-barra.sumiu { opacity: 0; pointer-events: none; }
+
+/* a faixa embaixo que acorda os controles sem cobrir o vídeo */
+.player-toque {
+  position: fixed; left: 0; right: 0; bottom: 0; height: 88px; z-index: 301;
+  border: 0; background: transparent;
+}
 
 .tema-card { text-align: left; width: 100%; }
 

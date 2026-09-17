@@ -34,7 +34,9 @@ const FRACAO_PRA_CONCLUIR = 0.9;
 export default function Player({ aula, onClose, onConcluir }) {
   const ref = useRef(null);
   const caixa = useRef(null);
+  const sumir = useRef(null);
   const [cheio, setCheio] = useState(false);
+  const [controles, setControles] = useState(true);
   const [pronto, setPronto] = useState(false);
   const [progresso, setProgresso] = useState(0);
   const [concluida, setConcluida] = useState(false);
@@ -158,23 +160,41 @@ export default function Player({ aula, onClose, onConcluir }) {
   }
 
   /* ---------- tela cheia ----------
-     Tenta a de verdade do navegador. O iPhone não deixa um
-     elemento qualquer entrar nela, e nesse caso a classe do CSS
-     faz o mesmo efeito esticando o vídeo pelo aparelho todo. O
-     app instalado na tela inicial nem tem barra de navegador,
-     então o resultado fica igual. */
+     Tenta a de verdade do navegador e, dentro dela, deita o
+     aparelho. Vídeo de aula é 16 por 9: em pé ele vira uma tira
+     no meio da tela preta, que era o que estava acontecendo.
+
+     O iPhone não deixa um elemento qualquer entrar em tela cheia
+     nem deitar a tela na marra. Lá a classe do CSS estica o vídeo
+     e a pessoa gira o aparelho na mão. */
   function virarCheio() {
     const alvo = caixa.current;
     if (!alvo) return;
 
     if (cheio) {
+      try { screen.orientation?.unlock?.(); } catch { /* sem suporte */ }
       try { if (document.fullscreenElement) document.exitFullscreen(); } catch { /* sem suporte */ }
       setCheio(false);
       return;
     }
 
     setCheio(true);
-    try { alvo.requestFullscreen?.({ navigationUI: 'hide' }); } catch { /* fica com a classe do CSS */ }
+    acordarControles();
+
+    try {
+      const p = alvo.requestFullscreen?.({ navigationUI: 'hide' });
+      /* deitar a tela só é permitido depois que a tela cheia entrou */
+      Promise.resolve(p)
+        .then(() => screen.orientation?.lock?.('landscape'))
+        .catch(() => { /* iPhone e computador não deitam, e tudo bem */ });
+    } catch { /* fica com a classe do CSS */ }
+  }
+
+  /* os controles aparecem, e somem sozinhos se ninguém mexer */
+  function acordarControles() {
+    setControles(true);
+    clearTimeout(sumir.current);
+    sumir.current = setTimeout(() => setControles(false), 3500);
   }
 
   /* solta o recorte da folha enquanto a tela cheia estiver aberta */
@@ -185,7 +205,11 @@ export default function Player({ aula, onClose, onConcluir }) {
 
   /* sair pelo gesto do aparelho ou pelo Esc precisa desmarcar */
   useEffect(() => {
-    const sincronizar = () => { if (!document.fullscreenElement) setCheio(false); };
+    const sincronizar = () => {
+      if (document.fullscreenElement) return;
+      try { screen.orientation?.unlock?.(); } catch { /* sem suporte */ }
+      setCheio(false);
+    };
     document.addEventListener('fullscreenchange', sincronizar);
     return () => document.removeEventListener('fullscreenchange', sincronizar);
   }, []);
@@ -197,13 +221,19 @@ export default function Player({ aula, onClose, onConcluir }) {
     return () => window.removeEventListener('keydown', esc);
   });
 
-  /* fechar a aula com a tela cheia aberta deixaria o aparelho preso nela */
+  /* fechar a aula com a tela cheia aberta deixaria o aparelho
+     preso nela, e deitado */
   useEffect(() => {
-    if (!aula && document.fullscreenElement) {
-      try { document.exitFullscreen(); } catch { /* sem suporte */ }
+    if (!aula) {
+      try { screen.orientation?.unlock?.(); } catch { /* sem suporte */ }
+      if (document.fullscreenElement) {
+        try { document.exitFullscreen(); } catch { /* sem suporte */ }
+      }
+      setCheio(false);
     }
-    if (!aula) setCheio(false);
   }, [aula]);
+
+  useEffect(() => () => clearTimeout(sumir.current), []);
 
   if (!aula) return null;
 
@@ -244,19 +274,25 @@ export default function Player({ aula, onClose, onConcluir }) {
         )}
 
         {cheio && (
-          <div className="player-barra">
-            {!semApi && (
-              <button className="btn ghost xs" onClick={virarPlay} disabled={!pronto}>
-                {rodando ? <Pause size={13} /> : <Play size={13} />}
-                {rodando ? 'Pausar' : 'Tocar'}
+          <>
+            {/* faixa invisível embaixo, pra acordar os controles
+                sem precisar tocar em cima do vídeo */}
+            <button className="player-toque" aria-label="Mostrar controles" onClick={acordarControles} />
+
+            <div className={`player-barra ${controles ? '' : 'sumiu'}`}>
+              {!semApi && (
+                <button className="btn ghost xs" onClick={() => { virarPlay(); acordarControles(); }} disabled={!pronto}>
+                  {rodando ? <Pause size={13} /> : <Play size={13} />}
+                  {rodando ? 'Pausar' : 'Tocar'}
+                </button>
+              )}
+              <Bar v={progresso} max={100} tone={concluida ? 'jade' : ''} />
+              <span className="micro num" style={{ color: 'var(--chalk)' }}>{progresso}%</span>
+              <button className="btn ghost xs" onClick={virarCheio}>
+                <Minimize size={13} /> Sair
               </button>
-            )}
-            <Bar v={progresso} max={100} tone={concluida ? 'jade' : ''} />
-            <span className="micro num" style={{ color: 'var(--chalk)' }}>{progresso}%</span>
-            <button className="btn ghost xs" onClick={virarCheio}>
-              <Minimize size={13} /> Sair
-            </button>
-          </div>
+            </div>
+          </>
         )}
       </div>
 

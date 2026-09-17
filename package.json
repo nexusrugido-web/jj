@@ -10,11 +10,12 @@
     "preview": "vite preview",
     "lint:copy": "node scripts/lint-copy.mjs",
     "lint:ciclos": "node scripts/ciclos.mjs",
-    "check": "npm run lint:copy && npm run lint:simbolos && npm run lint:ciclos && npm run build && npm run lint:chunks && npm run teste:boot && npm run teste:limites",
+    "check": "npm run lint:copy && npm run lint:simbolos && npm run lint:ciclos && npm run build && npm run lint:chunks && npm run teste:boot && npm run teste:limites && npm run teste:categorias",
     "lint:chunks": "node scripts/chunks.mjs",
     "teste:boot": "node scripts/teste-boot.mjs",
     "lint:simbolos": "node scripts/simbolos.mjs",
-    "teste:limites": "node scripts/teste-limites.mjs"
+    "teste:limites": "node scripts/teste-limites.mjs",
+    "teste:categorias": "node scripts/teste-categorias.mjs"
   },
   "dependencies": {
     "@sentry/react": "^10.74.0",

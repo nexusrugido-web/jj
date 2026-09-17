@@ -9,6 +9,7 @@ import {
   Card, Btn, Chip, Stat, Empty, Field, Input, Textarea, Select, useToast, Bar,
 } from '../components/UI';
 import { carregarChaves, souAdminNoServidor } from '../lib/chaves';
+import Acervo from '../components/Acervo';
 
 /* ============================================================
    PAINEL DO ADMINISTRADOR
@@ -40,6 +41,7 @@ export default function Admin() {
   /* null = ainda perguntando, false = a tela abriu pelo atalho do
      aparelho e o servidor não reconhece esta conta */
   const [permissaoReal, setPermissaoReal] = useState(null);
+  const [aba, setAba] = useState('produto');
 
   async function buscar() {
     if (!supabase) return;
@@ -174,6 +176,14 @@ export default function Admin() {
         <Btn icon={RefreshCw} onClick={buscar} disabled={carregando}>Atualizar</Btn>
       </div>
 
+      <div className="seletor-pill" style={{ marginBottom: 14 }}>
+        {[{ id: 'produto', nome: 'Produto' }, { id: 'acervo', nome: 'Acervo' }].map((o) => (
+          <button key={o.id} className={aba === o.id ? 'on' : ''} onClick={() => setAba(o.id)}>{o.nome}</button>
+        ))}
+      </div>
+
+      {aba === 'acervo' && <Acervo />}
+
       {permissaoReal === false && (
         <Card style={{ marginBottom: 14, borderLeft: '3px solid var(--blood)' }}>
           <div className="row" style={{ gap: 12, alignItems: 'flex-start' }}>
@@ -213,6 +223,8 @@ export default function Admin() {
           </p>
         </div>
       )}
+
+      {aba === 'produto' && (<>
 
       {/* números */}
       {numeros && (
@@ -385,6 +397,7 @@ export default function Admin() {
           })()}
         </div>
       </Card>
+      </>)}
     </div>
   );
 }
