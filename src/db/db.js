@@ -100,6 +100,14 @@ db.version(6).stores({
   recFeitas: '++id, uid, chave, intencao, alvo, data, resultado, updatedAt',
 });
 
+/* v7: o acervo de aulas saiu do código e virou tabela no servidor.
+   Aqui fica a cópia local, pra o Estudo abrir sem rede. Não entra
+   em TABELAS_SYNC de propósito: é conteúdo do app, igual pra todo
+   mundo, e não registro de ninguém. */
+db.version(7).stores({
+  acervo: 'id, k, atualizadoEm',
+});
+
 /* ---------- hooks: carimba uid/updatedAt e alimenta a fila de sync ---------- */
 let enfileirarRef = null;
 export function registrarSync(fn) { enfileirarRef = fn; }

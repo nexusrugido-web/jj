@@ -13,6 +13,7 @@ import { resumo as calcResumo } from './lib/stats';
 import { minhasTecnicas, resumoGraus } from './lib/graus';
 import { sincronizarAcesso, acessoLocal } from './lib/plano';
 import { subirPerfil, mexeuNoPerfil } from './lib/perfil';
+import { acervoLocal, sincronizarAcervo, observarAcervo } from './lib/acervo';
 import { registrarErro, marcarPasso, erroDeAcesso } from './lib/monitor';
 import { carregarChaves, carregarRecado, souAdmin, ligada, observarChaves, todasAsChaves } from './lib/chaves';
 import { sincronizarMarcos } from './lib/milestones';
@@ -119,6 +120,11 @@ export default function App() {
      precisa reagir na hora. Sem este ouvinte, ligar a liga só
      aparecia depois de fechar e abrir o app. */
   useEffect(() => observarChaves(setChaves), []);
+
+  /* o acervo chega do servidor depois da tela montar. Sem este
+     aviso, o Estudo fica com a lista velha até alguém recarregar. */
+  const [acervoVer, setAcervoVer] = useState(0);
+  useEffect(() => observarAcervo(() => setAcervoVer((n) => n + 1)), []);
   const ligadaAgora = useCallback(
     (id) => (chaves ? (chaves[id] ?? ligada(id)) : ligada(id)),
     [chaves]
@@ -155,6 +161,9 @@ export default function App() {
       };
 
       await passo('seed', ensureSeed);
+      /* a cópia local do acervo entra antes da primeira tela, senão
+         o Estudo abre com o acervo velho e troca na cara da pessoa */
+      await passo('acervo', acervoLocal);
       await passo('limpar duplicados', limparDuplicados);
       await passo('migrar planos', migrarGameplans);
       await passo('renomear posições', renomearAntigos);
@@ -198,6 +207,7 @@ export default function App() {
         .catch(() => {});
       souAdmin().then(setEhAdmin).catch(() => {});
       subirPerfil(s).catch(() => {});
+      sincronizarAcervo().catch(() => {});
       acessoLocal().then(setAcesso).catch(() => {});
       sincronizarAcesso().then(setAcesso).catch(erroDeAcesso);
       marcarEngajamento();
@@ -414,7 +424,7 @@ export default function App() {
     positions: positions || [], categories: categories || [], techniques: techniques || [],
     partners: partners || [], sessions: sessions || [], rolls: rolls || [],
     reviews: reviews || [], goals: goals || [],
-    sessao, sync, erroBoot,
+    sessao, sync, erroBoot, acervoVer,
     abrirInstalar: () => setInstalarAberto(true),
     abrirLogin: () => setTelaLogin(true),
     refazerOnboarding: () => setOnboarding(true),

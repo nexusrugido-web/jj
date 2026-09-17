@@ -26,7 +26,7 @@ import { useLimite } from '../components/Limite';
 import { limitarLista, LIMITES, RECOMENDACOES_NA_TELA } from '../lib/plano';
 
 export default function Estudo() {
-  const { settings, rolls, partners, sessions, techniques, irPara, ligada, acesso } = useApp();
+  const { settings, rolls, partners, sessions, techniques, irPara, ligada, acesso, acervoVer } = useApp();
   const toast = useToast();
   const { liberado, aviso } = useLimite(acesso, irPara);
   const faixa = settings.faixa || 'branca';
@@ -57,7 +57,7 @@ export default function Estudo() {
   }
   const [dorAberta, setDorAberta] = useState(null);
 
-  const resumo = useMemo(() => resumoAcervo(vistas), [vistas]);
+  const resumo = useMemo(() => resumoAcervo(vistas), [vistas, acervoVer]);
 
   const tecnicas = useMemo(
     () => minhasTecnicas(rolls, partners, sessions, techniques, faixa),
@@ -106,11 +106,11 @@ export default function Estudo() {
       });
     }
     return blocos;
-  }, [recs, faixa, vistas, settings.estiloDeclarado]);
+  }, [recs, faixa, vistas, settings.estiloDeclarado, acervoVer]);
 
   const doTema = useMemo(
     () => (tema ? aulasDoTema(tema, { faixa, vistas, busca, tipo, pagina }) : null),
-    [tema, faixa, vistas, busca, tipo, pagina]
+    [tema, faixa, vistas, busca, tipo, pagina, acervoVer]
   );
 
   async function marcarVista(a, segundos) {

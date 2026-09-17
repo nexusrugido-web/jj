@@ -1,5 +1,6 @@
-import { AULAS, TEMA_POR_INTENCAO, TEMA_POR_ESTILO, TEMA_POR_DOR, capa, embed, duracaoTexto, SERVIDORES_CAPA } from '../db/aulas';
+import { TEMA_POR_INTENCAO, TEMA_POR_ESTILO, TEMA_POR_DOR, capa, embed, duracaoTexto, SERVIDORES_CAPA } from '../db/aulas';
 import { hoje } from './utils';
+import { acervo } from './acervo';
 
 /* ============================================================
    ESCOLHA DE AULAS
@@ -80,7 +81,7 @@ export function escolherAulas({
   const fora = new Set(excluir);
 
   /* pontua cada aula pela aderência ao que a pessoa precisa agora */
-  const candidatas = AULAS
+  const candidatas = acervo()
     .filter((a) => !fora.has(a.id))
     .map((a) => {
       /* Primeiro: a aula tem alguma coisa a ver com o que foi
@@ -191,7 +192,7 @@ export function aulasParaBuraco(nomeTecnica, { faixa, vistas, quantidade = 2 } =
 /* ---------- navegação por tema ---------- */
 export function aulasDoTema(tema, { faixa, vistas = [], busca = '', tipo = 'todos', pagina = 0, porPagina = 24 } = {}) {
   const vistasSet = new Set(vistas);
-  let lista = AULAS.filter((a) => a.tm.includes(tema));
+  let lista = acervo().filter((a) => a.tm.includes(tema));
 
   if (tipo !== 'todos') lista = lista.filter((a) => a.k === tipo);
   if (busca) {
@@ -224,16 +225,16 @@ export { capa, embed, duracaoTexto, SERVIDORES_CAPA };
 /* ---------- estatística do acervo ---------- */
 export function resumoAcervo(vistas = []) {
   const v = new Set(vistas);
-  const seg = AULAS.reduce((a, x) => a + x.d, 0);
-  const vistoSeg = AULAS.filter((x) => v.has(x.id)).reduce((a, x) => a + x.d, 0);
+  const seg = acervo().reduce((a, x) => a + x.d, 0);
+  const vistoSeg = acervo().filter((x) => v.has(x.id)).reduce((a, x) => a + x.d, 0);
   return {
-    total: AULAS.length,
-    aulas: AULAS.filter((a) => a.k === 'aula').length,
-    shorts: AULAS.filter((a) => a.k === 'short').length,
+    total: acervo().length,
+    aulas: acervo().filter((a) => a.k === 'aula').length,
+    shorts: acervo().filter((a) => a.k === 'short').length,
     horas: Math.round(seg / 3600),
     vistas: v.size,
     horasVistas: Math.round((vistoSeg / 3600) * 10) / 10,
-    pct: Math.round((v.size / AULAS.length) * 100),
+    pct: Math.round((v.size / acervo().length) * 100),
   };
 }
 

@@ -1,6 +1,8 @@
 import { register } from 'node:module';
 register('./como-vite.mjs', import.meta.url);
 
+import 'fake-indexeddb/auto';
+
 /* ============================================================
    A CATEGORIZACAO AUTOMATICA BATE COM A DA MAO?
 
@@ -81,6 +83,28 @@ for (const [tm, s] of Object.entries(stat).sort((x, y) => (y[1].vp + y[1].fn) - 
 
 ok('a maioria do que nao bateu ja era geral', semTemaEraGeral / Math.max(1, semTema) >= 0.75,
   `${Math.round(semTemaEraGeral / Math.max(1, semTema) * 100)}%`);
+
+/* ============================================================
+   DE ONDE VEM O ACERVO
+
+   O acervo saiu do codigo e virou tabela. O que nao pode
+   acontecer: o app abrir sem rede e ficar sem aula nenhuma.
+   ============================================================ */
+console.log('');
+const { db } = await import('../src/db/db.js');
+const { acervo, acervoLocal } = await import('../src/lib/acervo.js');
+
+await db.open();
+ok('sem copia local, vale o acervo que veio no codigo', acervo().length === AULAS.length,
+  `${acervo().length} videos`);
+
+await db.acervo.bulkPut([
+  { id: 'novo1', t: 'Aula cadastrada pelo painel', d: 900, k: 'aula', tm: ['guarda'], p: [], atualizadoEm: '2026-01-01' },
+  { id: 'novo2', t: 'Short cadastrado pelo painel', d: 60, k: 'short', tm: ['defesa'], p: [], atualizadoEm: '2026-01-01' },
+]);
+await acervoLocal();
+ok('com copia local, o app passa a ler dela', acervo().length === 2, `${acervo().length} videos`);
+ok('o formato curto das telas foi mantido', acervo()[0].t && acervo()[0].k && Array.isArray(acervo()[0].tm));
 
 console.log(falhas ? `\n${falhas} FALHA(S)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);
