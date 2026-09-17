@@ -7,6 +7,7 @@ import { db } from '../db/db';
 import { useApp } from '../contexto';
 import { Card, Btn, Stat, Empty, Bar, Sheet } from '../components/UI';
 import Liga from '../components/Liga';
+import Par from '../components/Par';
 import { EVENTOS, DIVISOES, divisaoPorXp, proximaDivisao, semanaDe, mesDe } from '../lib/xp';
 import { relativo, hoje, addDias } from '../lib/utils';
 
@@ -263,6 +264,7 @@ export default function Jornada() {
         </div>
       </Card>
 
+      <Par />
       <Liga />
 
       {/* histórico */}
