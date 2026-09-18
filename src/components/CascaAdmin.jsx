@@ -18,6 +18,13 @@ import {
    elas não se misturam mais numa rolagem infinita.
    ============================================================ */
 
+/* o que mexe no app vem primeiro; venda, rastreio e automação
+   ficam juntos no fim, num grupo só deles */
+const GRUPOS = [
+  { id: 'plataforma', nome: 'Plataforma' },
+  { id: 'vendas', nome: 'Vendas e automação' },
+];
+
 export const SECOES = [
   {
     id: 'visao',
@@ -50,18 +57,6 @@ export const SECOES = [
     resumo: 'Para onde o app manda a pessoa: assinar, ver o anual, pedir suporte.',
   },
   {
-    id: 'vendas',
-    nome: 'Vendas',
-    icone: TrendingUp,
-    resumo: 'Quanto entrou, de qual canal e de qual campanha. E os links rastreados pra divulgar.',
-  },
-  {
-    id: 'recuperacao',
-    nome: 'Recuperação',
-    icone: MessageCircle,
-    resumo: 'Quem chegou perto de pagar e não pagou, as mensagens de WhatsApp que recebe e quanto voltou pro caixa.',
-  },
-  {
     id: 'ajustes',
     nome: 'Números',
     icone: Sliders,
@@ -72,6 +67,20 @@ export const SECOES = [
     nome: 'Recado',
     icone: Megaphone,
     resumo: 'O aviso que aparece no topo do app pra todo mundo.',
+  },
+  {
+    id: 'vendas',
+    nome: 'Vendas',
+    grupo: 'vendas',
+    icone: TrendingUp,
+    resumo: 'Quanto entrou, de qual canal e de qual campanha. E os links rastreados pra divulgar.',
+  },
+  {
+    id: 'recuperacao',
+    nome: 'Recuperação',
+    grupo: 'vendas',
+    icone: MessageCircle,
+    resumo: 'Quem chegou perto de pagar e não pagou, as mensagens de WhatsApp que recebe e quanto voltou pro caixa.',
   },
 ];
 
@@ -94,15 +103,20 @@ export default function CascaAdmin({ secao, onSecao, onSair, acoes, children }) 
         </div>
 
         <nav className="admin-nav">
-          {SECOES.map((s) => (
-            <button
-              key={s.id}
-              className={`admin-item ${secao === s.id ? 'on' : ''}`}
-              onClick={() => onSecao(s.id)}
-            >
-              <s.icone size={15} />
-              <span>{s.nome}</span>
-            </button>
+          {GRUPOS.map((g) => (
+            <React.Fragment key={g.id}>
+              <div className="admin-grupo">{g.nome}</div>
+              {SECOES.filter((x) => (x.grupo || 'plataforma') === g.id).map((x) => (
+                <button
+                  key={x.id}
+                  className={`admin-item ${secao === x.id ? 'on' : ''}`}
+                  onClick={() => onSecao(x.id)}
+                >
+                  <x.icone size={15} />
+                  <span>{x.nome}</span>
+                </button>
+              ))}
+            </React.Fragment>
           ))}
         </nav>
       </aside>
