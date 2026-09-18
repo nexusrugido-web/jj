@@ -14,6 +14,7 @@ import Numeros from '../components/Numeros';
 import Contas from '../components/Contas';
 import Links from '../components/Links';
 import Recuperacao from '../components/Recuperacao';
+import Vendas from '../components/Vendas';
 import CascaAdmin from '../components/CascaAdmin';
 
 /* ============================================================
@@ -391,6 +392,8 @@ export default function Admin() {
       {aba === 'contas' && <Contas />}
 
       {aba === 'links' && <Links />}
+
+      {aba === 'vendas' && <Vendas />}
 
       {aba === 'recuperacao' && <Recuperacao />}
 

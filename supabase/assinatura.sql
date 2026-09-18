@@ -151,12 +151,25 @@ begin
     when 'PURCHASE_PROTEST' then 'atrasada'
     when 'SUBSCRIPTION_CANCELLATION' then 'cancelada'
     when 'SWITCH_PLAN' then 'ativa'
-    else 'ativa'
+    when 'SUBSCRIPTION_REACTIVATION' then 'ativa'
+    else null
   end;
 
-  -- 7 dias de folga quando o pagamento atrasa, pra ninguem
-  -- ficar sem acesso por causa de boleto ou de cartao recusado
-  if v_status = 'atrasada' then
+  /* evento que nao muda acesso (boleto ou Pix gerado, abandono,
+     troca de data) nao grava nada. Antes caia no 'ativa' e dava
+     premium pra quem so tinha gerado o boleto. */
+  if v_status is null then return null; end if;
+
+  -- 7 dias de folga quando a RENOVACAO atrasa, pra quem ja pagou
+  -- antes nao ficar sem acesso por causa de cartao recusado.
+  -- Primeira compra atrasada nao ganha folga: ainda nao pagou nada.
+  if v_status = 'atrasada' and exists (
+    select 1 from public.assinatura a
+    where (lower(a.email_compra) = lower(p_email)
+           or (p_assinante is not null and a.codigo_assinante = p_assinante))
+      and a.status in ('ativa', 'atrasada', 'cancelada', 'expirada')
+      and a.transacao is distinct from p_transacao
+  ) then
     v_carencia := now() + interval '7 days';
   end if;
 

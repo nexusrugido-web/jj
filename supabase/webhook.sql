@@ -93,8 +93,19 @@ begin
     v_rec := public.recuperacao_hotmart(p_evento, p_email, p_produto, p_bruto);
   end if;
 
-  if p_evento in ('PURCHASE_OUT_OF_SHOPPING_CART', 'PURCHASE_EXPIRED') then
+  if p_evento in ('PURCHASE_OUT_OF_SHOPPING_CART', 'PURCHASE_EXPIRED', 'PURCHASE_BILLET_PRINTED') then
     return query select 'recuperacao'::text, coalesce(v_rec, 'recuperacao.sql nao rodou')::text; return;
+  end if;
+
+  /* so estes mexem em acesso. Qualquer outro (troca de data de
+     cobranca, evento novo que a Hotmart inventar) fica registrado
+     no historico e nao liga nem desliga nada. */
+  if p_evento not in (
+    'PURCHASE_APPROVED', 'PURCHASE_COMPLETE', 'SWITCH_PLAN', 'SUBSCRIPTION_REACTIVATION',
+    'PURCHASE_DELAYED', 'PURCHASE_CANCELED', 'PURCHASE_REFUNDED', 'PURCHASE_CHARGEBACK',
+    'PURCHASE_PROTEST', 'SUBSCRIPTION_CANCELLATION'
+  ) then
+    return query select 'ignorado'::text, coalesce(v_rec, 'evento nao mexe em acesso')::text; return;
   end if;
 
   -- ---------- e compra de video avulso? ----------

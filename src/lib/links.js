@@ -69,10 +69,20 @@ export async function carregarLinks() {
   return cache;
 }
 
+/* ------------------------------------------------------------
+   Compra que sai de dentro do app vai marcada. A Hotmart devolve
+   o sck e o src no aviso de venda, e é assim que o painel separa
+   quem assinou pelo app de quem veio do Instagram ou do YouTube.
+   ------------------------------------------------------------ */
+export function comOrigemDoApp(url) {
+  if (!url || !/hotmart\.com/i.test(url) || /[?&]sck=/.test(url)) return url;
+  return `${url}${url.includes('?') ? '&' : '?'}sck=app&src=app`;
+}
+
 /* abre o link, e não finge que abriu quando ele não existe */
 export function abrirLink(chave) {
   const url = linkDe(chave);
   if (!url) return false;
-  window.open(url, '_blank', 'noopener');
+  window.open(comOrigemDoApp(url), '_blank', 'noopener');
   return true;
 }

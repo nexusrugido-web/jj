@@ -1,19 +1,30 @@
-# O fluxo da Hotmart
-
-Este é o caminho que uma compra faz até virar acesso dentro do app:
+# Hotmart, WhatsApp, banco e app
 
 ```
 Hotmart  ->  n8n  ->  Supabase  ->  app
+                        |
+Evolution Go  <-  n8n  -+   (mensagens e avisos no WhatsApp)
 ```
 
-O n8n faz duas coisas só: confere se quem chamou é mesmo a Hotmart, e entrega
-o recado ao banco. **Quem decide o que a compra significa é o banco.**
+O n8n só leva recado. **Quem decide tudo é o banco**: se a venda gera acesso,
+quem recebe mensagem, quando, com qual texto, e de onde a venda veio.
 
 Isso é de propósito. Regra de negócio dentro de ferramenta visual não tem teste,
-não tem histórico e quebra calada: alguém arrasta um nó sem querer e ninguém
-descobre até um cliente reclamar que pagou e não liberou.
+não tem histórico e quebra calada. No banco, cada regra tem nome, comentário e
+pode ser testada.
 
 ---
+
+## O que roda onde
+
+| Arquivo | O que faz |
+|---|---|
+| `supabase/webhook.sql` | A porta da Hotmart: libera, renova e desfaz acesso |
+| `supabase/recuperacao.sql` | As sequências de WhatsApp: carrinho, Pix pendente e renovação |
+| `supabase/n8n.sql` | As portas que o n8n usa, cada uma conferindo um segredo |
+| `supabase/vendas.sql` | O livro de eventos, os produtos, os links rastreados e a vigia |
+| `n8n/neurojitsu.json` | O fluxo do n8n, com três entradas |
+| `api/r.js` | O link curto `/r/<codigo>`, que conta o clique e manda pra Hotmart |
 
 ## 1. Rodar o SQL
 
@@ -22,153 +33,109 @@ No SQL Editor do Supabase, na ordem:
 ```
 schema.sql -> comunidade.sql -> assinatura.sql -> admin.sql -> xp.sql
 -> aulas.sql -> aulas-carga.sql -> compra.sql -> liga.sql -> par.sql
--> destaque.sql -> admin2.sql -> links.sql -> webhook.sql -> recuperacao.sql -> n8n.sql
+-> destaque.sql -> admin2.sql -> links.sql -> webhook.sql
+-> recuperacao.sql -> n8n.sql -> vendas.sql
 ```
 
-Se você já rodou os anteriores, agora é só o `webhook.sql`, o `recuperacao.sql` e o `n8n.sql`.
+Todos podem rodar de novo sem apagar nada.
 
-## 2. Importar o fluxo
+Depois, uma vez, os segredos (o fim do `n8n.sql` mostra o comando):
 
-No n8n: **Workflows → Import from File →** `hotmart.json`.
-
-## 3. Os segredos
-
-O n8n não usa variável de ambiente nenhuma. Ele chama o banco com a chave
-pública do app, e cada função do `n8n.sql` confere um segredo guardado na
-tabela `n8n_segredo`, que ninguém de fora consegue ler:
-
-| Segredo | Quem manda |
+| Segredo | O que é |
 |---|---|
-| `hottok` | a Hotmart, em toda chamada |
-| `chave` | o fluxo de recuperação (está dentro do `recuperacao.json`) |
-| `evogo_url` e `evogo_token` | o endereço e o token da instância do Evolution Go |
+| `hottok` | Hotmart → Ferramentas → Webhook |
+| `chave` | Uma senha longa qualquer. A mesma vai no lugar de `__CHAVE_N8N__` no `neurojitsu.json` |
+| `evogo_url` | O endereço do Evolution Go |
+| `evogo_token` | Evolution Go → a instância → Token da Instância |
 
-No repositório o `recuperacao.json` vem com `__CHAVE_N8N__` no lugar da chave.
-Gere uma, coloque nos dois lugares e rode o `update` do fim do `n8n.sql`.
+E pelo menos um número em `aviso_destino` (ou pelo painel, em Recuperação →
+Ajustes) pra receber lead quente, alarme e venda.
 
-## 4. Apontar a Hotmart
+## 2. O fluxo do n8n
 
-Ativa o fluxo no n8n e copia a URL de produção do nó de webhook. Ela termina
-em `/webhook/hotmart`.
+Importe `neurojitsu.json` e ative. Ele não usa variável de ambiente: chama o
+banco com a chave pública do app, e cada função confere o próprio segredo.
 
-Na Hotmart: **Ferramentas → Webhook → Cadastrar**, cola a URL e marca os
-eventos:
+As três entradas:
 
-- `PURCHASE_APPROVED`
-- `PURCHASE_COMPLETE`
-- `PURCHASE_OUT_OF_SHOPPING_CART` (abandono de carrinho)
-- `PURCHASE_EXPIRED`
-- `PURCHASE_REFUNDED`
-- `PURCHASE_CHARGEBACK`
-- `PURCHASE_DELAYED`
-- `PURCHASE_CANCELED`
-- `SUBSCRIPTION_CANCELLATION`
-- `SWITCH_PLAN`
+- **Hotmart chama aqui** (`/webhook/hotmart`): manda o aviso inteiro pro banco.
+- **A cada 5 minutos**: pega a fila (avisos pra você e mensagens de
+  recuperação) e manda pelo Evolution Go, uma a cada 8 segundos.
+- **WhatsApp chama aqui** (`/webhook/evogo`): manda a mensagem que chegou pro
+  banco. Se for resposta de alguém em recuperação, a sequência para e você é
+  avisado. "Sair", "parar" e parecidos bloqueiam o número pra sempre.
 
-## 5. Ligar cada vídeo avulso ao produto dele
+A instância do Evolution Go precisa apontar o webhook dela pro
+`/webhook/evogo`, com o evento `MESSAGE`:
 
-É este passo que faz a compra chegar no vídeo certo, e é o mais fácil de
-esquecer.
-
-No app: **Painel → Vídeos →** abre o vídeo → marca **Vendido à parte** →
-preenche os dois campos:
-
-- **Link de compra**: o checkout, que é pra onde a pessoa vai
-- **Produto na Hotmart**: o id do produto, que é por onde a compra volta
-
-Um sem o outro não funciona, e a lista do painel marca em vermelho qual está
-faltando.
-
----
-
-## Testar sem esperar uma venda
-
-No SQL Editor, simulando uma assinatura:
-
-```sql
-select * from public.webhook_hotmart(
-  'PURCHASE_APPROVED', 'seu@email.com', 'PRODUTO_DA_ASSINATURA', 'TESTE1');
-
-select status, vence_em from public.assinatura where email_compra = 'seu@email.com';
+```bash
+curl -X POST "$EVOGO_URL/instance/connect" \
+  -H "Content-Type: application/json" \
+  -H "apikey: TOKEN_DA_INSTANCIA" \
+  -d '{ "webhookUrl": "https://n8n.nexusrugido.com/webhook/evogo", "subscribe": ["MESSAGE"], "immediate": true }'
 ```
 
-E uma compra de vídeo avulso, depois de preencher o produto naquele vídeo:
+Com a instância já conectada, isso só troca o webhook, não derruba a conexão.
 
-```sql
-select * from public.webhook_hotmart(
-  'PURCHASE_APPROVED', 'seu@email.com', 'ID_DO_PRODUTO_DO_VIDEO', 'TESTE2');
+## 3. Os eventos da Hotmart
 
-select * from public.compra_aula;
+Em **Ferramentas → Webhook**, a URL `https://n8n.nexusrugido.com/webhook/hotmart`
+(sem `-test`) e todos estes eventos:
+
+```
+PURCHASE_APPROVED  PURCHASE_COMPLETE  PURCHASE_BILLET_PRINTED
+PURCHASE_OUT_OF_SHOPPING_CART  PURCHASE_EXPIRED  PURCHASE_CANCELED
+PURCHASE_DELAYED  PURCHASE_REFUNDED  PURCHASE_CHARGEBACK  PURCHASE_PROTEST
+SUBSCRIPTION_CANCELLATION  SWITCH_PLAN
 ```
 
-A função devolve o que fez: `assinatura`, `avulso_liberado`, `avulso_pendente`
-ou `ignorado`, com o motivo. É por aí que você descobre o que aconteceu sem
-abrir o banco.
+## 4. Os produtos
 
----
+A Hotmart manda aviso de **todos os produtos da conta**, inclusive coprodução.
+Só gera acesso ao app o que estiver marcado como NeuroJitsu em **Painel →
+Vendas → Produtos**.
 
-## O caso que quase todo mundo esquece
+Produto novo chega como "esperando você": o aviso fica guardado, ninguém ganha
+acesso, e você recebe um alarme no WhatsApp. Quando você classifica, o que
+estava esperando é processado na hora, em ordem.
 
-**A pessoa compra e só depois cria a conta.** Nesse momento o e-mail da compra
-ainda não tem dono, e um sistema ingênuo simplesmente perde a venda.
+## 5. De onde vem a venda
 
-Aqui a compra fica esperando na tabela `compra_pendente`, e é aplicada sozinha
-no instante em que alguém cria conta com aquele e-mail. A função devolve
-`avulso_pendente` quando isso acontece, então dá pra saber que é isso e não um
-erro.
+A Hotmart **não devolve os UTMs** no aviso de venda. Devolve só `src`, `sck` e
+`xcod`, em `data.purchase.origin`. Por isso todo link divulgado sai de
+**Painel → Vendas → Links rastreados**: cada um leva a campanha no `sck`, o canal
+no `src`, e os UTMs também (pro Analytics da Hotmart).
 
-O mesmo já valia pra assinatura, pelo `ligar_compras_pendentes`.
+| Origem | sck | src |
+|---|---|---|
+| Link rastreado | o código da campanha | o canal (`instagram_reels`...) |
+| Botão de assinar dentro do app | `app` | `app` |
+| Mensagem de recuperação | `recuperacao` | de onde a pessoa tinha vindo antes |
 
----
+O link curto (`/r/codigo`) conta o clique, menos os de robô: o WhatsApp e o
+Instagram abrem o link sozinhos pra montar a prévia.
 
-# A recuperação de carrinho
+## 6. Acesso
 
-Quem parou no checkout, deixou o Pix ou boleto vencer ou teve o cartão
-recusado recebe mensagens no WhatsApp pelo Evolution Go. A sequência para
-sozinha quando a pessoa compra, quando responde, ou quando as mensagens acabam.
-Chargeback fica de fora.
+- Pix ou boleto gerado **não** libera acesso. Só o pagamento.
+- Renovação atrasada ganha 7 dias de folga, **só** pra quem já pagou antes.
+- Evento que não mexe em acesso (troca de data de cobrança, abandono) fica só
+  registrado.
+- A mesma notificação chegando duas vezes conta uma vez só (pelo `id` do
+  aviso).
 
-Os textos, os tempos, o horário e o liga/desliga ficam no **Painel →
-Recuperação**. O n8n não guarda texto nenhum: a cada 5 minutos ele pergunta ao
-banco quem está na vez, manda e conta como foi. Mudou no painel, o próximo
-envio já sai com o texto novo.
+## A vigia
 
-## 1. Importar e ativar
+A cada 5 minutos o próprio banco (pg_cron + pg_net) pergunta ao Evolution Go se
+o WhatsApp está conectado, e confere se o n8n está passando. Se o n8n parar, o
+aviso sai direto do banco pro Evolution Go, sem depender dele. O painel mostra
+o estado do WhatsApp no topo da Recuperação.
 
-**Workflows → Import from File →** `recuperacao.json`, e ativa.
+## Conferir
 
-O fluxo tem duas portas:
-
-- **A cada 5 minutos**: pega a fila e manda, uma mensagem a cada 8 segundos
-  pra não parecer disparo em massa.
-- **WhatsApp chama aqui** (`/webhook/evogo`): quando alguém responde, a
-  sequência daquela pessoa para. Conversa com gente não pode levar mensagem de
-  robô no meio.
-
-## 2. Ligar as respostas
-
-No fluxo, clique em **Clique aqui 1 vez** e execute. Ele aponta o webhook da
-instância pro n8n, sem desconectar o WhatsApp.
-
-## 3. Ligar
-
-No **Painel → Recuperação**, coloque o seu número em **Testar**. Com a
-recuperação ligada, a primeira mensagem chega em até 5 minutos, dentro do
-horário configurado. O teste não entra nos números.
-
-O cartão do topo mostra quando o n8n passou por último. Se passar de 15
-minutos, ele avisa que o fluxo pode ter caído.
-
-## Regras que o banco segue
-
-- Uma sequência por pessoa e produto a cada 7 dias, por mais que a Hotmart
-  mande o abandono várias vezes.
-- Quem já é assinante ativo daquele produto não recebe.
-- O atraso conta a partir do abandono, mas entre duas mensagens passam pelo
-  menos 3 horas.
-- Mensagem que falhou não é reenviada. O erro fica registrado.
-- Comprou depois de receber pelo menos uma mensagem, conta como recuperado.
-  Comprou antes, conta como "comprou antes" e fica fora da taxa.
-- O link volta pro checkout do vídeo avulso, se o produto for um, ou pro link
-  `assinatura_mensal` da aba Links, já com e-mail e nome preenchidos e
-  `sck=recuperacao` pra venda aparecer marcada na Hotmart.
+```sql
+select evento, email, valor, src, sck, processado from public.hotmart_evento order by criado_em desc limit 20;
+select id, nome, tipo, eventos from public.produto_hotmart;
+select email, fluxo, status, etapa, proximo_em from public.recuperacao order by id desc limit 20;
+select * from cron.job;
+```

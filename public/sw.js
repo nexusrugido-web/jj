@@ -51,6 +51,11 @@ self.addEventListener('fetch', (event) => {
   ];
   if (FORA.some((d) => url.hostname.endsWith(d))) return;
 
+  // O link curto (/r/...) responde com redirecionamento pra
+  // Hotmart. Se passasse pela regra de navegacao abaixo, o
+  // redirecionamento seria guardado no lugar do app offline.
+  if (url.origin === self.location.origin && url.pathname.startsWith('/r/')) return;
+
   // Navegacao do proprio app: tenta rede, cai pro shell
   if (request.mode === 'navigate' && url.origin === self.location.origin) {
     event.respondWith(

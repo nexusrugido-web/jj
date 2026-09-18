@@ -4,6 +4,10 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/r/:codigo",
+      "destination": "/api/r?c=:codigo"
+    },
+    {
       "source": "/((?!api/|assets/|sw\\.js|manifest\\.webmanifest|.*\\.png).*)",
       "destination": "/index.html"
     }

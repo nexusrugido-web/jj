@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   LayoutDashboard, Film, CreditCard, Users, Sliders, Megaphone, ArrowLeft, Link as LinkIcon,
-  MessageCircle,
+  MessageCircle, TrendingUp,
 } from 'lucide-react';
 
 /* ============================================================
@@ -50,10 +50,16 @@ export const SECOES = [
     resumo: 'Para onde o app manda a pessoa: assinar, ver o anual, pedir suporte.',
   },
   {
+    id: 'vendas',
+    nome: 'Vendas',
+    icone: TrendingUp,
+    resumo: 'Quanto entrou, de qual canal e de qual campanha. E os links rastreados pra divulgar.',
+  },
+  {
     id: 'recuperacao',
     nome: 'Recuperação',
     icone: MessageCircle,
-    resumo: 'Quem parou no checkout, as mensagens de WhatsApp que recebe e quanto voltou pro caixa.',
+    resumo: 'Quem chegou perto de pagar e não pagou, as mensagens de WhatsApp que recebe e quanto voltou pro caixa.',
   },
   {
     id: 'ajustes',

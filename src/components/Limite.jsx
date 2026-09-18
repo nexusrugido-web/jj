@@ -4,6 +4,7 @@ import { Sheet, Card, Btn } from './UI';
 import { LimiteDoDia } from './Plano';
 import { limiteDoDia } from '../lib/plano';
 import { estadoDoVideo } from '../lib/pago';
+import { comOrigemDoApp } from '../lib/links';
 
 /* ============================================================
    A TRAVA DO DIA
@@ -81,7 +82,7 @@ export function useLimite(acesso, irPara) {
                 <Btn
                   size="sm"
                   variant="primary"
-                  onClick={() => { window.open(pago.link, '_blank', 'noopener'); setPago(null); }}
+                  onClick={() => { window.open(comOrigemDoApp(pago.link), '_blank', 'noopener'); setPago(null); }}
                 >
                   {pago.acao}
                 </Btn>
