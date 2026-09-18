@@ -491,14 +491,58 @@ end $$;
 
 revoke all on function public.vigia() from public, anon, authenticated;
 
-do $$
+-- liga a vigia: ativa as extensoes e agenda. Devolve o motivo
+-- exato quando nao consegue, pro painel mostrar.
+create or replace function public.vigia_ligar()
+returns text language plpgsql security definer set search_path = public as $$
 begin
-  create extension if not exists pg_net;
-  create extension if not exists pg_cron;
-  perform cron.schedule('neurojitsu-vigia', '*/5 * * * *', 'select public.vigia()');
-exception when others then
-  raise notice 'a vigia ficou sem agendamento: %', sqlerrm;
+  if auth.uid() is not null and not public.sou_admin() then raise exception 'so o administrador'; end if;
+  begin
+    create extension if not exists pg_net;
+  exception when others then
+    return 'nao consegui ativar o pg_net: ' || sqlerrm;
+  end;
+  begin
+    create extension if not exists pg_cron;
+  exception when others then
+    return 'nao consegui ativar o pg_cron: ' || sqlerrm;
+  end;
+  begin
+    execute $q$select cron.schedule('neurojitsu-vigia', '*/5 * * * *', 'select public.vigia()')$q$;
+  exception when others then
+    return 'nao consegui agendar: ' || sqlerrm;
+  end;
+  return 'ligada';
 end $$;
+
+revoke all on function public.vigia_ligar() from public, anon;
+grant execute on function public.vigia_ligar() to authenticated;
+
+-- o estado da vigia pro painel: agendada, quando rodou, se deu erro
+create or replace function public.vigia_estado()
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare
+  r jsonb;
+begin
+  if not public.sou_admin() then raise exception 'so o administrador'; end if;
+  if to_regclass('cron.job') is null then
+    return jsonb_build_object('agendada', false, 'motivo', 'o pg_cron nao esta ativo');
+  end if;
+  execute $q$
+    select jsonb_build_object(
+      'agendada', true,
+      'ativa', j.active,
+      'ultima', (select jsonb_build_object('quando', d.start_time, 'status', d.status, 'erro', d.return_message)
+                 from cron.job_run_details d where d.jobid = j.jobid order by d.start_time desc limit 1))
+    from cron.job j where j.jobname = 'neurojitsu-vigia'
+  $q$ into r;
+  return coalesce(r, jsonb_build_object('agendada', false, 'motivo', 'a vigia nao esta agendada'));
+end $$;
+
+revoke all on function public.vigia_estado() from public, anon;
+grant execute on function public.vigia_estado() to authenticated;
+
+select public.vigia_ligar();
 
 
 -- ------------------------------------------------------------

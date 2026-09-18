@@ -2624,3 +2624,63 @@ body.player-cheio .sheet-overlay { backdrop-filter: none; -webkit-backdrop-filte
   .vd-linha { grid-template-columns: minmax(0, 1.6fr) repeat(2, minmax(0, 0.7fr)) minmax(0, 1fr); }
   .vd-linha > span:nth-child(4) { display: none; }
 }
+
+/* ============================================================
+   A TRILHA DE CADA PESSOA NA RECUPERAÇÃO
+   ============================================================ */
+.rec-pessoa { margin: 0; }
+.rec-pessoa-topo { display: flex; gap: 12px; align-items: flex-start; }
+.rec-pessoa-nome { font-weight: 650; font-size: 14.5px; max-width: 260px; }
+.rec-avatar {
+  flex: none; width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center;
+  font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: 0.02em;
+  background: var(--mat-top); color: var(--chalk); border: 1px solid var(--seam-hi);
+}
+.rec-avatar.warn { background: color-mix(in srgb, var(--roar) 16%, var(--mat)); color: var(--roar-soft); border-color: color-mix(in srgb, var(--roar) 35%, var(--seam)); }
+.rec-avatar.jade { background: color-mix(in srgb, var(--jade) 16%, var(--mat)); color: var(--jade); border-color: color-mix(in srgb, var(--jade) 35%, var(--seam)); }
+.rec-avatar.blood { background: color-mix(in srgb, var(--blood) 14%, var(--mat)); color: var(--blood); border-color: color-mix(in srgb, var(--blood) 35%, var(--seam)); }
+
+.rec-pessoa-dados { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; font-size: 12px; color: var(--dim); }
+.rec-pessoa-dados > * { display: inline-flex; align-items: center; gap: 5px; min-width: 0; }
+.rec-pessoa-dados svg { color: var(--dimmer); flex: none; }
+.rec-pessoa-dados a { color: var(--dim); text-decoration: none; }
+.rec-pessoa-dados a:hover { color: var(--jade); }
+
+.rec-trilha { display: flex; flex-wrap: wrap; gap: 8px 0; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--seam); }
+.rec-passo { position: relative; display: flex; align-items: center; gap: 8px; padding-right: 26px; }
+.rec-passo:not(:last-child)::after {
+  content: ''; position: absolute; right: 8px; top: 50%; width: 10px; height: 1px; background: var(--seam-hi);
+}
+.rec-passo-ico {
+  flex: none; width: 24px; height: 24px; border-radius: 99px; display: grid; place-items: center;
+  border: 1px solid var(--seam-hi); background: var(--mat-hi); color: var(--dim);
+}
+.rec-passo-txt { display: flex; flex-direction: column; line-height: 1.25; }
+.rec-passo-txt b { font-size: 12px; font-weight: 600; color: var(--chalk); }
+.rec-passo-txt span { font-size: 11px; color: var(--dim); }
+
+.rec-passo.ok .rec-passo-ico { color: var(--jade); border-color: color-mix(in srgb, var(--jade) 45%, var(--seam)); background: color-mix(in srgb, var(--jade) 12%, transparent); }
+.rec-passo.erro .rec-passo-ico { color: var(--blood); border-color: color-mix(in srgb, var(--blood) 50%, var(--seam)); background: color-mix(in srgb, var(--blood) 12%, transparent); }
+.rec-passo.erro .rec-passo-txt span { color: var(--blood); }
+.rec-passo.alerta .rec-passo-ico { color: var(--roar); border-color: color-mix(in srgb, var(--roar) 45%, var(--seam)); background: color-mix(in srgb, var(--roar) 12%, transparent); }
+.rec-passo.alerta .rec-passo-txt span { color: var(--roar); }
+.rec-passo.agendada .rec-passo-ico { color: var(--ice); border-color: color-mix(in srgb, var(--ice) 45%, var(--seam)); border-style: dashed; }
+.rec-passo.agendada .rec-passo-txt span { color: var(--ice); }
+.rec-passo.saindo .rec-passo-ico { color: var(--accent); border-color: var(--accent); animation: rec-bate 1.6s var(--ease) infinite; }
+.rec-passo.depois, .rec-passo.cancelada { opacity: 0.55; }
+.rec-passo.cancelada .rec-passo-txt b { text-decoration: line-through; text-decoration-color: var(--dimmer); }
+.rec-passo.fim .rec-passo-ico { color: var(--dim); }
+.rec-passo.inicio .rec-passo-ico { color: var(--chalk); }
+
+.rec-falha {
+  display: flex; align-items: flex-start; gap: 6px; margin-top: 8px; padding: 8px 11px;
+  border-radius: var(--r-sm); font-size: 12px; line-height: 1.5; color: var(--blood);
+  background: color-mix(in srgb, var(--blood) 8%, transparent);
+}
+.rec-falha svg { flex: none; margin-top: 2px; }
+
+@media (max-width: 640px) {
+  .rec-trilha { flex-direction: column; gap: 10px; }
+  .rec-passo { padding-right: 0; }
+  .rec-passo:not(:last-child)::after { right: auto; left: 12px; top: 28px; width: 1px; height: 8px; }
+}

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   MessageCircle, ShoppingCart, Send, CircleCheck, Wallet, Clock, TriangleAlert, Check,
   Plus, Trash2, Hand, Smartphone, Download, Bell, Ban, Ticket, Gauge, MousePointerClick, Wifi, WifiOff,
+  X, LogIn, CircleDashed, PhoneOff, Mail, Phone, Tag, ShoppingBag, MapPin,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Card, Btn, Chip, Stat, Empty, Field, Input, Select, Seg, Switch, Bar, Confirmar, useToast } from './UI';
@@ -114,6 +115,8 @@ export default function Recuperacao() {
   const [lista, setLista] = useState([]);
   const [destinos, setDestinos] = useState([]);
   const [bloqueios, setBloqueios] = useState([]);
+  const [envios, setEnvios] = useState([]);
+  const [vigia, setVigia] = useState(null);
   const [erro, setErro] = useState(false);
   const [carregando, setCarregando] = useState(true);
 
@@ -121,7 +124,7 @@ export default function Recuperacao() {
     if (!supabase) return;
     setCarregando(true);
     try {
-      const [n, a, e, m, l, d, b] = await Promise.all([
+      const [n, a, e, m, l, d, b, v] = await Promise.all([
         supabase.rpc('recuperacao_numeros', { p_dias: dias, p_fluxo: null }),
         supabase.from('recuperacao_ajuste').select('*').eq('id', 1).single(),
         supabase.from('recuperacao_etapa').select('*').order('fluxo').order('ordem'),
@@ -129,6 +132,9 @@ export default function Recuperacao() {
         supabase.from('recuperacao').select('*').order('id', { ascending: false }).limit(300),
         supabase.from('aviso_destino').select('*').order('id'),
         supabase.from('recuperacao_bloqueio').select('*').order('criado_em', { ascending: false }),
+        supabase.from('recuperacao_envio')
+          .select('id, recuperacao_id, etapa, status, erro, criado_em, tipo, clicou_em')
+          .not('recuperacao_id', 'is', null).order('id', { ascending: false }).limit(3000),
       ]);
       const falha = [n, a, e, m, l, d, b].find((x) => x.error);
       if (falha) throw falha.error;
@@ -139,7 +145,10 @@ export default function Recuperacao() {
       setLista(l.data || []);
       setDestinos(d.data || []);
       setBloqueios(b.data || []);
+      setEnvios(v.data || []);
       setErro(false);
+      /* o estado da vigia não trava o painel se a função ainda não existir */
+      supabase.rpc('vigia_estado').then(({ data }) => setVigia(data || null), () => setVigia(null));
     } catch (x) {
       console.error('[recuperacao]', x);
       setErro(true);
@@ -169,7 +178,7 @@ export default function Recuperacao() {
 
   return (
     <>
-      <Pulso ajuste={ajuste} setAjuste={setAjuste} numeros={numeros} onTeste={buscar} />
+      <Pulso ajuste={ajuste} setAjuste={setAjuste} numeros={numeros} vigia={vigia} onTeste={buscar} />
 
       <div className="row wrap" style={{ gap: 10, margin: '4px 0 14px' }}>
         <Seg
@@ -200,7 +209,7 @@ export default function Recuperacao() {
           ajuste={ajuste} recarregar={buscar}
         />
       )}
-      {aba === 'carrinhos' && <Pessoas lista={lista} setLista={setLista} etapas={etapas} motivos={motivos} />}
+      {aba === 'carrinhos' && <Pessoas lista={lista} setLista={setLista} etapas={etapas} motivos={motivos} envios={envios} />}
       {aba === 'ajustes' && (
         <Ajustes
           ajuste={ajuste} setAjuste={setAjuste}
@@ -220,7 +229,7 @@ export default function Recuperacao() {
    o WhatsApp (a vigia do banco pergunta ao Evolution Go a cada
    5 minutos).
    ------------------------------------------------------------ */
-function Pulso({ ajuste, setAjuste, numeros, onTeste }) {
+function Pulso({ ajuste, setAjuste, numeros, vigia, onTeste }) {
   const toast = useToast();
   const [tel, setTel] = useState('');
   const [fluxo, setFluxo] = useState('carrinho');
@@ -235,6 +244,13 @@ function Pulso({ ajuste, setAjuste, numeros, onTeste }) {
     if (error || !data?.length) { toast('Não consegui salvar', 'err'); return; }
     setAjuste(data[0]);
     toast(ligado ? 'Recuperação ligada' : 'Recuperação pausada. A fila espera.');
+  }
+
+  async function ligarVigia() {
+    const { data, error } = await supabase.rpc('vigia_ligar');
+    if (error) { toast('Não consegui ligar a vigia', 'err'); return; }
+    toast(data === 'ligada' ? 'Vigia ligada. A primeira conferida aparece em até 10 minutos.' : data, data === 'ligada' ? undefined : 'err');
+    onTeste();
   }
 
   async function teste() {
@@ -264,10 +280,26 @@ function Pulso({ ajuste, setAjuste, numeros, onTeste }) {
             {numeros?.na_fila > 0 && ` ${numeros.na_fila} ${numeros.na_fila === 1 ? 'pessoa esperando' : 'pessoas esperando'}.`}
             {numeros && ` Hoje: ${numeros.hoje} de ${ajuste.limite_dia} mensagens.`}
           </p>
-          {vigiaViva && (
+          {vigiaViva ? (
             <div className="row micro" style={{ gap: 6, marginTop: 6, color: ajuste.whatsapp_ok ? 'var(--jade)' : 'var(--blood)' }}>
               {ajuste.whatsapp_ok ? <Wifi size={13} /> : <WifiOff size={13} />}
-              {ajuste.whatsapp_ok ? 'WhatsApp conectado' : 'WhatsApp desconectado: nenhuma mensagem sai até reconectar no Evolution Go'}
+              {ajuste.whatsapp_ok
+                ? `WhatsApp conectado · conferido ${haQuanto(ajuste.whatsapp_visto)}`
+                : 'WhatsApp desconectado: nenhuma mensagem sai até reconectar no Evolution Go'}
+            </div>
+          ) : vigia && (
+            <div className="row wrap micro" style={{ gap: 8, marginTop: 6, color: 'var(--dim)' }}>
+              <WifiOff size={13} />
+              <span>
+                {!vigia.agendada
+                  ? `Ninguém está conferindo o WhatsApp: ${vigia.motivo}.`
+                  : vigia.ultima?.status === 'failed'
+                    ? `A vigia do WhatsApp deu erro: ${String(vigia.ultima.erro || '').slice(0, 120)}`
+                    : 'Vigia do WhatsApp ligada. A primeira conferida aparece em até 10 minutos.'}
+              </span>
+              {(!vigia.agendada || vigia.ultima?.status === 'failed') && (
+                <Btn size="xs" onClick={ligarVigia}>Ligar a vigia</Btn>
+              )}
             </div>
           )}
         </div>
@@ -666,11 +698,97 @@ function Mensagens({ etapas, setEtapas, motivos, setMotivos, ajuste, recarregar 
 /* ------------------------------------------------------------
    AS PESSOAS
 
-   Todo mundo que chegou perto de pagar, com nome, e-mail e
-   telefone. A planilha sai marcando quem pediu pra sair: esse
-   contato não pode ser usado de novo.
+   Cada pessoa mostra a trilha inteira: quando entrou, cada
+   mensagem (saiu, falhou, está agendada ou não vai mais sair),
+   se clicou, se respondeu e como terminou. O horário vai em
+   cada passo, pra dar pra conferir sem abrir o banco.
+
+   A planilha sai marcando quem pediu pra sair: esse contato não
+   pode ser usado de novo.
    ------------------------------------------------------------ */
-function Pessoas({ lista, setLista, etapas, motivos }) {
+
+function quandoCurto(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const dia = (x) => x.toDateString();
+  const hoje = new Date();
+  const ontem = new Date(hoje); ontem.setDate(hoje.getDate() - 1);
+  const amanha = new Date(hoje); amanha.setDate(hoje.getDate() + 1);
+  if (dia(d) === dia(hoje)) return `hoje ${hora}`;
+  if (dia(d) === dia(ontem)) return `ontem ${hora}`;
+  if (dia(d) === dia(amanha)) return `amanhã ${hora}`;
+  return `${d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} ${hora}`;
+}
+
+const iniciais = (s) => (s || '?').trim().split(/\s+/).slice(0, 2).map((p) => p.charAt(0).toUpperCase()).join('');
+
+/* como a sequência terminou, pra fechar a trilha */
+const DESFECHO = {
+  recuperado: { ico: Wallet, tom: 'ok', titulo: 'Comprou' },
+  comprou_sozinho: { ico: Wallet, tom: 'ok', titulo: 'Comprou sozinho', sub: 'antes da 1ª mensagem' },
+  respondeu: { ico: MessageCircle, tom: 'ok', titulo: 'Respondeu' },
+  bloqueado: { ico: Ban, tom: 'erro', titulo: 'Pediu pra sair', sub: 'não recebe mais nada' },
+  esgotado: { ico: CircleDashed, tom: 'fim', titulo: 'Sequência terminou', sub: 'não comprou' },
+  venceu: { ico: CircleDashed, tom: 'fim', titulo: 'Pix venceu', sub: 'segue no fluxo de carrinho' },
+  sem_telefone: { ico: PhoneOff, tom: 'erro', titulo: 'Sem telefone', sub: 'nenhuma mensagem pode sair' },
+  parado: { ico: Hand, tom: 'fim', titulo: 'Parado por você' },
+};
+
+/* cada mensagem da sequência e o que aconteceu com ela */
+function montarTrilha(r, etapas, envios) {
+  const meus = envios.filter((v) => v.recuperacao_id === r.id);
+  const ordens = [...new Set([
+    ...etapas.filter((e) => e.fluxo === r.fluxo && e.ativa).map((e) => e.ordem),
+    ...meus.filter((v) => v.tipo === 'recuperacao').map((v) => v.etapa),
+  ])].sort((a, b) => a - b);
+  const proxima = r.status === 'ativo' ? ordens.find((o) => o > r.etapa) : null;
+
+  return ordens.map((ordem, i) => {
+    const titulo = `Mensagem ${i + 1}`;
+    const v = meus.find((x) => x.etapa === ordem && x.tipo === 'recuperacao');
+    const pix = meus.find((x) => x.etapa === ordem && x.tipo === 'pix');
+
+    if (v) {
+      if (v.status === 'enviado') {
+        return { titulo, estado: 'ok', ico: Check, sub: `enviada ${quandoCurto(v.criado_em)}`, extra: pix ? `+ código do Pix${pix.status === 'falhou' ? ' (falhou)' : ''}` : null, clicou: v.clicou_em };
+      }
+      if (v.status === 'falhou') {
+        return { titulo, estado: 'erro', ico: X, sub: `falhou ${quandoCurto(v.criado_em)}`, erro: v.erro };
+      }
+      const parada = Date.now() - new Date(v.criado_em).getTime() > 10 * 60000;
+      return parada
+        ? { titulo, estado: 'alerta', ico: TriangleAlert, sub: `sem confirmação desde ${quandoCurto(v.criado_em)}` }
+        : { titulo, estado: 'saindo', ico: Send, sub: 'saindo agora' };
+    }
+
+    /* saiu, mas o registro do envio não veio na busca (é antigo) */
+    if (ordem <= r.etapa) return { titulo, estado: 'ok', ico: Check, sub: 'enviada' };
+
+    if (ordem === proxima) {
+      const naFila = r.proximo_em && new Date(r.proximo_em).getTime() <= Date.now();
+      return naFila
+        ? { titulo, estado: 'agendada', ico: Clock, sub: 'na fila, sai no próximo ciclo' }
+        : { titulo, estado: 'agendada', ico: Clock, sub: `agendada ${quandoCurto(r.proximo_em)}`, dica: daquiA(r.proximo_em) };
+    }
+    if (r.status === 'ativo') return { titulo, estado: 'depois', ico: CircleDashed, sub: 'depois da anterior' };
+    return { titulo, estado: 'cancelada', ico: CircleDashed, sub: 'não vai mais sair' };
+  });
+}
+
+function Passo({ ico: Ico, estado, titulo, sub, extra }) {
+  return (
+    <div className={`rec-passo ${estado}`}>
+      <span className="rec-passo-ico"><Ico size={12} strokeWidth={2.5} /></span>
+      <div className="rec-passo-txt">
+        <b>{titulo}</b>
+        <span>{sub}{extra ? ` · ${extra}` : ''}</span>
+      </div>
+    </div>
+  );
+}
+
+function Pessoas({ lista, setLista, etapas, motivos, envios }) {
   const toast = useToast();
   const [filtro, setFiltro] = useState('todos');
   const [baixando, setBaixando] = useState(false);
@@ -682,8 +800,6 @@ function Pessoas({ lista, setLista, etapas, motivos }) {
   }, [lista]);
 
   const mostrados = filtro === 'todos' ? lista : lista.filter((r) => r.status === filtro);
-  const ativasDe = (fluxo) => etapas.filter((e) => e.ativa && e.fluxo === fluxo);
-  const posicao = (fluxo, ordem) => ativasDe(fluxo).filter((e) => e.ordem <= ordem).length;
   const motivo = (ev) => motivos.find((m) => m.evento === ev)?.nome || ev;
 
   async function parar(r) {
@@ -734,8 +850,8 @@ function Pessoas({ lista, setLista, etapas, motivos }) {
   }
 
   return (
-    <Card>
-      <div className="row wrap" style={{ gap: 6, marginBottom: 14 }}>
+    <>
+      <div className="row wrap" style={{ gap: 6, marginBottom: 12 }}>
         <Chip on={filtro === 'todos'} onClick={() => setFiltro('todos')}>todos {lista.length}</Chip>
         {Object.entries(STATUS).filter(([s]) => contagem[s]).map(([s, st]) => (
           <Chip key={s} on={filtro === s} onClick={() => setFiltro(s)}>{st.nome} {contagem[s]}</Chip>
@@ -744,50 +860,77 @@ function Pessoas({ lista, setLista, etapas, motivos }) {
         <Btn size="sm" icon={Download} onClick={baixar} disabled={baixando}>Baixar planilha</Btn>
       </div>
 
-      <div className="col">
+      <div className="col" style={{ gap: 12 }}>
         {mostrados.map((r) => {
           const st = STATUS[r.status] || { nome: r.status, tom: '' };
+          const nome = nomeBonito(r.nome_completo || r.nome);
+          const passos = montarTrilha(r, etapas, envios);
+          const falhas = passos.filter((p) => p.estado === 'erro' && p.erro);
+          const fim = r.status !== 'ativo' ? DESFECHO[r.status] : null;
+
           return (
-            <div key={r.id} className="rec-linha" style={{ alignItems: 'flex-start' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="row wrap" style={{ gap: 7 }}>
-                  <span className="tiny truncate" style={{ fontWeight: 600, maxWidth: 220 }}>
-                    {nomeBonito(r.nome_completo || r.nome) || r.email}
-                  </span>
-                  <Chip tone={`${st.tom} dot`}>{st.nome}</Chip>
-                  <Chip>{nomeFluxo(r.fluxo)}</Chip>
-                  {r.clicou_em && <Chip tone="on"><MousePointerClick size={10} /> clicou</Chip>}
-                  {r.teste && <Chip>teste</Chip>}
+            <Card key={r.id} className="rec-pessoa">
+              <div className="rec-pessoa-topo">
+                <span className={`rec-avatar ${st.tom}`}>{iniciais(nome || r.email)}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="row wrap" style={{ gap: 7 }}>
+                    <span className="rec-pessoa-nome truncate">{nome || r.email}</span>
+                    <Chip tone={`${st.tom} dot`}>{st.nome}</Chip>
+                    {r.teste && <Chip>teste</Chip>}
+                  </div>
+                  <div className="rec-pessoa-dados">
+                    <span><Mail size={12} /> {r.email}</span>
+                    {r.telefone && (
+                      <a href={`https://wa.me/${r.telefone}`} target="_blank" rel="noopener noreferrer">
+                        <Phone size={12} /> {telefoneBonito(r.telefone)}
+                      </a>
+                    )}
+                    <span><Tag size={12} /> {nomeFluxo(r.fluxo)} · {motivo(r.evento)}</span>
+                    {r.produto_nome && <span><ShoppingBag size={12} /> {r.produto_nome}</span>}
+                    {r.origem && <span><MapPin size={12} /> veio de {r.origem}</span>}
+                  </div>
                 </div>
-                <div className="micro muted truncate" style={{ marginTop: 4 }}>
-                  {r.email}{r.telefone && ` · ${telefoneBonito(r.telefone)}`}
+                <div className="row" style={{ gap: 6 }}>
+                  {r.telefone && r.resposta && r.status !== 'bloqueado' && (
+                    <Btn size="xs" variant="primary" icon={MessageCircle}
+                      onClick={() => window.open(`https://wa.me/${r.telefone}`, '_blank', 'noopener')}>Responder</Btn>
+                  )}
+                  {r.status === 'ativo' && (
+                    <Btn size="xs" variant="ghost" icon={Hand} onClick={() => parar(r)}>Parar</Btn>
+                  )}
                 </div>
-                <div className="micro muted" style={{ marginTop: 3 }}>
-                  {haQuanto(r.criado_em)}
-                  {r.produto_nome && ` · ${r.produto_nome}`}
-                  {r.origem && ` · veio de ${r.origem}`}
-                  {r.etapa > 0 && ` · recebeu ${posicao(r.fluxo, r.etapa)} de ${ativasDe(r.fluxo).length}`}
-                  {r.status === 'ativo' && r.proximo_em && ` · próxima ${daquiA(r.proximo_em)}`}
-                  {r.valor_recuperado && ` · ${reais(r.valor_recuperado)}`}
-                </div>
-                {r.resposta && (
-                  <p className="rec-resposta">“{r.resposta}”</p>
+              </div>
+
+              <div className="rec-trilha">
+                <Passo ico={LogIn} estado="inicio" titulo="Entrou" sub={quandoCurto(r.criado_em)} />
+                {passos.map((p) => (
+                  <React.Fragment key={p.titulo}>
+                    <Passo {...p} />
+                    {p.clicou && <Passo ico={MousePointerClick} estado="ok" titulo="Clicou no link" sub={quandoCurto(p.clicou)} />}
+                  </React.Fragment>
+                ))}
+                {fim && (
+                  <Passo
+                    ico={fim.ico}
+                    estado={fim.tom}
+                    titulo={r.status === 'recuperado' && r.valor_recuperado ? `Comprou ${reais(r.valor_recuperado)}` : fim.titulo}
+                    sub={[fim.sub, quandoCurto(r.status === 'respondeu' ? r.respondeu_em : r.fechado_em)].filter(Boolean).join(' · ')}
+                  />
                 )}
               </div>
-              <div className="col" style={{ gap: 6, alignItems: 'flex-end' }}>
-                {r.telefone && (r.status === 'respondeu' || r.resposta) && r.status !== 'bloqueado' && (
-                  <Btn size="xs" variant="primary" icon={MessageCircle}
-                    onClick={() => window.open(`https://wa.me/${r.telefone}`, '_blank', 'noopener')}>Responder</Btn>
-                )}
-                {r.status === 'ativo' && (
-                  <Btn size="xs" variant="ghost" icon={Hand} onClick={() => parar(r)}>Parar</Btn>
-                )}
-              </div>
-            </div>
+
+              {r.resposta && <p className="rec-resposta">“{r.resposta}”</p>}
+
+              {falhas.map((p) => (
+                <p key={p.titulo} className="rec-falha">
+                  <X size={12} /> {p.titulo} não saiu: {String(p.erro).replace(/\s+/g, ' ').slice(0, 160)}
+                </p>
+              ))}
+            </Card>
           );
         })}
       </div>
-    </Card>
+    </>
   );
 }
 
