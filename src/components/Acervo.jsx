@@ -292,6 +292,9 @@ export default function Acervo() {
                   {a.acesso === 'avulso' && !a.checkout_url && (
                     <Chip tone="blood">falta o link</Chip>
                   )}
+                  {a.acesso === 'avulso' && !a.produto_hotmart && (
+                    <Chip tone="blood">falta o produto</Chip>
+                  )}
                   {a.curso_id && <Chip tone="ice">curso {a.curso_id}</Chip>}
                   {a.revisar && <Chip tone="roar">revisar</Chip>}
                   {!a.ativo && <Chip>fora do ar</Chip>}
@@ -474,6 +477,7 @@ function EditarAula({ aula, onClose, onSalvar }) {
       descricao: aula.descricao || '',
       acesso: aula.acesso || 'todos',
       checkout_url: aula.checkout_url || '',
+      produto_hotmart: aula.produto_hotmart || '',
       capa_url: aula.capa_url || '',
       ordem: aula.ordem ?? '',
       ativo: aula.ativo !== false,
@@ -490,6 +494,7 @@ function EditarAula({ aula, onClose, onSalvar }) {
   const listar = (txt) => String(txt).split(',').map((x) => x.trim()).filter(Boolean);
   const acesso = acessoDe(f.acesso);
   const faltaLink = f.acesso === 'avulso' && !f.checkout_url.trim();
+  const faltaProduto = f.acesso === 'avulso' && !f.produto_hotmart.trim();
   const sugerido = categorizar(f.titulo);
 
   async function salvar() {
@@ -500,6 +505,7 @@ function EditarAula({ aula, onClose, onSalvar }) {
       descricao: f.descricao.trim() || null,
       acesso: f.acesso,
       checkout_url: f.acesso === 'avulso' ? (f.checkout_url.trim() || null) : null,
+      produto_hotmart: f.acesso === 'avulso' ? (f.produto_hotmart.trim() || null) : null,
       capa_url: f.capa_url.trim() || null,
       ordem: f.ordem === '' ? null : Number(f.ordem),
       ativo: f.ativo,
@@ -576,25 +582,42 @@ function EditarAula({ aula, onClose, onSalvar }) {
       </div>
 
       {f.acesso === 'avulso' && (
-        <Field
-          label="Link de compra"
-          hint="O checkout da Hotmart deste vídeo. Sem ele, quem clicar não tem pra onde ir."
-        >
-          <Input
-            value={f.checkout_url}
-            onChange={(e) => setF({ ...f, checkout_url: e.target.value })}
-            placeholder="https://pay.hotmart.com/..."
-            inputMode="url"
-          />
-        </Field>
+        <>
+          <Field
+            label="Link de compra"
+            hint="O checkout da Hotmart deste vídeo. Sem ele, quem clicar não tem pra onde ir."
+          >
+            <Input
+              value={f.checkout_url}
+              onChange={(e) => setF({ ...f, checkout_url: e.target.value })}
+              placeholder="https://pay.hotmart.com/..."
+              inputMode="url"
+            />
+          </Field>
+
+          <Field
+            label="Produto na Hotmart"
+            hint="O id do produto que vende este vídeo. É por ele que a compra chega neste vídeo e não em outro."
+          >
+            <Input
+              value={f.produto_hotmart}
+              onChange={(e) => setF({ ...f, produto_hotmart: e.target.value })}
+              placeholder="1234567"
+              inputMode="numeric"
+            />
+          </Field>
+        </>
       )}
 
-      {faltaLink && (
+      {(faltaLink || faltaProduto) && (
         <div className="valida ruim" style={{ marginBottom: 12 }}>
           <TriangleAlert size={14} className="valida-ico" style={{ color: 'var(--blood)' }} />
           <p className="micro muted" style={{ lineHeight: 1.6 }}>
-            Dá pra salvar assim, e o app avisa quem clicar que o link não foi cadastrado. Mas enquanto ele
-            estiver vazio, este vídeo não vende.
+            {faltaLink && faltaProduto
+              ? 'Sem o link, quem clicar não tem pra onde ir. Sem o produto, a compra não chega neste vídeo. Dá pra salvar assim, mas este vídeo ainda não vende.'
+              : faltaLink
+                ? 'Falta o link de compra. Quem clicar não vai ter pra onde ir.'
+                : 'Falta o produto da Hotmart. A pessoa consegue comprar, mas a compra não chega neste vídeo e o acesso não libera sozinho.'}
           </p>
         </div>
       )}
