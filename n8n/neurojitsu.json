@@ -289,6 +289,49 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "msg",
+              "leftValue": "={{ $json.body.event }}",
+              "rightValue": "Message",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "gente",
+              "leftValue": "={{ $json.body.data?.Info?.IsGroup === true || $json.body.data?.Info?.IsFromMe === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "filtro",
+      "name": "E conversa de alguem?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -200,
+        140
+      ]
+    },
+    {
+      "parameters": {
         "method": "POST",
         "url": "https://ddtdnufgafwotgdchedr.supabase.co/rest/v1/rpc/n8n_whatsapp_evento",
         "sendHeaders": true,
@@ -310,7 +353,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ p_corpo: $json.body }) }}",
+        "jsonBody": "={{ JSON.stringify({ p_corpo: { event: $json.body.event, instanceToken: $json.body.instanceToken, data: { Info: $json.body.data.Info, Message: { conversation: $json.body.data.Message?.conversation, extendedTextMessage: { text: $json.body.data.Message?.extendedTextMessage?.text }, imageMessage: { caption: $json.body.data.Message?.imageMessage?.caption }, videoMessage: { caption: $json.body.data.Message?.videoMessage?.caption } } } } }) }}",
         "options": {}
       },
       "id": "chegou",
@@ -318,8 +361,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -180,
-        140
+        20,
+        120
       ]
     }
   ],
@@ -402,16 +445,31 @@
       "main": [
         [
           {
-            "node": "O banco le a mensagem",
+            "node": "E conversa de alguem?",
             "type": "main",
             "index": 0
           }
         ]
       ]
+    },
+    "E conversa de alguem?": {
+      "main": [
+        [
+          {
+            "node": "O banco le a mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all",
+    "saveManualExecutions": true
   },
   "pinData": {}
 }

@@ -185,11 +185,13 @@ create policy clique_admin on public.clique for select to authenticated
 -- Pra onde vai quem ja era assinante e teve a renovacao recusada.
 -- Vazio, a recuperacao usa o link da assinatura.
 -- ------------------------------------------------------------
-insert into public.link (chave, nome, descricao, grupo, ordem, fixo) values
+-- a area do comprador da Hotmart, onde a pessoa troca o cartao da
+-- assinatura (Minhas compras > Configurar pagamento)
+insert into public.link (chave, nome, descricao, url, grupo, ordem, fixo) values
   ('atualizar_pagamento', 'Atualizar pagamento',
-   'Pra onde vai o assinante cuja renovacao nao passou. Vazio, a recuperacao manda o link da assinatura.',
-   'ajuda', 4, false)
-on conflict (chave) do nothing;
+   'Pra onde vai o assinante cuja renovacao nao passou. E a area do comprador da Hotmart, onde ele troca o cartao.',
+   'https://consumer.hotmart.com/purchase', 'ajuda', 4, false)
+on conflict (chave) do update set url = coalesce(link.url, excluded.url);
 
 
 -- ------------------------------------------------------------
