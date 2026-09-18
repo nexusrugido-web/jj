@@ -73,7 +73,7 @@ begin
   return true;
 end $$;
 
-revoke all on function public.registrar_compra_aula(text, text, text) from public, authenticated;
+revoke all on function public.registrar_compra_aula(text, text, text) from public, anon, authenticated;
 -- so a service_role (o n8n) executa.
 
 

@@ -1,0 +1,477 @@
+{
+  "name": "Tatame OS - Recuperacao de carrinho",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "relogio",
+      "name": "A cada 5 minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -420,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ddtdnufgafwotgdchedr.supabase.co/rest/v1/rpc/n8n_fila",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkdGRudWZnYWZ3b3RnZGNoZWRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5Nzg1NDMsImV4cCI6MjEwMjU1NDU0M30.jiXwzxgWgjSsXm08LUexakM_pPiDkpDsqTv__zz9xvg"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkdGRudWZnYWZ3b3RnZGNoZWRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5Nzg1NDMsImV4cCI6MjEwMjU1NDU0M30.jiXwzxgWgjSsXm08LUexakM_pPiDkpDsqTv__zz9xvg"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{ \"p_chave\": \"__CHAVE_N8N__\" }",
+        "options": {}
+      },
+      "id": "fila",
+      "name": "Quem esta na vez",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -200,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "tem",
+              "leftValue": "={{ $json.envio_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "tem",
+      "name": "Tem alguem?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        20,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.evogo_url }}/send/text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $json.evogo_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ number: $json.telefone, text: $json.texto, delay: 1500, formatJid: true }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 8000
+            }
+          }
+        }
+      },
+      "id": "whats",
+      "name": "Manda no WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        -140
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ddtdnufgafwotgdchedr.supabase.co/rest/v1/rpc/n8n_enviado",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkdGRudWZnYWZ3b3RnZGNoZWRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5Nzg1NDMsImV4cCI6MjEwMjU1NDU0M30.jiXwzxgWgjSsXm08LUexakM_pPiDkpDsqTv__zz9xvg"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkdGRudWZnYWZ3b3RnZGNoZWRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5Nzg1NDMsImV4cCI6MjEwMjU1NDU0M30.jiXwzxgWgjSsXm08LUexakM_pPiDkpDsqTv__zz9xvg"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_chave: '__CHAVE_N8N__', p_envio: $('Tem alguem?').item.json.envio_id, p_ok: true }) }}",
+        "options": {}
+      },
+      "id": "saiu",
+      "name": "Conta que saiu",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ddtdnufgafwotgdchedr.supabase.co/rest/v1/rpc/n8n_enviado",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkdGRudWZnYWZ3b3RnZGNoZWRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5Nzg1NDMsImV4cCI6MjEwMjU1NDU0M30.jiXwzxgWgjSsXm08LUexakM_pPiDkpDsqTv__zz9xvg"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkdGRudWZnYWZ3b3RnZGNoZWRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5Nzg1NDMsImV4cCI6MjEwMjU1NDU0M30.jiXwzxgWgjSsXm08LUexakM_pPiDkpDsqTv__zz9xvg"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_chave: '__CHAVE_N8N__', p_envio: $('Tem alguem?').item.json.envio_id, p_ok: false, p_erro: $json.error?.message || JSON.stringify($json) }) }}",
+        "options": {}
+      },
+      "id": "falhou",
+      "name": "Conta que falhou",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "evogo",
+        "options": {}
+      },
+      "id": "resposta",
+      "name": "WhatsApp chama aqui",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -420,
+        200
+      ],
+      "webhookId": "tatame-evogo"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "mensagem",
+              "leftValue": "={{ $json.body.event }}",
+              "rightValue": "Message",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "de_alguem",
+              "leftValue": "={{ $json.body.data?.Info?.IsFromMe === true || $json.body.data?.Info?.IsGroup === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e_resposta",
+      "name": "Alguem respondeu?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ddtdnufgafwotgdchedr.supabase.co/rest/v1/rpc/n8n_resposta",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkdGRudWZnYWZ3b3RnZGNoZWRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5Nzg1NDMsImV4cCI6MjEwMjU1NDU0M30.jiXwzxgWgjSsXm08LUexakM_pPiDkpDsqTv__zz9xvg"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkdGRudWZnYWZ3b3RnZGNoZWRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5Nzg1NDMsImV4cCI6MjEwMjU1NDU0M30.jiXwzxgWgjSsXm08LUexakM_pPiDkpDsqTv__zz9xvg"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_token: $json.body.instanceToken || '', p_jid: [$json.body.data.Info.Chat, $json.body.data.Info.SenderAlt, $json.body.data.Info.Sender].find((j) => (j || '').endsWith('@s.whatsapp.net')) || '' }) }}",
+        "options": {}
+      },
+      "id": "para",
+      "name": "Para a sequencia",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        20,
+        180
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "umavez",
+      "name": "Clique aqui 1 vez",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -420,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ddtdnufgafwotgdchedr.supabase.co/rest/v1/rpc/n8n_whatsapp",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkdGRudWZnYWZ3b3RnZGNoZWRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5Nzg1NDMsImV4cCI6MjEwMjU1NDU0M30.jiXwzxgWgjSsXm08LUexakM_pPiDkpDsqTv__zz9xvg"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkdGRudWZnYWZ3b3RnZGNoZWRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5Nzg1NDMsImV4cCI6MjEwMjU1NDU0M30.jiXwzxgWgjSsXm08LUexakM_pPiDkpDsqTv__zz9xvg"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{ \"p_chave\": \"__CHAVE_N8N__\" }",
+        "options": {}
+      },
+      "id": "config",
+      "name": "Endereco do WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -200,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.evogo_url }}/instance/connect",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $json.evogo_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ webhookUrl: 'https://n8n.nexusrugido.com/webhook/evogo', subscribe: ['MESSAGE'], immediate: true }) }}",
+        "options": {}
+      },
+      "id": "liga",
+      "name": "Liga as respostas no n8n",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        20,
+        460
+      ]
+    }
+  ],
+  "connections": {
+    "A cada 5 minutos": {
+      "main": [
+        [
+          {
+            "node": "Quem esta na vez",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quem esta na vez": {
+      "main": [
+        [
+          {
+            "node": "Tem alguem?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tem alguem?": {
+      "main": [
+        [
+          {
+            "node": "Manda no WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Manda no WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Conta que saiu",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Conta que falhou",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp chama aqui": {
+      "main": [
+        [
+          {
+            "node": "Alguem respondeu?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alguem respondeu?": {
+      "main": [
+        [
+          {
+            "node": "Para a sequencia",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Clique aqui 1 vez": {
+      "main": [
+        [
+          {
+            "node": "Endereco do WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Endereco do WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Liga as respostas no n8n",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

@@ -2529,3 +2529,67 @@ body.player-cheio .sheet-overlay { backdrop-filter: none; -webkit-backdrop-filte
   .admin-item span { font-size: 12.5px; }
   .admin-corpo { padding: 18px 16px calc(40px + env(safe-area-inset-bottom)); }
 }
+
+/* ============================================================
+   RECUPERAÇÃO DE CARRINHO
+   ============================================================ */
+.rec-pulso { position: relative; overflow: hidden; }
+.rec-pulso.on::before {
+  content: ''; position: absolute; inset: 0 0 auto 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--jade), transparent);
+  opacity: 0.7;
+}
+.rec-luz { width: 9px; height: 9px; border-radius: 99px; background: var(--dimmer); flex: none; }
+.rec-luz.viva { background: var(--jade); box-shadow: 0 0 0 0 color-mix(in srgb, var(--jade) 60%, transparent); animation: rec-bate 2s var(--ease) infinite; }
+.rec-luz.alerta { background: var(--roar); }
+@keyframes rec-bate {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--jade) 55%, transparent); }
+  70%, 100% { box-shadow: 0 0 0 9px transparent; }
+}
+.rec-teste { padding-top: 12px; border-top: 1px solid var(--seam); }
+
+.rec-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+.rec-kpi { margin: 0; }
+.rec-kpi.destaque {
+  background: linear-gradient(145deg, color-mix(in srgb, var(--jade) 12%, var(--mat)), var(--mat) 70%);
+  border-color: color-mix(in srgb, var(--jade) 30%, var(--seam));
+}
+.rec-duas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 14px; }
+.rec-duas > .card { margin: 0; min-width: 0; }
+.rec-legenda { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--dim); }
+.rec-legenda i { width: 8px; height: 8px; border-radius: 99px; }
+
+.rec-etapa.off { opacity: 0.72; }
+.rec-editor { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 20px; align-items: start; }
+.rec-campo { min-height: 28px; font-size: 11px; font-family: var(--mono); gap: 4px; }
+
+/* a prévia imita o WhatsApp de verdade, pra você ler como a pessoa vai ler */
+.rec-celular {
+  border-radius: 22px; overflow: hidden; border: 1px solid var(--seam-hi);
+  background: #0b141a;
+  background-image: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.025) 1px, transparent 1.5px),
+                    radial-gradient(circle at 70% 70%, rgba(255,255,255,0.025) 1px, transparent 1.5px);
+  background-size: 22px 22px;
+  min-height: 260px; box-shadow: var(--shadow);
+}
+.rec-celular-topo { display: flex; align-items: center; gap: 9px; padding: 11px 14px; background: #1f2c34; color: #e9edef; }
+.rec-balao {
+  position: relative; margin: 14px 14px 18px; padding: 8px 10px 20px;
+  max-width: 88%; background: #202c33; color: #e9edef;
+  border-radius: 0 10px 10px 10px;
+  font-size: 13px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.rec-balao::before {
+  content: ''; position: absolute; left: -7px; top: 0;
+  border-top: 8px solid #202c33; border-left: 8px solid transparent;
+}
+.rec-hora { position: absolute; right: 9px; bottom: 5px; font-size: 10px; color: #8696a0; }
+
+.rec-linha { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--seam); }
+.rec-linha:first-child { border-top: 0; padding-top: 0; }
+
+@media (max-width: 900px) {
+  .rec-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rec-duas { grid-template-columns: minmax(0, 1fr); }
+  .rec-editor { grid-template-columns: minmax(0, 1fr); }
+}

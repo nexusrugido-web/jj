@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   LayoutDashboard, Film, CreditCard, Users, Sliders, Megaphone, ArrowLeft, Link as LinkIcon,
+  MessageCircle,
 } from 'lucide-react';
 
 /* ============================================================
@@ -47,6 +48,12 @@ export const SECOES = [
     nome: 'Links',
     icone: LinkIcon,
     resumo: 'Para onde o app manda a pessoa: assinar, ver o anual, pedir suporte.',
+  },
+  {
+    id: 'recuperacao',
+    nome: 'Recuperação',
+    icone: MessageCircle,
+    resumo: 'Quem parou no checkout, as mensagens de WhatsApp que recebe e quanto voltou pro caixa.',
   },
   {
     id: 'ajustes',

@@ -193,7 +193,7 @@ begin
 end $$;
 
 revoke all on function public.registrar_compra(text, text, text, text, text, text, timestamptz, jsonb)
-  from public, authenticated;
+  from public, anon, authenticated;
 -- so a service_role (o n8n) executa.
 
 -- ------------------------------------------------------------
@@ -270,6 +270,6 @@ begin
   return v_n;
 end $$;
 
-revoke all on function public.expirar_assinaturas() from public, authenticated;
+revoke all on function public.expirar_assinaturas() from public, anon, authenticated;
 
 -- select cron.schedule('expirar-assinaturas', '0 5 * * *', $$select public.expirar_assinaturas()$$);

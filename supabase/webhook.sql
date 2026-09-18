@@ -75,6 +75,7 @@ declare
   v_aula  text;
   v_user  uuid;
   v_id    bigint;
+  v_rec   text;
 begin
   if p_email is null or trim(p_email) = '' then
     return query select 'ignorado'::text, 'veio sem e-mail'::text; return;
@@ -82,6 +83,18 @@ begin
 
   if p_evento is null then
     return query select 'ignorado'::text, 'veio sem evento'::text; return;
+  end if;
+
+  -- ---------- recuperacao de carrinho (recuperacao.sql) ----------
+  /* abre a sequencia no abandono e fecha quando a compra entra.
+     Abandono e Pix/boleto vencido param aqui: nao sao compra, e
+     seguindo em frente virariam assinatura ativa de quem nao pagou. */
+  if to_regprocedure('public.recuperacao_hotmart(text,text,text,jsonb)') is not null then
+    v_rec := public.recuperacao_hotmart(p_evento, p_email, p_produto, p_bruto);
+  end if;
+
+  if p_evento in ('PURCHASE_OUT_OF_SHOPPING_CART', 'PURCHASE_EXPIRED') then
+    return query select 'recuperacao'::text, coalesce(v_rec, 'recuperacao.sql nao rodou')::text; return;
   end if;
 
   -- ---------- e compra de video avulso? ----------
@@ -124,7 +137,7 @@ begin
 end $$;
 
 revoke all on function public.webhook_hotmart(text, text, text, text, text, text, timestamptz, jsonb)
-  from public, authenticated;
+  from public, anon, authenticated;
 -- so a service_role (o n8n) executa.
 
 

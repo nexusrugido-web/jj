@@ -17,115 +17,26 @@
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "hottok",
-              "leftValue": "={{ $json.headers['x-hotmart-hottok'] || $json.body.hottok }}",
-              "rightValue": "={{ $env.HOTMART_HOTTOK }}",
-              "operator": { "type": "string", "operation": "equals" }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "confere",
-      "name": "E mesmo a Hotmart?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [-200, 0]
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "evento",
-              "name": "evento",
-              "value": "={{ $json.body.event }}",
-              "type": "string"
-            },
-            {
-              "id": "email",
-              "name": "email",
-              "value": "={{ $json.body.data?.buyer?.email || $json.body.data?.subscriber?.email }}",
-              "type": "string"
-            },
-            {
-              "id": "produto",
-              "name": "produto",
-              "value": "={{ String($json.body.data?.product?.id ?? '') }}",
-              "type": "string"
-            },
-            {
-              "id": "transacao",
-              "name": "transacao",
-              "value": "={{ $json.body.data?.purchase?.transaction || $json.body.data?.transaction || null }}",
-              "type": "string"
-            },
-            {
-              "id": "assinante",
-              "name": "assinante",
-              "value": "={{ $json.body.data?.subscription?.subscriber?.code || null }}",
-              "type": "string"
-            },
-            {
-              "id": "plano",
-              "name": "plano",
-              "value": "={{ $json.body.data?.subscription?.plan?.name || $json.body.data?.product?.name || null }}",
-              "type": "string"
-            },
-            {
-              "id": "vence",
-              "name": "vence_em",
-              "value": "={{ $json.body.data?.purchase?.date_next_charge ? new Date($json.body.data.purchase.date_next_charge).toISOString() : null }}",
-              "type": "string"
-            },
-            {
-              "id": "bruto",
-              "name": "bruto",
-              "value": "={{ $json.body }}",
-              "type": "object"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "arruma",
-      "name": "Tira o que importa",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [40, -100]
-    },
-    {
-      "parameters": {
         "method": "POST",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/webhook_hotmart",
+        "url": "https://ddtdnufgafwotgdchedr.supabase.co/rest/v1/rpc/n8n_hotmart",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE }}" },
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkdGRudWZnYWZ3b3RnZGNoZWRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5Nzg1NDMsImV4cCI6MjEwMjU1NDU0M30.jiXwzxgWgjSsXm08LUexakM_pPiDkpDsqTv__zz9xvg" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkdGRudWZnYWZ3b3RnZGNoZWRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5Nzg1NDMsImV4cCI6MjEwMjU1NDU0M30.jiXwzxgWgjSsXm08LUexakM_pPiDkpDsqTv__zz9xvg" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ p_evento: $json.evento, p_email: $json.email, p_produto: $json.produto, p_transacao: $json.transacao, p_assinante: $json.assinante, p_plano: $json.plano, p_vence_em: $json.vence_em, p_bruto: $json.bruto }) }}",
-        "options": { "response": { "response": { "neverError": false } } }
+        "jsonBody": "={{ JSON.stringify({ p_hottok: $json.headers['x-hotmart-hottok'] || '', p_corpo: $json.body }) }}",
+        "options": {}
       },
-      "id": "supabase",
+      "id": "banco",
       "name": "O banco decide",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [260, -100],
+      "position": [-180, 0],
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 3000
@@ -133,39 +44,18 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ ok: true, feito: $json[0]?.feito, detalhe: $json[0]?.detalhe }) }}",
+        "responseBody": "={{ JSON.stringify({ ok: true, feito: $json.feito, detalhe: $json.detalhe }) }}",
         "options": { "responseCode": 200 }
       },
       "id": "ok",
       "name": "Diz que recebeu",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [480, -100]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ ok: false, erro: 'hottok invalido' }) }}",
-        "options": { "responseCode": 401 }
-      },
-      "id": "nega",
-      "name": "Nega",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [40, 120]
+      "position": [60, 0]
     }
   ],
   "connections": {
     "Hotmart chama aqui": {
-      "main": [[{ "node": "E mesmo a Hotmart?", "type": "main", "index": 0 }]]
-    },
-    "E mesmo a Hotmart?": {
-      "main": [
-        [{ "node": "Tira o que importa", "type": "main", "index": 0 }],
-        [{ "node": "Nega", "type": "main", "index": 0 }]
-      ]
-    },
-    "Tira o que importa": {
       "main": [[{ "node": "O banco decide", "type": "main", "index": 0 }]]
     },
     "O banco decide": {
