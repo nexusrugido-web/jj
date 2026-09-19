@@ -154,8 +154,9 @@ export default function Voz({
       });
 
       if (!resposta.ok) throw new Error('falhou');
-      const dados = await resposta.json();
-      setResumo(dados);
+      const corpo = await resposta.json();
+      if (!corpo?.dados) throw new Error('a IA não devolveu o treino');
+      setResumo(corpo.dados);
     } catch {
       /* sem IA, o que você falou vai pra anotação e você completa */
       onPronto({ nota: completo }, completo);

@@ -41,7 +41,8 @@ function podePassar(ip) {
 const PROMPTS = {
   ler_treino: (p) => ({
     modelo: MODELO_JSON,
-    sistema: `Você lê o relato falado de um treino de jiu-jitsu brasileiro e transforma em dados.
+    json: true,
+    system: `Você lê o relato falado de um treino de jiu-jitsu brasileiro e transforma em dados.
 
 A pessoa fala de forma natural, com repetição, pausa e correção. A transcrição pode vir com erro.
 Entenda o sentido, não a letra.
@@ -106,7 +107,7 @@ A nota:
 - Não invente nada que não foi dito.
 
 Se não conseguir identificar nenhum rola, devolva "rolas": [].`,
-    usuario: `Relato falado:
+    user: `Relato falado:
 ${p.texto}
 
 Parceiros cadastrados: ${(p.parceiros || []).join(', ') || 'nenhum'}
