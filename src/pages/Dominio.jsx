@@ -12,7 +12,7 @@ import {
   GRAUS, grauPorN, TENDENCIAS, contextoPorId, requisitosDaFaixa,
 } from '../lib/graus';
 import { Ponteira } from '../components/Ponteira';
-import { faltaPara, gerarRecomendacoes, INTENCOES, filtrarFeitas, aderencia } from '../lib/recomendar';
+import { faltaPara, recomendacoesDoAluno, INTENCOES, aderencia } from '../lib/recomendar';
 import Recomendacao from '../components/Recomendacao';
 import { buscaMatch, relativo } from '../lib/utils';
 import { posInicialPorId } from '../db/scoring';
@@ -37,11 +37,8 @@ export default function Dominio() {
   const resumo = useMemo(() => resumoGraus(tecnicas), [tecnicas]);
   const principal = useMemo(() => jogoPrincipal(tecnicas), [tecnicas]);
   const todasRecs = useMemo(
-    () => filtrarFeitas(
-      gerarRecomendacoes({ tecnicas, buracos, partners, sessions, rolls, faixa, limite: RECOMENDACOES_NA_TELA }),
-      feitas
-    ),
-    [tecnicas, buracos, partners, sessions, faixa, feitas]
+    () => recomendacoesDoAluno({ tecnicas, buracos, partners, sessions, rolls, faixa, feitas, limite: RECOMENDACOES_NA_TELA }),
+    [tecnicas, buracos, partners, sessions, rolls, faixa, feitas]
   );
 
   /* no grátis abre uma, e o resto vira o tamanho do que falta */

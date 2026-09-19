@@ -81,18 +81,11 @@ create policy aula_escrita on public.aula
 -- ------------------------------------------------------------
 -- 3. O QUE MUDOU DESDE A ULTIMA VEZ
 --
--- O app guarda o acervo no aparelho. Em vez de baixar 680 linhas
--- toda abertura, ele pergunta o que mudou depois de tal data.
+-- O app guarda o acervo no aparelho e pergunta so o que mudou
+-- depois de tal data. A funcao que responde isso mora em
+-- estudo.sql, porque ela devolve colunas que so passam a existir
+-- em admin2.sql e destaque.sql.
 -- ------------------------------------------------------------
-create or replace function public.acervo_desde(p_desde timestamptz default null)
-returns setof public.aula
-language sql stable set search_path = public as $$
-  select * from public.aula
-  where ativo and (p_desde is null or atualizado_em > p_desde)
-  order by atualizado_em;
-$$;
-
-grant execute on function public.acervo_desde(timestamptz) to anon, authenticated;
 
 
 -- ------------------------------------------------------------

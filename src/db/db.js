@@ -13,7 +13,7 @@ export const TABELAS_SYNC = [
   'attackPlans', 'gradings', 'milestones', 'media',
   'academies', 'professors',
   'aulasVistas', 'quizRespostas', 'pontos',
-  'recFeitas',
+  'recFeitas', 'videoEventos',
 ];
 
 /* v1, original */
@@ -131,6 +131,14 @@ db.on('blocked', () => {
    mundo, e não registro de ninguém. */
 db.version(7).stores({
   acervo: 'id, k, atualizadoEm',
+});
+
+/* v8: o que acontece com cada vídeo. Até aqui o app só sabia que
+   uma aula foi concluída, e só quando a pessoa apertava o botão.
+   Abrir é o que conta pro limite do dia, e é o começo de saber se
+   uma recomendação foi aberta ou ignorada. */
+db.version(8).stores({
+  videoEventos: '++id, uid, videoId, evento, data, updatedAt',
 });
 
 /* ---------- hooks: carimba uid/updatedAt e alimenta a fila de sync ---------- */
@@ -343,6 +351,29 @@ export async function renomearAntigos() {
     await reportar(e, 'renomearAntigos');
     return n;
   }
+}
+
+/* ---------- segundos assistidos que foram gravados errado ----------
+   Concluir aula pela recomendação do Painel e do Domínio mandava a
+   aula inteira no lugar dos segundos, e o registro guardava um
+   objeto onde devia ter um número. Roda uma vez e deixa a duração
+   da aula, que é o que a conclusão significa. */
+export async function consertarAulasVistas() {
+  if (await getMeta('vistas_consertadas', false)) return 0;
+  let n = 0;
+  try {
+    for (const v of await db.aulasVistas.toArray()) {
+      const s = v.segundosVistos;
+      if (typeof s !== 'number' || !Number.isFinite(s) || s < 0) {
+        await db.aulasVistas.update(v.id, { segundosVistos: Number(v.duracao) || 0 });
+        n++;
+      }
+    }
+    await setMeta('vistas_consertadas', true);
+  } catch (e) {
+    await reportar(e, 'consertarAulasVistas');
+  }
+  return n;
 }
 
 /* ---------- resgate dos game plans da v1 ----------

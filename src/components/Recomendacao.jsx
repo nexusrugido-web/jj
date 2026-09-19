@@ -30,7 +30,7 @@ export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFei
   const [tocando, setTocando] = useState(null);
 
   async function tocar(a) {
-    if (await liberarVideo(a)) setTocando(a);
+    if (await liberarVideo(a, `recomendacao:${chaveDaRec(rec)}`)) setTocando(a);
   }
 
   const info = INTENCOES[rec.intencao] || INTENCOES.repetir;
@@ -98,7 +98,7 @@ export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFei
 
       {aulas.length > 0 && (
         <button className="rec-aula" onClick={() => tocar(aulas[0])}>
-          <Capa id={aulas[0].id} tamanho="mq" />
+          <Capa id={aulas[0].id} propria={aulas[0].capa} tamanho="mq" />
           <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
             <div className="micro" style={{ color: 'var(--dimmer)' }}>aula sobre isso</div>
             <div className="micro" style={{ fontWeight: 600, marginTop: 2, lineHeight: 1.35 }}>{aulas[0].t}</div>
@@ -129,8 +129,8 @@ export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFei
         <Player
           aula={tocando}
           onClose={() => setTocando(null)}
-          onConcluir={async (segundos) => {
-            const r = await registrarAulaVista(tocando, segundos);
+          onConcluir={async (aula, segundos) => {
+            const r = await registrarAulaVista(aula, segundos);
             setTocando(null);
             toast(r.xp ? `Aula vista, +${r.xp} pontos` : r.revisao ? 'Revisto' : 'Aula vista');
           }}

@@ -279,7 +279,7 @@ export default function Acervo() {
         <div className="col" style={{ gap: 9 }}>
           {mostradas.slice(0, 120).map((a) => (
             <button key={a.id} className="vista-item" onClick={() => setEditando(a)}>
-              <Capa id={a.id} tamanho="mq" />
+              <Capa id={a.id} propria={a.capa_url} tamanho="mq" />
               <div className="vista-txt">
                 <div className="vista-titulo">{a.titulo}</div>
                 <div className="row wrap" style={{ gap: 6, marginTop: 6 }}>
@@ -534,7 +534,7 @@ function EditarAula({ aula, onClose, onSalvar }) {
       }
     >
       <div className="row" style={{ gap: 12, alignItems: 'flex-start', marginBottom: 10 }}>
-        <Capa id={aula.id} tamanho="mq" />
+        <Capa id={aula.id} propria={f.capa_url || null} tamanho="mq" />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="row wrap" style={{ gap: 6 }}>
             <Chip>{aula.tipo === 'aula' ? 'aula longa' : 'short'}</Chip>
@@ -550,7 +550,7 @@ function EditarAula({ aula, onClose, onSalvar }) {
         <Input value={f.titulo} onChange={(e) => setF({ ...f, titulo: e.target.value })} />
       </Field>
 
-      <Field label="Descrição" hint="Uma ou duas frases sobre o que esta aula resolve.">
+      <Field label="Descrição" hint="Uma ou duas frases sobre o que esta aula resolve. Aparece embaixo do vídeo, no player.">
         <Textarea
           value={f.descricao}
           onChange={(e) => setF({ ...f, descricao: e.target.value })}
@@ -663,7 +663,7 @@ function EditarAula({ aula, onClose, onSalvar }) {
       </Field>
 
       <div className="grid g2" style={{ gap: 12 }}>
-        <Field label="Ordem" hint="Menor vem primeiro. Vazio deixa o app ordenar.">
+        <Field label="Ordem" hint="Menor vem primeiro na lista do tema e nos vídeos de entrada. Vazio deixa o app ordenar.">
           <Input
             type="number"
             inputMode="numeric"

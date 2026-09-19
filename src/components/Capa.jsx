@@ -13,15 +13,27 @@ import { capa, SERVIDORES_CAPA } from '../lib/aulas';
 
 const ESCADA = ['maxres', 'sd', 'hq', 'mq', ''];
 
-export default function Capa({ id, alt = '', tamanho = 'hq', className = '', children }) {
+/* propria: a miniatura que o administrador cadastrou pro vídeo.
+   Ela vem primeiro; se não carregar, o app volta pra do YouTube. */
+export default function Capa({ id, propria = null, alt = '', tamanho = 'hq', className = '', children }) {
   const inicio = Math.max(0, ESCADA.indexOf(tamanho));
   const [passo, setPasso] = useState(inicio);
   const [servidor, setServidor] = useState(0);
   const [morreu, setMorreu] = useState(false);
+  const [usarPropria, setUsarPropria] = useState(!!propria);
 
   return (
     <div className={`capa ${className}`}>
-      {!morreu ? (
+      {usarPropria ? (
+        <img
+          src={propria}
+          alt={alt}
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          onError={() => setUsarPropria(false)}
+        />
+      ) : !morreu ? (
         <img
           src={capa(id, ESCADA[passo], servidor)}
           alt={alt}

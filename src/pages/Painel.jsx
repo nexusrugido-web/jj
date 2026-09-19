@@ -14,7 +14,7 @@ import GraficoEvolucao from '../components/GraficoEvolucao';
 import { resumo, escadaPosicional, treinosNaSemana } from '../lib/stats';
 import { fmtDur, relativo, fmtData, pct, hoje } from '../lib/utils';
 import { minhasTecnicas, meusBuracos, resumoGraus, jogoPrincipal, grauPorN } from '../lib/graus';
-import { gerarRecomendacoes, INTENCOES, filtrarFeitas } from '../lib/recomendar';
+import { recomendacoesDoAluno, INTENCOES } from '../lib/recomendar';
 import { progressoDaMeta, tituloDaMeta } from '../lib/metas';
 import Recomendacao from '../components/Recomendacao';
 import { sequencia, textoSequencia, resumoSemana, lerSemana, rotuloSemana, escudos, textoEscudo, semanasProtegidas } from '../lib/semana';
@@ -82,8 +82,8 @@ export default function Painel() {
   const dom = useMemo(() => resumoGraus(esteira), [esteira]);
   const meuJogo = useMemo(() => jogoPrincipal(esteira, 5), [esteira]);
   const recs = useMemo(
-    () => filtrarFeitas(gerarRecomendacoes({ tecnicas: esteira, buracos, partners, sessions, rolls, faixa: settings.faixa, limite: 5 }), feitas).slice(0, 2),
-    [esteira, buracos, partners, sessions, settings.faixa, feitas]
+    () => recomendacoesDoAluno({ tecnicas: esteira, buracos, partners, sessions, rolls, faixa: settings.faixa, feitas, limite: 2 }),
+    [esteira, buracos, partners, sessions, rolls, settings.faixa, feitas]
   );
   const jogo = useMemo(() => analisarJogo(rolls, partners, sessions, settings.faixa), [rolls, partners, sessions, settings.faixa]);
   const anoHoras = useMemo(() => {

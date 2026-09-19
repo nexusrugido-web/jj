@@ -207,8 +207,16 @@ export function aulasDoTema(tema, { faixa, vistas = [], busca = '', tipo = 'todo
     peso: (a.f === faixa ? 10 : 0) + (a.f && a.f !== faixa ? -5 : 0),
   }));
 
+  /* não vista primeiro; entre elas, a ordem que o administrador
+     escolheu no painel; sem ordem, a faixa desempata */
   lista = embaralhar(lista, `${semanaAtual()}:${tema}`)
-    .sort((a, b) => (a.vista === b.vista ? b.peso - a.peso : a.vista ? 1 : -1));
+    .sort((a, b) => {
+      if (a.vista !== b.vista) return a.vista ? 1 : -1;
+      const oa = a.ordem ?? Infinity;
+      const ob = b.ordem ?? Infinity;
+      if (oa !== ob) return oa - ob;
+      return b.peso - a.peso;
+    });
 
   const visto = new Set();
   lista = lista.filter((a) => (visto.has(a.id) ? false : visto.add(a.id)));
@@ -261,6 +269,8 @@ const APELIDO_POSICAO = {
   sob_montada: ['montada', 'saida', 'escapar'],
   costas: ['costas'],
   costas_sofridas: ['costas', 'estrangulamento', 'defesa'],
+  costas_baixo: ['costas', 'estrangulamento', 'defesa'],
+  joelho_sofrido: ['joelho', 'saida'],
   joelho_barriga: ['joelho'],
   norte_sul: ['norte'],
   guarda_fechada: ['fechada'],
@@ -502,13 +512,18 @@ export async function registrarAulaVista(aula, segundos = 0) {
   const { darXp } = await import('./xp');
   const hoje = new Date().toISOString().slice(0, 10);
 
+  /* só número entra. Quem chamar errado não estraga o registro */
+  const seg = Number(segundos) > 0 ? Math.round(Number(segundos)) : aula.d;
+  await registrarEventoVideo(aula, 'concluiu', { segundos: seg });
+
   const ja = await db.aulasVistas.where('videoId').equals(aula.id).first();
 
   if (ja) {
+    const antes = Number(ja.segundosVistos);
     await db.aulasVistas.update(ja.id, {
       vezes: (ja.vezes || 1) + 1,
       ultima: hoje,
-      segundosVistos: Math.max(ja.segundosVistos || 0, segundos || aula.d),
+      segundosVistos: Math.max(Number.isFinite(antes) ? antes : 0, seg),
     });
 
     /* Rever paga menos que ver pela primeira vez, e poucas vezes
@@ -529,7 +544,7 @@ export async function registrarAulaVista(aula, segundos = 0) {
     titulo: aula.t,
     duracao: aula.d,
     tipo: aula.k,
-    segundosVistos: segundos || aula.d,
+    segundosVistos: seg,
     vezes: 1,
     data: hoje,
     ultima: hoje,
@@ -542,6 +557,52 @@ export async function registrarAulaVista(aula, segundos = 0) {
   });
 
   return { xp: p?.xp || 0, revisao: false };
+}
+
+/* ============================================================
+   O QUE ACONTECE COM CADA VÍDEO
+
+   Abrir e concluir viram registro. Abrir é o que conta pro limite
+   do dia no plano grátis: antes contava só aula concluída, e quem
+   não apertava "marcar como vista" assistia sem limite. A origem
+   diz de onde a pessoa veio, que é o que vai permitir saber se uma
+   recomendação foi aberta ou ignorada.
+   ============================================================ */
+export async function registrarEventoVideo(aula, evento, { origem = null, segundos = null } = {}) {
+  if (!aula?.id) return;
+  try {
+    const { db } = await import('../db/db');
+    await db.videoEventos.add({
+      videoId: aula.id,
+      tipo: aula.k,
+      evento,
+      origem,
+      segundos,
+      data: hoje(),
+      criadoEm: Date.now(),
+    });
+  } catch (e) {
+    /* registro de evento nunca pode impedir a aula de abrir */
+    console.error('[video]', e);
+  }
+}
+
+/* os vídeos de um tipo abertos hoje, sem repetir: reabrir o mesmo
+   vídeo no mesmo dia não gasta outra vez */
+export async function abertosHoje(tipo) {
+  const { db } = await import('../db/db');
+  const d = hoje();
+  const ids = new Set();
+  try {
+    for (const e of await db.videoEventos.where('data').equals(d).toArray()) {
+      if (e.evento === 'abriu' && e.tipo === tipo) ids.add(e.videoId);
+    }
+    /* quem concluiu antes deste registro existir continua contando */
+    for (const v of await db.aulasVistas.toArray()) {
+      if (v.tipo === tipo && (v.ultima || v.data) === d) ids.add(v.videoId);
+    }
+  } catch { /* banco fechado, não trava a tela */ }
+  return ids;
 }
 
 /* ============================================================
@@ -563,7 +624,12 @@ export function aulasDeEntrada({ faixa = 'branca', vistas = [], quantidade = 10 
   if (escolhidas.length) {
     const vistasSet = new Set(vistas);
     return [...escolhidas]
-      .sort((a, b) => (vistasSet.has(a.id) === vistasSet.has(b.id) ? 0 : vistasSet.has(a.id) ? 1 : -1))
+      .sort((a, b) => {
+        const va = vistasSet.has(a.id);
+        const vb = vistasSet.has(b.id);
+        if (va !== vb) return va ? 1 : -1;
+        return (a.ordem ?? Infinity) - (b.ordem ?? Infinity);
+      })
       .slice(0, quantidade);
   }
 

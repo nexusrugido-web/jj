@@ -4,6 +4,7 @@ import { Sheet, Card, Btn } from './UI';
 import { LimiteDoDia } from './Plano';
 import { limiteDoDia } from '../lib/plano';
 import { estadoDoVideo } from '../lib/pago';
+import { abertosHoje, registrarEventoVideo } from '../lib/aulas';
 import { comOrigemDoApp } from '../lib/links';
 
 /* ============================================================
@@ -39,14 +40,20 @@ export function useLimite(acesso, irPara) {
   }, [acesso]);
 
   /* a pergunta inteira de um vídeo: primeiro se é pago, depois
-     se ainda cabe hoje */
-  const liberarVideo = useCallback(async (aula) => {
+     se ainda cabe hoje. Reabrir o que já foi aberto hoje não gasta
+     de novo. Liberou, fica registrado que abriu, e de onde. */
+  const liberarVideo = useCallback(async (aula, origem = null) => {
     if (!aula) return false;
 
     const e = estadoDoVideo(aula, acesso);
     if (!e.pode) { setPago(e); return false; }
 
-    return liberado(aula.k === 'aula' ? 'aula' : 'short');
+    const tipo = aula.k === 'aula' ? 'aula' : 'short';
+    const jaAberto = (await abertosHoje(tipo)).has(aula.id);
+    if (!jaAberto && !(await liberado(tipo))) return false;
+
+    await registrarEventoVideo(aula, 'abriu', { origem });
+    return true;
   }, [acesso, liberado]);
 
   const aviso = (

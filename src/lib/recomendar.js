@@ -1,4 +1,4 @@
-import { grauPorN, contextoPorId, requisitosDaFaixa, posicoesSofridas, NOME_POSICAO_SOFRIDA } from './graus';
+import { grauPorN, contextoPorId, requisitosDaFaixa, posicoesSofridas, NOME_POSICAO_SOFRIDA, TITULO_POSICAO_SOFRIDA } from './graus';
 import { diasEntre, hoje } from './utils';
 
 /* ============================================================
@@ -172,12 +172,12 @@ export function gerarRecomendacoes({
   const presas = posicoesSofridas(rolls || [], sessions || []);
   const presa = presas[0];
   if (presa) {
-    const nome = NOME_POSICAO_SOFRIDA[presa.posicao] || 'nessa posição';
+    const nome = NOME_POSICAO_SOFRIDA[presa.posicao] || 'numa posição ruim';
     out.push({
       intencao: 'corrigir',
       alvo: null,
       posicao: presa.posicao,
-      titulo: `Sair de ${nome}`,
+      titulo: TITULO_POSICAO_SOFRIDA[presa.posicao] || 'Sair de posição ruim',
       texto: `Você ficou ${nome} em ${presa.vezes} ${presa.vezes === 1 ? 'rola' : 'rolas'}${presa.recente >= 2 ? ', sendo várias no último mês' : ''}. Saber sair daí vale mais que aprender técnica nova.`,
       evidencia: `${presa.vezes} vezes registradas`,
     });
@@ -299,6 +299,26 @@ export function gerarRecomendacoes({
   return out
     .sort((a, b) => INTENCOES[a.intencao].ordem - INTENCOES[b.intencao].ordem)
     .slice(0, limite);
+}
+
+/* ============================================================
+   AS RECOMENDAÇÕES DO ALUNO, IGUAIS EM TODA TELA
+
+   Painel, Domínio e Estudo montavam a lista cada um do seu jeito.
+   O Estudo não passava os rolas, então "sair de baixo do 100kg"
+   nunca aparecia lá, e não tirava o que a pessoa já tinha marcado
+   como feito. As três telas discordavam sobre a mesma pessoa.
+
+   Agora a lista sai daqui. Cada tela só decide quantas mostra.
+   ============================================================ */
+export function recomendacoesDoAluno({
+  tecnicas = [], buracos = [], partners = [], sessions = [], rolls = [],
+  faixa = 'branca', feitas = [], limite = 10,
+}) {
+  return filtrarFeitas(
+    gerarRecomendacoes({ tecnicas, buracos, partners, sessions, rolls, faixa, limite: 99 }),
+    feitas
+  ).slice(0, limite);
 }
 
 /* ============================================================

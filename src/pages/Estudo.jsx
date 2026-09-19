@@ -16,8 +16,9 @@ import {
   resumoAcervo, capa, duracaoTexto, registrarAulaVista, aulasDeEntrada,
 } from '../lib/aulas';
 import { TEMAS_AULA, TEMA_POR_DOR } from '../db/aulas';
+import { acervo } from '../lib/acervo';
 import { minhasTecnicas, meusBuracos } from '../lib/graus';
-import { gerarRecomendacoes } from '../lib/recomendar';
+import { recomendacoesDoAluno } from '../lib/recomendar';
 import { estiloPorId } from '../db/scoring';
 import { relativo } from '../lib/utils';
 import Quiz from '../components/Quiz';
@@ -33,6 +34,7 @@ export default function Estudo() {
   const faixa = settings.faixa || 'branca';
 
   const assistidas = useLiveQuery(() => db.aulasVistas.toArray(), [], []) || [];
+  const feitas = useLiveQuery(() => db.recFeitas.toArray(), [], []) || [];
   const vistas = useMemo(() => assistidas.map((a) => a.videoId), [assistidas]);
 
   const [aba, setAba] = useState('pravoce');
@@ -52,9 +54,9 @@ export default function Estudo() {
 
   /* antes de abrir, o app pergunta duas coisas: este vídeo é
      vendido à parte, e ainda cabe um hoje no plano grátis */
-  async function tocar(a) {
+  async function tocar(a, origem = `estudo:${aba}`) {
     if (!a) return;
-    if (await liberarVideo(a)) setTocando(a);
+    if (await liberarVideo(a, origem)) setTocando(a);
   }
   const [dorAberta, setDorAberta] = useState(null);
 
@@ -66,8 +68,8 @@ export default function Estudo() {
   );
   const buracos = useMemo(() => meusBuracos(rolls, partners, sessions, faixa), [rolls, partners, sessions, faixa]);
   const todasRecs = useMemo(
-    () => gerarRecomendacoes({ tecnicas, buracos, partners, sessions, faixa, limite: RECOMENDACOES_NA_TELA }),
-    [tecnicas, buracos, partners, sessions, faixa]
+    () => recomendacoesDoAluno({ tecnicas, buracos, partners, sessions, rolls, faixa, feitas, limite: RECOMENDACOES_NA_TELA }),
+    [tecnicas, buracos, partners, sessions, rolls, faixa, feitas]
   );
 
   /* no grátis abre uma, e o resto conta como o que está faltando */
@@ -115,6 +117,20 @@ export default function Estudo() {
     () => aulasDeEntrada({ faixa, vistas, quantidade: RECOMENDACOES_NA_TELA }),
     [faixa, vistas, acervoVer]
   );
+
+  /* quantas aulas e quantas vistas em cada tema, numa passada só */
+  const contagemTemas = useMemo(() => {
+    const v = new Set(vistas);
+    const c = {};
+    for (const a of acervo()) {
+      for (const t of a.tm) {
+        c[t] = c[t] || { n: 0, vistos: 0 };
+        c[t].n += 1;
+        if (v.has(a.id)) c[t].vistos += 1;
+      }
+    }
+    return c;
+  }, [vistas, acervoVer]);
 
   const doTema = useMemo(
     () => (tema ? aulasDoTema(tema, { faixa, vistas, busca, tipo, pagina }) : null),
@@ -211,8 +227,7 @@ export default function Estudo() {
         !tema ? (
           <div className="grid g-cards">
             {TEMAS_AULA.map((t) => {
-              const n = aulasDoTema(t.id, { faixa, vistas, porPagina: 1 }).total;
-              const vistos = aulasDoTema(t.id, { faixa, vistas, porPagina: 999 }).itens.filter((x) => x.vista).length;
+              const { n = 0, vistos = 0 } = contagemTemas[t.id] || {};
               return (
                 <button key={t.id} className="card hover tema-card" onClick={() => { setTema(t.id); setPagina(0); setBusca(''); }}>
                   <div className="row" style={{ gap: 10, alignItems: 'flex-start' }}>
@@ -352,7 +367,7 @@ function ListaAulas({ aulas, vistas, onTocar, grade = false }) {
       {aulas.map((a) => (
         <button key={a.id} className="aula-card" onClick={() => onTocar(a)}>
           <div className="aula-capa">
-            <Capa id={a.id} tamanho="mq" />
+            <Capa id={a.id} propria={a.capa} tamanho="mq" />
             <span className="aula-dur">{duracaoTexto(a.d)}</span>
             {v.has(a.id) && <span className="aula-visto"><Check size={11} /></span>}
             <span className="aula-play">{!ehLivre(a) && !jaComprou(a.id) ? <Lock size={15} /> : <Play size={16} />}</span>

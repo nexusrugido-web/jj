@@ -167,11 +167,10 @@ export async function usadoHoje(tipo) {
   try {
     if (tipo === 'rola') return await db.rolls.where('data').equals(d).count();
     if (tipo === 'aula' || tipo === 'short') {
-      /* conta vídeo aberto hoje, não vídeo descoberto hoje. Se
-         contasse só o primeiro acesso, dava pra passar o dia
-         revendo o que já tinha visto e o limite não existiria. */
-      const vistas = await db.aulasVistas.toArray();
-      return vistas.filter((a) => a.tipo === tipo && (a.ultima || a.data) === d).length;
+      /* conta vídeo ABERTO hoje. Antes contava só o que foi marcado
+         como visto, e quem não apertava o botão assistia sem limite. */
+      const { abertosHoje } = await import('./aulas');
+      return (await abertosHoje(tipo)).size;
     }
     if (tipo === 'quiz') {
       const p = await db.pontos.where('data').equals(d).toArray();

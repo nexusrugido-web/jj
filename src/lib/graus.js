@@ -417,10 +417,11 @@ export function posicoesSofridas(rolls, sessions, limite = 6) {
     if ((r.contexto || 'rola') === 'drill') continue;
     const data = dataDa.get(r.sessionId) || '';
 
-    /* a posição em que o rola começou, quando é desvantagem */
+    /* a posição em que o rola começou, quando é desvantagem. Guarda
+       por baixo não entra: começar na própria guarda é o jogo de quem
+       joga guarda, não é estar preso. */
     const inicio = r.posInicial || '';
-    const desvantagem = /(_baixo|sob_|sofrid)/.test(inicio);
-    if (desvantagem) {
+    if (POSICAO_RUIM.has(inicio)) {
       const c = conta.get(inicio) || { vezes: 0, recente: 0 };
       c.vezes += 1;
       if (data >= trinta) c.recente += 1;
@@ -445,14 +446,27 @@ export function posicoesSofridas(rolls, sessions, limite = 6) {
     .slice(0, limite);
 }
 
+/* posições de início de rola que são desvantagem de verdade */
+const POSICAO_RUIM = new Set(['cem_baixo', 'montada_baixo', 'costas_baixo', 'sob_cem', 'sob_montada']);
+
+/* como a posição entra no meio da frase: "você ficou ___" */
 export const NOME_POSICAO_SOFRIDA = {
   cem_baixo: 'embaixo do 100kg',
   sob_cem: 'embaixo do 100kg',
   montada_baixo: 'embaixo da montada',
   sob_montada: 'embaixo da montada',
+  costas_baixo: 'com as costas entregues',
   costas_sofridas: 'com as costas entregues',
   joelho_sofrido: 'com o joelho na barriga',
-  guarda_fechada_baixo: 'na guarda fechada por baixo',
-  guarda_aberta_baixo: 'na guarda aberta por baixo',
-  meia_baixo: 'na meia-guarda por baixo',
+};
+
+/* e como vira título de recomendação */
+export const TITULO_POSICAO_SOFRIDA = {
+  cem_baixo: 'Sair de baixo do 100kg',
+  sob_cem: 'Sair de baixo do 100kg',
+  montada_baixo: 'Sair de baixo da montada',
+  sob_montada: 'Sair de baixo da montada',
+  costas_baixo: 'Defender as costas',
+  costas_sofridas: 'Defender as costas',
+  joelho_sofrido: 'Sair do joelho na barriga',
 };

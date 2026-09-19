@@ -411,6 +411,10 @@ export default function Player({ aula, onClose, onConcluir }) {
               ? `${progresso}% assistido. O botão libera aos 90%. Dá pra voltar e rever, mas não dá pra adiantar.`
               : pronto || semApi ? 'Toque no play pra começar.' : 'Carregando a aula.'}
         </span>
+
+        {aula.descricao && (
+          <p className="tiny muted" style={{ lineHeight: 1.65, marginTop: 4 }}>{aula.descricao}</p>
+        )}
       </div>
     </Sheet>
   );

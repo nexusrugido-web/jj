@@ -69,30 +69,67 @@ export async function acervoLocal() {
   return lista;
 }
 
-/* ---------- o que mudou no servidor ---------- */
+/* ------------------------------------------------------------
+   O QUE MUDOU NO SERVIDOR
+
+   Sem data guardada, a resposta é o acervo inteiro que está no
+   ar, e ela substitui a lista: nada que veio do código ou de um
+   cache velho sobrevive se o servidor não tem mais.
+
+   Com data, a resposta é só a diferença, e ela traz também o que
+   saiu do ar (ativo = false). Esse sai do aparelho. Antes o app só
+   somava e nunca tirava, e um vídeo tirado do ar continuava
+   aparecendo pra todo mundo.
+
+   O formato sobe de número quando a regra muda: quem tinha a
+   lista antiga baixa tudo de novo uma vez, pra limpar o que ficou.
+   ------------------------------------------------------------ */
+const CHAVE_FORMATO = 'acervo_formato';
+const FORMATO = 2;
+
+/* a regra, sem banco nem rede: o que fica na lista depois de uma
+   resposta do servidor. completa = a resposta é o acervo inteiro. */
+export function mesclarAcervo(atual, linhas, { completa = false } = {}) {
+  const fora = linhas.filter((x) => x.ativo === false).map((x) => x.id);
+  const vivos = linhas.filter((x) => x.ativo !== false).map(daTabela);
+  if (completa) return { lista: vivos, fora, vivos };
+
+  const mapa = new Map(atual.map((v) => [v.id, v]));
+  for (const id of fora) mapa.delete(id);
+  for (const v of vivos) mapa.set(v.id, v);
+  return { lista: [...mapa.values()], fora, vivos };
+}
+
 export async function sincronizarAcervo() {
   if (!supabase) return lista;
 
   try {
+    if ((await getMeta(CHAVE_FORMATO, 0)) < FORMATO) await setMeta(CHAVE_DATA, null);
+
     const desde = await getMeta(CHAVE_DATA, null);
     const { data, error } = await supabase.rpc('acervo_desde', { p_desde: desde });
     if (error) throw error;
     if (!data?.length) return lista;
 
-    const linhas = data.map(daTabela);
     const carimbo = data.reduce(
       (a, x) => (x.atualizado_em > a ? x.atualizado_em : a),
       desde || ''
     );
+    const r = mesclarAcervo(lista, data, { completa: !desde });
+    const guardar = r.vivos.map((v) => ({ ...v, atualizadoEm: carimbo }));
 
-    await db.acervo.bulkPut(linhas.map((v) => ({ ...v, atualizadoEm: carimbo })));
+    if (!desde) {
+      await db.acervo.clear();
+      await db.acervo.bulkPut(guardar);
+      await setMeta(CHAVE_DATA, carimbo || null);
+      await setMeta(CHAVE_FORMATO, FORMATO);
+      return aplicar(r.lista);
+    }
+
+    if (r.fora.length) await db.acervo.bulkDelete(r.fora);
+    await db.acervo.bulkPut(guardar);
     await setMeta(CHAVE_DATA, carimbo || null);
-
-    /* junta o que veio com o que já estava, porque a chamada
-       devolve só a diferença */
-    const mapa = new Map(lista.map((v) => [v.id, v]));
-    for (const v of linhas) mapa.set(v.id, v);
-    return aplicar([...mapa.values()]);
+    return aplicar(r.lista);
   } catch (e) {
     console.error('[acervo]', e);
     return lista;
