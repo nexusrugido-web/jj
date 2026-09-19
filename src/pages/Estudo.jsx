@@ -2,14 +2,14 @@ import React, { useMemo, useState, useRef, useEffect } from 'react';
 import Capa from '../components/Capa';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
-  Play, Check, Clock, GraduationCap, Search, Filter,
-  BookOpen, ChevronRight, X, Film, Layers, TriangleAlert, Lock,
+  Play, Check, GraduationCap, Search, Filter,
+  BookOpen, ChevronRight, X, Layers, TriangleAlert, Lock,
 } from 'lucide-react';
 import { db } from '../db/db';
 import Player from '../components/Player';
 import { useApp } from '../contexto';
 import {
-  Card, Btn, Chip, Empty, Stat, Sheet, Busca, Bar, Seg, useToast,
+  Card, Btn, Chip, Empty, Sheet, Busca, Seg, useToast,
 } from '../components/UI';
 import {
   aulasDoTema, resumoAcervo, capa, duracaoTexto, registrarAulaVista, aulasDeEntrada,
@@ -208,31 +208,13 @@ export default function Estudo() {
   return (
     <div className="page">
       <div className="page-head">
-        <div>
-          <div className="eyebrow">entender o porquê, não decorar o passo</div>
+        <div className="row" style={{ gap: 10, alignItems: 'center' }}>
           <h1 className="h-page">Estudo</h1>
+          <button className="ajuda" onClick={() => setAjudaPontos(true)} aria-label="Quanto vale cada aula">?</button>
         </div>
-        <button className="ajuda" onClick={() => setAjudaPontos(true)} aria-label="Quanto vale cada aula">?</button>
       </div>
 
       <PontosDoEstudo aberto={ajudaPontos} onClose={() => setAjudaPontos(false)} cobrando={ligada('cobranca')} />
-
-      <Card style={{ marginBottom: 14 }}>
-        <div className="grid g4" style={{ gap: 12 }}>
-          <Stat size="sm" icon={Film} valor={resumo.total} label="aulas no acervo" />
-          <Stat size="sm" icon={Clock} valor={`${resumo.horas}h`} label="de conteúdo" />
-          <Stat size="sm" icon={Check} valor={resumo.vistas} label="você já viu" tone={resumo.vistas ? 'jade' : undefined} />
-          <Stat size="sm" valor={`${resumo.horasVistas}h`} label="estudadas" tone="accent" />
-        </div>
-        {resumo.vistas > 0 && (
-          <div style={{ marginTop: 14 }}>
-            <Bar v={resumo.vistas} max={resumo.total} tone="jade" />
-            <p className="micro muted" style={{ marginTop: 7 }}>
-              {resumo.pct}% do acervo. Não precisa ver tudo, o app escolhe o que faz sentido pra você agora.
-            </p>
-          </div>
-        )}
-      </Card>
 
       <Seg value={aba} onChange={(v) => { setAba(v); setTema(null); setPagina(0); }} options={[
         { id: 'pravoce', nome: 'Pra você' },

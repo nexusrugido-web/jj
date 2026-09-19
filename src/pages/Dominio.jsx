@@ -256,7 +256,6 @@ function Cabecalho({ onComo }) {
   return (
     <div className="page-head">
       <div>
-        <div className="eyebrow">o que os seus treinos mostram</div>
         <h1 className="h-page">Minhas técnicas</h1>
       </div>
       <Btn icon={Info} onClick={onComo}>Como funciona</Btn>

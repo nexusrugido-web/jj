@@ -420,7 +420,6 @@ function Cabecalho({ onComo }) {
   return (
     <div className="page-head">
       <div>
-        <div className="eyebrow">tudo que você já fez, somado</div>
         <h1 className="h-page">Jornada</h1>
       </div>
       <Btn icon={Info} onClick={onComo}>Como funciona</Btn>

@@ -96,7 +96,6 @@ export default function Analise() {
     <div className="page">
       <div className="page-head">
         <div>
-          <div className="eyebrow">raio-x do seu jogo</div>
           <h1 className="h-page">Análise</h1>
         </div>
         <Btn icon={Download} onClick={exportarCSV}>Exportar CSV</Btn>

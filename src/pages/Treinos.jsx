@@ -390,7 +390,6 @@ export default function Treinos() {
     <div className="page">
       <div className="page-head">
         <div>
-          <div className="eyebrow">diário de tatame</div>
           <h1 className="h-page">Treinos e rolas</h1>
         </div>
         <div className="row" style={{ gap: 8 }}>

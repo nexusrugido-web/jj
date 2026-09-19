@@ -180,7 +180,6 @@ function Documento({ titulo, onVoltar, children }) {
     <div className="page" style={{ maxWidth: 720 }}>
       <div className="page-head">
         <div>
-          <div className="eyebrow">atualizado em {ATUALIZADO}</div>
           <h1 className="h-page">{titulo}</h1>
         </div>
         {onVoltar && <Btn icon={ArrowLeft} onClick={onVoltar}>Voltar</Btn>}

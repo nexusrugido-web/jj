@@ -201,7 +201,6 @@ export default function Admin() {
       <div className="page">
         <div className="page-head">
           <div>
-            <div className="eyebrow">area restrita</div>
             <h1 className="h-page">Painel</h1>
           </div>
         </div>

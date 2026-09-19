@@ -87,7 +87,6 @@ export default function Ajustes() {
     <div className="page">
       <div className="page-head">
         <div>
-          <div className="eyebrow">seu sistema, do seu jeito</div>
           <h1 className="h-page">Ajustes</h1>
         </div>
       </div>

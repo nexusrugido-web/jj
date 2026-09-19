@@ -110,7 +110,6 @@ export default function Metas() {
     <div className="page">
       <div className="page-head">
         <div>
-          <div className="eyebrow">nada aqui aparece sem você aceitar</div>
           <h1 className="h-page">Metas</h1>
         </div>
         <Btn variant="primary" icon={Plus} onClick={() => setEdit(vazia())}>Nova meta</Btn>

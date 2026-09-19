@@ -16,7 +16,6 @@ export default function Respiracao() {
     <div className="page">
       <div className="page-head">
         <div>
-          <div className="eyebrow">a segunda maior queixa de quem começa</div>
           <h1 className="h-page">Gás no jiu-jitsu</h1>
         </div>
       </div>

@@ -42,7 +42,6 @@ export default function Nutricao() {
     <div className="page">
       <div className="page-head">
         <div>
-          <div className="eyebrow">sem contar caloria, sem planilha</div>
           <h1 className="h-page">Alimentação</h1>
         </div>
         <Btn icon={Info} onClick={() => setPorque(true)}>Dúvidas comuns</Btn>

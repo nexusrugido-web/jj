@@ -61,7 +61,6 @@ export default function Conquistas() {
     <div className="page">
       <div className="page-head">
         <div>
-          <div className="eyebrow">o que você conquistou de verdade</div>
           <h1 className="h-page">Conquistas</h1>
         </div>
         <Btn variant="primary" icon={Medal} onClick={() => setRegistrar({

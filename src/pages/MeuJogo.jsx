@@ -40,7 +40,6 @@ export default function MeuJogo() {
     <div className="page">
       <div className="page-head">
         <div>
-          <div className="eyebrow">quem você é no tatame, segundo os seus dados</div>
           <h1 className="h-page">Meu jogo</h1>
         </div>
         <div className="row" style={{ gap: 8 }}>

@@ -65,7 +65,6 @@ export default function Lesoes() {
     <div className="page">
       <div className="page-head">
         <div>
-          <div className="eyebrow">o treino que você não perde</div>
           <h1 className="h-page">Lesões</h1>
         </div>
         <Btn variant="primary" icon={Plus} onClick={() => setEdit(vazia())}>Registrar</Btn>

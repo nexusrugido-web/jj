@@ -5,7 +5,7 @@ import {
   MoreHorizontal, Download, Award, Apple, CloudOff, Cloud, RefreshCw, LogIn, Dna,
   GraduationCap, Flame, Shield, Megaphone, CircleHelp,
 } from 'lucide-react';
-import { Modal, BeltTag } from './UI';
+import { Modal } from './UI';
 
 export const ROTAS_TODAS = [
   { id: 'painel', nome: 'Painel', icon: LayoutDashboard, grupo: 'No tatame' },
@@ -74,9 +74,6 @@ export default function Layout({ rota, irPara, settings, badges = {}, sync, onIn
 
         <div className="spacer" />
         <div className="divider" style={{ margin: '14px 10px' }} />
-        <div className="row" style={{ padding: '0 10px 4px', gap: 8 }}>
-          <BeltTag faixa={settings.faixa} graus={settings.graus} />
-        </div>
         <div className="micro muted" style={{ padding: '4px 10px 8px' }}>
           {settings.nome || 'Sem nome'}{settings.academia && ` · ${settings.academia}`}
         </div>
@@ -93,12 +90,15 @@ export default function Layout({ rota, irPara, settings, badges = {}, sync, onIn
             {atual?.nome || 'NeuroJitsu'}
           </div>
           <span className="spacer" />
-          <button className="btn-ajuda-topo" onClick={onComoUsar}>
-            <CircleHelp size={15} />
-            <span className="btn-ajuda-txt">Como usar</span>
-          </button>
+          {/* "como usar" explica o app inteiro: mora na home, que é
+              onde a pessoa chega, e não em cima de cada tela */}
+          {rota === 'painel' && (
+            <button className="btn-ajuda-topo" onClick={onComoUsar}>
+              <CircleHelp size={15} />
+              <span className="btn-ajuda-txt">Como usar</span>
+            </button>
+          )}
           <SyncPonto sync={sync} />
-          <BeltTag faixa={settings.faixa} graus={settings.graus} />
         </div>
         {recado?.texto && (
           <div className={`recado ${recado.tom || 'info'}`}>

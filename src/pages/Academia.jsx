@@ -47,7 +47,6 @@ export default function Academia() {
     <div className="page">
       <div className="page-head">
         <div>
-          <div className="eyebrow">pra que serve cada um no tatame</div>
           <h1 className="h-page">Musculação</h1>
         </div>
         <Btn icon={Info} onClick={() => setPorque(true)}>Dúvidas</Btn>

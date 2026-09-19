@@ -20,7 +20,6 @@ export default function Parceiros() {
     <div className="page">
       <div className="page-head">
         <div>
-          <div className="eyebrow">quem te faz melhorar</div>
           <h1 className="h-page">Parceiros e academia</h1>
         </div>
       </div>
