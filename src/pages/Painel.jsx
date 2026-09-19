@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import {
   Flame, Clock, Swords, Percent, TriangleAlert, Target, Repeat, Wind,
-  ArrowRight, Plus, Users, TrendingUp, Award, Activity, Trophy, Sparkles, Loader,
+  ArrowRight, Plus, Award, Activity, Trophy, Sparkles, Loader,
   ShieldCheck, HeartPulse,
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -12,7 +12,7 @@ import { EscadaPosicional, BarrasTop, Donut } from '../components/Charts';
 import Calendario from '../components/Calendario';
 import GraficoEvolucao from '../components/GraficoEvolucao';
 import { resumo, escadaPosicional, treinosNaSemana } from '../lib/stats';
-import { fmtDur, relativo, fmtData, pct } from '../lib/utils';
+import { fmtDur, relativo, fmtData } from '../lib/utils';
 import { minhasTecnicas, meusBuracos, resumoGraus, jogoPrincipal, grauPorN } from '../lib/graus';
 import { recomendacoesDoAluno, INTENCOES } from '../lib/recomendar';
 import { progressoDaMeta, tituloDaMeta, metaDeHorasNoAno } from '../lib/metas';
@@ -498,36 +498,19 @@ Toda vez que você marca um ponto, o app anota a posição que veio junto. Passa
         </Card>
       )}
 
-      <div className="split">
-        <Card>
-          <div className="card-head">
-            <div>
-              <div className="eyebrow">como você venceu</div>
-              <h2 className="h-sec">Evolução</h2>
-            </div>
-            <button className="btn ghost xs" onClick={() => irPara('analise')}>ver tudo <ArrowRight size={12} /></button>
+      <Card>
+        <div className="card-head">
+          <div>
+            <div className="eyebrow">como você venceu</div>
+            <h2 className="h-sec">Evolução</h2>
           </div>
-          <GraficoEvolucao
-            compacto periodoInicial="3m"
-            sessions={sessions} rolls={rolls} partners={partners} gradings={gradings}
-          />
-        </Card>
-
-        <div className="col">
-          {dash.parceiros !== false && partners.length > 0 && (
-            <Card>
-              <div className="card-head">
-                <h2 className="h-sec">Parceiros</h2>
-                <button className="btn ghost xs" onClick={() => irPara('parceiros')}>ver <ArrowRight size={12} /></button>
-              </div>
-              <div className="row" style={{ gap: 14 }}>
-                <Stat size="sm" valor={partners.length} label="cadastrados" icon={Users} />
-                <Stat size="sm" valor={pct(rolls.filter((x) => x.partnerId).length, rolls.length)} label="% rolas com parceiro" icon={TrendingUp} />
-              </div>
-            </Card>
-          )}
+          <button className="btn ghost xs" onClick={() => irPara('analise')}>ver tudo <ArrowRight size={12} /></button>
         </div>
-      </div>
+        <GraficoEvolucao
+          compacto periodoInicial="3m"
+          sessions={sessions} rolls={rolls} partners={partners} gradings={gradings}
+        />
+      </Card>
 
       <Sheet aberto={!!analise} onClose={() => setAnalise(null)} titulo="O que os seus números dizem">
         {analise && (

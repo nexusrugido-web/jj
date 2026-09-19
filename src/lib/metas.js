@@ -426,7 +426,7 @@ function calcular(meta, dados = {}) {
         ? 'Sem data definida. Preencha quando souber.'
         : dias > 0
           ? `Faltam ${dias} ${dias === 1 ? 'dia' : 'dias'}.`
-          : 'A data já passou. Conte como foi em Competições.',
+          : 'A data já passou. Registre como foi em Treinos, no tipo Competição.',
     };
   }
 

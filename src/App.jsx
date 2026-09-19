@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef, lazy, Suspense, startTransition } from 'react';
 import { AppCtx, useApp } from './contexto';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, ensureSeed, getMeta, setMeta, DEFAULT_SETTINGS, registrarSync, limparDuplicados, migrarGameplans, renomearAntigos, consertarAulasVistas } from './db/db';
+import { db, ensureSeed, getMeta, setMeta, DEFAULT_SETTINGS, registrarSync, limparDuplicados, migrarGameplans, migrarCompeticoes, renomearAntigos, consertarAulasVistas } from './db/db';
 import { ToastProvider } from './components/UI';
 import Layout from './components/Layout';
 import InstallPrompt from './components/InstallPrompt';
@@ -38,7 +38,6 @@ const Academia = lazy(() => import('./pages/Academia'));
 const Nutricao = lazy(() => import('./pages/Nutricao'));
 const Respiracao = lazy(() => import('./pages/Respiracao'));
 const Lesoes = lazy(() => import('./pages/Lesoes'));
-const Competicoes = lazy(() => import('./pages/Competicoes'));
 const Parceiros = lazy(() => import('./pages/Parceiros'));
 const Admin = lazy(() => import('./pages/Admin'));
 const Termos = lazy(() => import('./pages/Legal').then((m) => ({ default: m.Termos })));
@@ -59,7 +58,7 @@ const PAGINAS = {
   painel: Painel, treinos: Treinos, tecnicas: Tecnicas,
   estudo: Estudo, jornada: Jornada, admin: Admin,
   termos: Termos, privacidade: Privacidade, dominio: Dominio, meujogo: MeuJogo, analise: Analise, conquistas: Conquistas,
-  metas: Metas, parceiros: Parceiros, competicoes: Competicoes,
+  metas: Metas, parceiros: Parceiros,
   academia: Academia, nutricao: Nutricao, respiracao: Respiracao,
   lesoes: Lesoes, ajustes: Ajustes,
 };
@@ -84,6 +83,11 @@ function rotaDaURL() {
 class RedeDaPagina extends React.Component {
   constructor(p) { super(p); this.state = { erro: null, tentou: false }; }
   static getDerivedStateFromError(erro) { return { erro }; }
+
+  /* trocar de tela começa do zero: o erro de uma não segura a outra */
+  componentDidUpdate(antes) {
+    if (antes.rota !== this.props.rota && this.state.erro) this.setState({ erro: null, tentou: false });
+  }
 
   componentDidCatch(erro) {
     console.error('[tela]', erro);
@@ -194,6 +198,7 @@ export default function App() {
       await passo('acervo', acervoLocal);
       await passo('limpar duplicados', limparDuplicados);
       await passo('migrar planos', migrarGameplans);
+      await passo('migrar campeonatos', migrarCompeticoes);
       await passo('renomear posições', renomearAntigos);
       await passo('consertar aulas vistas', consertarAulasVistas);
 
@@ -516,7 +521,13 @@ export default function App() {
             rota={rota} irPara={irPara} settings={settings} badges={badges} sync={sync}
             onInstalar={() => setInstalarAberto(true)}
           >
-            <Pagina key={rota} />
+            {/* a rede de cada tela: um erro numa tela vira "carregando
+                esta tela" e uma nova tentativa, sem derrubar o app */}
+            <RedeDaPagina rota={rota}>
+              <Suspense fallback={<div className="entrada"><span className="brand-mark pulse" /></div>}>
+                <Pagina key={rota} />
+              </Suspense>
+            </RedeDaPagina>
           </Layout>
         )}
         <InstallPrompt forcarAberto={instalarAberto} onFechar={() => setInstalarAberto(false)} />

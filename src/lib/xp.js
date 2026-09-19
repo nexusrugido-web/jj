@@ -1,5 +1,5 @@
 import { db } from '../db/db';
-import { hoje, addDias, dataLocal } from './utils';
+import { hoje, dataLocal } from './utils';
 
 /* ============================================================
    XP E RANKING
@@ -35,7 +35,7 @@ export const EVENTOS = {
     xp: 15,
     tetoDia: 2,
     familia: 'estudo',
-    desc: 'Aula longa vista até o fim. É a que ensina de verdade, então é a que mais vale.',
+    desc: 'Aula completa vista até o fim. É a que ensina de verdade, então é a que mais vale.',
   },
   revista: {
     id: 'revista',
@@ -43,20 +43,20 @@ export const EVENTOS = {
     xp: 5,
     tetoDia: 1,
     familia: 'estudo',
-    desc: 'Rever aula longa vale um terço. Você já sabia, mas voltar é o que fixa.',
+    desc: 'Rever aula completa vale um terço. Você já sabia, mas voltar é o que fixa.',
   },
   revistaShort: {
     id: 'revistaShort',
-    nome: 'Short revisto',
+    nome: 'Aula rápida revista',
     xp: 1,
     tetoDia: 3,
     familia: 'estudo',
     premium: true,
-    desc: 'Rever short vale um ponto, e só no premium. No grátis o short vale uma vez só.',
+    desc: 'Rever aula rápida vale um ponto, e só no premium. No grátis ela vale uma vez só.',
   },
   short: {
     id: 'short',
-    nome: 'Short visto',
+    nome: 'Aula rápida vista',
     xp: 1,
     tetoDia: 6,
     familia: 'estudo',
@@ -257,25 +257,6 @@ export async function meuXp() {
       : 100,
     eventos: linhas.length,
   };
-}
-
-/* ---------- a série pra o gráfico da jornada ---------- */
-export async function serieXp(dias = 30) {
-  const linhas = await db.pontos.toArray();
-  const fim = hoje();
-  const out = [];
-  let acc = 0;
-
-  const antes = linhas.filter((l) => l.data < addDias(fim, -(dias - 1)));
-  acc = antes.reduce((a, x) => a + x.xp, 0);
-
-  for (let i = dias - 1; i >= 0; i--) {
-    const d = addDias(fim, -i);
-    const doDia = linhas.filter((l) => l.data === d).reduce((a, x) => a + x.xp, 0);
-    acc += doDia;
-    out.push({ data: d, dia: doDia, acumulado: acc });
-  }
-  return out;
 }
 
 /* ---------- o bônus de consistência ---------- */

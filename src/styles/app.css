@@ -1179,7 +1179,9 @@ button.chip:hover { color: var(--chalk); border-color: var(--dimmer); }
 
 /* ============ AULAS ============ */
 .aula-card {
-  display: flex; gap: 12px; width: 100%; text-align: left;
+  /* sem o flex-start a capa estica até a altura do texto e a imagem
+     é cortada dos lados: a capa tem que ficar 16:9, inteira */
+  display: flex; gap: 12px; width: 100%; text-align: left; align-items: flex-start;
   padding: 10px; border-radius: var(--r-sm);
   background: var(--void); border: 1px solid var(--seam);
   transition: border-color .18s var(--ease), transform .18s var(--ease);

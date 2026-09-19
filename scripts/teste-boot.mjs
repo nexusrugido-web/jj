@@ -46,6 +46,9 @@ try {
   const acharBotao = (txt) => [...raiz.querySelectorAll('button')]
     .find((b) => b.textContent.trim().toLowerCase().includes(txt.toLowerCase()));
   const esperar = (ms = 400) => new Promise((r) => setTimeout(r, ms));
+  /* as redes de proteção não mostram mais "quebrou" na tela: elas
+     registram no console, [app] na raiz e [tela] na de cada tela */
+  const caiu = () => erros.some((e) => e.startsWith('[app]') || e.startsWith('[tela]'));
 
   const escreverNome = () => {
     const i = raiz.querySelector('input');
@@ -83,7 +86,7 @@ try {
     w.history.pushState({}, '', `/?go=${t}`);
     w.dispatchEvent(new w.PopStateEvent('popstate'));
     await esperar(500);
-    if (raiz.innerHTML.includes('quebrou aqui dentro')) {
+    if (caiu()) {
       console.log(`\n>>> A TELA "${t}" DERRUBOU O APP`);
       break;
     }
@@ -117,7 +120,7 @@ try {
     if (!cartao) continue;
     clicar(cartao);
     await esperar(700);
-    if (w.document.body.innerHTML.includes('quebrou aqui dentro')) {
+    if (caiu()) {
       console.log(`\n>>> ABRIR A AULA EM "${tela}" DERRUBOU O APP`);
       process.exit(1);
     }
@@ -137,7 +140,7 @@ try {
     console.log('sessions:', await d2.table('sessions').count(), '| rolls:', await d2.table('rolls').count());
     d2.close();
   } catch (e) { console.log('leitura falhou:', e.message); }
-  const quebrou = html.includes('Algo quebrou') || html.includes('quebrou aqui dentro');
+  const quebrou = caiu();
   const tdz = erros.find((e) => /before initialization/i.test(e));
 
   console.log('\n=== RESULTADO ===');

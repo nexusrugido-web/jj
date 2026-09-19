@@ -234,10 +234,10 @@ const TEXTO_LIMITE = {
   },
   aula: {
     feito: 'Você já viu a aula de hoje.',
-    premium: 'No premium a biblioteca abre inteira, com as aulas longas que puxam o seu assunto.',
+    premium: 'No premium a biblioteca abre inteira, com as aulas completas que puxam o seu assunto.',
   },
   short: {
-    feito: 'Você já viu o short de hoje.',
+    feito: 'Você já viu a aula rápida de hoje.',
     premium: 'No premium dá pra ver quantos quiser, e rever também conta ponto.',
   },
   quiz: {

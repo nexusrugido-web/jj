@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import {
   ChevronLeft, ChevronRight, Flame, Clock, Swords, CalendarDays, Medal,
-  ExternalLink, Trophy, History,
+  ExternalLink, History,
 } from 'lucide-react';
 import { Sheet, Chip, Stat, Card, Btn, BeltTag } from './UI';
 import { janelaDoCalendario, mesDoCalendario, rotuloDoPeriodo } from '../lib/periodo';
-import { fmtData, fmtDur, relativo, hoje, mesNome } from '../lib/utils';
+import { fmtDur, relativo, mesNome } from '../lib/utils';
 import { placarDaRola, ROTULO_RESULTADO, TOM_RESULTADO } from '../lib/game';
 import { agruparPontos, posInicialPorId, pesoRelPorId, somarPontos } from '../db/scoring';
 import { APRENDIZADO } from './SeletorTecnica';

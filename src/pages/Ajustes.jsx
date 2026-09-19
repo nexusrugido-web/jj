@@ -35,7 +35,6 @@ const CARDS_DASH = [
   ['metas', 'Metas'],
   ['revisao', 'Revisão de hoje'],
   ['finalizacoes', 'Finalizações'],
-  ['parceiros', 'Parceiros'],
 ];
 
 export default function Ajustes() {

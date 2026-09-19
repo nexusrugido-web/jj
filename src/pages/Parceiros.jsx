@@ -42,7 +42,8 @@ export default function Parceiros() {
 /* ================= PARCEIROS ================= */
 const vazioP = () => ({ nome: '', faixa: 'branca', graus: 0, pesoKg: '', estilo: '', notas: '', academiaId: null });
 
-function AbaParceiros() {
+/* também abre por cima do registro do treino, quando ainda não há parceiro */
+export function AbaParceiros() {
   const { partners, rolls } = useApp();
   const toast = useToast();
   const academias = useLiveQuery(() => db.academies.filter((a) => !a.arquivada).toArray(), [], []) || [];

@@ -179,7 +179,8 @@ export function Contador({ valor, dur = 900, suffix = '' }) {
     const t0 = performance.now();
     const de = 0;
     const tick = (t) => {
-      const p = Math.min(1, (t - t0) / dur);
+      /* o relógio do quadro pode vir uns ms antes do t0: sem o 0, o número nascia negativo */
+      const p = Math.min(1, Math.max(0, (t - t0) / dur));
       const e = 1 - Math.pow(1 - p, 3);
       setN(Math.round(de + (alvo - de) * e));
       if (p < 1) raf = requestAnimationFrame(tick);

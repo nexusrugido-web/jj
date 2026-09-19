@@ -541,14 +541,6 @@ export function mesDoCalendario(sessions, rolls, ano, mes) {
   };
 }
 
-export function mesesDisponiveis(sessions) {
-  const set = new Set();
-  for (const s of sessions) if (s.data) set.add(s.data.slice(0, 7));
-  const agora = hoje().slice(0, 7);
-  set.add(agora);
-  return [...set].sort().reverse();
-}
-
 /* ============================================================
    A LINHA QUE SE ABRE PROS LADOS
 

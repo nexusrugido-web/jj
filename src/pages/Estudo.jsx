@@ -345,7 +345,7 @@ export default function Estudo() {
               </div>
               <Busca value={busca} onChange={(v) => { setBusca(v); setPagina(0); }} placeholder="Buscar no tema" />
               <div className="seletor-pill" style={{ marginTop: 10 }}>
-                {[{ id: 'todos', nome: 'Tudo' }, { id: 'aula', nome: 'Aulas longas' }, { id: 'short', nome: 'Shorts' }].map((o) => (
+                {[{ id: 'todos', nome: 'Tudo' }, { id: 'aula', nome: 'Aulas completas' }, { id: 'short', nome: 'Aulas rápidas' }].map((o) => (
                   <button key={o.id} className={tipo === o.id ? 'on' : ''} onClick={() => { setTipo(o.id); setPagina(0); }}>{o.nome}</button>
                 ))}
               </div>
@@ -475,13 +475,12 @@ function ListaAulas({ aulas, vistas, onTocar, grade = false }) {
           <div className="aula-txt">
             <div className="aula-titulo">{a.t}</div>
             <div className="row wrap" style={{ gap: 5, marginTop: 6 }}>
-              {a.k === 'short' ? <Chip>short</Chip> : <Chip tone="warn">aula</Chip>}
+              {a.k === 'short' ? <Chip>aula rápida</Chip> : <Chip tone="warn">aula</Chip>}
               {!ehLivre(a) && (
                 <Chip tone="roar">
                   {jaComprou(a.id) ? 'sua' : a.acesso === 'assinantes' ? 'premium' : 'à parte'}
                 </Chip>
               )}
-              {a.f && <Chip>{a.f}</Chip>}
               {a.tm?.includes('logica') && <Chip tone="ice">lógica</Chip>}
             </div>
             {a.porque?.length > 0 && (

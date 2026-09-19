@@ -1,9 +1,9 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, lazy, Suspense } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Plus, Trash2, Pencil, Swords, NotebookPen, Timer, Play, Pause, RotateCcw,
   ChevronDown, ChevronRight, Copy, Check, MessageSquare, Building2,
-  GraduationCap, Zap, Trophy, Weight, MapPin, Minus, Mic,
+  GraduationCap, Zap, Trophy, Weight, MapPin, Minus, Mic, Users,
 } from 'lucide-react';
 import { useApp } from '../contexto';
 import { db } from '../db/db';
@@ -16,13 +16,18 @@ import Voz, { temVoz } from '../components/Voz';
 import { darXp, checarConsistencia } from '../lib/xp';
 import { SeletorTecnica, ListaFoco, APRENDIZADO } from '../components/SeletorTecnica';
 import {
-  Card, Btn, Field, Input, Textarea, Select, Sheet, Chip, Stepper, Empty,
+  Card, Btn, Field, Input, Textarea, Select, Sheet, Chip, Stepper, Empty, Stat,
   Confirmar, useToast, TagsInput, SubsInput, Busca, PontosInput, EscolhaChips, ParceiroRapido,
 } from '../components/UI';
 import { hoje, fmtData, fmtDur, relativo, mmss, buscaMatch, mesPorExtenso } from '../lib/utils';
 import { useLimite } from '../components/Limite';
 import { LIMITES, recortarHistorico } from '../lib/plano';
 import { HistoricoCortado } from '../components/Plano';
+import AntesDeCompetir from '../components/AntesDeCompetir';
+import {
+  ORGANIZACOES, DIVISOES, CATEGORIAS_PESO, RESULTADOS, resultadoPorId, ehPodio,
+  competicaoVazia, resumoDeCompeticoes,
+} from '../lib/competicao';
 import { useCronometro, useMarco, vibrar } from '../lib/timer';
 
 const TIPOS = [
@@ -105,6 +110,9 @@ function notaDaSessao(s) {
   if (s.notas) partes.push(s.notas);
   return partes.join('\n');
 }
+
+/* a aba de parceiros, pra abrir por cima do treino sem perder o que foi preenchido */
+const AbaParceiros = lazy(() => import('./Parceiros').then((m) => ({ default: m.AbaParceiros })));
 
 /* o histórico é a própria tela: carrega de 20 em 20, agrupado por mês */
 const POR_VEZ = 20;
@@ -216,6 +224,7 @@ export default function Treinos() {
   /* no plano grátis, com a cobrança ligada, o histórico mostra os
      últimos 30 dias e avisa quantos ficaram antes */
   const { itens: lista, cortados } = useMemo(() => recortarHistorico(filtrados, acesso), [filtrados, acesso]);
+  const resumoComp = useMemo(() => resumoDeCompeticoes(lista, rolasPorSessao), [lista, rolasPorSessao]);
 
   /* o que a IA entendeu vira um treino aberto pra você conferir.
      Nada é salvo antes de você olhar. */
@@ -402,13 +411,23 @@ export default function Treinos() {
         ))}
       </div>
 
+      {/* o resumo dos campeonatos, que era a tela de Competições */}
+      {filtroTipo === 'competicao' && lista.length > 0 && (
+        <div className="grid g4" style={{ marginBottom: 14 }}>
+          <Card><Stat icon={Trophy} valor={resumoComp.campeonatos} label="campeonatos" /></Card>
+          <Card><Stat icon={Swords} valor={resumoComp.lutas} label="lutas" /></Card>
+          <Card><Stat icon={Check} valor={resumoComp.vitorias} label="vitórias" tone="jade" /></Card>
+          <Card><Stat icon={Trophy} valor={resumoComp.podios} label="pódios" tone="roar" /></Card>
+        </div>
+      )}
+
       {lista.length === 0 ? (
         <Card>
           <Empty
             icon={NotebookPen}
             titulo={sessions.length ? 'Nada com esse filtro' : 'Nenhum treino registrado'}
             texto="Escolha as técnicas da aula e marque se pegou. Depois registre os rolas com os pontos e as anotações, é dali que sai o seu domínio e o seu estilo de jogo."
-            acao={<Btn variant="primary" icon={Plus} onClick={abrirNova}>Registrar treino</Btn>}
+            acao={<Btn variant="primary" icon={Plus} onClick={() => abrirNova()}>Registrar treino</Btn>}
           />
           <HistoricoCortado cortados={cortados} onAssinar={() => irPara('ajustes')} />
         </Card>
@@ -443,22 +462,31 @@ export default function Treinos() {
                   </span>
                   <div className="grow">
                     <div style={{ fontWeight: 600, fontSize: 15, lineHeight: 1.3 }}>
-                      {s.foco || TIPOS.find((t) => t.id === s.tipo)?.nome || 'Treino'}
+                      {s.competicao?.evento || s.foco || TIPOS.find((t) => t.id === s.tipo)?.nome || 'Treino'}
                     </div>
                     <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginTop: 7 }}>
                       <Chip>{TIPOS.find((t) => t.id === s.tipo)?.nome || s.tipo}</Chip>
-                      {rs.length > 0 && <Chip tone="warn">{rs.length} rola{rs.length > 1 ? 's' : ''}</Chip>}
+                      {s.competicao?.resultado && (
+                        <Chip tone={resultadoPorId(s.competicao.resultado)?.tone || ''}>
+                          {ehPodio(s.competicao.resultado) && <Trophy size={11} />} {resultadoPorId(s.competicao.resultado)?.nome}
+                        </Chip>
+                      )}
+                      {s.competicao?.categoria && (
+                        <Chip>{s.competicao.categoria}{s.competicao.absoluto ? ' + absoluto' : ''}</Chip>
+                      )}
+                      {rs.length > 0 && <Chip tone="warn">{rs.length} {ehCompeticao(s.tipo) ? (rs.length > 1 ? 'lutas' : 'luta') : `rola${rs.length > 1 ? 's' : ''}`}</Chip>}
                       {(ptsM > 0 || ptsD > 0) && <Chip><Trophy size={11} /> {ptsM}×{ptsD}</Chip>}
                       {fin > 0 && <Chip tone="jade">+{fin} fin</Chip>}
                       {taps > 0 && <Chip tone="blood">−{taps} fin</Chip>}
                       {comNotas > 0 && <Chip><MessageSquare size={11} /> {comNotas}</Chip>}
                     </div>
                     <div className="micro muted" style={{ marginTop: 6 }}>
-                      {fmtData(s.data)} · {relativo(s.data)} · {fmtDur(s.duracao)}
+                      {fmtData(s.data)} · {relativo(s.data)}
+                      {s.duracao ? ` · ${fmtDur(s.duracao)}` : ''}
                       {prof && ` · ${prof}`}{acad && ` · ${acad}`}
                     </div>
                   </div>
-                  <span className="num micro muted nowrap" style={{ marginTop: 3 }}>RPE {s.rpe}</span>
+                  {s.rpe != null && <span className="num micro muted nowrap" style={{ marginTop: 3 }}>RPE {s.rpe}</span>}
                 </button>
 
                 {abertaAqui && (
@@ -667,10 +695,98 @@ export default function Treinos() {
 }
 
 /* ================= editor ================= */
+/* ============================================================
+   O CAMPEONATO
+
+   Competição não é aula: o que importa é onde você lutou, em que
+   categoria e como terminou. Cada luta entra como um rola, com
+   placar e finalização, igual ao resto do app.
+   ============================================================ */
+function BlocoCompeticao({ s, setS, onAbrirRegras }) {
+  const c = s.competicao || competicaoVazia();
+  const set = (patch) => setS({ ...s, competicao: { ...c, ...patch } });
+
+  return (
+    <div className="card" style={{ background: 'var(--void)', display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 12 }}>
+      <div className="card-head">
+        <div>
+          <div className="eyebrow">o campeonato</div>
+          <h3 className="h-sec">Onde você lutou</h3>
+        </div>
+        <Btn size="sm" variant="ghost" icon={Trophy} onClick={onAbrirRegras}>Antes de competir</Btn>
+      </div>
+
+      <div className="grid g2" style={{ gap: 10 }}>
+        <Field label="Campeonato">
+          <Input value={c.evento} onChange={(e) => set({ evento: e.target.value })} placeholder="Ex.: Copa Bahia de Jiu-Jitsu" />
+        </Field>
+        <Field label="Organização">
+          <Select value={c.organizacao} onChange={(e) => set({ organizacao: e.target.value })}>
+            {ORGANIZACOES.map((o) => <option key={o} value={o}>{o}</option>)}
+          </Select>
+        </Field>
+      </div>
+
+      <Field label="Com ou sem kimono">
+        <div className="seletor-pill" style={{ maxWidth: 240 }}>
+          {[{ id: 'gi', nome: 'Gi' }, { id: 'nogi', nome: 'No-Gi' }].map((o) => (
+            <button key={o.id} type="button" className={c.modalidade === o.id ? 'on' : ''} onClick={() => set({ modalidade: o.id })}>
+              {o.nome}
+            </button>
+          ))}
+        </div>
+      </Field>
+
+      <div className="grid g3" style={{ gap: 10 }}>
+        <Field label="Divisão">
+          <Select value={c.divisao} onChange={(e) => set({ divisao: e.target.value })}>
+            {DIVISOES.map((d) => <option key={d.id} value={d.id}>{d.nome}</option>)}
+          </Select>
+        </Field>
+        <Field label="Categoria de peso">
+          <Select value={c.categoria} onChange={(e) => set({ categoria: e.target.value })}>
+            <option value="">Escolha</option>
+            {CATEGORIAS_PESO.map((x) => <option key={x} value={x}>{x}</option>)}
+          </Select>
+        </Field>
+        <Field label="Peso na balança (kg)" hint="com o kimono, como na pesagem">
+          <Input type="number" inputMode="decimal" value={c.pesoKg} onChange={(e) => set({ pesoKg: e.target.value })} />
+        </Field>
+      </div>
+
+      <button
+        type="button"
+        className={`chip ${c.absoluto ? 'on' : ''}`}
+        style={{ alignSelf: 'flex-start', minHeight: 38, paddingInline: 16 }}
+        onClick={() => set({ absoluto: !c.absoluto })}
+      >
+        <Weight size={12} /> Também lutei o absoluto
+      </button>
+
+      <Field label="Como terminou">
+        <div className="row wrap" style={{ gap: 7 }}>
+          {RESULTADOS.map((r) => (
+            <button
+              key={r.id} type="button"
+              className={`chip ${c.resultado === r.id ? 'on' : ''}`}
+              style={{ minHeight: 38, paddingInline: 16 }}
+              onClick={() => set({ resultado: c.resultado === r.id ? '' : r.id })}
+            >
+              {r.nome}
+            </button>
+          ))}
+        </div>
+      </Field>
+    </div>
+  );
+}
+
 function EditorTreino({ s, setS, rolas, setRolas, partners, positions, techniques, categories, finalizacoes, maisUsadas, recentesPorPonto, recentesFoco, faixa, academias, professores, duracaoPadrao, tetoRolas, onTravar }) {
   const set = (k, v) => setS({ ...s, [k]: v });
   const [rolaAberta, setRolaAberta] = useState(rolas.length ? 0 : null);
   const [seletor, setSeletor] = useState(null);
+  const [parceirosAberto, setParceirosAberto] = useState(false);
+  const [antesDeCompetir, setAntesDeCompetir] = useState(false);
 
   const profsDaAcademia = useMemo(
     () => professores.filter((p) => !s.academiaId || p.academiaId === s.academiaId),
@@ -697,6 +813,9 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
           </Select>
         </Field>
       </div>
+
+      {/* o campeonato: só aparece quando o treino é competição */}
+      {ehCompeticao(s.tipo) && <BlocoCompeticao s={s} setS={setS} onAbrirRegras={() => setAntesDeCompetir(true)} />}
 
       {/* academia e professor por clique */}
       {academias.length > 0 ? (
@@ -806,6 +925,17 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
 
               {open && (
                 <div className="col" style={{ padding: 12, gap: 12 }}>
+                  {!partners.length && (
+                    <button type="button" className="valida atencao" onClick={() => setParceirosAberto(true)} style={{ width: '100%', textAlign: 'left' }}>
+                      <Users size={15} className="valida-ico" style={{ color: 'var(--roar)' }} />
+                      <div>
+                        <div className="tiny" style={{ fontWeight: 600 }}>Cadastre seus parceiros</div>
+                        <p className="micro muted" style={{ marginTop: 3, lineHeight: 1.6 }}>
+                          Toque aqui. Com eles o app mostra contra quem você vence, e este treino fica esperando aberto.
+                        </p>
+                      </div>
+                    </button>
+                  )}
                   <div className="grid g2" style={{ gap: 10 }}>
                     <Field label="Com quem foi" hint={partners.length ? '' : 'Escreva o nome e pronto. Academia e professor ficam pra depois.'}>
                       <ParceiroRapido
@@ -951,6 +1081,16 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
           }
         }}
       />
+
+      <AntesDeCompetir aberto={antesDeCompetir} onClose={() => setAntesDeCompetir(false)} />
+
+      <Sheet aberto={parceirosAberto} onClose={() => setParceirosAberto(false)} titulo="Seus parceiros" subtitulo="cadastre e feche: o treino continua aqui">
+        {parceirosAberto && (
+          <Suspense fallback={<div className="entrada"><span className="brand-mark pulse" /></div>}>
+            <AbaParceiros />
+          </Suspense>
+        )}
+      </Sheet>
     </>
   );
 }

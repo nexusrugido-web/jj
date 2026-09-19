@@ -514,8 +514,8 @@ function ComoFunciona({ aberto, onClose }) {
         {[
           ['3 treinos com reflexão', '60'],
           ['9 rolas com dados completos', '108'],
-          ['2 aulas longas', '30'],
-          ['6 shorts', '6'],
+          ['2 aulas completas', '30'],
+          ['6 aulas rápidas', '6'],
           ['3 perguntas do quiz', '30'],
           ['bônus de ritmo', '25'],
         ].map(([o, q]) => (

@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { ChartNoAxesColumn, Download, TriangleAlert, Swords, Clock, Percent, Trophy, Grid3x3 } from 'lucide-react';
 import { useApp } from '../contexto';
-import { Card, Btn, Stat, Chip, Empty, Seg, Sheet, useToast } from '../components/UI';
-import { EscadaPosicional, Radar, BarrasTop, MatrizPosicoes, Donut } from '../components/Charts';
+import { Card, Btn, Stat, Chip, Empty, Sheet, useToast } from '../components/UI';
+import { EscadaPosicional, Radar, BarrasTop, MatrizPosicoes } from '../components/Charts';
 import Calendario from '../components/Calendario';
 import GraficoEvolucao from '../components/GraficoEvolucao';
 import TaxaPorFaixa from '../components/TaxaPorFaixa';
@@ -13,9 +13,9 @@ import ListaResumida from '../components/ListaResumida';
 import { minhasTecnicas } from '../lib/graus';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
-import { resumo, escadaPosicional, radarHabilidades, buracosNoJogo, statsParceiro } from '../lib/stats';
+import { resumo, escadaPosicional, radarHabilidades, buracosNoJogo } from '../lib/stats';
 import { toCSV } from '../db/db';
-import { baixarArquivo, fmtDur, pct, contar, hoje } from '../lib/utils';
+import { baixarArquivo, fmtDur, contar, hoje } from '../lib/utils';
 
 export default function Analise() {
   const { sessions, rolls, positions, categories, techniques, partners, settings, irPara } = useApp();

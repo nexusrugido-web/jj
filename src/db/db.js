@@ -2,6 +2,8 @@ import Dexie from 'dexie';
 import { SEED } from './seed';
 import { PLANOS_ATAQUE } from './attackPlans';
 import { uidEstavel, chaveNome } from '../lib/uid';
+import { resultadoDoTexto } from '../lib/competicao';
+import { dataLocal } from '../lib/utils';
 
 export const db = new Dexie('tatame_os');
 
@@ -380,6 +382,59 @@ export async function consertarAulasVistas() {
 /* ---------- resgate dos game plans da v1 ----------
    A tela antiga de Game Plan virou "Planos de ataque" e mudou de tabela.
    Quem tinha planos criados na v1 ficaria com eles presos e invisíveis. */
+/* ============================================================
+   OS CAMPEONATOS VIRAM TREINO
+
+   Competição deixou de ser um módulo à parte: virou o treino do
+   tipo competição, com cada luta como um rola. O que já estava
+   registrado vem junto, e o uid sai do registro antigo: dois
+   aparelhos migrando o mesmo campeonato criam o mesmo treino,
+   não dois.
+   ============================================================ */
+export async function migrarCompeticoes() {
+  const antigos = await db.competitions.toArray();
+  if (!antigos.length) return 0;
+
+  let n = 0;
+  for (const c of antigos) {
+    const uid = uidEstavel(`competicao:${c.uid || c.id}`);
+    const existe = await db.sessions.where('uid').equals(uid).first();
+    if (!existe) {
+      await db.sessions.add({
+        uid,
+        data: c.data || dataLocal(),
+        tipo: 'competicao',
+        duracao: 0,
+        academiaId: null,
+        professorId: null,
+        foco: '',
+        focoTecnicas: [],
+        nota: [c.aprendizados && `Aprendi: ${c.aprendizados}`, c.notas].filter(Boolean).join('\n'),
+        rpe: null,
+        competicao: {
+          evento: c.evento || 'Campeonato',
+          organizacao: c.organizacao || '',
+          modalidade: c.modalidade === 'nogi' ? 'nogi' : 'gi',
+          divisao: '',
+          categoria: c.categoria || '',
+          absoluto: false,
+          pesoKg: c.peso || '',
+          resultado: resultadoDoTexto(c.colocacao),
+          /* o registro antigo só tinha a soma das lutas, sem cada uma */
+          lutas: Number(c.lutas) || 0,
+          vitorias: Number(c.vitorias) || 0,
+          derrotas: Number(c.derrotas) || 0,
+          metodo: c.metodo || '',
+        },
+        criadoEm: c.criadoEm || Date.now(),
+      });
+      n++;
+    }
+    await db.competitions.delete(c.id);
+  }
+  return n;
+}
+
 export async function migrarGameplans() {
   const antigos = await db.gameplans.toArray();
   if (!antigos.length) return 0;

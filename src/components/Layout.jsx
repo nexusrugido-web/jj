@@ -20,7 +20,6 @@ export const ROTAS_TODAS = [
   { id: 'conquistas', nome: 'Conquistas', icon: Trophy, grupo: 'Evolução' },
   { id: 'metas', nome: 'Metas', icon: Target, grupo: 'Evolução' },
   { id: 'parceiros', nome: 'Parceiros', icon: Users, grupo: 'Evolução' },
-  { id: 'competicoes', nome: 'Competições', icon: Trophy, grupo: 'Evolução' },
 
   { id: 'academia', nome: 'Academia', icon: Dumbbell, grupo: 'Corpo' },
   { id: 'nutricao', nome: 'Nutrição', icon: Apple, grupo: 'Corpo' },
