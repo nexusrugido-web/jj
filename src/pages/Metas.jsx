@@ -12,10 +12,11 @@ import {
 } from '../components/UI';
 import { SeletorTecnica } from '../components/SeletorTecnica';
 import { Ponteira } from '../components/Ponteira';
+import LinhaDeMeta from '../components/LinhaDeMeta';
 import { minhasTecnicas, meusBuracos, grauPorN, GRAUS } from '../lib/graus';
 import { faltaPara } from '../lib/recomendar';
 import {
-  TIPOS_META, tipoPorId, ORIGENS, sugerirMetas, progressoDaMeta, estadoSemMeta, tituloDaMeta,
+  TIPOS_META, tipoPorId, ORIGENS, sugerirMetas, progressoDaMeta, estadoSemMeta, tituloDaMeta, metaDeHorasNoAno,
 } from '../lib/metas';
 import { POSICOES_INICIAIS } from '../db/scoring';
 import { hoje, fmtData, relativo, diasEntre } from '../lib/utils';
@@ -100,6 +101,10 @@ export default function Metas() {
   }
 
   const semMeta = estadoSemMeta(faixa, sessions.length > 0);
+  const horasNoAno = useMemo(
+    () => (Number(settings.metaAnualHoras) > 0 ? metaDeHorasNoAno(sessions, Number(settings.metaAnualHoras)) : null),
+    [sessions, settings.metaAnualHoras]
+  );
 
   return (
     <div className="page">
@@ -117,6 +122,14 @@ export default function Metas() {
         { id: 'feitas', nome: `Concluídas (${feitas.length})` },
       ]} />
       <div style={{ height: 14 }} />
+
+      {/* a de horas no ano mora nos Ajustes, mas é meta como as outras */}
+      {aba === 'minhas' && horasNoAno && (
+        <Card style={{ marginBottom: 14 }}>
+          <LinhaDeMeta titulo="Horas no ano" p={horasNoAno} />
+          <button className="btn ghost xs" onClick={() => irPara('ajustes')} style={{ marginTop: 6 }}>mudar em Ajustes</button>
+        </Card>
+      )}
 
       {aba === 'minhas' && (
         ativas.length === 0 ? (
@@ -468,6 +481,7 @@ function CartaoMeta({ g, dados, faixa, partners, onEdit, onDel, onConcluir, onCo
       <div className="col" style={{ gap: 6 }}>
         <Bar v={p.pct} max={100} tone={p.pct >= 100 ? 'jade' : ''} />
         <span className="tiny muted">{p.texto}</span>
+        {p.quando && <span className="micro muted">{p.quando}</span>}
       </div>
 
       {p.conta && !p.semBotao && typeof p.atual === 'number' && (

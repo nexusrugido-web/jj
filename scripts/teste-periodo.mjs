@@ -35,6 +35,9 @@ register('./como-vite.mjs', import.meta.url);
 const P = await import('../src/lib/periodo.js');
 const { dataLocal } = await import('../src/lib/utils.js');
 const { resumo } = await import('../src/lib/stats.js');
+const M = await import('../src/lib/metas.js');
+const { calcularDefesa } = await import('../src/lib/graus.js');
+const { hoje, addDias } = await import('../src/lib/utils.js');
 
 let falhas = 0;
 const ok = (nome, real, esperado) => {
@@ -179,6 +182,48 @@ const tTudo = P.totaisComparados(treinosA, rolasA, parceiros, P.periodoDeDados('
 ok('desde o início não tem anterior pra comparar', [tTudo.anterior, tTudo.variacao], [null, {}]);
 ok('e o contexto da vitória não quebra sem anterior', P.contextoDaVitoria(tTudo.atual, tTudo.anterior) === undefined, false);
 ok('o primeiro treino é o mais antigo, não o primeiro da lista', P.primeiroTreino(treinosA), '2025-09-19');
+
+/* ---------- cada meta diz de quando é a conta ----------
+   Contas feitas com o relógio de verdade, então as datas são
+   relativas a hoje. */
+const H = hoje();
+const antes = (n) => addDias(H, -n);
+const semanaAgora = P.periodoDeDados('semana-atual');
+const treinosM = [
+  { id: 'm1', data: H, duracao: 120 },
+  { id: 'm2', data: antes(29), duracao: 60 },
+  { id: 'm3', data: antes(30), duracao: 60 },
+  { id: 'm4', data: antes(95), duracao: 60 },
+  { id: 'm5', data: `${H.slice(0, 4)}-01-01`, duracao: 60 },
+];
+const assumida = (x) => ({ origem: 'usuario', ...x });
+const prog = (x, dados = {}) => M.progressoDaMeta(assumida(x), { sessions: treinosM, ...dados });
+
+const freq = prog({ tipo: 'frequencia', alvo: 3 });
+ok('frequência: conta a semana e escreve qual', [freq.atual, freq.valor, freq.quando],
+  [P.dentroDoPeriodo(treinosM, semanaAgora).length, `${P.dentroDoPeriodo(treinosM, semanaAgora).length} de 3`, P.rotuloDoPeriodo(semanaAgora)]);
+
+const buracosM = [{ nome: 'Americana', recente: 2 }];
+const defesa = prog({ tipo: 'defesa', alvo: 'Americana', ajuste: 3 }, { buracos: buracosM });
+ok('defesa: as vezes que te pegaram, sem conta invertida', [defesa.valor, defesa.pct, defesa.semBotao], ['2 vezes', 50, true]);
+ok('defesa: período e objetivo escritos', defesa.quando, `${P.rotuloDoPeriodo(P.periodoDeDados('ultimos-30'))} · objetivo: nenhuma`);
+ok('defesa: ajuste antigo (da conta invertida) não entra', defesa.atual, 2);
+ok('defesa zerada é meta batida', prog({ tipo: 'defesa', alvo: 'Kimura' }, { buracos: buracosM }).pct, 100);
+
+const sofridas = [antes(29), antes(30), H].map((data) => ({ data }));
+ok('o "recente" da defesa são os mesmos 30 dias', calcularDefesa(sofridas).recente, 2);
+
+ok('treinos: desde o primeiro treino', [prog({ tipo: 'treinos', alvo: 100 }).valor, prog({ tipo: 'treinos', alvo: 100 }).quando], ['5 de 100', 'Desde o primeiro treino']);
+
+const volume = prog({ tipo: 'volume', alvo: 10 });
+const em90 = treinosM.filter((x) => x.data >= antes(89) && x.data <= H).reduce((a, x) => a + x.duracao, 0);
+ok('horas sem data de início: 3 meses, com h', [volume.valor, volume.quando.startsWith('Últimos 3 meses')], [`${Math.round(em90 / 60)}h de 10h`, true]);
+const doDia = prog({ tipo: 'rolas', alvo: 5, inicio: antes(10) }, { rolls: [{ sessionId: 'm1' }, { sessionId: 'm2' }, { sessionId: 'm1', contexto: 'drill' }] });
+ok('meta com início conta desde a meta', [doDia.valor, doDia.quando.startsWith('Desde a meta')], ['1 de 5', true]);
+
+const horas = M.metaDeHorasNoAno(treinosM, 200);
+const noAno = treinosM.filter((s) => s.data.slice(0, 4) === H.slice(0, 4)).reduce((a, s) => a + s.duracao, 0);
+ok('horas no ano: meta como as outras, com o período', [horas.valor, horas.quando], [`${Math.round(noAno / 60)}h de 200h`, P.rotuloDoPeriodo(P.periodoDeDados('ano-atual'))]);
 
 const offset = new Date(2026, 8, 6, 12).getTimezoneOffset();
 console.log(`${process.env.FUSO_DO_TESTE} (${offset > 0 ? '-' : '+'}${Math.abs(offset) / 60}h): ${falhas ? `${falhas} falha(s)` : 'ok'}`);

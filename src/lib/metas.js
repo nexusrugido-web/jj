@@ -1,4 +1,5 @@
-import { hoje, addDias, diasEntre, pct } from './utils';
+import { hoje, diasEntre, pct, fmtData } from './utils';
+import { periodoDeDados, dentroDoPeriodo, rotuloDoPeriodo } from './periodo';
 import { grauPorN, requisitosDaFaixa } from './graus';
 
 /* ============================================================
@@ -181,7 +182,8 @@ export function sugerirMetas({ faixa = 'branca', frequenciaTipica = 0, objetivo 
    ============================================================ */
 function comAjuste(r, meta) {
   const ajuste = Number(meta.ajuste) || 0;
-  if (!ajuste || !r.conta) return r;
+  /* meta sem botão não tem ajuste: um antigo da defesa estava na conta invertida */
+  if (!ajuste || !r.conta || r.semBotao) return r;
 
   const atual = Math.max(0, (r.atual || 0) + ajuste);
   const alvo = r.alvo || 1;
@@ -194,11 +196,41 @@ function comAjuste(r, meta) {
     ? `${atual} de ${alvo}, meta batida.`
     : `${atual} de ${alvo}${unidade ? ` ${unidade}` : ''}. Faltam ${falta}.`;
 
-  return { ...r, atual, ajuste, pct: pct(atual, alvo), texto };
+  return { ...r, atual, ajuste, pct: pct(atual, alvo), valor: deAte(atual, alvo, r.horas), texto };
 }
 
+/* o número à direita da linha: "3 de 5", "17h de 200h" */
+const deAte = (atual, alvo, horas = false) => (horas ? `${atual}h de ${alvo}h` : `${atual} de ${alvo}`);
+
+/* metas de contagem valem desde que foram criadas; as antigas,
+   sem data de início, nos últimos 30 dias (ou 3 meses, as de horas) */
+const periodoDaMeta = (meta, senao) => (meta.inicio
+  ? periodoDeDados('desde-a-meta', { desde: meta.inicio })
+  : periodoDeDados(senao));
+
+/* ============================================================
+   O PROGRESSO DE UMA META
+
+   Além de atual, alvo e pct, toda meta diz:
+     valor    o número pra ler à direita ("3 de 5", "2 vezes")
+     periodo  o objeto de periodoDeDados que contou, quando tem
+     quando   de quando é a conta, escrito ("Esta semana · 14/09 a 20/09")
+   ============================================================ */
 export function progressoDaMeta(meta, dados) {
   return comAjuste(calcular(meta, dados), meta);
+}
+
+/* "Horas no ano" vem dos Ajustes, não de db.goals, mas é desenhada
+   como qualquer outra meta */
+export function metaDeHorasNoAno(sessions, alvo) {
+  const periodo = periodoDeDados('ano-atual');
+  const min = dentroDoPeriodo(sessions, periodo).reduce((a, s) => a + (Number(s.duracao) || 0), 0);
+  const h = Math.round(min / 60);
+  return {
+    conta: true, atual: h, alvo, pct: pct(h, alvo), horas: true,
+    valor: deAte(h, alvo, true), periodo, quando: rotuloDoPeriodo(periodo),
+    texto: h >= alvo ? `${h}h neste ano, meta batida.` : `${h}h de ${alvo}h neste ano.`,
+  };
 }
 
 /* ============================================================
@@ -237,14 +269,15 @@ function calcular(meta, dados = {}) {
   }
 
   if (meta.tipo === 'frequencia') {
-    const ini = inicioDaSemana();
-    const n = sessions.filter((s) => s.data >= ini && s.data <= hoje()).length;
+    const periodo = periodoDeDados('semana-atual');
+    const n = dentroDoPeriodo(sessions, periodo).length;
     const alvo = Number(meta.alvo) || 1;
     return {
       conta: true,
       atual: n,
       alvo,
       pct: pct(n, alvo),
+      valor: deAte(n, alvo), periodo, quando: rotuloDoPeriodo(periodo),
       texto: n >= alvo
         ? `${n} de ${alvo} nesta semana, meta batida.`
         : `${n} de ${alvo} nesta semana.`,
@@ -256,41 +289,47 @@ function calcular(meta, dados = {}) {
        dos rolas. Somar na mão não faria sentido. */
     const alvo = Number(meta.grauAlvo) || 3;
     const t = tecnicas.find((x) => x.nome === meta.alvo);
+    const quando = 'o grau de hoje, pelos seus rolas';
     if (!t) {
       return {
-        conta: true, atual: 0, alvo, semBotao: true, pct: 0,
+        conta: true, atual: 0, alvo, semBotao: true, pct: 0, valor: `grau 0 de ${alvo}`, quando,
         texto: 'Essa técnica ainda não apareceu em nenhum registro seu.',
       };
     }
     if (t.grau >= alvo) {
       return {
-        conta: true, atual: t.grau, alvo, semBotao: true, pct: 100, concluida: true,
+        conta: true, atual: t.grau, alvo, semBotao: true, pct: 100, concluida: true, valor: `grau ${t.grau} de ${alvo}`, quando,
         texto: `Chegou no ${grauPorN(t.grau).nome}.`,
       };
     }
     return {
-      conta: true, atual: t.grau, alvo, semBotao: true,
+      conta: true, atual: t.grau, alvo, semBotao: true, valor: `grau ${t.grau} de ${alvo}`, quando,
       pct: t.proximo === alvo ? t.progresso : Math.round((t.grau / alvo) * 100),
       texto: `Hoje está no ${grauPorN(t.grau).nome}, indo pro ${grauPorN(alvo).nome}.`,
     };
   }
 
   if (meta.tipo === 'defesa') {
-    /* Aqui menos é melhor, então o progresso anda quando o
-       número de vezes cai. Sem atual e alvo a tela mostrava
-       "feita/" com o número faltando. */
+    /* Aqui menos é melhor: o número é quantas vezes te pegaram,
+       o objetivo é nenhuma, e a barra enche quando o número cai.
+       Antes a tela mostrava "1/4", um teto menos as vezes, que
+       ninguém entendia. A conta vem dos rolas, sem botão. */
     const b = buracos.find((x) => x.nome === meta.alvo);
     const recente = b?.recente || 0;
-    const teto = Math.max(4, Number(meta.quantidade) || 4);
+    const periodo = periodoDeDados('ultimos-30');
     return {
       conta: true,
       invertida: true,
-      atual: Math.max(0, teto - recente),
-      alvo: teto,
+      semBotao: true,
+      atual: recente,
+      alvo: 0,
       pct: recente === 0 ? 100 : Math.max(0, 100 - recente * 25),
+      valor: `${recente} ${recente === 1 ? 'vez' : 'vezes'}`,
+      periodo,
+      quando: `${rotuloDoPeriodo(periodo)} · objetivo: nenhuma`,
       texto: recente === 0
-        ? `Nenhuma vez no último mês. ${meta.alvo || 'Isso'} parou de te pegar.`
-        : `${recente} ${recente === 1 ? 'vez' : 'vezes'} no último mês. Quanto menos, melhor.`,
+        ? `Nenhuma vez nos últimos 30 dias. ${meta.alvo || 'Isso'} parou de te pegar.`
+        : `${recente} ${recente === 1 ? 'vez' : 'vezes'} nos últimos 30 dias. Quanto menos, melhor.`,
     };
   }
 
@@ -300,7 +339,7 @@ function calcular(meta, dados = {}) {
     const n = sessions.length;
     const alvo = Number(meta.alvo) || 1;
     return {
-      conta: true, atual: n, alvo, pct: pct(n, alvo),
+      conta: true, atual: n, alvo, pct: pct(n, alvo), valor: deAte(n, alvo), quando: 'Desde o primeiro treino',
       texto: n >= alvo
         ? `${n} treinos registrados, meta batida.`
         : `${n} de ${alvo} treinos. Faltam ${alvo - n}.`,
@@ -313,60 +352,62 @@ function calcular(meta, dados = {}) {
     const n = Number(meta.contador) || 0;
     const alvo = Number(meta.alvo) || 1;
     return {
-      conta: true, atual: n, alvo, pct: pct(n, alvo), manual: true,
+      conta: true, atual: n, alvo, pct: pct(n, alvo), manual: true, valor: deAte(n, alvo), quando: 'Contado na mão',
       texto: n >= alvo ? `${n} de ${alvo}, meta batida.` : `${n} de ${alvo}.`,
     };
   }
 
   if (meta.tipo === 'aulas') {
-    const ini = meta.inicio || addDias(hoje(), -30);
-    const n = (dados.aulas || []).filter((a) => (a.data || '') >= ini).length;
+    const periodo = periodoDaMeta(meta, 'ultimos-30');
+    const n = dentroDoPeriodo(dados.aulas || [], periodo).length;
     const alvo = Number(meta.alvo) || 1;
     return {
-      conta: true, atual: n, alvo, pct: pct(n, alvo),
+      conta: true, atual: n, alvo, pct: pct(n, alvo), valor: deAte(n, alvo), periodo, quando: rotuloDoPeriodo(periodo),
       texto: n >= alvo ? `${n} de ${alvo} aulas, meta batida.` : `${n} de ${alvo} aulas assistidas.`,
     };
   }
 
   if (meta.tipo === 'quiz') {
-    const ini = meta.inicio || addDias(hoje(), -30);
-    const n = (dados.quiz || []).filter((q) => (q.data || '') >= ini && q.acertou).length;
+    const periodo = periodoDaMeta(meta, 'ultimos-30');
+    const n = dentroDoPeriodo(dados.quiz || [], periodo).filter((q) => q.acertou).length;
     const alvo = Number(meta.alvo) || 1;
     return {
-      conta: true, atual: n, alvo, pct: pct(n, alvo),
+      conta: true, atual: n, alvo, pct: pct(n, alvo), valor: deAte(n, alvo), periodo, quando: rotuloDoPeriodo(periodo),
       texto: `${n} de ${alvo} acertos.`,
     };
   }
 
   if (meta.tipo === 'rolas') {
-    const ini = meta.inicio || addDias(hoje(), -30);
-    const ids = new Set(sessions.filter((s2) => s2.data >= ini).map((s2) => s2.id));
+    const periodo = periodoDaMeta(meta, 'ultimos-30');
+    const ids = new Set(dentroDoPeriodo(sessions, periodo).map((s2) => s2.id));
     const n = (dados.rolls || []).filter((r) => ids.has(r.sessionId) && (r.contexto || 'rola') !== 'drill').length;
     const alvo = Number(meta.alvo) || 1;
     return {
-      conta: true, atual: n, alvo, pct: pct(n, alvo),
+      conta: true, atual: n, alvo, pct: pct(n, alvo), valor: deAte(n, alvo), periodo, quando: rotuloDoPeriodo(periodo),
       texto: `${n} de ${alvo} rolas.`,
     };
   }
 
   if (meta.tipo === 'posicao') {
-    const ini = meta.inicio || addDias(hoje(), -30);
-    const ids = new Set(sessions.filter((s2) => s2.data >= ini).map((s2) => s2.id));
+    const periodo = periodoDaMeta(meta, 'ultimos-30');
+    const ids = new Set(dentroDoPeriodo(sessions, periodo).map((s2) => s2.id));
     const n = (dados.rolls || []).filter((r) => ids.has(r.sessionId) && r.posInicial === meta.alvo).length;
     const alvo = Number(meta.quantidade) || 10;
     return {
-      conta: true, atual: n, alvo, pct: pct(n, alvo),
+      conta: true, atual: n, alvo, pct: pct(n, alvo), valor: deAte(n, alvo), periodo, quando: rotuloDoPeriodo(periodo),
       texto: n ? `${n} de ${alvo} rolas começando daí.` : 'Nenhum rola começou dessa posição ainda.',
     };
   }
 
   if (meta.tipo === 'volume') {
-    const ini = meta.inicio || addDias(hoje(), -90);
-    const min = sessions.filter((s) => s.data >= ini && s.data <= hoje())
-      .reduce((a, s) => a + (Number(s.duracao) || 0), 0);
+    const periodo = periodoDaMeta(meta, '3m');
+    const min = dentroDoPeriodo(sessions, periodo).reduce((a, s) => a + (Number(s.duracao) || 0), 0);
     const h = Math.round(min / 60);
     const alvo = Number(meta.alvo) || 1;
-    return { conta: true, atual: h, alvo, pct: pct(h, alvo), texto: `${h}h de ${alvo}h.` };
+    return {
+      conta: true, atual: h, alvo, pct: pct(h, alvo), horas: true,
+      valor: deAte(h, alvo, true), periodo, quando: rotuloDoPeriodo(periodo), texto: `${h}h de ${alvo}h.`,
+    };
   }
 
   if (meta.tipo === 'competicao') {
@@ -378,6 +419,8 @@ function calcular(meta, dados = {}) {
       conta: true, semBotao: true,
       atual: dias === null ? 0 : Math.max(0, prazo - dias),
       alvo: prazo,
+      valor: dias === null ? 'sem data' : dias > 0 ? `${dias} ${dias === 1 ? 'dia' : 'dias'}` : 'passou',
+      quando: meta.data ? `Campeonato em ${fmtData(meta.data)}` : 'Sem data definida',
       pct: dias === null ? 0 : dias <= 0 ? 100 : Math.round(((prazo - dias) / prazo) * 100),
       texto: dias === null
         ? 'Sem data definida. Preencha quando souber.'
@@ -388,12 +431,6 @@ function calcular(meta, dados = {}) {
   }
 
   return { conta: true, pct: 0, texto: '' };
-}
-
-function inicioDaSemana(d = hoje()) {
-  const dt = new Date(d + 'T00:00:00');
-  const dow = (dt.getDay() + 6) % 7;
-  return addDias(d, -dow);
 }
 
 /* ============================================================

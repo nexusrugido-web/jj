@@ -1,4 +1,5 @@
 import { FAIXA_ORDEM, hoje, addDias } from './utils';
+import { periodoDeDados, dentroDoPeriodo } from './periodo';
 
 /* ============================================================
    GRAUS POR TÉCNICA
@@ -270,12 +271,8 @@ export function calcularDefesa(sofridas, faixaUsuario = 'branca') {
     inicioComum: posicaoComum && posicaoComum[1] >= 3 && posicaoComum[1] / Math.max(1, sofridas.length) >= 0.7
       ? { id: posicaoComum[0], n: posicaoComum[1] }
       : null,
-    recente: datas.filter((d) => {
-      const dt = new Date(d);
-      const trintaDias = new Date();
-      trintaDias.setDate(trintaDias.getDate() - 30);
-      return dt >= trintaDias;
-    }).length,
+    /* os mesmos "últimos 30 dias" que a meta de defesa escreve na tela */
+    recente: dentroDoPeriodo(sofridas, periodoDeDados('ultimos-30')).length,
   };
 }
 

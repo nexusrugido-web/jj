@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import {
   Flame, Clock, Swords, Percent, TriangleAlert, Target, Repeat, Wind,
   ArrowRight, Plus, Users, TrendingUp, Award, Activity, Trophy, Sparkles, Loader,
-  ShieldCheck, HeartPulse, Check,
+  ShieldCheck, HeartPulse,
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
@@ -12,10 +12,11 @@ import { EscadaPosicional, BarrasTop, Donut } from '../components/Charts';
 import Calendario from '../components/Calendario';
 import GraficoEvolucao from '../components/GraficoEvolucao';
 import { resumo, escadaPosicional, treinosNaSemana } from '../lib/stats';
-import { fmtDur, relativo, fmtData, pct, hoje } from '../lib/utils';
+import { fmtDur, relativo, fmtData, pct } from '../lib/utils';
 import { minhasTecnicas, meusBuracos, resumoGraus, jogoPrincipal, grauPorN } from '../lib/graus';
 import { recomendacoesDoAluno, INTENCOES } from '../lib/recomendar';
-import { progressoDaMeta, tituloDaMeta } from '../lib/metas';
+import { progressoDaMeta, tituloDaMeta, metaDeHorasNoAno } from '../lib/metas';
+import LinhaDeMeta from '../components/LinhaDeMeta';
 import Recomendacao from '../components/Recomendacao';
 import { sequencia, textoSequencia, resumoSemana, lerSemana, rotuloSemana, escudos, textoEscudo, semanasProtegidas } from '../lib/semana';
 import { situacao, guiaDeEstudo } from '../lib/lesao';
@@ -86,11 +87,10 @@ export default function Painel() {
     [esteira, buracos, partners, sessions, rolls, settings.faixa, feitas]
   );
   const jogo = useMemo(() => analisarJogo(rolls, partners, sessions, settings.faixa), [rolls, partners, sessions, settings.faixa]);
-  const anoHoras = useMemo(() => {
-    const ano = hoje().slice(0, 4);
-    const min = sessions.filter((s) => (s.data || '').startsWith(ano)).reduce((a, s) => a + (Number(s.duracao) || 0), 0);
-    return Math.round(min / 60);
-  }, [sessions]);
+  const horasNoAno = useMemo(
+    () => (Number(settings.metaAnualHoras) > 0 ? metaDeHorasNoAno(sessions, Number(settings.metaAnualHoras)) : null),
+    [sessions, settings.metaAnualHoras]
+  );
 
   const naGame = techniques.filter((t) => t.status === 'game').length;
   const aprendendo = techniques.filter((t) => t.status === 'aprendendo').length;
@@ -213,7 +213,7 @@ export default function Painel() {
             <button className="btn ghost xs" onClick={() => irPara('metas')}>ver todas <ArrowRight size={12} /></button>
           </div>
 
-          {metasAtivas.length === 0 && !Number(settings.metaAnualHoras) ? (
+          {metasAtivas.length === 0 && !horasNoAno ? (
             <>
               <p className="tiny muted" style={{ lineHeight: 1.65 }}>
                 Nenhuma meta assumida ainda. Meta de frequência funciona melhor que meta de resultado no
@@ -225,36 +225,9 @@ export default function Painel() {
             </>
           ) : (
             <div className="col" style={{ gap: 14 }}>
-              {/* a de horas no ano, que ficava solta no meio da tela */}
-              {Number(settings.metaAnualHoras) > 0 && (
-                <div className="col" style={{ gap: 6 }}>
-                  <div className="row tiny">
-                    <span style={{ flex: 1 }}>Horas no ano</span>
-                    <span className="num micro muted">{anoHoras}h de {settings.metaAnualHoras}h</span>
-                  </div>
-                  <Bar v={anoHoras} max={settings.metaAnualHoras} />
-                </div>
-              )}
-
-              {metasAtivas.map((g) => {
-                const feita = g.p.pct >= 100;
-                const perto = g.p.pct >= 80 && !feita;
-                return (
-                  <div key={g.id} className={`meta-linha ${feita ? 'feita' : perto ? 'perto' : ''}`}>
-                    <div className="row tiny" style={{ gap: 8 }}>
-                      <span className="truncate" style={{ flex: 1 }}>{tituloDaMeta(g)}</span>
-                      {feita && <Chip tone="jade"><Check size={11} /> feita</Chip>}
-                      <span className="num micro muted">{g.p.atual}/{g.p.alvo}</span>
-                    </div>
-                    <Bar v={g.p.pct} max={100} tone={feita ? 'jade' : perto ? 'accent' : ''} />
-                    {perto && (
-                      <span className="micro" style={{ color: 'var(--accent)' }}>
-                        Falta pouco, {g.p.alvo - g.p.atual} pra fechar.
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
+              {/* a de horas no ano, desenhada como as outras */}
+              {horasNoAno && <LinhaDeMeta titulo="Horas no ano" p={horasNoAno} />}
+              {metasAtivas.map((g) => <LinhaDeMeta key={g.id} titulo={tituloDaMeta(g)} p={g.p} />)}
             </div>
           )}
         </Card>
