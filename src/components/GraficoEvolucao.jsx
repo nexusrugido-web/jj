@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useRef } from 'react';
 import { Medal, TrendingUp, TrendingDown, Minus, Sparkles } from 'lucide-react';
 import {
-  PERIODOS, METRICAS, serieDoPeriodo, totaisComparados,
+  PRESETS, periodoDeDados, primeiroTreino, METRICAS, serieDoPeriodo, totaisComparados,
   contextoDaVitoria, marcadoresGraduacao, faixaDoNivel,
   contornoSuave, larguraDoSino,
 } from '../lib/periodo';
@@ -50,12 +50,14 @@ export default function GraficoEvolucao({
   sessions, rolls, partners, gradings = [],
   periodoInicial = '6m', metricaInicial = 'vitorias',
   compacto = false,
-  periodo: periodoFora = null,
+  periodo: periodoFora = null,   // o objeto de periodoDeDados; quando a página manda, o seletor some
 }) {
   const [periodoLocal, setPeriodoLocal] = useState(periodoInicial);
   const controlado = periodoFora !== null;
-  const periodo = controlado ? periodoFora : periodoLocal;
-  const setPeriodo = setPeriodoLocal;
+  const periodo = useMemo(
+    () => periodoFora || periodoDeDados(periodoLocal, { desde: primeiroTreino(sessions) }),
+    [periodoFora, periodoLocal, sessions]
+  );
   const [metricaId, setMetricaId] = useState(metricaInicial);
   const [ocultas, setOcultas] = useState([]);
   const [hover, setHover] = useState(null);
@@ -113,15 +115,15 @@ export default function GraficoEvolucao({
     return Math.max(0, Math.min(n - 1, i));
   };
 
-  const uid = `${metrica.id}-${periodo}`;
+  const uid = `${metrica.id}-${periodo.id}`;
 
   return (
     <div className="col graf-bloco" style={{ gap: 14 }}>
       {!controlado && (
         <div className="seletor-pill">
-          {PERIODOS.map((p) => (
-            <button key={p.id} className={periodo === p.id ? 'on' : ''} onClick={() => setPeriodo(p.id)}>
-              {p.nome}
+          {PRESETS.map((id) => periodoDeDados(id)).map((p) => (
+            <button key={p.id} className={periodo.id === p.id ? 'on' : ''} onClick={() => setPeriodoLocal(p.id)}>
+              {p.rotuloCurto}
             </button>
           ))}
         </div>
@@ -164,7 +166,7 @@ export default function GraficoEvolucao({
           <p className="tiny muted">Sem treino registrado neste período.</p>
         </div>
       ) : (
-        <div className="graf-wrap anima-troca" key={`${periodo}-${metricaId}`}>
+        <div className="graf-wrap anima-troca" key={`${periodo.id}-${metricaId}`}>
           <svg
             ref={svgRef}
             viewBox={`0 0 ${W} ${H}`}
@@ -398,7 +400,6 @@ export default function GraficoEvolucao({
 }
 
 export function ResumoComparado({ t, periodo }) {
-  const p = PERIODOS.find((x) => x.id === periodo);
   const itens = [
     { k: 'rolas', nome: 'rolas', valor: t.atual.rolas },
     { k: 'horas', nome: 'horas', valor: `${t.atual.horas}h` },
@@ -419,7 +420,11 @@ export function ResumoComparado({ t, periodo }) {
           </div>
         ))}
       </div>
-      <p className="micro muted">Comparado com {p && p.nome === 'Tudo' ? 'o ano anterior' : `os ${p ? p.nome : ''} anteriores`}.</p>
+      <p className="micro muted">
+        {!t.anterior ? 'Desde o primeiro treino, sem período anterior pra comparar.'
+          : periodo.id === 'ano-atual' ? `Comparado com o mesmo trecho de ${Number(periodo.ini.slice(0, 4)) - 1}.`
+            : `Comparado com os ${periodo.rotuloCurto} anteriores.`}
+      </p>
     </div>
   );
 }

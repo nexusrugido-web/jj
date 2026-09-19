@@ -1822,6 +1822,10 @@ button.liga-linha:hover { border-color: var(--seam-hi); }
   background: var(--mat-top); color: var(--chalk);
   box-shadow: 0 1px 3px rgba(0,0,0,.4);
 }
+/* no celular, cinco períodos cabem sem esconder o último */
+@media (max-width: 780px) {
+  .seletor-pill button { padding: 0 10px; }
+}
 
 /* blocos de validação, com cor só na borda esquerda */
 .valida {

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Percent, TriangleAlert, Check, Trophy } from 'lucide-react';
 import { Chip, Stat } from './UI';
-import { taxaPorFaixa, PERIODOS } from '../lib/periodo';
+import { taxaPorFaixa, PRESETS, periodoDeDados, primeiroTreino } from '../lib/periodo';
 
 const COR_FAIXA = {
   branca: '#e8e6e1', azul: '#3b7dd8', roxa: '#7b4fc4', marrom: '#7a4a2b', preta: '#1a1a1a',
@@ -9,45 +9,54 @@ const COR_FAIXA = {
 
 export default function TaxaPorFaixa({
   sessions, rolls, partners, minhaFaixa = 'branca',
-  periodoInicial = 'tudo',
-  periodo: periodoFora = null,   // quando a página manda, o seletor some
+  periodoInicial = 'desde-inicio',
+  periodo: periodoFora = null,   // o objeto de periodoDeDados; quando a página manda, o seletor some
 }) {
   const [periodoLocal, setPeriodoLocal] = useState(periodoInicial);
   const controlado = periodoFora !== null;
-  const periodo = controlado ? periodoFora : periodoLocal;
-  const setPeriodo = setPeriodoLocal;
+  const periodo = useMemo(
+    () => periodoFora || periodoDeDados(periodoLocal, { desde: primeiroTreino(sessions) }),
+    [periodoFora, periodoLocal, sessions]
+  );
   const t = useMemo(
     () => taxaPorFaixa(sessions, rolls, partners, periodo, minhaFaixa),
     [sessions, rolls, partners, periodo, minhaFaixa]
   );
 
+  /* fica na tela mesmo sem rola no período, pra dar pra trocar */
+  const seletor = !controlado && (
+    <div className="seletor-pill">
+      {PRESETS.map((id) => periodoDeDados(id)).map((p) => (
+        <button key={p.id} className={periodo.id === p.id ? 'on' : ''} onClick={() => setPeriodoLocal(p.id)}>
+          {p.rotuloCurto}
+        </button>
+      ))}
+    </div>
+  );
+
   if (!t.total.n) {
     return (
-      <p className="tiny muted">
-        Vincule parceiros às suas rolas pra ver contra quem você venceu. Sem isso, a taxa de vitória não significa nada.
-        {t.semParceiro > 0 && ` Você tem ${t.semParceiro} rola(s) sem parceiro marcado.`}
-      </p>
+      <div className="col" style={{ gap: 14 }}>
+        {seletor}
+        <p className="tiny muted">
+          {t.semParceiro > 0
+            ? `Vincule parceiros às suas rolas pra ver contra quem você venceu. Sem isso, a taxa de vitória não significa nada. Você tem ${t.semParceiro} rola(s) sem parceiro marcado.`
+            : `Nenhum rola no período (${periodo.rotulo.toLowerCase()}).`}
+        </p>
+      </div>
     );
   }
 
   return (
-    <div className="col anima-troca" key={periodo} style={{ gap: 14 }}>
-      {!controlado && (
-        <div className="seletor-pill">
-          {PERIODOS.map((p) => (
-            <button key={p.id} className={periodo === p.id ? 'on' : ''} onClick={() => setPeriodo(p.id)}>
-              {p.nome}
-            </button>
-          ))}
-        </div>
-      )}
+    <div className="col anima-troca" key={periodo.id} style={{ gap: 14 }}>
+      {seletor}
 
       <div className="taxa-total">
         <div>
           <div className="stat-val num" style={{ fontSize: 34, color: t.total.taxa >= 50 ? 'var(--jade)' : 'var(--chalk)' }}>
             {t.total.taxa}%
           </div>
-          <div className="stat-lab">taxa geral</div>
+          <div className="stat-lab">{t.semParceiro ? 'com parceiro marcado' : 'taxa geral'}</div>
         </div>
         <div className="taxa-total-detalhe">
           <div className="row" style={{ gap: 12, flexWrap: 'wrap' }}>
@@ -66,8 +75,8 @@ export default function TaxaPorFaixa({
           <div key={l.faixa} className="taxa-linha">
             <div className="row" style={{ gap: 9, alignItems: 'center', marginBottom: 6 }}>
               <span className="taxa-faixa-cor" style={{ background: COR_FAIXA[l.faixa], border: l.faixa === 'preta' ? '1px solid #4a5250' : 'none' }} />
-              <span className="tiny" style={{ fontWeight: 600, textTransform: 'capitalize', flex: 1 }}>
-                {l.faixa}
+              <span className="tiny" style={{ fontWeight: 600, flex: 1 }}>
+                <span style={{ textTransform: 'capitalize' }}>{l.faixa}</span>
                 {l.acima && <span className="micro" style={{ color: 'var(--roar)', marginLeft: 6 }}>acima de você</span>}
                 {l.igual && <span className="micro muted" style={{ marginLeft: 6 }}>sua faixa</span>}
               </span>
@@ -83,6 +92,7 @@ export default function TaxaPorFaixa({
               <span className="micro muted">{l.n} rolas · {l.parceiros} parceiro(s)</span>
               {l.fin > 0 && <span className="micro" style={{ color: 'var(--jade)' }}>{l.fin} por finalização</span>}
               {l.pontos > 0 && <span className="micro" style={{ color: 'var(--roar)' }}>{l.pontos} nos pontos</span>}
+              {l.tap > 0 && <span className="micro" style={{ color: 'var(--blood)' }}>{l.tap} finalizaç{l.tap > 1 ? 'ões' : 'ão'} sofrida{l.tap > 1 ? 's' : ''}</span>}
             </div>
           </div>
         ))}

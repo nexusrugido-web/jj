@@ -1,4 +1,5 @@
 import { hoje, addDias, diasEntre, pct, contar } from './utils';
+import { placarDaRola } from './game';
 
 /* ---------- streak ---------- */
 export function calcStreak(datas) {
@@ -51,6 +52,8 @@ export function resumo(sessions, rolls) {
   const total = lutas.length;
   const fin = lutas.filter((r) => r.resultado === 'finalizei' || r.resultado === 'ambos').length;
   const tap = lutas.filter((r) => r.resultado === 'fui_finalizado' || r.resultado === 'ambos').length;
+  const placares = lutas.map(placarDaRola);
+  const vitorias = placares.filter((p) => p.ganhou).length;
 
   const subsAplicadas = lutas.flatMap((r) => r.subsAplicadas || []);
   const subsSofridas = lutas.flatMap((r) => r.subsSofridas || []);
@@ -61,6 +64,9 @@ export function resumo(sessions, rolls) {
     matHoras: Math.round(matMin / 60),
     rolas: total,
     drills: rolls.length - total,
+    vitorias,
+    derrotas: placares.filter((p) => p.perdeu).length,
+    taxaVitoria: pct(vitorias, total),
     finalizacoes: subsAplicadas.length,
     taps: subsSofridas.length,
     subPct: pct(fin, total),

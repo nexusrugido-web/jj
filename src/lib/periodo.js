@@ -4,21 +4,6 @@ import { somarPontos } from '../db/scoring';
 import { FAIXA_ORDEM } from './utils';
 
 /* ============================================================
-   SÉRIES POR PERÍODO
-   A granularidade se ajusta sozinha: 30 dias vira gráfico por
-   dia, 6 meses por semana, 1 ano por mês. Sem isso, "30 dias"
-   em barra mensal viraria um gráfico de dois pontos.
-   ============================================================ */
-
-export const PERIODOS = [
-  { id: '30d', nome: '30 dias', dias: 30, grao: 'dia' },
-  { id: '3m', nome: '3 meses', dias: 90, grao: 'semana' },
-  { id: '6m', nome: '6 meses', dias: 182, grao: 'semana' },
-  { id: '1a', nome: '1 ano', dias: 365, grao: 'mes' },
-  { id: 'tudo', nome: 'Tudo', dias: null, grao: 'mes' },
-];
-
-/* ============================================================
    O PERÍODO DOS DADOS
 
    Um cadastro só de períodos com nome. Todo número que depende
@@ -38,7 +23,7 @@ const CADASTRO_DE_PERIODOS = {
   'ultimos-30': { rotulo: 'Últimos 30 dias', curto: '30 dias', dias: 30, grao: 'dia' },
   '3m': { rotulo: 'Últimos 3 meses', curto: '3 meses', dias: 90, grao: 'semana' },
   '6m': { rotulo: 'Últimos 6 meses', curto: '6 meses', dias: 182, grao: 'semana' },
-  'ano-atual': { rotulo: 'Este ano', curto: 'Este ano' },
+  'ano-atual': { rotulo: 'Este ano' },
   'desde-inicio': { rotulo: 'Desde o início', curto: 'Tudo' },
   'desde-a-meta': { rotulo: 'Desde a meta', curto: 'Desde a meta' },
 };
@@ -56,8 +41,17 @@ export function periodoDeDados(id, { hoje: dia = hoje(), desde = null } = {}) {
   else if (desde && desde < dia) ini = desde;
   const dias = diasEntre(ini, fim) + 1;
   const grao = c.grao || (dias > 400 ? 'mes' : dias > 120 ? 'semana' : 'dia');
-  return { id: chave, ini, fim, dias, grao, rotulo: c.rotulo, rotuloCurto: c.curto };
+  /* no botão, "este ano" é o próprio ano: cabe ao lado dos outros no celular */
+  const rotuloCurto = chave === 'ano-atual' ? dia.slice(0, 4) : c.curto;
+  return { id: chave, ini, fim, dias, grao, rotulo: c.rotulo, rotuloCurto };
 }
+
+/* os que dá pra escolher onde se analisa o jogo */
+export const PRESETS = ['ultimos-30', '3m', '6m', 'ano-atual', 'desde-inicio'];
+
+/* o primeiro treino, que é o começo de "desde o início" */
+export const primeiroTreino = (sessions) =>
+  sessions.reduce((a, s) => (s.data && (!a || s.data < a) ? s.data : a), null);
 
 export const dentroDoPeriodo = (lista, periodo, campo = 'data') =>
   lista.filter((x) => x[campo] >= periodo.ini && x[campo] <= periodo.fim);
@@ -150,32 +144,25 @@ export const METRICAS = [
   },
 ];
 
-/* ---------- monta os baldes de tempo ---------- */
-function baldes(periodo, primeiraData) {
-  const fim = hoje();
-  const p = PERIODOS.find((x) => x.id === periodo) || PERIODOS[2];
-
-  let inicio;
-  if (p.dias) inicio = addDias(fim, -(p.dias - 1));
-  else inicio = primeiraData || addDias(fim, -365);
-
-  const total = Math.max(1, diasEntre(inicio, fim) + 1);
-  let grao = p.grao;
-  if (!p.dias) grao = total > 400 ? 'mes' : total > 120 ? 'semana' : 'dia';
+/* ---------- monta os baldes de tempo ----------
+   A granularidade vem do período: 30 dias por dia, 3 e 6 meses
+   por semana, o resto pelo tamanho. O primeiro e o último balde
+   são cortados nas pontas do período, pra semana ou o mês que
+   começa antes (ou termina depois) não contar dia de fora. */
+function baldes(p) {
+  const { ini: inicio, fim, grao } = p;
+  const dentro = (b) => ({ ...b, ini: b.ini < inicio ? inicio : b.ini, fim: b.fim > fim ? fim : b.fim });
 
   const out = [];
   if (grao === 'dia') {
-    for (let i = 0; i < total; i++) {
-      const d = addDias(inicio, i);
+    for (let d = inicio; d <= fim; d = addDias(d, 1)) {
       out.push({ chave: d, ini: d, fim: d, label: d.slice(8, 10) + '/' + d.slice(5, 7) });
     }
   } else if (grao === 'semana') {
-    let cursor = inicio;
-    const dow = (new Date(cursor + 'T00:00:00').getDay() + 6) % 7;
-    cursor = addDias(cursor, -dow);
+    let cursor = segundaDa(inicio);
     while (cursor <= fim) {
-      const f = addDias(cursor, 6);
-      out.push({ chave: cursor, ini: cursor, fim: f, label: cursor.slice(8, 10) + '/' + cursor.slice(5, 7) });
+      const b = dentro({ chave: cursor, ini: cursor, fim: addDias(cursor, 6) });
+      out.push({ ...b, label: b.ini.slice(8, 10) + '/' + b.ini.slice(5, 7) });
       cursor = addDias(cursor, 7);
     }
   } else {
@@ -186,17 +173,20 @@ function baldes(periodo, primeiraData) {
       const ini = `${y}-${String(m + 1).padStart(2, '0')}-01`;
       const ult = new Date(y, m + 1, 0).getDate();
       const f = `${y}-${String(m + 1).padStart(2, '0')}-${String(ult).padStart(2, '0')}`;
-      out.push({ chave: ini, ini, fim: f, label: mesNome(m), ano: y });
+      out.push({ ...dentro({ chave: ini, ini, fim: f }), label: mesNome(m), ano: y });
       m++; if (m > 11) { m = 0; y++; }
     }
   }
   return { linhas: out, grao, inicio, fim };
 }
 
+/* Drill não é luta: a mesma regra do resumo, das metas e dos graus */
+const ehLuta = (r) => (r.contexto || 'rola') !== 'drill';
+
 /* ---------- a série completa ---------- */
 export function serieDoPeriodo(sessions, rolls, partners, periodo) {
-  const datas = sessions.map((s) => s.data).filter(Boolean).sort();
-  const { linhas, grao, inicio, fim } = baldes(periodo, datas[0]);
+  const { linhas, grao, inicio, fim } = baldes(periodo);
+  const lutas = rolls.filter(ehLuta);
 
   const dataDe = new Map(sessions.map((s) => [s.id, s.data]));
   const faixaDe = new Map(partners.map((p) => [p.id, p.faixa || 'branca']));
@@ -204,7 +194,7 @@ export function serieDoPeriodo(sessions, rolls, partners, periodo) {
   const serie = linhas.map((b) => {
     const ses = sessions.filter((s) => s.data >= b.ini && s.data <= b.fim);
     const ids = new Set(ses.map((s) => s.id));
-    const rs = rolls.filter((r) => ids.has(r.sessionId));
+    const rs = lutas.filter((r) => ids.has(r.sessionId));
 
     let porFinalizacao = 0, porPontos = 0, porVantagem = 0, empates = 0;
     let fuiFinalizado = 0, perdiPontos = 0, perdiVantagem = 0;
@@ -261,15 +251,17 @@ export function serieDoPeriodo(sessions, rolls, partners, periodo) {
 const NOME_FAIXA = ['branca', 'azul', 'roxa', 'marrom', 'preta'];
 export const faixaDoNivel = (n) => (n === null || n === undefined ? null : NOME_FAIXA[Math.round(n)] || 'branca');
 
-/* ---------- totais + comparação com o período anterior ---------- */
+/* ---------- totais + comparação com o período anterior ----------
+   O anterior tem o mesmo tamanho e acaba na véspera do início.
+   "Este ano" compara com o mesmo trecho do ano passado, e "desde
+   o início" não tem com o que comparar. */
 export function totaisComparados(sessions, rolls, partners, periodo) {
-  const p = PERIODOS.find((x) => x.id === periodo) || PERIODOS[2];
-  const fim = hoje();
+  const lutas = rolls.filter(ehLuta);
 
   const somar = (ini, f) => {
     const ses = sessions.filter((s) => s.data >= ini && s.data <= f);
     const ids = new Set(ses.map((s) => s.id));
-    const rs = rolls.filter((r) => ids.has(r.sessionId));
+    const rs = lutas.filter((r) => ids.has(r.sessionId));
     const faixaDe = new Map(partners.map((x) => [x.id, x.faixa || 'branca']));
 
     let v = 0, d = 0, fin = 0, pts = 0;
@@ -296,10 +288,14 @@ export function totaisComparados(sessions, rolls, partners, periodo) {
     };
   };
 
-  const dias = p.dias || 365;
-  const iniAtual = addDias(fim, -(dias - 1));
-  const atual = somar(iniAtual, fim);
-  const anterior = somar(addDias(iniAtual, -dias), addDias(iniAtual, -1));
+  const atual = somar(periodo.ini, periodo.fim);
+  let anterior = null;
+  if (periodo.id === 'ano-atual') {
+    const ano = Number(periodo.ini.slice(0, 4)) - 1;
+    anterior = somar(`${ano}-01-01`, `${ano}${periodo.fim.slice(4)}`);
+  } else if (periodo.id !== 'desde-inicio') {
+    anterior = somar(addDias(periodo.ini, -periodo.dias), addDias(periodo.ini, -1));
+  }
 
   const variar = (a, b) => {
     if (!b) return a > 0 ? { pct: null, novo: true } : { pct: 0 };
@@ -308,7 +304,7 @@ export function totaisComparados(sessions, rolls, partners, periodo) {
 
   return {
     atual, anterior,
-    variacao: {
+    variacao: !anterior ? {} : {
       sessoes: variar(atual.sessoes, anterior.sessoes),
       rolas: variar(atual.rolas, anterior.rolas),
       horas: variar(atual.horas, anterior.horas),
@@ -323,8 +319,8 @@ export function totaisComparados(sessions, rolls, partners, periodo) {
 export function contextoDaVitoria(atual, anterior) {
   if (!atual.rolas) return null;
 
-  const sobeTaxa = anterior.rolas > 0 && atual.taxaVitoria > anterior.taxaVitoria + 8;
-  const caiNivel = atual.nivelMedio !== null && anterior.nivelMedio !== null &&
+  const sobeTaxa = anterior?.rolas > 0 && atual.taxaVitoria > anterior.taxaVitoria + 8;
+  const caiNivel = atual.nivelMedio !== null && anterior?.nivelMedio != null &&
     atual.nivelMedio < anterior.nivelMedio - 0.25;
 
   if (sobeTaxa && caiNivel) {
@@ -381,7 +377,7 @@ function treinosPorDia(sessions, rolls, ini, fim) {
     o.minutos += Number(s.duracao) || 0;
     porDia.set(s.data, o);
   }
-  for (const r of rolls) {
+  for (const r of rolls.filter(ehLuta)) {
     const d = dataDe.get(r.sessionId);
     if (!d || !porDia.has(d)) continue;
     const o = porDia.get(d);
@@ -425,6 +421,7 @@ function resumoDosDias(porDia, semanas) {
 
   return {
     treinados: porDia.size,
+    minutos,
     horas: Math.round(minutos / 60),
     rolas,
     maiorSequencia: maior,
@@ -435,31 +432,6 @@ function resumoDosDias(porDia, semanas) {
 const pad2 = (n) => String(n).padStart(2, '0');
 const fimDoMes = (ano, mes) => `${ano}-${pad2(mes + 1)}-${pad2(new Date(ano, mes + 1, 0).getDate())}`;
 const MESES_LONGOS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-
-export function calendarioDoAno(sessions, rolls, ano) {
-  const porDia = treinosPorDia(sessions, rolls, `${ano}-01-01`, `${ano}-12-31`);
-
-  const meses = [];
-  for (let m = 0; m < 12; m++) {
-    meses.push({ mes: m, nome: mesNome(m), dias: diasEmSemanas(`${ano}-${pad2(m + 1)}-01`, fimDoMes(ano, m), porDia) });
-  }
-
-  // melhor mês
-  const porMes = {};
-  for (const [d, o] of porDia) {
-    const m = Number(d.slice(5, 7)) - 1;
-    porMes[m] = (porMes[m] || 0) + o.minutos;
-  }
-  const melhor = Object.entries(porMes).sort((a, b) => b[1] - a[1])[0];
-
-  return {
-    meses,
-    resumo: {
-      ...resumoDosDias(porDia, 52),
-      melhorMes: melhor ? { nome: mesNome(Number(melhor[0])), horas: Math.round(melhor[1] / 60) } : null,
-    },
-  };
-}
 
 /* ---------- os últimos 30 dias, pro calendário da tela ----------
    A mesma janela de "últimos 30 dias" dos números, com o resumo
@@ -476,13 +448,6 @@ export function janelaDoCalendario(sessions, rolls, { fim = hoje() } = {}) {
   };
 }
 
-export function anosComTreino(sessions) {
-  const anos = [...new Set(sessions.map((s) => Number((s.data || '').slice(0, 4))).filter(Boolean))].sort((a, b) => b - a);
-  const atual = new Date().getFullYear();
-  if (!anos.includes(atual)) anos.unshift(atual);
-  return anos;
-}
-
 /* ============================================================
    TAXA DE VITÓRIA POR FAIXA
    O número total mente. Ganhar 80% de faixa branca não é a
@@ -491,10 +456,9 @@ export function anosComTreino(sessions) {
    ============================================================ */
 const FAIXAS_ORDEM = ['branca', 'azul', 'roxa', 'marrom', 'preta'];
 
-export function taxaPorFaixa(sessions, rolls, partners, periodo = 'tudo', minhaFaixa = 'branca') {
-  const p = PERIODOS.find((x) => x.id === periodo) || PERIODOS[4];
-  const fim = hoje();
-  const ini = p.dias ? addDias(fim, -(p.dias - 1)) : '0000-01-01';
+export function taxaPorFaixa(sessions, rolls, partners, periodo, minhaFaixa = 'branca') {
+  const { ini, fim } = periodo;
+  const lutas = rolls.filter(ehLuta);
 
   const dataDe = new Map(sessions.map((s) => [s.id, s.data]));
   const faixaDe = new Map(partners.map((x) => [x.id, x.faixa || 'branca']));
@@ -504,7 +468,7 @@ export function taxaPorFaixa(sessions, rolls, partners, periodo = 'tudo', minhaF
   const mapa = Object.fromEntries(FAIXAS_ORDEM.map((f) => [f, zero()]));
   const total = zero();
 
-  for (const r of rolls) {
+  for (const r of lutas) {
     const d = dataDe.get(r.sessionId);
     if (!d || d < ini || d > fim) continue;
     if (!r.partnerId) continue;
@@ -550,7 +514,7 @@ export function taxaPorFaixa(sessions, rolls, partners, periodo = 'tudo', minhaF
     contraAcima: { ...contraAcima, taxa: pct(contraAcima.v, contraAcima.n) },
     contraIgual: { ...contraIgual, taxa: pct(contraIgual.v, contraIgual.n) },
     contraAbaixo: { ...contraAbaixo, taxa: pct(contraAbaixo.v, contraAbaixo.n) },
-    semParceiro: rolls.filter((r) => {
+    semParceiro: lutas.filter((r) => {
       const d = dataDe.get(r.sessionId);
       return d && d >= ini && d <= fim && !r.partnerId;
     }).length,

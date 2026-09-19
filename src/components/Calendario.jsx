@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import {
   ChevronLeft, ChevronRight, Flame, Clock, Swords, CalendarDays, Medal,
-  ExternalLink, Trophy,
+  ExternalLink, Trophy, History,
 } from 'lucide-react';
 import { Sheet, Chip, Stat, Card, Btn, BeltTag } from './UI';
-import { calendarioDoAno, anosComTreino, PERIODOS } from '../lib/periodo';
+import { janelaDoCalendario, mesDoCalendario, rotuloDoPeriodo } from '../lib/periodo';
 import { fmtData, fmtDur, relativo, hoje, mesNome } from '../lib/utils';
 import { placarDaRola, ROTULO_RESULTADO, TOM_RESULTADO } from '../lib/game';
 import { agruparPontos, posInicialPorId, pesoRelPorId, somarPontos } from '../db/scoring';
@@ -13,49 +13,40 @@ import { APRENDIZADO } from './SeletorTecnica';
 const SEMANA = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
 const SEMANA_LONGA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 
+/* ============================================================
+   O CALENDÁRIO
+
+   janela  os últimos 30 dias, em semanas que começam na segunda,
+           com o resumo desses mesmos dias. O histórico abre numa
+           folha, um mês por vez. Não depende do período da tela:
+           trocar o período não mexe aqui, e navegar no histórico
+           não mexe em nenhum outro número.
+   mes     um mês por vez, com as setas (o Painel e o histórico)
+   ============================================================ */
 export default function Calendario({
   sessions, rolls, partners, gradings = [],
-  modo = 'ano',          // 'ano' = meses do período | 'mes' = um mês por vez
-  periodo = null,        // quando vem de fora, manda nos meses exibidos
+  modo = 'janela',
   aoAbrirTreino,
   aoVerTudo,
 }) {
-  const anos = useMemo(() => anosComTreino(sessions), [sessions]);
   const agora = new Date();
-  const [ano, setAno] = useState(anos[0] || agora.getFullYear());
+  const [ano, setAno] = useState(agora.getFullYear());
   const [mes, setMes] = useState(agora.getMonth());
   const [dia, setDia] = useState(null);
+  const [historico, setHistorico] = useState(false);
 
-  const { meses, resumo } = useMemo(() => calendarioDoAno(sessions, rolls, ano), [sessions, rolls, ano]);
+  const umMes = modo === 'mes';
+  const vista = useMemo(
+    () => (umMes ? mesDoCalendario(sessions, rolls, ano, mes) : janelaDoCalendario(sessions, rolls)),
+    [umMes, sessions, rolls, ano, mes]
+  );
+  const { resumo } = vista;
 
   const gradPorDia = useMemo(() => {
     const m = new Map();
     for (const g of gradings) m.set(g.data, g);
     return m;
   }, [gradings]);
-
-  const umMes = modo === 'mes';
-
-  /* quando o período vem da página, o calendário obedece a ele */
-  const janela = useMemo(() => {
-    if (!periodo || periodo === 'tudo') return null;
-    const p = PERIODOS.find((x) => x.id === periodo);
-    if (!p || !p.dias) return null;
-    const fim = new Date();
-    const ini = new Date();
-    ini.setDate(ini.getDate() - (p.dias - 1));
-    return { ini, fim };
-  }, [periodo]);
-
-  const visiveis = umMes
-    ? [meses[mes]]
-    : janela
-      ? meses.filter((m) => {
-          const ultimoDia = new Date(ano, m.mes + 1, 0);
-          const primeiro = new Date(ano, m.mes, 1);
-          return ultimoDia >= janela.ini && primeiro <= janela.fim;
-        })
-      : meses;
 
   const irMes = (delta) => {
     let m = mes + delta, a = ano;
@@ -65,45 +56,39 @@ export default function Calendario({
     setMes(m); setAno(a);
   };
 
-  const doMes = meses[mes]?.dias.filter((d) => d && d.info) || [];
-  const minMes = doMes.reduce((a, d) => a + d.info.minutos, 0);
-  const rolasMes = doMes.reduce((a, d) => a + d.info.rolas, 0);
-
   return (
     <div className="col" style={{ gap: 14 }}>
-      {/* navegação */}
-      {!(janela && !umMes) && (
-      <div className="cal-nav">
-        <button className="btn icon" onClick={() => (umMes ? irMes(-1) : setAno(ano - 1))} aria-label="Anterior">
-          <ChevronLeft size={16} />
-        </button>
-        <div className="cal-nav-titulo">
-          {umMes ? (
-            <>
-              <span className="cal-nav-mes">{mesNome(mes)}</span>
-              <span className="cal-nav-ano num">{ano}</span>
-            </>
-          ) : (
-            <span className="cal-nav-ano num" style={{ fontSize: 22 }}>{ano}</span>
-          )}
+      {umMes ? (
+        <div className="cal-nav">
+          <button className="btn icon" onClick={() => irMes(-1)} aria-label="Anterior">
+            <ChevronLeft size={16} />
+          </button>
+          <div className="cal-nav-titulo">
+            <span className="cal-nav-mes">{mesNome(mes)}</span>
+            <span className="cal-nav-ano num">{ano}</span>
+          </div>
+          <button
+            className="btn icon"
+            onClick={() => irMes(1)}
+            disabled={ano === agora.getFullYear() && mes >= agora.getMonth()}
+            aria-label="Próximo"
+          ><ChevronRight size={16} /></button>
         </div>
-        <button
-          className="btn icon"
-          onClick={() => (umMes ? irMes(1) : setAno(ano + 1))}
-          disabled={umMes
-            ? (ano === agora.getFullYear() && mes >= agora.getMonth())
-            : ano >= agora.getFullYear()}
-          aria-label="Próximo"
-        ><ChevronRight size={16} /></button>
-      </div>
+      ) : (
+        <div className="row" style={{ gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span className="micro muted" style={{ flex: 1, minWidth: 0 }}>{rotuloDoPeriodo(vista)}</span>
+          <button className="btn ghost xs" onClick={() => setHistorico(true)}>
+            <History size={12} /> Ver histórico
+          </button>
+        </div>
       )}
 
-      {/* resumo */}
+      {/* o resumo é sempre dos mesmos dias que estão na grade */}
       {umMes ? (
         <div className="grid" style={{ gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
-          <Stat size="sm" valor={doMes.length} label="dias" tone={doMes.length ? 'accent' : undefined} />
-          <Stat size="sm" valor={fmtDur(minMes)} label="tatame" />
-          <Stat size="sm" valor={rolasMes} label="rolas" />
+          <Stat size="sm" valor={resumo.treinados} label="dias" tone={resumo.treinados ? 'accent' : undefined} />
+          <Stat size="sm" valor={fmtDur(resumo.minutos)} label="tatame" />
+          <Stat size="sm" valor={resumo.rolas} label="rolas" />
         </div>
       ) : (
         <>
@@ -113,42 +98,38 @@ export default function Calendario({
             <Stat size="sm" icon={Swords} valor={resumo.rolas} label="rolas" />
             <Stat size="sm" icon={Flame} valor={resumo.maiorSequencia} label="maior sequência" tone="roar" />
           </div>
-          {resumo.melhorMes && (
+          {resumo.treinados > 0 && (
             <p className="tiny muted">
-              Média de <b style={{ color: 'var(--chalk)' }}>{resumo.mediaSemana} dias por semana</b>.
-              Melhor mês: <b style={{ color: 'var(--accent)' }}>{resumo.melhorMes.nome}</b>, {resumo.melhorMes.horas}h.
+              Média de <b style={{ color: 'var(--chalk)' }}>{resumo.mediaSemana} dias por semana</b> nesses 30 dias.
             </p>
           )}
         </>
       )}
 
-      <div className={umMes ? 'cal-grade solo anima-troca' : 'cal-grade anima-troca'} key={`${ano}-${umMes ? mes : "ano"}-${periodo || "livre"}`}>
-        {visiveis.filter(Boolean).map((m) => (
-          <div key={m.mes} className="cal-mes">
-            {!umMes && <div className="cal-mes-nome">{m.nome}</div>}
-            <div className="cal-semana">
-              {SEMANA.map((d, i) => <span key={i}>{d}</span>)}
-            </div>
-            <div className="cal-dias">
-              {m.dias.map((d, i) => {
-                if (!d) return <span key={i} className="cal-vazio" />;
-                const grad = gradPorDia.get(d.iso);
-                return (
-                  <button
-                    key={i}
-                    className={`cal-dia n${d.nivel} ${d.futuro ? 'futuro' : ''} ${d.hoje ? 'hoje' : ''} ${grad ? 'grad' : ''}`}
-                    style={{ animationDelay: `${Math.min(500, i * 7)}ms` }}
-                    onClick={() => (d.info || grad) && setDia({ ...d, grad })}
-                    disabled={!d.info && !grad}
-                  >
-                    {d.dia}
-                    {grad && <span className="cal-grad-ponto" />}
-                  </button>
-                );
-              })}
-            </div>
+      <div className="cal-grade solo anima-troca" key={umMes ? `${ano}-${mes}` : 'janela'}>
+        <div className="cal-mes">
+          <div className="cal-semana">
+            {SEMANA.map((d, i) => <span key={i}>{d}</span>)}
           </div>
-        ))}
+          <div className="cal-dias">
+            {vista.dias.map((d, i) => {
+              if (!d) return <span key={i} className="cal-vazio" />;
+              const grad = gradPorDia.get(d.iso);
+              return (
+                <button
+                  key={i}
+                  className={`cal-dia n${d.nivel} ${d.futuro ? 'futuro' : ''} ${d.hoje ? 'hoje' : ''} ${grad ? 'grad' : ''}`}
+                  style={{ animationDelay: `${Math.min(500, i * 7)}ms` }}
+                  onClick={() => (d.info || grad) && setDia({ ...d, grad })}
+                  disabled={!d.info && !grad}
+                >
+                  {d.dia}
+                  {grad && <span className="cal-grad-ponto" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       <div className="row" style={{ gap: 7, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -157,9 +138,19 @@ export default function Calendario({
         <span className="micro muted">mais</span>
         <span className="spacer" />
         {umMes && aoVerTudo && (
-          <button className="btn ghost xs" onClick={aoVerTudo}>ano inteiro <ChevronRight size={12} /></button>
+          <button className="btn ghost xs" onClick={aoVerTudo}>ver na Análise <ChevronRight size={12} /></button>
         )}
       </div>
+
+      {!umMes && (
+        <Sheet aberto={historico} onClose={() => setHistorico(false)} titulo="Histórico de presença" subtitulo="um mês por vez, nas setas">
+          <Calendario
+            modo="mes"
+            sessions={sessions} rolls={rolls} partners={partners} gradings={gradings}
+            aoAbrirTreino={aoAbrirTreino && ((s) => { setHistorico(false); aoAbrirTreino(s); })}
+          />
+        </Sheet>
+      )}
 
       <DetalheDia
         d={dia} onClose={() => setDia(null)}
