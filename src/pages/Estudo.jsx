@@ -29,6 +29,7 @@ import { PERGUNTAS } from '../db/quiz';
 import { useLimite } from '../components/Limite';
 import { limitarLista, LIMITES, RECOMENDACOES_NA_TELA } from '../lib/plano';
 import { jaComprou, ehLivre } from '../lib/pago';
+import { EVENTOS } from '../lib/xp';
 
 const NENHUMA = [];
 
@@ -44,6 +45,7 @@ export default function Estudo() {
 
   const [aba, setAba] = useState('pravoce');
   const [vistasNaTela, setVistasNaTela] = useState(12);
+  const [ajudaPontos, setAjudaPontos] = useState(false);
   const [tema, setTema] = useState(null);
   const [busca, setBusca] = useState('');
 
@@ -210,7 +212,10 @@ export default function Estudo() {
           <div className="eyebrow">entender o porquê, não decorar o passo</div>
           <h1 className="h-page">Estudo</h1>
         </div>
+        <button className="ajuda" onClick={() => setAjudaPontos(true)} aria-label="Quanto vale cada aula">?</button>
       </div>
+
+      <PontosDoEstudo aberto={ajudaPontos} onClose={() => setAjudaPontos(false)} cobrando={ligada('cobranca')} />
 
       <Card style={{ marginBottom: 14 }}>
         <div className="grid g4" style={{ gap: 12 }}>
@@ -451,6 +456,41 @@ export default function Estudo() {
       <Player aula={tocando} onClose={() => setTocando(null)} onConcluir={marcarVista} />
       {aviso}
     </div>
+  );
+}
+
+/* ---------- quanto vale estudar ----------
+   A pessoa vê o "+15 pontos" depois da aula e não sabe de onde saiu.
+   Aqui está a tabela inteira, com o teto de cada dia e o porquê de
+   cada valor. Sai do mesmo cadastro que dá os pontos, então nunca
+   fica desencontrado. */
+function PontosDoEstudo({ aberto, onClose, cobrando }) {
+  const itens = Object.values(EVENTOS).filter((e) => e.familia === 'estudo');
+  return (
+    <Sheet
+      aberto={aberto} onClose={onClose}
+      titulo="Quanto vale estudar" subtitulo="o que cada coisa dá de ponto, e por quê"
+    >
+      <div className="col" style={{ gap: 8 }}>
+        {itens.map((e) => (
+          <div key={e.id} className="card" style={{ background: 'var(--void)', padding: 12 }}>
+            <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+              <span className="tiny" style={{ fontWeight: 600, flex: 1 }}>{e.nome}</span>
+              {e.premium && <Chip tone="roar">premium</Chip>}
+              <span className="num" style={{ fontWeight: 700, color: 'var(--accent)' }}>+{e.xp}</span>
+            </div>
+            <p className="micro muted" style={{ marginTop: 5, lineHeight: 1.6 }}>
+              {e.desc} Até {e.tetoDia} {e.tetoDia === 1 ? 'vez' : 'vezes'} por dia.
+            </p>
+          </div>
+        ))}
+      </div>
+      <p className="micro muted" style={{ lineHeight: 1.7 }}>
+        Os pontos abrem as fases da Jornada e contam na liga da semana, que fecha segunda ao meio-dia.
+        O teto por dia existe pra ninguém liderar maratonando vídeo.
+        {cobrando ? ` No plano grátis dá pra ver ${LIMITES.aulasPorDia} aula completa e ${LIMITES.shortsPorDia} aula rápida por dia.` : ''}
+      </p>
+    </Sheet>
   );
 }
 

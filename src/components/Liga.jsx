@@ -39,7 +39,6 @@ export default function Liga({ compacto = false }) {
   const [linhas, setLinhas] = useState([]);
   const [perfil, setPerfil] = useState(null);
   const [aparencia, setAparencia] = useState(false);
-  const [saindo, setSaindo] = useState(false);
   const [vendo, setVendo] = useState(null);
 
   const ativa = ligada?.('liga');
@@ -65,13 +64,6 @@ export default function Liga({ compacto = false }) {
   }
 
   useEffect(() => { if (ativa) buscar({ subir: true }); else setCarregando(false); }, [ativa, sessao]);
-
-  async function sair() {
-    await supabase.rpc('sair_da_liga');
-    setSaindo(false);
-    toast('Você sai da liga quando esta semana fechar');
-    await buscar();
-  }
 
   async function voltar() {
     const { data } = await supabase.rpc('entrar_na_liga');
@@ -162,9 +154,9 @@ export default function Liga({ compacto = false }) {
     <Card style={{ marginBottom: compacto ? 0 : 14 }}>
       <div className="card-head">
         <div>
-          <div className="eyebrow">
-            {total} {total === 1 ? 'pessoa' : 'pessoas'}, fecha segunda ao meio-dia
-          </div>
+          <Chip tone="warn">
+            <Hourglass size={11} /> {total} {total === 1 ? 'pessoa' : 'pessoas'} · fecha segunda ao meio-dia
+          </Chip>
           <h2 className="h-sec row" style={{ gap: 8 }}>
             <Trophy size={16} /> Divisão <BeltTag faixa={divisao} graus={0} />
           </h2>
@@ -260,21 +252,6 @@ export default function Liga({ compacto = false }) {
       {!compacto && (
         <div className="row wrap" style={{ gap: 8, marginTop: 14 }}>
           <Btn size="xs" variant="ghost" icon={UserRound} onClick={() => setAparencia(true)}>Como eu apareço</Btn>
-          {!eu?.saindo && (
-            saindo ? (
-              <>
-                <span className="micro muted" style={{ alignSelf: 'center' }}>
-                  Você fica nesta corrida até ela fechar e sai a partir da semana que vem.
-                </span>
-                <Btn size="xs" variant="ghost" onClick={sair}>Confirmar</Btn>
-                <Btn size="xs" variant="ghost" onClick={() => setSaindo(false)}>Deixa</Btn>
-              </>
-            ) : (
-              <Btn size="xs" variant="ghost" icon={LogOut} onClick={() => setSaindo(true)} style={{ opacity: 0.7 }}>
-                Sair da liga
-              </Btn>
-            )
-          )}
         </div>
       )}
 

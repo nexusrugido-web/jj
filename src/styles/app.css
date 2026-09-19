@@ -19,7 +19,7 @@
   /* tinta */
   --chalk: #eceef1;
   --dim: #939aa3;
-  --dimmer: #656c76;
+  --dimmer: #858d98;
 
   /* acentos */
   --roar: #f0a830;
@@ -574,8 +574,10 @@ button.chip:hover { color: var(--chalk); border-color: var(--dimmer); }
   .topbar {
     display: flex; align-items: center; gap: 10px;
     position: sticky; top: 0; z-index: 50;
-    margin: 0 -14px 14px;
-    padding: max(10px, env(safe-area-inset-top)) 14px 11px;
+    /* colado no conteúdo: a saudação e os números começam logo
+       abaixo da barra, sem um vão no meio */
+    margin: 0 -14px 6px;
+    padding: max(8px, env(safe-area-inset-top)) 14px 9px;
     background: color-mix(in srgb, var(--void) 90%, transparent);
     backdrop-filter: blur(18px);
     border-bottom: 1px solid var(--seam);
@@ -672,7 +674,7 @@ button.chip:hover { color: var(--chalk); border-color: var(--dimmer); }
   .split { grid-template-columns: 1fr; }
 
   /* cabeçalho de página: botões ocupam a linha inteira e dividem espaço */
-  .page-head { flex-direction: column; align-items: stretch; gap: 12px; }
+  .page-head { flex-direction: column; align-items: stretch; gap: 10px; margin-bottom: 12px; }
   .page-head > .row { width: 100%; }
   .page-head > .row > .btn { flex: 1; }
 
@@ -1871,7 +1873,9 @@ button.liga-linha:hover { border-color: var(--seam-hi); }
 /* respiro do conteúdo */
 .page { padding: clamp(16px, 3.5vw, 26px); max-width: 1180px; margin: 0 auto; }
 @media (max-width: 780px) {
-  .page { padding: 14px 14px calc(var(--mobilebar-h, 64px) + 22px); }
+  /* o respiro de baixo já vem do .main, que reserva o espaço da
+     barra: repetir aqui deixava meia tela vazia no fim */
+  .page { padding: 8px 14px 10px; }
 }
 
 /* ---------- escudo de constância ---------- */
