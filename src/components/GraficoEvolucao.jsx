@@ -3,6 +3,7 @@ import { Medal, TrendingUp, TrendingDown, Minus, Sparkles } from 'lucide-react';
 import {
   PERIODOS, METRICAS, serieDoPeriodo, totaisComparados,
   contextoDaVitoria, marcadoresGraduacao, faixaDoNivel,
+  contornoSuave, larguraDoSino,
 } from '../lib/periodo';
 import { fmtData } from '../lib/utils';
 
@@ -12,6 +13,9 @@ import { fmtData } from '../lib/utils';
 const W = 960;
 const H = 250;
 const PAD = { l: 38, r: 16, t: 22, b: 34 };
+
+/* pontos da curva por balde: o bastante pra ela sair lisa */
+const AMOSTRAS = 8;
 
 /* curva monotônica cúbica, suave sem inventar picos que não existem */
 function curva(pts) {
@@ -47,7 +51,6 @@ export default function GraficoEvolucao({
   periodoInicial = '6m', metricaInicial = 'vitorias',
   compacto = false,
   periodo: periodoFora = null,
-  modo = 'auto',
 }) {
   const [periodoLocal, setPeriodoLocal] = useState(periodoInicial);
   const controlado = periodoFora !== null;
@@ -66,21 +69,22 @@ export default function GraficoEvolucao({
   const marcas = useMemo(() => marcadoresGraduacao(gradings, serie), [gradings, serie]);
 
   const chaves = metrica.chaves.filter((c) => !ocultas.includes(c.k));
-  /* quem passa modo="linha" manda mais que a métrica: existe
-     tela em que a linha lê melhor que o bloco */
-  const soLinha = modo === 'linha';
-  const empilhado = soLinha ? false : !!metrica.empilhado;
-  const divergente = soLinha ? false : !!metrica.divergente;
+  /* "Ganhou e perdeu" é um espelho: as vitórias sobem da linha do
+     meio, as derrotas descem */
+  const divergente = !!metrica.divergente;
+  const desce = (c) => divergente && c.k === 'derrotas';
 
-  const positivas = divergente ? chaves.filter((c) => c.k !== 'derrotas') : chaves;
-  const max = Math.max(
-    1,
-    ...serie.map((s) => (empilhado
-      ? positivas.reduce((a, c) => a + (s[c.k] || 0), 0)
-      : Math.max(0, ...positivas.map((c) => s[c.k] || 0))))
-  );
-  const maxNeg = divergente && !ocultas.includes('derrotas')
-    ? Math.max(0, ...serie.map((s) => s.derrotas || 0)) : 0;
+  const n = serie.length;
+  const curvas = useMemo(() => {
+    const largura = larguraDoSino(n);
+    return Object.fromEntries(metrica.chaves.map((c) => [
+      c.k, contornoSuave(serie.map((s) => s[c.k] || 0), { largura, amostras: AMOSTRAS }),
+    ]));
+  }, [serie, metrica, n]);
+  const topoDe = (c) => Math.max(0, ...curvas[c.k].map((p) => p[1]), ...serie.map((s) => s[c.k] || 0));
+
+  const max = Math.max(1, ...chaves.filter((c) => !desce(c)).map(topoDe));
+  const maxNeg = Math.max(0, ...chaves.filter(desce).map(topoDe));
 
   const iw = W - PAD.l - PAD.r;
   const ih = H - PAD.t - PAD.b;
@@ -88,10 +92,9 @@ export default function GraficoEvolucao({
   const escPos = (zeroY - PAD.t) / max;
   const escNeg = maxNeg > 0 ? (PAD.t + ih - zeroY) / maxNeg : 0;
 
-  const n = serie.length;
-  const passoX = iw / Math.max(1, n);
-  const x = (i) => PAD.l + (n > 1 ? (i / (n - 1)) * iw : iw / 2);
-  const larguraBarra = Math.max(3, Math.min(22, passoX * 0.58));
+  /* t pode ser fracionário: a curva tem pontos entre os baldes */
+  const x = (t) => PAD.l + (n > 1 ? (t / (n - 1)) * iw : iw / 2);
+  const yDe = (c, v) => (desce(c) ? zeroY + v * escNeg : zeroY - v * escPos);
 
   const totais = useMemo(
     () => totaisComparados(sessions, rolls, partners, periodo),
@@ -174,19 +177,34 @@ export default function GraficoEvolucao({
             onTouchMove={(e) => setHover(posDoEvento(e))}
           >
             <defs>
+              {/* a área é forte junto da linha e some em direção ao zero,
+                  dos dois lados do espelho */}
               {metrica.chaves.map((c, i) => (
-                <linearGradient key={c.k} id={`ar-${uid}-${i}`} x1="0" y1="0" x2="0" y2="1">
+                <linearGradient
+                  key={c.k} id={`ar-${uid}-${i}`}
+                  x1="0" y1={desce(c) ? '1' : '0'} x2="0" y2={desce(c) ? '0' : '1'}
+                >
                   <stop offset="0%" stopColor={c.cor} stopOpacity="0.42" />
                   <stop offset="55%" stopColor={c.cor} stopOpacity="0.13" />
                   <stop offset="100%" stopColor={c.cor} stopOpacity="0" />
                 </linearGradient>
               ))}
+              {/* o traço fica mais forte no recente: o olho vai pra onde
+                  você está agora */}
               {metrica.chaves.map((c, i) => (
-                <linearGradient key={'b' + c.k} id={`bar-${uid}-${i}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={c.cor} stopOpacity="1" />
-                  <stop offset="100%" stopColor={c.cor} stopOpacity="0.5" />
+                <linearGradient
+                  key={'t' + c.k} id={`traco-${uid}-${i}`}
+                  gradientUnits="userSpaceOnUse" x1={PAD.l} y1="0" x2={W - PAD.r} y2="0"
+                >
+                  <stop offset="0%" stopColor={c.cor} stopOpacity="0.35" />
+                  <stop offset="65%" stopColor={c.cor} stopOpacity="0.85" />
+                  <stop offset="100%" stopColor={c.cor} stopOpacity="1" />
                 </linearGradient>
               ))}
+              {/* a linha se desenha da esquerda pra direita */}
+              <clipPath id={`revela-${uid}`}>
+                <rect x="0" y="0" width={W} height={H} className="graf-revela" />
+              </clipPath>
               <filter id={`glow-${uid}`} x="-30%" y="-40%" width="160%" height="180%">
                 <feGaussianBlur stdDeviation="4" result="b" />
                 <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
@@ -203,7 +221,8 @@ export default function GraficoEvolucao({
                     stroke={cheia ? 'var(--seam-hi)' : 'var(--seam)'}
                     strokeWidth="1" strokeDasharray={cheia ? '' : '2 8'} opacity={cheia ? 0.9 : 0.5}
                   />
-                  {(f === 0 || f === 0.5 || f === 1) && (
+                  {/* com o topo em 1, o meio arredondaria pra 1 de novo */}
+                  {(f === 0 || f === 1 || (f === 0.5 && max >= 2)) && (
                     <text x={PAD.l - 8} y={y + 3.5} textAnchor="end" fontSize="9.5" fontFamily="var(--mono)" fill="var(--dimmer)">
                       {Math.round(max * (1 - f))}
                     </text>
@@ -213,7 +232,7 @@ export default function GraficoEvolucao({
             })}
             {maxNeg > 0 && (
               <text x={PAD.l - 8} y={PAD.t + ih + 3.5} textAnchor="end" fontSize="9.5" fontFamily="var(--mono)" fill="var(--blood)" opacity="0.8">
-                {maxNeg}
+                {Math.round(maxNeg)}
               </text>
             )}
 
@@ -235,69 +254,52 @@ export default function GraficoEvolucao({
               </g>
             ))}
 
-            {(empilhado || divergente) ? (
-              serie.map((s, i) => {
-                let acc = 0;
-                const ativo = hover === null || hover === i;
-                return (
-                  <g key={i} opacity={ativo ? 1 : 0.35} style={{ transition: 'opacity .18s' }}>
-                    {positivas.map((c) => {
-                      const v = s[c.k] || 0;
-                      if (!v) return null;
-                      const alt = v * escPos;
-                      const y = zeroY - acc - alt;
-                      acc += alt;
-                      const idx = metrica.chaves.indexOf(c);
-                      return (
-                        <rect
-                          key={c.k}
-                          x={x(i) - larguraBarra / 2} y={y}
-                          width={larguraBarra} height={Math.max(2, alt)}
-                          fill={`url(#bar-${uid}-${idx})`} rx={Math.min(4, larguraBarra / 3)}
-                          className="graf-barra" style={{ animationDelay: `${i * 20}ms` }}
-                        />
-                      );
-                    })}
-                    {!ocultas.includes('derrotas') && (s.derrotas || 0) > 0 && (
-                      <rect
-                        x={x(i) - larguraBarra / 2} y={zeroY}
-                        width={larguraBarra} height={Math.max(2, (s.derrotas || 0) * escNeg)}
-                        fill="var(--blood)" opacity="0.7" rx={Math.min(4, larguraBarra / 3)}
-                        className="graf-barra" style={{ animationDelay: `${i * 20}ms` }}
-                      />
-                    )}
-                  </g>
-                );
-              })
-            ) : (
-              chaves.map((c) => {
+            <g clipPath={`url(#revela-${uid})`}>
+              {chaves.map((c) => {
                 const idx = metrica.chaves.indexOf(c);
-                const pts = serie.map((s, i) => [x(i), zeroY - (s[c.k] || 0) * escPos]);
+                const pts = curvas[c.k].map(([t, v]) => [x(t), yDe(c, v)]);
                 const d = curva(pts);
                 const area = `${d} L${pts[pts.length - 1][0]},${zeroY} L${pts[0][0]},${zeroY} Z`;
+                const naMao = hover !== null ? pts[hover * AMOSTRAS] : null;
                 return (
                   <g key={c.k}>
-                    <path d={area} fill={`url(#ar-${uid}-${idx})`} className="graf-area" />
                     <path
-                      d={d} fill="none" stroke={c.cor} strokeWidth="2.6"
-                      strokeLinecap="round" strokeLinejoin="round"
-                      filter={`url(#glow-${uid})`} opacity="0.5"
+                      d={area} fill={`url(#ar-${uid}-${idx})`} className="graf-area"
+                      style={desce(c) ? { transformOrigin: 'top' } : undefined}
                     />
                     <path
-                      d={d} fill="none" stroke={c.cor} strokeWidth="2.4"
-                      strokeLinecap="round" strokeLinejoin="round"
+                      d={d} fill="none" stroke={c.cor} strokeWidth="5"
+                      strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"
+                      filter={`url(#glow-${uid})`} opacity="0.35"
+                    />
+                    <path
+                      d={d} fill="none" stroke={`url(#traco-${uid}-${idx})`} strokeWidth="2.6"
+                      strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"
                       className="graf-linha"
                     />
-                    {hover !== null && pts[hover] && (
+                    {naMao && (
                       <>
-                        <circle cx={pts[hover][0]} cy={pts[hover][1]} r="8" fill={c.cor} opacity="0.18" />
-                        <circle cx={pts[hover][0]} cy={pts[hover][1]} r="4.5" fill="var(--mat)" stroke={c.cor} strokeWidth="2.5" />
+                        <circle cx={naMao[0]} cy={naMao[1]} r="9" fill={c.cor} opacity="0.16" />
+                        <circle cx={naMao[0]} cy={naMao[1]} r="4.5" fill="var(--mat)" stroke={c.cor} strokeWidth="2.5" />
                       </>
                     )}
                   </g>
                 );
-              })
-            )}
+              })}
+
+              {/* hoje: o fim da primeira linha pulsa */}
+              {chaves[0] && hover === null && (() => {
+                const ult = curvas[chaves[0].k][curvas[chaves[0].k].length - 1];
+                const cx = x(ult[0]);
+                const cy = yDe(chaves[0], ult[1]);
+                return (
+                  <g>
+                    <circle cx={cx} cy={cy} r="7" fill={chaves[0].cor} className="graf-agora" />
+                    <circle cx={cx} cy={cy} r="3.6" fill={chaves[0].cor} />
+                  </g>
+                );
+              })()}
+            </g>
 
             {serie.map((s, i) => {
               const passo = Math.max(1, Math.ceil(n / (compacto ? 4 : 7)));
@@ -370,7 +372,8 @@ export default function GraficoEvolucao({
         )}
         {!compacto && (
           <p className="micro muted" style={{ marginTop: 4 }}>
-            O eixo de baixo é o tempo. O de lado conta {metrica.eixoY}. Toque no gráfico pra ver o valor de cada ponto.
+            O eixo de baixo é o tempo, o de lado conta {metrica.eixoY}. A linha se abre em volta de cada treino pra
+            mostrar o ritmo. Toque nela pra ver o número exato de cada {{ dia: 'dia', semana: 'semana', mes: 'mês' }[grao] || 'ponto'}.
           </p>
         )}
       </div>

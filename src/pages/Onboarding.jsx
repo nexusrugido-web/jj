@@ -5,6 +5,7 @@ import { db } from '../db/db';
 import { FAIXAS } from '../db/seed';
 import { QUIZ, estiloDoQuiz, estiloPorId, ESTILOS } from '../db/scoring';
 import { hoje } from '../lib/utils';
+import { EscolherDificuldades } from '../components/Dificuldades';
 
 /* ============================================================
    ONBOARDING
@@ -39,6 +40,7 @@ export default function Onboarding({ settings, salvarSettings, onPronto }) {
     tempo: '',
     frequencia: 0,
     objetivo: '',
+    dificuldades: [],
   });
   const [respostas, setRespostas] = useState([]);
   const [quizPasso, setQuizPasso] = useState(0);
@@ -88,6 +90,7 @@ export default function Onboarding({ settings, salvarSettings, onPronto }) {
         tempoTreino: perfil.tempo,
         metaSemanal: perfil.frequencia,
         objetivo: perfil.objetivo || 'lazer',
+        dificuldades: perfil.dificuldades,
         estiloDeclarado: estilo || null,
         quizDispensado: 1,
         onboardingFeito: 1,
@@ -212,6 +215,14 @@ export default function Onboarding({ settings, salvarSettings, onPronto }) {
                 ))}
               </div>
             </Field>
+            <div className="field">
+              <span className="label">O que mais te trava hoje (até 3)</span>
+              <EscolherDificuldades
+                valor={perfil.dificuldades}
+                onChange={(dificuldades) => setPerfil({ ...perfil, dificuldades })}
+              />
+              <span className="micro muted">Opcional. O Estudo começa pelas aulas que atacam isso.</span>
+            </div>
           </div>
         )}
 

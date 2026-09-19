@@ -17,6 +17,7 @@ import {
 import { aulasPara } from '../lib/motor';
 import { pedidoDaRec, DIFICULDADES, PEDIDO_DO_ESTILO } from '../lib/necessidades';
 import { TEMAS_AULA } from '../db/aulas';
+import { EscolherDificuldades, MAX_DIFICULDADES } from '../components/Dificuldades';
 import { acervo } from '../lib/acervo';
 import { minhasTecnicas, meusBuracos } from '../lib/graus';
 import { recomendacoesDoAluno } from '../lib/recomendar';
@@ -28,8 +29,10 @@ import { useLimite } from '../components/Limite';
 import { limitarLista, LIMITES, RECOMENDACOES_NA_TELA } from '../lib/plano';
 import { jaComprou, ehLivre } from '../lib/pago';
 
+const NENHUMA = [];
+
 export default function Estudo() {
-  const { settings, rolls, partners, sessions, techniques, irPara, ligada, acesso, acervoVer } = useApp();
+  const { settings, salvarSettings, rolls, partners, sessions, techniques, irPara, ligada, acesso, acervoVer } = useApp();
   const toast = useToast();
   const { liberarVideo, aviso } = useLimite(acesso, irPara);
   const faixa = settings.faixa || 'branca';
@@ -60,6 +63,9 @@ export default function Estudo() {
     if (await liberarVideo(a, origem)) setTocando(a);
   }
   const [dorAberta, setDorAberta] = useState(null);
+  const [editandoDif, setEditandoDif] = useState(false);
+  const minhas = settings.dificuldades || NENHUMA;
+  const marcarDificuldades = (lista) => salvarSettings({ dificuldades: lista.slice(-MAX_DIFICULDADES) });
 
   const resumo = useMemo(() => resumoAcervo(vistas), [vistas, acervoVer]);
 
@@ -98,6 +104,16 @@ export default function Estudo() {
       if (lista.length) blocos.push({ motivo: r.titulo, texto: r.texto, aulas: lista });
     }
 
+    /* o que a pessoa disse que trava. Vale desde o primeiro dia,
+       antes de existir rola registrado pra o app ler. */
+    for (const id of minhas) {
+      const d = DIFICULDADES.find((x) => x.id === id);
+      if (!d) continue;
+      const lista = aulasPara(d.pedido, { faixa, vistas, excluir: [...usados], quantidade: 3 });
+      for (const a of lista) usados.add(a.id);
+      if (lista.length) blocos.push({ motivo: d.nome, texto: 'Você marcou que isso te trava. Estas aulas vão direto nisso.', aulas: lista });
+    }
+
     if (PEDIDO_DO_ESTILO[settings.estiloDeclarado]) {
       const lista = aulasPara(PEDIDO_DO_ESTILO[settings.estiloDeclarado], {
         faixa, vistas, excluir: [...usados], quantidade: 4,
@@ -109,7 +125,7 @@ export default function Estudo() {
       });
     }
     return blocos;
-  }, [recs, faixa, vistas, settings.estiloDeclarado, acervoVer]);
+  }, [recs, faixa, vistas, settings.estiloDeclarado, minhas, acervoVer]);
 
   /* quem ainda não registrou nada precisa de algo pra ver hoje,
      e não de um aviso dizendo que a tela enche depois */
@@ -179,6 +195,33 @@ export default function Estudo() {
       <div style={{ height: 14 }} />
 
       {/* ---------- pra você ---------- */}
+      {aba === 'pravoce' && (!minhas.length || editandoDif ? (
+        <Card style={{ marginBottom: 14 }}>
+          <div className="card-head">
+            <div>
+              <div className="eyebrow">pro app escolher melhor</div>
+              <h2 className="h-sec">O que mais te trava hoje?</h2>
+            </div>
+          </div>
+          <p className="tiny muted" style={{ marginBottom: 12, lineHeight: 1.65 }}>
+            Marque até três. As aulas desta tela passam a começar por aí.
+          </p>
+          <EscolherDificuldades
+            valor={minhas}
+            onChange={(lista) => { setEditandoDif(true); marcarDificuldades(lista); }}
+          />
+          {editandoDif && (
+            <Btn size="sm" style={{ marginTop: 12 }} onClick={() => setEditandoDif(false)}>Pronto</Btn>
+          )}
+        </Card>
+      ) : (
+        <div className="row wrap" style={{ gap: 7, marginBottom: 14, alignItems: 'center' }}>
+          <span className="micro muted">O que te trava:</span>
+          {minhas.map((id) => <Chip key={id} tone="warn">{DIFICULDADES.find((d) => d.id === id)?.nome}</Chip>)}
+          <button className="btn ghost xs" onClick={() => setEditandoDif(true)}>Mudar</button>
+        </div>
+      ))}
+
       {aba === 'pravoce' && (
         paraVoce.length === 0 ? (
           <Card>
@@ -292,10 +335,18 @@ export default function Estudo() {
                 >
                   <span className="stat-ico"><Layers size={15} /></span>
                   <span className="tiny" style={{ flex: 1, fontWeight: 600 }}>{d.nome}</span>
+                  {minhas.includes(d.id) && <Chip tone="warn">sua</Chip>}
                   <ChevronRight size={16} className="muted" style={{ transform: dorAberta === d.id ? 'rotate(90deg)' : 'none', transition: 'transform .2s' }} />
                 </button>
                 {dorAberta === d.id && (
                   <div style={{ marginTop: 14 }}>
+                    <button
+                      className="btn ghost xs"
+                      style={{ marginBottom: 12 }}
+                      onClick={() => marcarDificuldades(minhas.includes(d.id) ? minhas.filter((x) => x !== d.id) : [...minhas, d.id])}
+                    >
+                      {minhas.includes(d.id) ? 'Não me trava mais' : 'Isso me trava'}
+                    </button>
                     <ListaAulas aulas={aulasPara(d.pedido, { faixa, vistas, quantidade: 5 })} vistas={vistas} onTocar={tocar} />
                   </div>
                 )}

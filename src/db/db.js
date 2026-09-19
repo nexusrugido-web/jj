@@ -183,6 +183,7 @@ export async function setMeta(key, value) {
 export const DEFAULT_SETTINGS = {
   nome: '', faixa: 'branca', graus: 0, academia: '', professor: '',
   academiaPadraoId: null, professorPadraoId: null, estiloDeclarado: null, quizDispensado: 0,
+  dificuldades: [],
   objetivo: 'lazer', sugestoesDispensadas: [], tourVisto: 0, onboardingFeito: 0,
   pesoKg: '', alturaCm: '', idade: '', sexo: 'm',
   atividade: 1.725, objetivo: 'manter',

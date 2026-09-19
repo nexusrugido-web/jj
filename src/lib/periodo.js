@@ -25,7 +25,6 @@ export const METRICAS = [
     pergunta: 'Dos rolas que você ganhou, o que decidiu',
     desc: 'Só as vitórias. Cada cor é a forma como o rola terminou a seu favor.',
     eixoY: 'rolas vencidas',
-    empilhado: true,
     chaves: [
       { k: 'porFinalizacao', nome: 'Finalizei', cor: 'var(--jade)', explica: 'Você encaixou uma finalização e o parceiro bateu.' },
       { k: 'porPontos', nome: 'Venci nos pontos', cor: 'var(--roar)', explica: 'Ninguém finalizou, você terminou com mais pontos.' },
@@ -38,7 +37,6 @@ export const METRICAS = [
     pergunta: 'Dos rolas que você perdeu, o que decidiu',
     desc: 'Só as derrotas, separadas do mesmo jeito. Serve pra ver se você está perdendo por tap ou por controle.',
     eixoY: 'rolas perdidas',
-    empilhado: true,
     chaves: [
       { k: 'fuiFinalizado', nome: 'Fui finalizado', cor: 'var(--blood)', explica: 'Você bateu.' },
       { k: 'perdiPontos', nome: 'Perdi nos pontos', cor: 'var(--roar)', explica: 'Ninguém finalizou, ele terminou com mais pontos.' },
@@ -490,3 +488,48 @@ export function mesesDisponiveis(sessions) {
   set.add(agora);
   return [...set].sort().reverse();
 }
+
+/* ============================================================
+   A LINHA QUE SE ABRE PROS LADOS
+
+   Um dia de treino entre dias vazios virava um espinho: a curva
+   tinha que sair do zero no dia anterior e voltar ao zero no dia
+   seguinte. Aqui cada valor vira um sino (uma gaussiana) que se
+   abre pros baldes vizinhos, e a linha é o contorno dos sinos.
+
+   O contorno é quase o máximo dos sinos, e não a soma: o pico de
+   um dia continua na altura do valor dele, e dias seguidos com o
+   mesmo valor viram um platô na mesma altura, sem inflar. O número
+   exato de cada dia continua no toque.
+
+   largura  em baldes: 1 quer dizer que o sino chega a 60% da
+            altura no dia vizinho
+   amostras quantos pontos por balde, pra curva sair lisa
+   ============================================================ */
+const EXPOENTE_DO_CONTORNO = 8;
+
+export function contornoSuave(valores, { largura = 1, amostras = 8 } = {}) {
+  const n = valores.length;
+  if (!n) return [];
+  const alcance = Math.ceil(largura * 3);
+  const total = (n - 1) * amostras;
+  const out = [];
+  for (let k = 0; k <= total; k++) {
+    const t = n === 1 ? 0 : k / amostras;
+    let soma = 0;
+    const de = Math.max(0, Math.floor(t) - alcance);
+    const ate = Math.min(n - 1, Math.ceil(t) + alcance);
+    for (let j = de; j <= ate; j++) {
+      const v = Number(valores[j]) || 0;
+      if (v <= 0) continue;
+      const sino = v * Math.exp(-((t - j) ** 2) / (2 * largura * largura));
+      soma += sino ** EXPOENTE_DO_CONTORNO;
+    }
+    out.push([t, soma ** (1 / EXPOENTE_DO_CONTORNO)]);
+  }
+  return out;
+}
+
+/* quanto o sino se abre: mais pontos no gráfico, sino mais largo
+   em baldes, pra ele ocupar um pedaço parecido da tela */
+export const larguraDoSino = (n) => Math.min(1.6, Math.max(0.8, n / 22));
