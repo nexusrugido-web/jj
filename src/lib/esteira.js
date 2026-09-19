@@ -19,7 +19,7 @@ import { limparDaIa, decidir } from './classificar';
    e da próxima vez a esteira continua de onde parou.
    ============================================================ */
 
-const LOTE = 5;
+const LOTE = 6;
 const espera = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /* a Groq tem cota por dia. Acabou, a esteira para e avisa. */
