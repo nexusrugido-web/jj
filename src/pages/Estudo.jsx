@@ -350,7 +350,7 @@ export default function Estudo() {
                 ))}
               </div>
             </Card>
-            <ListaAulas aulas={doTema.itens} vistas={vistas} onTocar={(a) => tocar(a, origemDe('estudo', 'tema', tema))} grade />
+            <ListaAulas aulas={doTema.itens} vistas={vistas} onTocar={(a) => tocar(a, origemDe('estudo', 'tema', tema))} />
             {doTema.temMais && (
               <Btn onClick={() => setPagina(pagina + 1)} style={{ width: '100%', marginTop: 14 }}>
                 Ver mais
@@ -425,24 +425,20 @@ export default function Estudo() {
           <Card><Empty icon={Check} titulo="Nada assistido ainda" texto="As aulas que você concluir ficam guardadas aqui." /></Card>
         ) : (
           <div className="col" style={{ gap: 10 }}>
-            {[...assistidas].sort((a, b) => (b.ultima || '').localeCompare(a.ultima || '')).slice(0, vistasNaTela).map((a) => (
-              <button
-                key={a.id}
-                className="vista-item"
-                onClick={() => tocar({ id: a.videoId, t: a.titulo, d: a.duracao, k: a.tipo }, origemDe('estudo', 'vistas'))}
-              >
-                <Capa id={a.videoId} tamanho="mq" />
-                <div className="vista-txt">
-                  <div className="vista-titulo">{a.titulo}</div>
-                  <div className="row wrap" style={{ gap: 6, marginTop: 6 }}>
-                    <span className="micro muted num">{duracaoTexto(a.duracao)}</span>
-                    {a.vezes > 1 && <Chip tone="jade">visto {a.vezes}x</Chip>}
-                    {a.ultima && <span className="micro muted">{relativo(a.ultima)}</span>}
-                  </div>
-                </div>
-                <span className="vista-play"><Play size={14} /></span>
-              </button>
-            ))}
+            <ListaAulas
+              aulas={[...assistidas]
+                .sort((a, b) => (b.ultima || '').localeCompare(a.ultima || ''))
+                .slice(0, vistasNaTela)
+                .map((a) => ({ id: a.videoId, t: a.titulo, d: a.duracao, k: a.tipo, vezes: a.vezes, ultima: a.ultima }))}
+              vistas={vistas}
+              onTocar={(a) => tocar(a, origemDe('estudo', 'vistas'))}
+              rodape={(a) => (
+                <>
+                  {a.vezes > 1 && <Chip tone="jade">visto {a.vezes}x</Chip>}
+                  {a.ultima && <span className="micro muted">{relativo(a.ultima)}</span>}
+                </>
+              )}
+            />
             {assistidas.length > vistasNaTela && (
               <Btn variant="ghost" onClick={() => setVistasNaTela((n) => n + 12)} style={{ alignSelf: 'center' }}>
                 Mostrar mais ({assistidas.length - vistasNaTela})
@@ -458,12 +454,14 @@ export default function Estudo() {
   );
 }
 
-/* ---------- lista de aulas ---------- */
-function ListaAulas({ aulas, vistas, onTocar, grade = false }) {
+/* ---------- lista de aulas ----------
+   Sempre com a capa grande, em qualquer aba: a aula é o produto,
+   e miniatura de lado ao texto some no meio da tela. */
+function ListaAulas({ aulas, vistas, onTocar, rodape = null }) {
   const v = new Set(vistas);
   if (!aulas.length) return <p className="tiny muted">Nenhuma aula pra mostrar aqui.</p>;
   return (
-    <div className={grade ? 'grid g-cards' : 'col'} style={{ gap: grade ? 12 : 10 }}>
+    <div className="grid g-cards" style={{ gap: 12 }}>
       {aulas.map((a) => (
         <button key={a.id} className="aula-card" onClick={() => onTocar(a)}>
           <div className="aula-capa">
@@ -488,6 +486,7 @@ function ListaAulas({ aulas, vistas, onTocar, grade = false }) {
                 {a.generico ? 'em geral: ' : 'ensina '}{a.porque.join(' · ')}
               </div>
             )}
+            {rodape && <div className="row wrap" style={{ gap: 6, marginTop: 6 }}>{rodape(a)}</div>}
           </div>
         </button>
       ))}

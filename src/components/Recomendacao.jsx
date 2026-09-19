@@ -111,16 +111,18 @@ export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFei
 
       {aulas.length > 0 && (
         <button className="rec-aula" onClick={() => tocar(aulas[0])}>
-          <Capa id={aulas[0].id} propria={aulas[0].capa} tamanho="mq" />
-          <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+          <div className="rec-aula-capa">
+            <Capa id={aulas[0].id} propria={aulas[0].capa} tamanho="mq" />
+            <span className="aula-dur">{duracaoTexto(aulas[0].d)}</span>
+          </div>
+          <div style={{ minWidth: 0, textAlign: 'left' }}>
             <div className="micro" style={{ color: 'var(--dimmer)' }}>
               {aulas[0].generico && rec.alvo
                 ? `ainda não há aula de ${rec.alvo} · esta é de ${String(aulas[0].porque?.[0] || 'defesa').toLowerCase()} em geral`
                 : aulas[0].porque?.length ? `ensina ${aulas[0].porque.join(' · ')}` : 'aula sobre isso'}
             </div>
-            <div className="micro" style={{ fontWeight: 600, marginTop: 2, lineHeight: 1.35 }}>{aulas[0].t}</div>
+            <div className="tiny" style={{ fontWeight: 600, marginTop: 3, lineHeight: 1.35 }}>{aulas[0].t}</div>
           </div>
-          <span className="micro muted num">{duracaoTexto(aulas[0].d)}</span>
         </button>
       )}
 
