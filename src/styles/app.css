@@ -1464,6 +1464,9 @@ body.player-cheio .sheet-overlay { backdrop-filter: none; -webkit-backdrop-filte
   background: color-mix(in srgb, var(--accent) 9%, var(--void));
   border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
 }
+/* a linha abre o perfil de quem está nela */
+button.liga-linha { width: 100%; border: 1px solid transparent; color: inherit; font: inherit; cursor: pointer; }
+button.liga-linha:hover { border-color: var(--seam-hi); }
 .liga-pos {
   min-width: 26px; text-align: center;
   font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--dim);

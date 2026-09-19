@@ -1,5 +1,5 @@
 import { db } from '../db/db';
-import { hoje, addDias } from './utils';
+import { hoje, addDias, dataLocal } from './utils';
 
 /* ============================================================
    XP E RANKING
@@ -137,7 +137,7 @@ export function semanaDe(data = hoje()) {
   const dow = (d.getDay() + 6) % 7;
   const seg = new Date(d);
   seg.setDate(d.getDate() - dow);
-  return seg.toISOString().slice(0, 10);
+  return dataLocal(seg);
 }
 
 export const mesDe = (data = hoje()) => data.slice(0, 7);
@@ -220,6 +220,9 @@ export async function darXp(evento, { refId = null, data = hoje(), detalhe = '' 
     criadoEm: Date.now(),
   };
   const id = await db.pontos.add(linha);
+  /* o ponto vai pra liga sozinho, e o primeiro da semana já coloca
+     a pessoa na corrida */
+  import('./liga').then((m) => m.agendarSubida()).catch(() => {});
   return { ...linha, id };
 }
 

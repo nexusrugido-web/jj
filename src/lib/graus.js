@@ -1,4 +1,4 @@
-import { FAIXA_ORDEM } from './utils';
+import { FAIXA_ORDEM, hoje, addDias } from './utils';
 
 /* ============================================================
    GRAUS POR TÉCNICA
@@ -409,7 +409,7 @@ export function jogoPrincipal(lista, limite = 6) {
    consigo sair dali".
    ============================================================ */
 export function posicoesSofridas(rolls, sessions, limite = 6) {
-  const trinta = (() => { const d = new Date(); d.setDate(d.getDate() - 30); return d.toISOString().slice(0, 10); })();
+  const trinta = addDias(hoje(), -30);
   const dataDa = new Map(sessions.map((s) => [s.id, s.data]));
 
   const conta = new Map();

@@ -1,5 +1,5 @@
 import { grauPorN, contextoPorId, requisitosDaFaixa, posicoesSofridas, NOME_POSICAO_SOFRIDA, TITULO_POSICAO_SOFRIDA } from './graus';
-import { diasEntre, hoje } from './utils';
+import { diasEntre, hoje, addDias } from './utils';
 import { placarDaRola } from './game';
 
 /* ============================================================
@@ -448,9 +448,7 @@ export function chaveDaRec(r) {
 
 /* remove o que você já marcou como feito recentemente */
 export function filtrarFeitas(recs, feitas, diasDeDescanso = 14) {
-  const limite = new Date();
-  limite.setDate(limite.getDate() - diasDeDescanso);
-  const corte = limite.toISOString().slice(0, 10);
+  const corte = addDias(hoje(), -diasDeDescanso);
 
   const recentes = new Set(
     feitas.filter((f) => f.data >= corte && f.resultado !== 'nao').map((f) => f.chave)
@@ -488,9 +486,7 @@ export function respostaAoMarcar(resultado, rec, faixa = 'branca') {
 
 /* quanto do que foi sugerido você realmente treinou */
 export function aderencia(feitas, dias = 30) {
-  const limite = new Date();
-  limite.setDate(limite.getDate() - dias);
-  const corte = limite.toISOString().slice(0, 10);
+  const corte = addDias(hoje(), -dias);
 
   const doPeriodo = feitas.filter((f) => f.data >= corte);
   if (!doPeriodo.length) return null;

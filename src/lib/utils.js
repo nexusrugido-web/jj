@@ -1,4 +1,13 @@
-export const hoje = () => new Date().toISOString().slice(0, 10);
+/* O dia no calendário de quem está usando, e não o de Greenwich.
+   Com toISOString, depois das 21h no Brasil já era amanhã: o treino
+   da noite ganhava a data do dia seguinte, e a semana virava no
+   domingo à noite. */
+export function dataLocal(d = new Date()) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+export const hoje = () => dataLocal(new Date());
 
 export function fmtData(iso, { curto = false } = {}) {
   if (!iso) return ',';
@@ -18,7 +27,7 @@ export function diasEntre(a, b) {
 export function addDias(iso, n) {
   const d = new Date(iso + 'T00:00:00');
   d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
+  return dataLocal(d);
 }
 
 export function relativo(iso) {

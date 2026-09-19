@@ -1,3 +1,4 @@
+import { hoje, addDias } from '../lib/utils';
 /* ============================================================
    QUIZ CONCEITUAL
 
@@ -201,7 +202,7 @@ export const PERGUNTAS = [
 export const CAIXAS = [1, 3, 7, 14, 28];
 
 export function perguntasPara({ faixa = 'branca', dor = null, tema = null, limite = 5, respondidas = [] }) {
-  const hoje = new Date().toISOString().slice(0, 10);
+  const agora = hoje();
   const porId = new Map(respondidas.map((r) => [r.perguntaId, r]));
 
   let lista = PERGUNTAS.filter((p) => !p.faixa || p.faixa.includes(faixa));
@@ -212,7 +213,7 @@ export function perguntasPara({ faixa = 'branca', dor = null, tema = null, limit
   const novas = lista.filter((p) => !porId.has(p.id));
   const vencidas = lista.filter((p) => {
     const r = porId.get(p.id);
-    return r && (!r.proxima || r.proxima <= hoje);
+    return r && (!r.proxima || r.proxima <= agora);
   });
 
   return [...novas, ...vencidas].slice(0, limite);
@@ -220,7 +221,5 @@ export function perguntasPara({ faixa = 'branca', dor = null, tema = null, limit
 
 export function proximaRevisao(caixa, acertou) {
   const nova = acertou ? Math.min(CAIXAS.length - 1, (caixa ?? 0) + 1) : 0;
-  const d = new Date();
-  d.setDate(d.getDate() + CAIXAS[nova]);
-  return { caixa: nova, proxima: d.toISOString().slice(0, 10) };
+  return { caixa: nova, proxima: addDias(hoje(), CAIXAS[nova]) };
 }

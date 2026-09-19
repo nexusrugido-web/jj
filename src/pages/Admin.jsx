@@ -296,9 +296,9 @@ export default function Admin() {
 
           {!liga.pronto && liga.faltam > 0 && (
             <div style={{ marginTop: 12 }}>
-              <Bar v={liga.participantes} max={30} />
+              <Bar v={liga.participantes} max={liga.participantes + liga.faltam} />
               <p className="micro muted" style={{ marginTop: 6 }}>
-                {liga.participantes} de 30 pontuando esta semana. Faltam {liga.faltam}.
+                A corrida começa quando duas pessoas treinam na mesma semana. Falta {liga.faltam}.
               </p>
             </div>
           )}

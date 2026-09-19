@@ -13,7 +13,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { resumo, escadaPosicional, radarHabilidades, buracosNoJogo, statsParceiro } from '../lib/stats';
 import { toCSV } from '../db/db';
-import { baixarArquivo, fmtDur, pct, contar, hoje } from '../lib/utils';
+import { baixarArquivo, fmtDur, pct, contar, hoje, addDias } from '../lib/utils';
 
 export default function Analise() {
   const { sessions, rolls, positions, categories, techniques, partners, settings, irPara } = useApp();
@@ -27,7 +27,7 @@ export default function Analise() {
     if (periodo !== 'tudo') {
       const p = PERIODOS.find((x) => x.id === periodo);
       const dias = p?.dias || 365;
-      const corte = new Date(Date.now() - dias * 86400000).toISOString().slice(0, 10);
+      const corte = addDias(hoje(), -dias);
       s = s.filter((x) => x.data >= corte);
     }
     if (modo !== 'todos') s = s.filter((x) => x.tipo === modo);

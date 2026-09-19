@@ -34,8 +34,8 @@ export default function Painel() {
   const toast = useToast();
   const [analise, setAnalise] = useState(null);
   const [carregandoIa, setCarregandoIa] = useState(false);
-  /* o convite pra liga é ligado no painel do administrador e só
-     aparece pra quem ainda não entrou */
+  /* todo mundo entra na liga sozinho; o convite é pra quem saiu,
+     e é ligado no painel do administrador */
   const [jaNaLiga, setJaNaLiga] = useState(null);
   const convidarPraLiga = ligada?.('liga') && ligada?.('liga_convite');
 
@@ -267,11 +267,11 @@ export default function Painel() {
               <Trophy size={19} />
             </span>
             <div style={{ flex: 1, minWidth: 210 }}>
-              <div className="eyebrow">grupos de trinta, ranking que vira toda segunda</div>
-              <div className="h-sec" style={{ marginTop: 3 }}>Entre na liga</div>
+              <div className="eyebrow">ranking que vira toda semana</div>
+              <div className="h-sec" style={{ marginTop: 3 }}>Volte pra liga</div>
               <p className="tiny muted" style={{ marginTop: 5, lineHeight: 1.65 }}>
-                Você cai num grupo de gente com ritmo parecido com o seu. Dá pra participar com apelido, e sair
-                quando quiser.
+                Você está fora. Voltando, o próximo treino te coloca num grupo com gente de ritmo parecido com o
+                seu. Dá pra aparecer com apelido.
               </p>
             </div>
             <div className="row" style={{ gap: 8 }}>

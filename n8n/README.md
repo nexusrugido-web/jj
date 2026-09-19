@@ -35,6 +35,7 @@ schema.sql -> comunidade.sql -> assinatura.sql -> admin.sql -> xp.sql
 -> aulas.sql -> aulas-carga.sql -> compra.sql -> liga.sql -> par.sql
 -> destaque.sql -> admin2.sql -> links.sql -> webhook.sql
 -> recuperacao.sql -> n8n.sql -> vendas.sql -> estudo.sql
+-> liga-automatica.sql
 ```
 
 Todos podem rodar de novo sem apagar nada.

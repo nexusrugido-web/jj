@@ -1,61 +1,62 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Trophy, Users, Lock, Check, X, Shield, Eye, EyeOff, RefreshCw, Info,
+  Trophy, Check, Eye, EyeOff, RefreshCw, Flame, Hourglass, LogOut, UserRound, Undo2, Dumbbell,
 } from 'lucide-react';
 import { useApp } from '../contexto';
 import { supabase } from '../lib/supabase';
 import {
   Card, Btn, Chip, Empty, Stat, Sheet, Field, Input, BeltTag, useToast,
 } from './UI';
-import { db } from '../db/db';
-import { semanaDe } from '../lib/xp';
 import { ajusteDe } from '../lib/ajustes';
+import { subirPraLiga, corteDoGrupo, nomeCurto } from '../lib/liga';
+import { fmtData } from '../lib/utils';
 
 /* ============================================================
    LIGA
 
-   Grupos pequenos, pra o ranking ser disputável desde a primeira
-   semana. O tamanho vem do painel e não do código.
+   Ninguém precisa entrar: o primeiro treino da semana coloca a
+   pessoa num grupo, com gente de ritmo parecido. Sozinho, o grupo
+   espera, e a corrida começa quando chega a segunda pessoa.
+   Entrou no grupo, fica até a semana fechar.
 
    A divisão tem nome de faixa, e não é a faixa da pessoa. Ela é
    o degrau em que você está no jogo: um faixa branca que vai bem
-   chega na divisão Roxa e continua sendo faixa branca. Foi por
-   isso que a faixa de cada um saiu da lista, senão a tela diria
-   duas coisas com a mesma palavra.
+   chega na divisão Roxa e continua sendo faixa branca.
 
-   Ninguém entra sem escolher entrar, e dá pra participar com
-   apelido em vez do nome.
+   Pros outros aparece o nome curto (primeiro nome e a inicial),
+   o apelido, ou "Anônimo". Nada do que a pessoa registra nos
+   treinos.
    ============================================================ */
 
 const ACIMA = { branca: 'azul', azul: 'roxa', roxa: 'marrom', marrom: 'preta', preta: 'preta' };
 const acima = (d) => ACIMA[d] || 'azul';
 
 export default function Liga({ compacto = false }) {
-  const { sessao, irPara, ligada } = useApp();
+  const { sessao, irPara, ligada, settings } = useApp();
   const toast = useToast();
 
   const [carregando, setCarregando] = useState(true);
   const [linhas, setLinhas] = useState([]);
   const [perfil, setPerfil] = useState(null);
-  const [entrando, setEntrando] = useState(false);
-  const [apelido, setApelido] = useState('');
-  const [anonimo, setAnonimo] = useState(false);
-  const [enviando, setEnviando] = useState(false);
+  const [aparencia, setAparencia] = useState(false);
+  const [saindo, setSaindo] = useState(false);
+  const [vendo, setVendo] = useState(null);
 
   const ativa = ligada?.('liga');
 
-  async function buscar() {
+  async function buscar({ subir = false } = {}) {
     if (!supabase || !sessao) { setCarregando(false); return; }
     setCarregando(true);
     try {
+      /* o que ainda está só no aparelho sobe antes: é o primeiro
+         ponto da semana que coloca a pessoa no grupo */
+      if (subir) await subirPraLiga().catch(() => {});
       const [r, p] = await Promise.all([
         supabase.rpc('minha_liga'),
-        supabase.from('perfil').select('*').eq('user_id', sessao.user.id).single(),
+        supabase.from('perfil').select('participa_liga, anonimo, apelido').eq('user_id', sessao.user.id).single(),
       ]);
       setLinhas(r.data || []);
       setPerfil(p.data || null);
-      if (p.data?.apelido) setApelido(p.data.apelido);
-      setAnonimo(!!p.data?.anonimo);
     } catch (e) {
       console.error('[liga]', e);
     } finally {
@@ -63,48 +64,19 @@ export default function Liga({ compacto = false }) {
     }
   }
 
-  useEffect(() => { if (ativa) buscar(); else setCarregando(false); }, [ativa, sessao]);
-
-  /* manda os pontos que estão só no aparelho */
-  async function subirPontos() {
-    if (!supabase || !sessao) return;
-    try {
-      const sem = semanaDe();
-      const locais = await db.pontos.where('semana').equals(sem).toArray();
-      if (!locais.length) return;
-      await supabase.rpc('subir_pontos', {
-        p_linhas: locais.map((l) => ({
-          evento: l.evento, refId: l.refId, detalhe: l.detalhe, data: l.data,
-        })),
-      });
-    } catch (e) {
-      console.error('[pontos]', e);
-    }
-  }
-
-  async function entrar() {
-    setEnviando(true);
-    try {
-      await subirPontos();
-      const { data } = await supabase.rpc('entrar_na_liga', {
-        p_apelido: apelido.trim() || null,
-        p_anonimo: anonimo,
-      });
-      const r = Array.isArray(data) ? data[0] : data;
-      toast(r?.mensagem || 'Pronto');
-      setEntrando(false);
-      await buscar();
-    } catch {
-      toast('Não consegui entrar agora', 'err');
-    } finally {
-      setEnviando(false);
-    }
-  }
+  useEffect(() => { if (ativa) buscar({ subir: true }); else setCarregando(false); }, [ativa, sessao]);
 
   async function sair() {
     await supabase.rpc('sair_da_liga');
-    toast('Você saiu da liga');
-    setLinhas([]);
+    setSaindo(false);
+    toast('Você sai da liga quando esta semana fechar');
+    await buscar();
+  }
+
+  async function voltar() {
+    const { data } = await supabase.rpc('entrar_na_liga');
+    const r = Array.isArray(data) ? data[0] : data;
+    toast(r?.mensagem || 'Você está na liga de novo');
     await buscar();
   }
 
@@ -123,130 +95,108 @@ export default function Liga({ compacto = false }) {
     );
   }
 
-  /* ainda não aceitou participar */
-  if (!perfil?.participa_liga) {
+  const comoAparece = (
+    <ComoAparece
+      aberto={aparencia}
+      onClose={() => setAparencia(false)}
+      perfil={perfil}
+      nome={settings?.nome}
+      userId={sessao.user.id}
+      onSalvo={() => { setAparencia(false); buscar(); }}
+    />
+  );
+
+  /* ---------- fora da liga ---------- */
+  if (perfil && !perfil.participa_liga && !linhas.length) {
     return (
-      <>
-        <Card style={{ marginBottom: compacto ? 0 : 14 }}>
-          <div className="card-head">
-            <div>
-              <div className="eyebrow">você escolhe se quer</div>
-              <h2 className="h-sec row" style={{ gap: 8 }}><Trophy size={16} /> Liga entre praticantes</h2>
-            </div>
-          </div>
-          <p className="tiny muted" style={{ lineHeight: 1.75 }}>
-            Você entra num grupo de até {ajusteDe('liga_tamanho', 10)} pessoas e durante a semana vocês acumulam
-            pontos treinando e estudando. Na segunda-feira o placar zera, os primeiros sobem de divisão e os
-            últimos descem.
-          </p>
-          <p className="tiny muted" style={{ marginTop: 10, lineHeight: 1.75 }}>
-            Todo mundo começa na divisão Branca. Ela tem nome de faixa mas não é a sua faixa: é o degrau em que
-            você chegou. Dá pra ser faixa branca e estar na divisão Roxa.
-          </p>
-          <p className="tiny muted" style={{ marginTop: 10, lineHeight: 1.75 }}>
-            Só aparece pros outros o seu nome e quantos pontos você fez. Nada do que você registra nos treinos
-            fica visível pra ninguém.
-          </p>
-          <Btn variant="primary" icon={Trophy} onClick={() => setEntrando(true)} style={{ marginTop: 16 }}>
-            Quero participar
-          </Btn>
-        </Card>
-
-        <Sheet
-          aberto={entrando}
-          onClose={() => setEntrando(false)}
-          titulo="Como você quer aparecer"
-          footer={
-            <>
-              <Btn variant="ghost" onClick={() => setEntrando(false)}>Cancelar</Btn>
-              <Btn variant="primary" icon={Check} onClick={entrar} disabled={enviando}>Entrar na liga</Btn>
-            </>
-          }
-        >
-          <div className="col" style={{ gap: 10 }}>
-            <button type="button" className={`opcao-meta ${!anonimo ? 'on' : ''}`} onClick={() => setAnonimo(false)}>
-              <div className="row" style={{ gap: 9 }}>
-                <Eye size={15} style={{ flex: 'none' }} />
-                <div>
-                  <div className="tiny" style={{ fontWeight: 600 }}>Com o meu nome</div>
-                  <p className="micro muted" style={{ marginTop: 3 }}>
-                    Aparece como {perfil?.nome || 'seu nome'}, junto com a sua faixa.
-                  </p>
-                </div>
-              </div>
-            </button>
-            <button type="button" className={`opcao-meta ${anonimo ? 'on' : ''}`} onClick={() => setAnonimo(true)}>
-              <div className="row" style={{ gap: 9 }}>
-                <EyeOff size={15} style={{ flex: 'none' }} />
-                <div>
-                  <div className="tiny" style={{ fontWeight: 600 }}>Com um apelido</div>
-                  <p className="micro muted" style={{ marginTop: 3 }}>Ninguém vê o seu nome de verdade.</p>
-                </div>
-              </div>
-            </button>
-          </div>
-
-          {anonimo && (
-            <Field label="Seu apelido">
-              <Input value={apelido} onChange={(e) => setApelido(e.target.value)} placeholder="Como quer ser chamado" maxLength={20} />
-            </Field>
-          )}
-
-          <div className="valida bom">
-            <Shield size={15} className="valida-ico" style={{ color: 'var(--jade)' }} />
-            <p className="micro muted" style={{ lineHeight: 1.65 }}>
-              Dá pra sair a qualquer momento, e aí você some do ranking na hora. Seus treinos continuam privados
-              dos dois jeitos.
-            </p>
-          </div>
-        </Sheet>
-      </>
+      <Card style={{ marginBottom: compacto ? 0 : 14 }}>
+        <div className="card-head">
+          <h2 className="h-sec row" style={{ gap: 8 }}><Trophy size={16} /> Liga entre praticantes</h2>
+        </div>
+        <p className="tiny muted" style={{ lineHeight: 1.7 }}>
+          Você está fora da liga. Voltando, você entra na corrida da semana no próximo treino que registrar,
+          num grupo com gente de ritmo parecido com o seu.
+        </p>
+        <div className="row wrap" style={{ gap: 8, marginTop: 14 }}>
+          <Btn variant="primary" icon={Undo2} onClick={voltar}>Voltar pra liga</Btn>
+          <Btn variant="ghost" icon={UserRound} onClick={() => setAparencia(true)}>Como eu apareço</Btn>
+        </div>
+        {comoAparece}
+      </Card>
     );
   }
 
-  /* participa, mas o grupo ainda não montou */
+  /* ---------- ainda sem grupo esta semana ---------- */
   if (!linhas.length) {
     return (
       <Card style={{ marginBottom: compacto ? 0 : 14 }}>
         <div className="card-head">
           <h2 className="h-sec row" style={{ gap: 8 }}><Trophy size={16} /> Sua liga</h2>
-          <Btn size="sm" variant="ghost" icon={RefreshCw} onClick={buscar} disabled={carregando}>Atualizar</Btn>
+          <Btn size="sm" variant="ghost" icon={RefreshCw} onClick={() => buscar({ subir: true })} disabled={carregando}>Atualizar</Btn>
         </div>
         <p className="tiny muted" style={{ lineHeight: 1.7 }}>
           {carregando
             ? 'Buscando o seu grupo.'
-            : 'Você está na liga, mas o seu grupo ainda não montou. Isso acontece no começo da semana. Enquanto isso, os pontos continuam contando normal.'}
+            : 'Registre um treino e você entra na corrida desta semana, num grupo com gente que treina mais ou menos o mesmo tanto que você.'}
         </p>
-        <button className="btn ghost xs" onClick={sair} style={{ marginTop: 12, opacity: 0.7 }}>Sair da liga</button>
+        {!carregando && (
+          <div className="row wrap" style={{ gap: 8, marginTop: 14 }}>
+            <Btn variant="primary" icon={Dumbbell} onClick={() => irPara('treinos')}>Registrar treino</Btn>
+            <Btn variant="ghost" icon={UserRound} onClick={() => setAparencia(true)}>Como eu apareço</Btn>
+          </div>
+        )}
+        {comoAparece}
       </Card>
     );
   }
 
   const eu = linhas.find((l) => l.sou_eu);
   const divisao = linhas[0]?.divisao || 'branca';
-  const corte = ajusteDe('liga_corte', 3);
-  const total = linhas[0]?.total || linhas.length;
-  /* com o grupo pequeno demais ninguém desce, e a tela precisa
-     dizer isso antes da segunda-feira e não depois */
-  const temQueda = total >= corte * 2;
+  const total = Number(linhas[0]?.total) || linhas.length;
+  const comecou = total >= 2 && linhas[0]?.comecou !== false;
+  const { sobem, descem } = corteDoGrupo(total, ajusteDe('liga_corte', 3));
+  const misturado = linhas.some((l) => (l.divisao_pessoa || divisao) !== divisao);
+  const acimaDeMim = eu ? linhas.filter((l) => l.xp_semana > eu.xp_semana) : [];
 
   return (
     <Card style={{ marginBottom: compacto ? 0 : 14 }}>
       <div className="card-head">
         <div>
           <div className="eyebrow">
-            {total} {total === 1 ? 'pessoa' : 'pessoas'}, zera segunda-feira
+            {total} {total === 1 ? 'pessoa' : 'pessoas'}, fecha segunda ao meio-dia
           </div>
           <h2 className="h-sec row" style={{ gap: 8 }}>
             <Trophy size={16} /> Divisão <BeltTag faixa={divisao} graus={0} />
           </h2>
         </div>
-        <Btn size="sm" variant="ghost" icon={RefreshCw} onClick={() => { subirPontos().then(buscar); }} disabled={carregando}>
+        <Btn size="sm" variant="ghost" icon={RefreshCw} onClick={() => buscar({ subir: true })} disabled={carregando}>
           Atualizar
         </Btn>
       </div>
 
-      {eu && (
+      {eu?.saindo && (
+        <div className="valida atencao" style={{ marginBottom: 12, alignItems: 'center' }}>
+          <LogOut size={14} className="valida-ico" style={{ color: 'var(--roar)' }} />
+          <p className="micro muted" style={{ lineHeight: 1.6, flex: 1 }}>
+            Você sai da liga quando esta semana fechar. Até lá, a corrida segue com você nela.
+          </p>
+          <Btn size="xs" variant="ghost" onClick={voltar}>Continuar</Btn>
+        </div>
+      )}
+
+      {!comecou ? (
+        <div className="liga-eu">
+          <Hourglass size={18} style={{ color: 'var(--accent)', flex: 'none' }} />
+          <div style={{ flex: 1 }}>
+            <div className="tiny" style={{ fontWeight: 600 }}>Esperando adversário</div>
+            <div className="micro muted" style={{ lineHeight: 1.6 }}>
+              Você já está na liga desta semana. A corrida começa quando mais alguém registrar treino, e seus
+              pontos já estão contando.
+            </div>
+          </div>
+          <span className="num" style={{ fontSize: 19, fontWeight: 700, color: 'var(--accent)' }}>{eu?.xp_semana ?? 0}</span>
+        </div>
+      ) : eu && (
         <div className="liga-eu">
           <span className="liga-pos num">{eu.posicao}º</span>
           <div style={{ flex: 1 }}>
@@ -254,9 +204,11 @@ export default function Liga({ compacto = false }) {
             <div className="micro muted">
               {eu.posicao === 1
                 ? 'Na frente do grupo esta semana.'
-                : eu.posicao <= 3
-                  ? 'Entre os três primeiros.'
-                  : `Faltam ${linhas[eu.posicao - 2].xp_semana - eu.xp_semana + 1} pontos pra subir uma posição.`}
+                : eu.posicao <= sobem
+                  ? 'Na zona de subir de divisão.'
+                  : acimaDeMim.length
+                    ? `Faltam ${Math.min(...acimaDeMim.map((l) => l.xp_semana)) - eu.xp_semana + 1} pontos pra passar mais um.`
+                    : 'Empatado com quem está na frente.'}
             </div>
           </div>
           <span className="num" style={{ fontSize: 19, fontWeight: 700, color: 'var(--accent)' }}>{eu.xp_semana}</span>
@@ -264,36 +216,194 @@ export default function Liga({ compacto = false }) {
       )}
 
       <div className="col" style={{ gap: 6, marginTop: 12 }}>
-        {linhas.slice(0, compacto ? 5 : ajusteDe('liga_tamanho', 10)).map((l) => {
-          const sobe = l.posicao <= corte && l.xp_semana > 0 && divisao !== 'preta';
-          const desce = temQueda && l.posicao > total - corte && divisao !== 'branca';
+        {linhas.slice(0, compacto ? 5 : undefined).map((l) => {
+          const div = l.divisao_pessoa || divisao;
+          const sobe = comecou && l.posicao <= sobem && l.xp_semana > 0 && div !== 'preta';
+          const desce = comecou && descem > 0 && l.posicao > total - descem && div !== 'branca';
           return (
-            <div key={l.user_id} className={`liga-linha ${l.sou_eu ? 'eu' : ''}`}>
+            <button key={l.user_id} type="button" className={`liga-linha ${l.sou_eu ? 'eu' : ''}`} onClick={() => setVendo(l)}>
               <span className="liga-pos num">{l.posicao}</span>
-              <span className="tiny" style={{ flex: 1, fontWeight: l.sou_eu ? 600 : 400 }}>{l.nome}</span>
+              <span className="tiny" style={{ flex: 1, fontWeight: l.sou_eu ? 600 : 400, textAlign: 'left' }}>
+                {l.nome}{l.sou_eu ? ' (você)' : ''}
+              </span>
+              {misturado && <BeltTag faixa={div} graus={0} />}
+              {l.sequencia > 0 && (
+                <span className="micro num row" style={{ gap: 3, color: 'var(--roar)' }} title="semanas seguidas treinando">
+                  <Flame size={12} /> {l.sequencia}
+                </span>
+              )}
               {sobe && <Chip tone="jade">sobe</Chip>}
               {desce && <Chip tone="blood">desce</Chip>}
               <span className="num micro" style={{ minWidth: 38, textAlign: 'right' }}>{l.xp_semana}</span>
-            </div>
+            </button>
           );
         })}
       </div>
 
       {!compacto && (
         <p className="micro muted" style={{ marginTop: 12, lineHeight: 1.65 }}>
-          Na segunda-feira os {corte} primeiros que pontuaram sobem de divisão
-          {divisao === 'preta' ? '' : ', e quem sobe daqui vai pra ' + acima(divisao)}.
-          {temQueda
-            ? ` Os ${corte} últimos descem.`
-            : ' Ninguém desce esta semana, porque o grupo ainda é pequeno demais pra ter um fundo de verdade.'}
+          {!comecou
+            ? 'Grupo de uma pessoa só não corre: ninguém sobe nem desce enquanto você estiver sozinho.'
+            : <>
+                A semana fecha segunda ao meio-dia, e o treino de domingo registrado até lá ainda conta.{' '}
+                {sobem === 1 ? 'O primeiro que pontuou sobe' : `Os ${sobem} primeiros que pontuaram sobem`} de divisão
+                {divisao === 'preta' || misturado ? '' : `, pra ${acima(divisao)}`}
+                {descem
+                  ? (descem === 1 ? ', e o último desce.' : `, e os ${descem} últimos descem.`)
+                  : '. Com o grupo deste tamanho, ninguém desce.'}
+                {misturado ? ' Cada um sobe ou desce a partir da própria divisão.' : ''}
+              </>}
+          {' '}Toque em alguém pra ver o perfil.
         </p>
       )}
 
       {!compacto && (
-        <button className="btn ghost xs" onClick={sair} style={{ marginTop: 14, opacity: 0.7 }}>
-          Sair da liga
-        </button>
+        <div className="row wrap" style={{ gap: 8, marginTop: 14 }}>
+          <Btn size="xs" variant="ghost" icon={UserRound} onClick={() => setAparencia(true)}>Como eu apareço</Btn>
+          {!eu?.saindo && (
+            saindo ? (
+              <>
+                <span className="micro muted" style={{ alignSelf: 'center' }}>
+                  Você fica nesta corrida até ela fechar e sai a partir da semana que vem.
+                </span>
+                <Btn size="xs" variant="ghost" onClick={sair}>Confirmar</Btn>
+                <Btn size="xs" variant="ghost" onClick={() => setSaindo(false)}>Deixa</Btn>
+              </>
+            ) : (
+              <Btn size="xs" variant="ghost" icon={LogOut} onClick={() => setSaindo(true)} style={{ opacity: 0.7 }}>
+                Sair da liga
+              </Btn>
+            )
+          )}
+        </div>
       )}
+
+      {comoAparece}
+      <PerfilDoColega linha={vendo} onClose={() => setVendo(null)} />
     </Card>
+  );
+}
+
+/* ============================================================
+   COMO VOCÊ APARECE PROS OUTROS
+   ============================================================ */
+function ComoAparece({ aberto, onClose, perfil, nome, userId, onSalvo }) {
+  const toast = useToast();
+  const modoAtual = perfil?.anonimo ? (perfil?.apelido ? 'apelido' : 'anonimo') : 'nome';
+  const [modo, setModo] = useState(modoAtual);
+  const [apelido, setApelido] = useState(perfil?.apelido || '');
+  const [salvando, setSalvando] = useState(false);
+
+  useEffect(() => {
+    if (!aberto) return;
+    setModo(modoAtual);
+    setApelido(perfil?.apelido || '');
+  }, [aberto]);
+
+  const opcoes = [
+    { id: 'nome', icone: Eye, titulo: 'Com o meu nome', texto: `Aparece como ${nomeCurto(nome)}: o primeiro nome e a inicial do sobrenome.` },
+    { id: 'apelido', icone: EyeOff, titulo: 'Com um apelido', texto: 'Ninguém vê o seu nome de verdade.' },
+    { id: 'anonimo', icone: EyeOff, titulo: 'Anônimo', texto: 'Aparece só "Anônimo", com os seus pontos.' },
+  ];
+
+  async function salvar() {
+    if (modo === 'apelido' && !apelido.trim()) { toast('Escreva o apelido', 'err'); return; }
+    setSalvando(true);
+    const { error } = await supabase.from('perfil').update({
+      anonimo: modo !== 'nome',
+      apelido: modo === 'apelido' ? apelido.trim().slice(0, 20) : null,
+      atualizado_em: new Date().toISOString(),
+    }).eq('user_id', userId);
+    setSalvando(false);
+    if (error) { toast('Não consegui salvar', 'err'); return; }
+    toast('Salvo');
+    onSalvo?.();
+  }
+
+  return (
+    <Sheet
+      aberto={aberto}
+      onClose={onClose}
+      titulo="Como você aparece"
+      footer={
+        <>
+          <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
+          <Btn variant="primary" icon={Check} onClick={salvar} disabled={salvando}>Salvar</Btn>
+        </>
+      }
+    >
+      <div className="col" style={{ gap: 10 }}>
+        {opcoes.map((o) => (
+          <button key={o.id} type="button" className={`opcao-meta ${modo === o.id ? 'on' : ''}`} onClick={() => setModo(o.id)}>
+            <div className="row" style={{ gap: 9 }}>
+              <o.icone size={15} style={{ flex: 'none' }} />
+              <div>
+                <div className="tiny" style={{ fontWeight: 600 }}>{o.titulo}</div>
+                <p className="micro muted" style={{ marginTop: 3 }}>{o.texto}</p>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {modo === 'apelido' && (
+        <Field label="Seu apelido">
+          <Input value={apelido} onChange={(e) => setApelido(e.target.value)} placeholder="Como quer ser chamado" maxLength={20} />
+        </Field>
+      )}
+
+      <p className="micro muted" style={{ lineHeight: 1.65, marginTop: 12 }}>
+        Quem está no seu grupo vê como você aparece, a sua faixa, a sua divisão, a sequência de semanas e os
+        pontos. Nada do que você registra nos treinos.
+      </p>
+    </Sheet>
+  );
+}
+
+/* ============================================================
+   O PERFIL DE QUEM ESTÁ NO GRUPO
+   ============================================================ */
+function PerfilDoColega({ linha, onClose }) {
+  const [p, setP] = useState(null);
+
+  useEffect(() => {
+    setP(null);
+    if (!linha) return undefined;
+    let vivo = true;
+    supabase.rpc('perfil_na_liga', { p_user: linha.user_id })
+      .then(({ data }) => { if (vivo) setP((Array.isArray(data) ? data[0] : data) || false); })
+      .catch(() => { if (vivo) setP(false); });
+    return () => { vivo = false; };
+  }, [linha?.user_id]);
+
+  return (
+    <Sheet aberto={!!linha} onClose={onClose} titulo={linha?.nome || ''} subtitulo={linha?.sou_eu ? 'você' : 'no seu grupo'}>
+      {p === null ? (
+        <p className="tiny muted">Buscando.</p>
+      ) : p === false ? (
+        <p className="tiny muted">Não deu pra abrir este perfil agora.</p>
+      ) : (
+        <div className="col" style={{ gap: 16 }}>
+          <div className="row wrap" style={{ gap: 8 }}>
+            <BeltTag faixa={p.faixa} graus={p.graus || 0}>Faixa {p.faixa}</BeltTag>
+            <BeltTag faixa={p.divisao} graus={0}>Divisão {p.divisao}</BeltTag>
+          </div>
+          <div className="grid g2" style={{ gap: 14 }}>
+            <Stat size="sm" icon={Flame} valor={p.sequencia || 0} label={p.sequencia === 1 ? 'semana seguida' : 'semanas seguidas'} tone={p.sequencia ? 'roar' : undefined} />
+            <Stat size="sm" icon={Dumbbell} valor={p.treinos_semana ? `${p.treinos_semana}x` : '?'} label="treinos por semana" />
+            <Stat size="sm" icon={Trophy} valor={p.xp_semana || 0} label="pontos nesta semana" tone="accent" />
+            <Stat size="sm" valor={p.total || 0} label="pontos na jornada" />
+          </div>
+          {p.semanas > 0 && (
+            <p className="micro muted">
+              {p.semanas} {Number(p.semanas) === 1 ? 'semana' : 'semanas'} na liga, desde {fmtData(p.desde)}.
+            </p>
+          )}
+          <p className="micro muted" style={{ lineHeight: 1.6 }}>
+            Os treinos de cada um continuam privados. Aqui aparece só o que a liga mostra.
+          </p>
+        </div>
+      )}
+    </Sheet>
   );
 }

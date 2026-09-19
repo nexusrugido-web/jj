@@ -14,6 +14,7 @@ import { minhasTecnicas, resumoGraus } from './lib/graus';
 import { sincronizarAcesso, acessoLocal } from './lib/plano';
 import { subirPerfil, mexeuNoPerfil } from './lib/perfil';
 import { acervoLocal, sincronizarAcervo, observarAcervo } from './lib/acervo';
+import { subirPraLiga } from './lib/liga';
 import { carregarCompras } from './lib/pago';
 import { carregarAjustes, observarAjustes } from './lib/ajustes';
 import { carregarLinks, observarLinks } from './lib/links';
@@ -233,7 +234,9 @@ export default function App() {
         .then(setRecado)
         .catch(() => {});
       souAdmin().then(setEhAdmin).catch(() => {});
-      subirPerfil(s).catch(() => {});
+      /* o perfil sobe antes dos pontos: é a frequência dele que
+         escolhe o grupo quando o primeiro ponto da semana chega */
+      subirPerfil(s).catch(() => {}).then(() => subirPraLiga()).catch(() => {});
       sincronizarAcervo().catch(() => {});
       carregarCompras().catch(() => {});
       carregarAjustes().catch(() => {});
@@ -251,7 +254,10 @@ export default function App() {
   useEffect(() => {
     let ultima = Date.now();
     const aoVoltar = () => {
-      if (document.visibilityState !== 'visible' || Date.now() - ultima < 10 * 60 * 1000) return;
+      if (document.visibilityState !== 'visible') return;
+      /* os pontos da liga só sobem se mudou alguma coisa */
+      subirPraLiga().catch(() => {});
+      if (Date.now() - ultima < 10 * 60 * 1000) return;
       ultima = Date.now();
       sincronizarAcervo().catch(() => {});
     };
@@ -276,6 +282,7 @@ export default function App() {
         const migrou = await getMeta('migrou_nuvem', false);
         if (!migrou) { await migrarParaNuvem(); await setMeta('migrou_nuvem', true); }
         else sincronizar({ forcar: true });
+        subirPraLiga().catch(() => {});
       }
     });
     return () => data?.subscription?.unsubscribe?.();

@@ -1,5 +1,5 @@
 import { capa, embed, duracaoTexto, SERVIDORES_CAPA } from '../db/aulas';
-import { hoje } from './utils';
+import { hoje, hoje as diaDeHoje } from './utils';
 import { acervo } from './acervo';
 
 /* ============================================================
@@ -255,7 +255,7 @@ export function trechoValido(de, para, velocidade = 1) {
 export async function registrarAulaVista(aula, segundos = 0) {
   const { db } = await import('../db/db');
   const { darXp } = await import('./xp');
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = diaDeHoje();
 
   /* só número entra. Quem chamar errado não estraga o registro */
   const seg = Number(segundos) > 0 ? Math.round(Number(segundos)) : aula.d;

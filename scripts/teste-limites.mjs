@@ -21,8 +21,9 @@ const { db } = await import('../src/db/db.js');
 const { usadoHoje, LIMITES } = await import('../src/lib/plano.js');
 const { trechoValido, ondePodeVoltar } = await import('../src/lib/aulas.js');
 
-const hoje = new Date().toISOString().slice(0, 10);
-const ontem = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+const { hoje: diaDeHoje, addDias } = await import('../src/lib/utils.js');
+const hoje = diaDeHoje();
+const ontem = addDias(hoje, -1);
 
 let falhas = 0;
 const ok = (nome, real, esperado) => {

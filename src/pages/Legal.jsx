@@ -13,7 +13,7 @@ import { Card, Btn } from '../components/UI';
    entende não protege ninguém, nem a pessoa nem você.
    ============================================================ */
 
-const ATUALIZADO = '14 de setembro de 2026';
+const ATUALIZADO = '19 de setembro de 2026';
 const CONTATO = 'batistavisuais@gmail.com';
 
 export function Termos({ onVoltar }) {
@@ -122,9 +122,12 @@ export function Privacidade({ onVoltar }) {
 
       <Bloco titulo="Quem mais vê">
         <p>
-          Ninguém, por padrão. Se você entrar na liga, aparecem para os outros participantes apenas o seu
-          nome (ou o apelido que escolher), a sua faixa e quantos pontos fez na semana. Nada do que você
-          registrou nos treinos.
+          A liga. Quando você registra um treino na semana, entra num grupo pequeno de praticantes, e quem
+          está no seu grupo vê: o seu primeiro nome com a inicial do sobrenome (ou o apelido que escolher, ou
+          só "Anônimo"), a sua faixa, a sua divisão na liga, quantas vezes por semana você disse que treina,
+          há quantas semanas seguidas você treina e os pontos que fez. Nada do que você registrou nos treinos.
+          Dá pra escolher como aparecer e sair da liga quando quiser, na tela Jornada; a saída vale a partir da
+          semana seguinte.
         </p>
         <p>
           Se você usar a leitura da IA, os números do seu treino são enviados para o serviço que processa

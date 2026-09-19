@@ -24,8 +24,9 @@ const { registrarEventoVideo, registrarAulaVista, abertosHoje } = await import('
 const { usadoHoje } = await import('../src/lib/plano.js');
 const { AULAS } = await import('../src/db/aulas.js');
 
-const hoje = new Date().toISOString().slice(0, 10);
-const ontem = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+const { hoje: diaDeHoje, addDias } = await import('../src/lib/utils.js');
+const hoje = diaDeHoje();
+const ontem = addDias(hoje, -1);
 
 let falhas = 0;
 const ok = (nome, real, esperado) => {
