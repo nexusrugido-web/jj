@@ -56,7 +56,8 @@ export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFei
 
   /* o que apareceu, e quando não tinha vídeo do assunto */
   const idDaAula = aulas[0]?.id || null;
-  const faltou = comAula && (!aulas.length || aulas.every((a) => a.reserva));
+  /* sem aula da técnica, a resposta geral também é falta: é pauta */
+  const faltou = comAula && (!aulas.length || aulas.every((a) => a.reserva || a.generico));
   useEffect(() => {
     if (!comAula) return;
     if (idDaAula) medir('exibiu', { origem: deOnde, videoId: idDaAula });
@@ -113,7 +114,9 @@ export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFei
           <Capa id={aulas[0].id} propria={aulas[0].capa} tamanho="mq" />
           <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
             <div className="micro" style={{ color: 'var(--dimmer)' }}>
-              {aulas[0].porque?.length ? `ensina ${aulas[0].porque.join(' · ')}` : 'aula sobre isso'}
+              {aulas[0].generico && rec.alvo
+                ? `ainda não há aula de ${rec.alvo} · esta é de ${String(aulas[0].porque?.[0] || 'defesa').toLowerCase()} em geral`
+                : aulas[0].porque?.length ? `ensina ${aulas[0].porque.join(' · ')}` : 'aula sobre isso'}
             </div>
             <div className="micro" style={{ fontWeight: 600, marginTop: 2, lineHeight: 1.35 }}>{aulas[0].t}</div>
           </div>

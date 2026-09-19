@@ -1,8 +1,7 @@
-import { SEED } from '../db/seed';
-import { uidEstavel, chaveNome } from './uid';
-import { indiceDeTecnicas, acharTecnicas } from './classificar';
+import { acharTecnicas } from './classificar';
+import { INDICE_TECNICAS, TECNICA_POR_UID } from './tecnicas';
 import {
-  DE_POSICAO_SOFRIDA, DE_POSICAO_BIBLIOTECA, HABILIDADES, SITUACOES, FORMATOS, nomeDe, nomePosicaoLado,
+  DE_POSICAO_SOFRIDA, HABILIDADES, SITUACOES, FORMATOS, nomeDe, nomePosicaoLado,
 } from './vocab';
 
 /* ============================================================
@@ -16,15 +15,6 @@ import {
    classificado. É isso que faz o vídeo certo achar a pessoa certa.
    ============================================================ */
 
-const CATALOGO = SEED.techniques.map((t) => ({
-  uid: uidEstavel(chaveNome('techniques', t.pt)),
-  nome: t.pt,
-  en: t.en,
-  cat: t.cat,
-  de: DE_POSICAO_BIBLIOTECA[t.from] || null,
-}));
-const INDICE = indiceDeTecnicas(CATALOGO);
-const porUid = new Map(CATALOGO.map((t) => [t.uid, t]));
 
 /* o formato que cada momento pede, do mais útil pro menos */
 const FORMATO_DA_INTENCAO = {
@@ -44,9 +34,9 @@ const FORMATO_DA_INTENCAO = {
    Uma recomendação (src/lib/recomendar.js) vira pedido.
 
    Preso numa posição: a posição com o lado de baixo, e escapada.
-   Finalização que te pega: a técnica, e defesa.
-   Técnica sua: a técnica, a habilidade dela e a posição de onde
-   ela sai.
+   Finalização que te pega: a técnica, a família dela, e defesa.
+   Técnica sua: a técnica, a família, a habilidade dela e a posição
+   de onde ela sai.
    ------------------------------------------------------------ */
 export function pedidoDaRec(rec) {
   const formatos = FORMATO_DA_INTENCAO[rec.intencao] || ['conceito'];
@@ -59,14 +49,18 @@ export function pedidoDaRec(rec) {
   }
 
   if (rec.alvo) {
-    const tecnicas = acharTecnicas([rec.alvo], INDICE);
-    const t = porUid.get(tecnicas[0]);
+    const tecnicas = acharTecnicas([rec.alvo], INDICE_TECNICAS);
+    const t = TECNICA_POR_UID.get(tecnicas[0]);
+    /* a família (articular, estrangulamento...) é o que impede o motor
+       de responder "defesa contra Americana" com defesa de outra coisa */
+    const familia = t?.cat || null;
     if (rec.intencao === 'corrigir') {
-      return { tecnicas, nomes: [rec.alvo], habilidades: ['defesa'], formatos };
+      return { tecnicas, nomes: [rec.alvo], familia, habilidades: ['defesa'], formatos };
     }
     return {
       tecnicas,
       nomes: [rec.alvo],
+      familia,
       habilidades: t ? [t.cat] : [],
       posicoes: t?.de ? [t.de] : [],
       formatos,

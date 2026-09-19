@@ -1,6 +1,7 @@
 import { acervo } from './acervo';
 import { palavrasFortes } from './aulas';
-import { semAcento } from './classificar';
+import { semAcento, TECNICAS_DISTINTAS, grafiasDe } from './classificar';
+import { familiaDaTecnica, FAMILIAS_DE_FINALIZACAO } from './tecnicas';
 import {
   POSICOES, HABILIDADES, SITUACOES, FORMATOS, DE_FAIXA,
   separar, nomeDe, nomePosicaoLado, familiaDaHabilidade,
@@ -53,45 +54,12 @@ function ajusteDoNivel(nivelDoVideo, faixa) {
    O TÍTULO CITANDO A TÉCNICA
 
    O mesmo golpe tem grafia diferente em cada título: "arm lock",
-   "armlock", "chave de braço". E técnica diferente não serve de
+   "armlock", "chave de braço" (as grafias moram em classificar.js,
+   que a esteira também usa). E técnica diferente não serve de
    resposta: pedir armlock e receber vídeo de kimura é pior que
    não recomendar.
    ------------------------------------------------------------ */
-const GRAFIAS = {
-  'armlock': ['armlock', 'arm lock', 'chave de braco', 'juji'],
-  'chave de braco': ['armlock', 'arm lock', 'chave de braco'],
-  'americana': ['americana'],
-  'kimura': ['kimura'],
-  'omoplata': ['omoplata'],
-  'triangulo': ['triangulo', 'sankaku'],
-  'mata leao': ['mata leao', 'estrangulamento pelas costas'],
-  'guilhotina': ['guilhotina'],
-  'katagatame': ['katagatame', 'kata gatame', 'braco e cabeca'],
-  'ezequiel': ['ezequiel', 'ezekiel'],
-  'botinha': ['botinha', 'chave de pe'],
-  'chave de pe': ['botinha', 'chave de pe'],
-  'tesoura': ['tesoura', 'tesourinha'],
-  'toureando': ['toureando', 'toreando', 'toureio'],
-  'berimbolo': ['berimbolo'],
-  'crucifixo': ['crucifixo'],
-  'kesa': ['kesa', 'gravata'],
-};
-
-const TECNICAS_DISTINTAS = [
-  'armlock', 'americana', 'kimura', 'omoplata', 'triangulo', 'mata leao',
-  'guilhotina', 'ezequiel', 'katagatame', 'botinha', 'tesoura', 'berimbolo',
-];
-
 const temPalavra = (texto, termo) => new RegExp(`(^| )${termo}( |$)`).test(texto);
-
-function grafiasDe(nome) {
-  const n = semAcento(nome);
-  const saida = new Set();
-  for (const [chave, lista] of Object.entries(GRAFIAS)) {
-    if (n.includes(chave)) for (const g of lista) saida.add(g);
-  }
-  return [...saida];
-}
 
 export function tituloCita(titulo, nome) {
   const t = semAcento(titulo);
@@ -111,9 +79,41 @@ function tituloDeOutraTecnica(titulo, nomes) {
 }
 
 /* ------------------------------------------------------------
+   O VÍDEO DE OUTRA TÉCNICA
+
+   "Defesa contra Americana" recebia a aula de defesa de
+   estrangulamento em X: as duas são "defesa", e a trava só olhava
+   o título. Agora vale o que o vídeo ensina: técnica marcada que
+   não é a pedida e é de outra família, ou habilidade de outra
+   família de finalização, é outra técnica e não entra. Aula de
+   defesa em geral, sem técnica nem família, continua podendo
+   entrar, marcada como geral.
+   ------------------------------------------------------------ */
+function familiasDoVideo(a) {
+  const f = new Set();
+  for (const u of a.tecnicas || []) {
+    const c = familiaDaTecnica(u);
+    if (c) f.add(c);
+  }
+  for (const h of a.habilidades || []) if (FAMILIAS_DE_FINALIZACAO.has(h)) f.add(h);
+  return f;
+}
+
+function deOutraTecnica(a, pedido) {
+  if (!pedido.familia) return false;
+  if ((a.tecnicas || []).some((u) => (pedido.tecnicas || []).includes(u))) return false;
+  const familias = familiasDoVideo(a);
+  if (familias.has(pedido.familia)) return false;
+  const temTecnica = (a.tecnicas || []).length > 0;
+  const temOutraFinalizacao = [...familias].some((f) => FAMILIAS_DE_FINALIZACAO.has(f));
+  return temTecnica || temOutraFinalizacao;
+}
+
+/* ------------------------------------------------------------
    pedido:
      tecnicas   uids da biblioteca
      nomes      os mesmos, por nome, pra achar no título
+     familia    a família da técnica pedida (articular...)
      palavras   termos do assunto no título ("pesado", "força")
      posicoes   ['cem:baixo']
      habilidades, situacoes
@@ -126,14 +126,26 @@ function relevancia(a, pedido) {
 
   const tecnicas = pedido.tecnicas || [];
   const nomes = pedido.nomes || [];
+  const tecnico = tecnicas.length > 0 || nomes.length > 0;
+  if (tecnico && deOutraTecnica(a, pedido)) return { r: 0, porque: [] };
+  if (nomes.length && tituloDeOutraTecnica(a.t, nomes)) return { r: 0, porque: [] };
+
+  /* especifico: o vídeo é da técnica pedida, ou ao menos da família
+     dela. Sem isso, num pedido de técnica, ele é resposta geral. */
+  let especifico = false;
   if (tecnicas.some((u) => (a.tecnicas || []).includes(u))) {
     r += 30;
+    especifico = true;
     porque.push(nomes[0] || 'a técnica');
   } else if (nomes.some((n) => tituloCita(a.t, n))) {
     r += 20;
+    especifico = true;
     porque.push(nomes[0]);
+  } else if (pedido.familia && familiasDoVideo(a).has(pedido.familia)) {
+    r += 8;
+    especifico = true;
+    porque.push(nomeDe(HABILIDADES, pedido.familia));
   }
-  if (nomes.length && tituloDeOutraTecnica(a.t, nomes)) return { r: 0, porque: [] };
 
   /* o assunto no título ainda conta, e o motivo é a situação que
      o pedido descreve ("Contra mais pesado") */
@@ -180,7 +192,7 @@ function relevancia(a, pedido) {
     porque.push(nomeDe(FORMATOS, a.formato));
   }
 
-  return { r, porque: [...new Set(porque)] };
+  return { r, porque: [...new Set(porque)], generico: tecnico && !especifico };
 }
 
 /* embaralhamento estável da semana: dentro da mesma nota, a ordem
@@ -210,6 +222,11 @@ function semanaAtual() {
    relevante, cai no porquê das coisas, que serve pra qualquer
    situação; e sem aula longa do assunto, um short do assunto
    certo é melhor que nada.
+
+   Num pedido de técnica, "só aula longa" vira preferência e não
+   filtro: o short da Americana ganha da aula longa de defesa em
+   geral. E o vídeo que só responde de forma geral vem marcado
+   (generico), pra tela não dizer que ele ensina a técnica.
    ------------------------------------------------------------ */
 export function aulasPara(pedido, {
   faixa = 'branca',
@@ -223,19 +240,21 @@ export function aulasPara(pedido, {
   const fora = new Set(excluir);
   const chave = `${semanaAtual()}:${JSON.stringify(pedido)}`;
   const formatos = pedido.formatos || [];
+  const preferirAula = soAula && ((pedido.tecnicas || []).length > 0 || (pedido.nomes || []).length > 0);
 
   const notadas = lista
-    .filter((a) => !fora.has(a.id) && (!soAula || a.k === 'aula'))
+    .filter((a) => !fora.has(a.id) && (!soAula || preferirAula || a.k === 'aula'))
     .map((a) => {
-      const { r, porque } = relevancia(a, pedido);
+      const { r, porque, generico } = relevancia(a, pedido);
       if (r <= 0) return null;
       let nota = r * (PESO_DA_CLASSIFICACAO[a.classificacao] ?? 0.85);
+      if (preferirAula && a.k !== 'aula') nota -= 6;
       const i = formatos.indexOf(a.formato);
       if (i === 0) nota += 4;
       else if (i > 0) nota += 2;
       nota += ajusteDoNivel(a.nivel, faixa);
       if (a.ordem != null) nota += 1;
-      return { ...a, nota, porque, sorteio: semente(`${a.id}:${chave}`) };
+      return { ...a, nota, porque, generico, sorteio: semente(`${a.id}:${chave}`) };
     })
     .filter(Boolean);
 

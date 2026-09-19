@@ -97,7 +97,7 @@ export default function Estudo() {
     /* cada bloco diz de onde veio, e se caiu na reserva por não ter
        vídeo do assunto: é o que o painel mostra como pauta de gravação */
     const bloco = (b, pedido, lista) => blocos.push({
-      ...b, aulas: lista, faltou: lista.every((a) => a.reserva), pedidoTexto: descreverPedido(pedido),
+      ...b, aulas: lista, faltou: lista.every((a) => a.reserva || a.generico), pedidoTexto: descreverPedido(pedido),
     });
 
     for (const r of recs) {
@@ -479,7 +479,9 @@ function ListaAulas({ aulas, vistas, onTocar, grade = false }) {
               {a.tm?.includes('logica') && <Chip tone="ice">lógica</Chip>}
             </div>
             {a.porque?.length > 0 && (
-              <div className="micro muted" style={{ marginTop: 6 }}>ensina {a.porque.join(' · ')}</div>
+              <div className="micro muted" style={{ marginTop: 6 }}>
+                {a.generico ? 'em geral: ' : 'ensina '}{a.porque.join(' · ')}
+              </div>
             )}
           </div>
         </button>

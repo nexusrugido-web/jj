@@ -75,7 +75,7 @@ export function indiceDeTecnicas(catalogo) {
       ...[...String(t.nome).matchAll(/\(([^)]+)\)/g)].map((m) => semAcento(m[1])),
     ].filter(Boolean);
     for (const v of variantes) if (!exato.has(v)) exato.set(v, t.uid);
-    return { uid: t.uid, tamanho: nome.length, palavras: new Set(variantes.join(' ').split(' ')) };
+    return { uid: t.uid, tamanho: nome.length, texto: variantes.join(' '), palavras: new Set(variantes.join(' ').split(' ')) };
   });
   return { exato, itens };
 }
@@ -113,6 +113,67 @@ export function limparDaIa(bruta, indice) {
   };
 }
 
+/* Golpes que têm nome próprio e não são sinônimo um do outro.
+   Pedir armlock e receber kimura é resposta errada, e o título
+   citar um deles diz qual o vídeo ensina. */
+export const TECNICAS_DISTINTAS = [
+  'armlock', 'americana', 'kimura', 'omoplata', 'triangulo', 'mata leao',
+  'guilhotina', 'ezequiel', 'katagatame', 'botinha', 'tesoura', 'berimbolo',
+];
+
+/* o mesmo golpe, do jeito que aparece em título de vídeo */
+const GRAFIAS = {
+  'armlock': ['armlock', 'arm lock', 'chave de braco', 'juji'],
+  'chave de braco': ['armlock', 'arm lock', 'chave de braco'],
+  'americana': ['americana'],
+  'kimura': ['kimura'],
+  'omoplata': ['omoplata'],
+  'triangulo': ['triangulo', 'sankaku'],
+  'mata leao': ['mata leao', 'estrangulamento pelas costas'],
+  'guilhotina': ['guilhotina'],
+  'katagatame': ['katagatame', 'kata gatame', 'braco e cabeca'],
+  'ezequiel': ['ezequiel', 'ezekiel'],
+  'botinha': ['botinha', 'chave de pe'],
+  'chave de pe': ['botinha', 'chave de pe'],
+  'tesoura': ['tesoura', 'tesourinha'],
+  'toureando': ['toureando', 'toreando', 'toureio'],
+  'berimbolo': ['berimbolo'],
+  'crucifixo': ['crucifixo'],
+  'kesa': ['kesa', 'gravata'],
+};
+
+export function grafiasDe(nome) {
+  const n = semAcento(nome);
+  const saida = new Set();
+  for (const [chave, lista] of Object.entries(GRAFIAS)) {
+    if (n.includes(chave)) for (const g of lista) saida.add(g);
+  }
+  return [...saida];
+}
+
+const citaPalavra = (texto, termo) => new RegExp(`(^| )${termo}( |$)`).test(texto);
+
+/* ------------------------------------------------------------
+   A ETIQUETA QUE NÃO BATE COM O TÍTULO
+
+   "Jiu-Jitsu Americana: Técnica Incrível Passo a Passo!" marcado
+   como Triângulo. O título cita um golpe de nome próprio e nenhuma
+   técnica marcada é ele (em nenhuma das grafias). Devolve o golpe
+   citado, ou null. Sem técnica marcada não é conflito: é só falta.
+   ------------------------------------------------------------ */
+export function conflitoDeTecnica(titulo, tecnicas, indice) {
+  if (!indice || !tecnicas?.length) return null;
+  const t = semAcento(titulo);
+  const citados = TECNICAS_DISTINTAS.filter((n) => citaPalavra(t, n));
+  if (!citados.length) return null;
+  const nomeDe = (uid) => indice.itens.find((i) => i.uid === uid)?.texto || '';
+  const bate = citados.some((n) => {
+    const grafias = [n, ...grafiasDe(n)];
+    return tecnicas.some((u) => grafias.some((g) => citaPalavra(nomeDe(u), g)));
+  });
+  return bate ? null : citados[0];
+}
+
 export const CERTEZA_MINIMA = 0.6;
 const CERTEZA_SO_TITULO = 0.8;
 const DESCRICAO_MINIMA = 80;
@@ -145,13 +206,17 @@ const parentes = (h) => familiaDaHabilidade(h).flatMap((x) => [x, ...(VIZINHAS[x
 
 /* ------------------------------------------------------------
    video: a linha da tabela aula (titulo, temas, posicoes, faixa,
-          yt_descricao). ia: o que limparDaIa devolveu.
+          yt_descricao). ia: o que limparDaIa devolveu. indice: o
+          das técnicas, pra conferir a técnica marcada com o título.
 
    Devolve os campos pra gravar, já com o estado e o motivo.
    ------------------------------------------------------------ */
-export function decidir(video, ia) {
+export function decidir(video, ia, { indice = null } = {}) {
   const antes = doLegado({ temas: video.temas || [], posicoes: video.posicoes || [], faixa: video.faixa });
   const motivos = [];
+
+  const citado = conflitoDeTecnica(video.titulo, ia.tecnicas, indice);
+  if (citado) motivos.push(`o título fala de ${citado} e a técnica marcada é outra`);
 
   if (!ia.habilidades.length && !ia.formato) {
     motivos.push('a IA não achou o que o vídeo ensina');

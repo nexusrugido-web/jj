@@ -10,13 +10,12 @@ import {
 import Capa from './Capa';
 import { lerLinha, categorizar, idDoYoutube, tipoPorDuracao } from '../lib/categorizar';
 import { duracaoTexto, TEMAS_AULA } from '../db/aulas';
-import { SEED } from '../db/seed';
-import { uidEstavel, chaveNome } from '../lib/uid';
 import { buscarNoYoutube } from '../lib/youtube';
-import { indiceDeTecnicas, semAcento } from '../lib/classificar';
+import { semAcento, conflitoDeTecnica } from '../lib/classificar';
+import { CATALOGO_TECNICAS as TECNICAS, TECNICA_POR_UID as tecnicaPorUid, INDICE_TECNICAS } from '../lib/tecnicas';
 import { naEsteira, rodarEsteira, gravarYoutube, LimiteDoDia } from '../lib/esteira';
 import {
-  POSICOES, LADOS, HABILIDADES, FORMATOS, NIVEIS, SITUACOES, CLASSIFICACOES, DE_POSICAO_BIBLIOTECA,
+  POSICOES, LADOS, HABILIDADES, FORMATOS, NIVEIS, SITUACOES, CLASSIFICACOES,
   juntar, separar, familiaDaHabilidade, doLegado, paraLegado,
 } from '../lib/vocab';
 
@@ -52,22 +51,10 @@ function idDaLinha(linha) {
   return idDoYoutube(partes.find((p) => /youtu/i.test(p)) || '') || partes.map(idDoYoutube).find(Boolean) || null;
 }
 
-/* ------------------------------------------------------------
-   As técnicas que um vídeo pode ensinar são as da biblioteca, com
-   o mesmo uid estável que elas têm em todo aparelho. É por ele
-   que, lá na frente, a técnica que o aluno erra no rola encontra o
-   vídeo que ensina ela.
-   ------------------------------------------------------------ */
-const TECNICAS = SEED.techniques.map((t) => ({
-  uid: uidEstavel(chaveNome('techniques', t.pt)),
-  nome: t.pt,
-  en: t.en,
-  cat: t.cat,
-  posicao: separar(DE_POSICAO_BIBLIOTECA[t.from] || '').posicao || null,
-  busca: semAcento(`${t.pt} ${t.en}`),
-}));
-const tecnicaPorUid = new Map(TECNICAS.map((t) => [t.uid, t]));
-const INDICE_TECNICAS = indiceDeTecnicas(TECNICAS);
+/* As técnicas que um vídeo pode ensinar são as da biblioteca
+   (src/lib/tecnicas.js), com o mesmo uid estável que elas têm em
+   todo aparelho. É por ele que a técnica que o aluno erra no rola
+   encontra o vídeo que ensina ela. */
 
 /* ============================================================
    DE QUEM E O VIDEO
@@ -184,6 +171,35 @@ export default function Acervo() {
   useEffect(() => {
     if (!carregando && pendentes.length && !rodandoEsteira.current && !avisoEsteira && !pausada) ligarEsteira();
   }, [carregando, pendentes.length]);
+
+  /* ------------------------------------------------------------
+     A etiqueta que contradiz o título. A esteira passou a conferir
+     isso; os vídeos que ela já tinha classificado antes são
+     conferidos aqui, uma vez por abertura do painel: título que
+     cita Americana com a técnica marcada como Triângulo vai pra
+     revisão, com o motivo escrito.
+     ------------------------------------------------------------ */
+  const reconferiu = useRef(false);
+  useEffect(() => {
+    if (carregando || reconferiu.current || !lista.length) return;
+    reconferiu.current = true;
+    const suspeitos = lista
+      .filter((a) => a.classificacao === 'automatica')
+      .map((a) => ({ a, citado: conflitoDeTecnica(a.titulo, a.tecnicas, INDICE_TECNICAS) }))
+      .filter((x) => x.citado);
+    if (!suspeitos.length) return;
+    (async () => {
+      let n = 0;
+      for (const { a, citado } of suspeitos) {
+        const r = await salvarUm(a, {
+          classificacao: 'revisar',
+          classificacao_motivo: `o título fala de ${citado} e a técnica marcada é outra`,
+        });
+        if (r) n++;
+      }
+      if (n) toast(`${n} ${n === 1 ? 'vídeo foi' : 'vídeos foram'} pra revisão: a técnica marcada contradiz o título`);
+    })();
+  }, [carregando, lista.length]);
 
   function pausarEsteira() {
     pararEsteira.current = true;

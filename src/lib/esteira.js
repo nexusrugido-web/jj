@@ -116,7 +116,7 @@ export async function rodarEsteira(videos, { indice, aoAndar, parar }) {
     for (const v of lote) {
       const bruta = respostas.find((r) => r?.id === v.id);
       if (!bruta) { conta.erros++; continue; }
-      const campos = { ...decidir(v, limparDaIa(bruta, indice)), classificado_em: new Date().toISOString() };
+      const campos = { ...decidir(v, limparDaIa(bruta, indice), { indice }), classificado_em: new Date().toISOString() };
       /* só grava se ninguém conferiu na mão enquanto a IA pensava */
       const { data, error } = await supabase.from('aula').update(campos)
         .eq('id', v.id).eq('classificacao', 'legado').select('*');

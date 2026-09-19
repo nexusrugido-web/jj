@@ -1,5 +1,5 @@
 import { JSDOM } from 'jsdom';
-import fs from 'fs'; import path from 'path';
+import fs from 'fs'; import path from 'path'; import { pathToFileURL } from 'url';
 import 'fake-indexeddb/auto';
 
 const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', {
@@ -33,7 +33,7 @@ try {
   const logErro = console.error;
   console.error = (...a) => { erros.push(a.map(String).join(' ')); logErro(...a); };
 
-  await import(path.resolve('dist/assets', entrada));
+  await import(pathToFileURL(path.resolve('dist/assets', entrada)).href);
   await new Promise(r => setTimeout(r, 4000));
 
   /* ---------- atravessa o onboarding como um usuário ---------- */

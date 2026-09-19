@@ -68,6 +68,47 @@ const minhaTecnica = pedidoDaRec({ intencao: 'repetir', alvo: 'Triângulo' });
 ok('técnica sua puxa a habilidade e a posição de onde ela sai', [minhaTecnica.habilidades, minhaTecnica.posicoes.length > 0], [['estrangulamento'], true]);
 ok('repetir pede drill primeiro', minhaTecnica.formatos[0], 'drill');
 
+/* ---------- a Americana: técnica certa ou resposta geral, nunca outra técnica ---------- */
+const AMERICANA = uid('Americana');
+const ESTRANG_X = uid('Estrangulamento de braço em X');
+const KIMURA = uid('Kimura');
+const pedidoAmericana = pedidoDaRec({ intencao: 'corrigir', alvo: 'Americana' });
+ok('o pedido leva a família da técnica', pedidoAmericana.familia, 'articular');
+
+const acervoAmericana = [
+  v('defesa-estrangulamento-x', { tecnicas: [ESTRANG_X], habilidades: ['defesa', 'escapada', 'finalizacao'] }),
+  v('defesa-estrangulamento-legado', { habilidades: ['estrangulamento', 'defesa'], classificacao: 'legado' }),
+  v('defesa-geral', { habilidades: ['defesa'] }),
+  v('americana-short', { k: 'short', d: 60, tecnicas: [AMERICANA], habilidades: ['articular'] }),
+];
+const semAulaDaAmericana = aulasPara(pedidoAmericana, { lista: acervoAmericana, quantidade: 4, soAula: true });
+ok('defesa de estrangulamento nunca responde defesa contra Americana',
+  ids(semAulaDaAmericana).filter((x) => x.startsWith('defesa-estrang')), []);
+ok('o short da Americana ganha da aula longa de defesa em geral', ids(semAulaDaAmericana)[0], 'americana-short');
+ok('a defesa em geral entra depois, marcada como geral', semAulaDaAmericana.find((a) => a.id === 'defesa-geral')?.generico, true);
+ok('o vídeo da técnica não é geral', semAulaDaAmericana[0].generico, false);
+
+const comDefesaDaAmericana = [...acervoAmericana, v('defesa-americana', { tecnicas: [AMERICANA], habilidades: ['defesa'] })];
+ok('com aula de defesa da própria técnica, ela vem primeiro',
+  ids(aulasPara(pedidoAmericana, { lista: comDefesaDaAmericana, quantidade: 1, soAula: true })), ['defesa-americana']);
+
+const mesmaFamilia = [
+  v('Defesa de chaves no ombro', { tecnicas: [KIMURA], habilidades: ['defesa'] }),
+  v('Proteja os braços', { habilidades: ['articular', 'defesa'], classificacao: 'legado' }),
+  v('defesa-geral', { habilidades: ['defesa'] }),
+];
+const parente = aulasPara(pedidoAmericana, { lista: mesmaFamilia, quantidade: 3, soAula: true });
+ok('defesa da mesma família (chave articular) vem antes da geral', ids(parente), ['Defesa de chaves no ombro', 'Proteja os braços', 'defesa-geral']);
+ok('e diz a família', parente[0].porque.includes('Chave articular'), true);
+ok('título que fala de outra técnica da família não responde',
+  ids(aulasPara(pedidoAmericana, { lista: [v('Defesa de kimura', { tecnicas: [KIMURA], habilidades: ['defesa'] })], soAula: true })), []);
+
+const soGeral = aulasPara(pedidoAmericana, { lista: [v('defesa-geral', { habilidades: ['defesa'] })], soAula: true });
+ok('só com aula geral: ela vem, marcada, pra tela dizer que falta a da técnica', [ids(soGeral), soGeral[0].generico], [['defesa-geral'], true]);
+
+const naoTecnico = aulasPara({ habilidades: ['passagem'] }, { lista: [v('p-short', { k: 'short', habilidades: ['passagem'] }), v('p-aula', { habilidades: ['passagem'] })], soAula: true });
+ok('pedido que não é de técnica continua só com aula longa', ids(naoTecnico), ['p-aula']);
+
 /* ---------- ordem ---------- */
 const iguais = [v('visto', { habilidades: ['passagem'] }), v('novo', { habilidades: ['passagem'] })];
 ok('visto vai pro fim', ids(aulasPara({ habilidades: ['passagem'] }, { lista: iguais, vistas: ['visto'] })), ['novo', 'visto']);

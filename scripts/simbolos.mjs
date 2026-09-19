@@ -58,6 +58,8 @@ for (const a of arquivos) {
   const semComentario = s
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/\/\/[^\n]*/g, '')
+    /* o nome original em "import { X as Y }" não é uso de X */
+    .replace(/import\s+[\s\S]*?\s+from\s+['"][^'"]+['"]/g, '')
     .replace(/'[^']*'|"[^"]*"|`[^`]*`/g, "''")
     /* texto escrito entre tags é conteúdo, não código: em
        ">tabela da IBJJF<" a sigla é palavra, não variável */

@@ -125,5 +125,18 @@ const semLegado = C.decidir({ titulo: 'Aprenda isso e fique impossível de passa
 ok('vídeo novo sem etiqueta, descrição clara: automática', semLegado.classificacao, 'automatica');
 ok('e ganha tema e posição pro Estudo', [semLegado.temas, semLegado.posicoes], [['guarda'], ['guarda_aberta']]);
 
+/* ---------- o título fala de uma técnica e a IA marcou outra ---------- */
+const uidDe = (pt) => uidEstavel(chaveNome('techniques', pt));
+const tituloAmericana = 'Jiu-Jitsu Americana: Técnica Incrível Passo a Passo!';
+const comTecnica = (titulo, tecnicas) => C.decidir(peloTitulo(titulo),
+  ia({ posicoes: ['cem:cima'], habilidades: ['articular'], formato: 'tecnica', tecnicas: tecnicas.map((t) => nomeDe.get(uidDe(t))) }), { indice });
+const trocada = comTecnica(tituloAmericana, ['Triângulo']);
+ok('título de Americana marcado como Triângulo: revisar', trocada.classificacao, 'revisar');
+ok('e diz por quê', trocada.classificacao_motivo, 'o título fala de americana e a técnica marcada é outra');
+ok('marcado como Americana: sem conflito', comTecnica(tituloAmericana, ['Americana']).classificacao_motivo, null);
+ok('sem técnica marcada: sem conflito', comTecnica(tituloAmericana, []).classificacao_motivo, null);
+ok('grafia do título diferente do nome da técnica: sem conflito',
+  comTecnica('Armlock da guarda fechada', ['Chave de braço, armlock']).classificacao_motivo, null);
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);
