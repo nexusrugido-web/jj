@@ -43,6 +43,7 @@ export default function Estudo() {
   const vistas = useMemo(() => assistidas.map((a) => a.videoId), [assistidas]);
 
   const [aba, setAba] = useState('pravoce');
+  const [vistasNaTela, setVistasNaTela] = useState(12);
   const [tema, setTema] = useState(null);
   const [busca, setBusca] = useState('');
 
@@ -424,7 +425,7 @@ export default function Estudo() {
           <Card><Empty icon={Check} titulo="Nada assistido ainda" texto="As aulas que você concluir ficam guardadas aqui." /></Card>
         ) : (
           <div className="col" style={{ gap: 10 }}>
-            {[...assistidas].sort((a, b) => (b.ultima || '').localeCompare(a.ultima || '')).map((a) => (
+            {[...assistidas].sort((a, b) => (b.ultima || '').localeCompare(a.ultima || '')).slice(0, vistasNaTela).map((a) => (
               <button
                 key={a.id}
                 className="vista-item"
@@ -442,6 +443,11 @@ export default function Estudo() {
                 <span className="vista-play"><Play size={14} /></span>
               </button>
             ))}
+            {assistidas.length > vistasNaTela && (
+              <Btn variant="ghost" onClick={() => setVistasNaTela((n) => n + 12)} style={{ alignSelf: 'center' }}>
+                Mostrar mais ({assistidas.length - vistasNaTela})
+              </Btn>
+            )}
           </div>
         )
       )}

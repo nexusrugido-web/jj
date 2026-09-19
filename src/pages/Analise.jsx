@@ -9,6 +9,7 @@ import TaxaPorFaixa from '../components/TaxaPorFaixa';
 import { periodoDeDados, dentroDoPeriodo, rotuloDoPeriodo, primeiroTreino } from '../lib/periodo';
 import SeletorPeriodo from '../components/SeletorPeriodo';
 import RotuloPeriodo from '../components/RotuloPeriodo';
+import ListaResumida from '../components/ListaResumida';
 import { minhasTecnicas } from '../lib/graus';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
@@ -206,11 +207,15 @@ export default function Analise() {
       <div className="split" style={{ marginBottom: 14 }}>
         <Card>
           <div className="card-head"><div><RotuloPeriodo periodo={periodo} /><h2 className="h-sec">Suas finalizações</h2></div><Chip tone="jade">{r.finalizacoes}</Chip></div>
-          <BarrasTop dados={r.topAplicadas} tone="jade" vazio="Nenhuma finalização no período." />
+          <ListaResumida itens={r.aplicadas} quantos={5} verTodos="Ver todas" titulo="Suas finalizações" subtitulo={rotuloDoPeriodo(periodo)}>
+            {(lista) => <BarrasTop dados={lista} tone="jade" vazio="Nenhuma finalização no período." />}
+          </ListaResumida>
         </Card>
         <Card>
           <div className="card-head"><div><RotuloPeriodo periodo={periodo} /><h2 className="h-sec">O que te pega</h2></div><Chip tone="blood">{r.taps}</Chip></div>
-          <BarrasTop dados={r.topSofridas} tone="blood" vazio="Ninguém te finalizou no período." />
+          <ListaResumida itens={r.sofridas} quantos={5} verTodos="Ver todas" titulo="O que te pega" subtitulo={rotuloDoPeriodo(periodo)}>
+            {(lista) => <BarrasTop dados={lista} tone="blood" vazio="Ninguém te finalizou no período." />}
+          </ListaResumida>
         </Card>
       </div>
 

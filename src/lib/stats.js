@@ -73,6 +73,9 @@ export function resumo(sessions, rolls) {
     tapPct: pct(tap, total),
     saldo: subsAplicadas.length - subsSofridas.length,
     streak: calcStreak([...new Set(sessions.map((s) => s.data))]),
+    /* as listas inteiras, pro "Ver todas" */
+    aplicadas: contar(subsAplicadas),
+    sofridas: contar(subsSofridas),
     topAplicadas: contar(subsAplicadas).slice(0, 8),
     topSofridas: contar(subsSofridas).slice(0, 8),
   };

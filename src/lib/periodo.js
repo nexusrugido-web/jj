@@ -1,4 +1,4 @@
-import { hoje, addDias, diasEntre, pct, mesNome, fmtData } from './utils';
+import { hoje, addDias, diasEntre, pct, mesNome, fmtData, mesPorExtenso } from './utils';
 import { placarDaRola } from './game';
 import { somarPontos } from '../db/scoring';
 import { FAIXA_ORDEM } from './utils';
@@ -431,7 +431,6 @@ function resumoDosDias(porDia, semanas) {
 
 const pad2 = (n) => String(n).padStart(2, '0');
 const fimDoMes = (ano, mes) => `${ano}-${pad2(mes + 1)}-${pad2(new Date(ano, mes + 1, 0).getDate())}`;
-const MESES_LONGOS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 
 /* ---------- os últimos 30 dias, pro calendário da tela ----------
    A mesma janela de "últimos 30 dias" dos números, com o resumo
@@ -532,7 +531,7 @@ export function mesDoCalendario(sessions, rolls, ano, mes) {
   return {
     mes, ano, ini, fim,
     nome: mesNome(mes),
-    rotulo: `${MESES_LONGOS[mes]} de ${ano}`,
+    rotulo: mesPorExtenso(ini),
     dias: diasEmSemanas(ini, fim, porDia),
     resumo: resumoDosDias(porDia, Math.max(1, corridos) / 7),
   };

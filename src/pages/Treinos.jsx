@@ -19,7 +19,7 @@ import {
   Card, Btn, Field, Input, Textarea, Select, Sheet, Chip, Stepper, Empty,
   Confirmar, useToast, TagsInput, SubsInput, Busca, PontosInput, EscolhaChips, ParceiroRapido,
 } from '../components/UI';
-import { hoje, fmtData, fmtDur, relativo, mmss, buscaMatch } from '../lib/utils';
+import { hoje, fmtData, fmtDur, relativo, mmss, buscaMatch, mesPorExtenso } from '../lib/utils';
 import { useLimite } from '../components/Limite';
 import { LIMITES } from '../lib/plano';
 import { useCronometro, useMarco, vibrar } from '../lib/timer';
@@ -105,6 +105,9 @@ function notaDaSessao(s) {
   return partes.join('\n');
 }
 
+/* o histórico é a própria tela: carrega de 20 em 20, agrupado por mês */
+const POR_VEZ = 20;
+
 export default function Treinos() {
   const { sessions, rolls, partners, positions, techniques, categories, settings , ligada, acesso, irPara } = useApp();
   const toast = useToast();
@@ -120,6 +123,7 @@ export default function Treinos() {
   const [filtroTipo, setFiltroTipo] = useState('todos');
   const [cronoAberto, setCronoAberto] = useState(false);
   const [vozAberta, setVozAberta] = useState(false);
+  const [mostrar, setMostrar] = useState(POR_VEZ);
 
   useEffect(() => {
     const q = new URLSearchParams(location.search);
@@ -129,6 +133,9 @@ export default function Treinos() {
       setAberta(id);
       setBusca('');
       setFiltroTipo('todos');
+      /* o treino pedido pode estar depois dos primeiros 20 */
+      const i = sessions.findIndex((s) => s.id === id);
+      if (i >= 0) setMostrar((m) => Math.max(m, Math.ceil((i + 1) / POR_VEZ) * POR_VEZ));
       // rola até o cartão depois que a lista renderiza
       const t = setTimeout(() => {
         const el = document.getElementById(`treino-${id}`);
@@ -402,7 +409,7 @@ export default function Treinos() {
         </Card>
       ) : (
         <div className="col" style={{ gap: 10 }}>
-          {lista.map((s) => {
+          {lista.slice(0, mostrar).map((s, i, visiveis) => {
             const rs = rolasPorSessao.get(s.id) || [];
             const abertaAqui = aberta === s.id;
             const fin = rs.flatMap((r) => r.subsAplicadas || []).length;
@@ -414,8 +421,13 @@ export default function Treinos() {
             const acad = acadById[s.academiaId]?.nome || s.academia;
             const prof = profById[s.professorId]?.nome || s.professor;
 
+            const mes = (s.data || '').slice(0, 7);
+            const novoMes = mes && (i === 0 || mes !== (visiveis[i - 1].data || '').slice(0, 7));
+
             return (
-              <Card key={s.id} id={`treino-${s.id}`} className="pad-0 hover">
+              <React.Fragment key={s.id}>
+              {novoMes && <div className="eyebrow" style={{ marginTop: i ? 10 : 0 }}>{mesPorExtenso(mes)}</div>}
+              <Card id={`treino-${s.id}`} className="pad-0 hover">
                 <button
                   className="list-item"
                   style={{ borderBottom: abertaAqui ? '1px solid var(--seam)' : 0, padding: 15, alignItems: 'flex-start' }}
@@ -567,8 +579,14 @@ export default function Treinos() {
                   </div>
                 )}
               </Card>
+              </React.Fragment>
             );
           })}
+          {lista.length > mostrar && (
+            <Btn variant="ghost" onClick={() => setMostrar((m) => m + POR_VEZ)} style={{ alignSelf: 'center' }}>
+              Mostrar mais ({lista.length - mostrar})
+            </Btn>
+          )}
         </div>
       )}
 

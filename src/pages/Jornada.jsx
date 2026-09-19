@@ -8,8 +8,9 @@ import { useApp } from '../contexto';
 import { Card, Btn, Stat, Empty, Bar, Sheet } from '../components/UI';
 import Liga from '../components/Liga';
 import Par from '../components/Par';
+import ListaResumida from '../components/ListaResumida';
 import { EVENTOS, DIVISOES, divisaoPorXp, proximaDivisao, semanaDe } from '../lib/xp';
-import { relativo, hoje, addDias } from '../lib/utils';
+import { relativo, hoje, addDias, fmtData } from '../lib/utils';
 
 /* Duas janelas, e não quatro.
 
@@ -112,7 +113,7 @@ export default function Jornada() {
   }, [pontos]);
 
   const recentes = useMemo(
-    () => [...pontos].sort((a, b) => b.criadoEm - a.criadoEm).slice(0, 20),
+    () => [...pontos].sort((a, b) => b.criadoEm - a.criadoEm),
     [pontos]
   );
 
@@ -267,18 +268,33 @@ export default function Jornada() {
             <h2 className="h-sec">Últimos pontos</h2>
           </div>
         </div>
-        <div className="col" style={{ gap: 7 }}>
-          {recentes.map((l) => (
-            <div key={l.id} className="xp-evento">
-              <span className="tiny" style={{ flex: 1 }}>
-                {EVENTOS[l.evento]?.nome || l.evento}
-                {l.detalhe && <span className="micro muted"> · {String(l.detalhe).slice(0, 34)}</span>}
-              </span>
-              <span className="micro muted">{relativo(l.data)}</span>
-              <span className="xp-evento-xp">+{l.xp}</span>
-            </div>
-          ))}
-        </div>
+        {/* 5 na tela; a folha tem todos, agrupados pelo dia do ponto */}
+        <ListaResumida itens={recentes} quantos={5} titulo="Todos os pontos" subtitulo="do dia mais recente pro mais antigo">
+          {(lista, completa) => {
+            const ordem = completa
+              ? [...lista].sort((a, b) => (b.data || '').localeCompare(a.data || '') || b.criadoEm - a.criadoEm)
+              : lista;
+            return (
+              <div className="col" style={{ gap: 7 }}>
+                {ordem.map((l, i) => (
+                  <React.Fragment key={l.id}>
+                    {completa && (i === 0 || ordem[i - 1].data !== l.data) && (
+                      <div className="eyebrow" style={{ marginTop: i ? 10 : 0 }}>{fmtData(l.data)} · {relativo(l.data)}</div>
+                    )}
+                    <div className="xp-evento">
+                      <span className="tiny" style={{ flex: 1 }}>
+                        {EVENTOS[l.evento]?.nome || l.evento}
+                        {l.detalhe && <span className="micro muted"> · {String(l.detalhe).slice(0, 34)}</span>}
+                      </span>
+                      {!completa && <span className="micro muted">{relativo(l.data)}</span>}
+                      <span className="xp-evento-xp">+{l.xp}</span>
+                    </div>
+                  </React.Fragment>
+                ))}
+              </div>
+            );
+          }}
+        </ListaResumida>
       </Card>
 
       <ComoFunciona aberto={comoFunciona} onClose={() => setComoFunciona(false)} />
