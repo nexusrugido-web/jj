@@ -56,6 +56,10 @@ export const primeiroTreino = (sessions) =>
 export const dentroDoPeriodo = (lista, periodo, campo = 'data') =>
   lista.filter((x) => x[campo] >= periodo.ini && x[campo] <= periodo.fim);
 
+/* n dias até hoje, pra conta que não vai pra tela com nome
+   (a carência de uma recomendação, o corte do plano grátis) */
+export const ultimosDias = (n, { hoje: dia = hoje() } = {}) => ({ ini: addDias(dia, -(n - 1)), fim: dia, dias: n });
+
 /* "Últimos 30 dias · 21/08 a 19/09", com o ano quando o intervalo vira o ano */
 export function rotuloDoPeriodo(periodo) {
   const curto = periodo.ini.slice(0, 4) === periodo.fim.slice(0, 4);

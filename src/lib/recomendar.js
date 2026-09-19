@@ -1,6 +1,7 @@
 import { grauPorN, contextoPorId, requisitosDaFaixa, posicoesSofridas, NOME_POSICAO_SOFRIDA, TITULO_POSICAO_SOFRIDA } from './graus';
-import { diasEntre, hoje, addDias } from './utils';
+import { diasEntre } from './utils';
 import { placarDaRola } from './game';
+import { ultimosDias } from './periodo';
 
 /* ============================================================
    RECOMENDAÇÕES POR INTENÇÃO
@@ -448,10 +449,10 @@ export function chaveDaRec(r) {
 
 /* remove o que você já marcou como feito recentemente */
 export function filtrarFeitas(recs, feitas, diasDeDescanso = 14) {
-  const corte = addDias(hoje(), -diasDeDescanso);
+  const { ini } = ultimosDias(diasDeDescanso);
 
   const recentes = new Set(
-    feitas.filter((f) => f.data >= corte && f.resultado !== 'nao').map((f) => f.chave)
+    feitas.filter((f) => f.data >= ini && f.resultado !== 'nao').map((f) => f.chave)
   );
 
   return recs.filter((r) => !recentes.has(chaveDaRec(r)));
@@ -486,9 +487,9 @@ export function respostaAoMarcar(resultado, rec, faixa = 'branca') {
 
 /* quanto do que foi sugerido você realmente treinou */
 export function aderencia(feitas, dias = 30) {
-  const corte = addDias(hoje(), -dias);
+  const { ini } = ultimosDias(dias);
 
-  const doPeriodo = feitas.filter((f) => f.data >= corte);
+  const doPeriodo = feitas.filter((f) => f.data >= ini);
   if (!doPeriodo.length) return null;
 
   const funcionou = doPeriodo.filter((f) => f.resultado === 'funcionou').length;

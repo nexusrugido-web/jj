@@ -36,7 +36,8 @@ const P = await import('../src/lib/periodo.js');
 const { dataLocal } = await import('../src/lib/utils.js');
 const { resumo } = await import('../src/lib/stats.js');
 const M = await import('../src/lib/metas.js');
-const { calcularDefesa } = await import('../src/lib/graus.js');
+const { calcularDefesa, posicoesSofridas } = await import('../src/lib/graus.js');
+const { filtrarFeitas } = await import('../src/lib/recomendar.js');
 const { hoje, addDias } = await import('../src/lib/utils.js');
 
 let falhas = 0;
@@ -224,6 +225,14 @@ ok('meta com início conta desde a meta', [doDia.valor, doDia.quando.startsWith(
 const horas = M.metaDeHorasNoAno(treinosM, 200);
 const noAno = treinosM.filter((s) => s.data.slice(0, 4) === H.slice(0, 4)).reduce((a, s) => a + s.duracao, 0);
 ok('horas no ano: meta como as outras, com o período', [horas.valor, horas.quando], [`${Math.round(noAno / 60)}h de 200h`, P.rotuloDoPeriodo(P.periodoDeDados('ano-atual'))]);
+
+/* ---------- as janelas que não vão pra tela ---------- */
+ok('ultimosDias: n dias até hoje, inclusivos', faixa(P.ultimosDias(14, { hoje: '2026-09-19' })), ['2026-09-06', '2026-09-19', 14]);
+const presoEm = [H, antes(29), antes(30)].map((data, i) => ({ id: 'p' + i, data }));
+const presas = posicoesSofridas(presoEm.map((x) => ({ sessionId: x.id, posInicial: 'cem_baixo' })), presoEm);
+ok('onde você fica preso: recente são os mesmos 30 dias', [presas[0].vezes, presas[0].recente], [3, 2]);
+const feitasR = [{ chave: 'corrigir:Americana', data: antes(13), resultado: 'funcionou' }, { chave: 'corrigir:Kimura', data: antes(14), resultado: 'funcionou' }];
+ok('recomendação feita descansa 14 dias, contando hoje', filtrarFeitas([{ intencao: 'corrigir', alvo: 'Americana' }, { intencao: 'corrigir', alvo: 'Kimura' }], feitasR).map((r) => r.alvo), ['Kimura']);
 
 const offset = new Date(2026, 8, 6, 12).getTimezoneOffset();
 console.log(`${process.env.FUSO_DO_TESTE} (${offset > 0 ? '-' : '+'}${Math.abs(offset) / 60}h): ${falhas ? `${falhas} falha(s)` : 'ok'}`);

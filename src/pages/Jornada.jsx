@@ -9,6 +9,8 @@ import { Card, Btn, Stat, Empty, Bar, Sheet } from '../components/UI';
 import Liga from '../components/Liga';
 import Par from '../components/Par';
 import ListaResumida from '../components/ListaResumida';
+import RotuloPeriodo from '../components/RotuloPeriodo';
+import { periodoDeDados, dentroDoPeriodo } from '../lib/periodo';
 import { EVENTOS, DIVISOES, divisaoPorXp, proximaDivisao, semanaDe } from '../lib/xp';
 import { relativo, hoje, addDias, fmtData } from '../lib/utils';
 
@@ -81,9 +83,7 @@ export default function Jornada() {
     for (const l of pontos) porEvento[l.evento] = (porEvento[l.evento] || 0) + l.xp;
     const div = divisaoPorXp(total);
     const prox = proximaDivisao(total);
-    const dias = (n) => addDias(hoje(), -n);
-    const janela = (filtro) => {
-      const linhas = pontos.filter(filtro);
+    const janela = (linhas) => {
       return {
         xp: linhas.reduce((a, x) => a + (x.xp || 0), 0),
         eventos: linhas.length,
@@ -106,8 +106,8 @@ export default function Jornada() {
       divisao: div,
       proxima: prox,
       janelas: {
-        ritmo: janela((x) => x.data >= dias(29)),
-        jornada: janela(() => true),
+        ritmo: janela(dentroDoPeriodo(pontos, periodoDeDados('ultimos-30'))),
+        jornada: janela(pontos),
       },
     };
   }, [pontos]);
@@ -234,7 +234,7 @@ export default function Jornada() {
       <Card style={{ marginBottom: 14 }}>
         <div className="card-head">
           <div>
-            <div className="eyebrow">de onde vieram os seus pontos</div>
+            <RotuloPeriodo periodo={periodoDeDados('desde-inicio')}>de onde vieram os seus pontos</RotuloPeriodo>
             <h2 className="h-sec">O que você anda fazendo</h2>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { FAIXA_ORDEM, hoje, addDias } from './utils';
+import { FAIXA_ORDEM } from './utils';
 import { periodoDeDados, dentroDoPeriodo } from './periodo';
 
 /* ============================================================
@@ -406,7 +406,8 @@ export function jogoPrincipal(lista, limite = 6) {
    consigo sair dali".
    ============================================================ */
 export function posicoesSofridas(rolls, sessions, limite = 6) {
-  const trinta = addDias(hoje(), -30);
+  const mes = periodoDeDados('ultimos-30');
+  const recente = (data) => data >= mes.ini && data <= mes.fim;
   const dataDa = new Map(sessions.map((s) => [s.id, s.data]));
 
   const conta = new Map();
@@ -421,7 +422,7 @@ export function posicoesSofridas(rolls, sessions, limite = 6) {
     if (POSICAO_RUIM.has(inicio)) {
       const c = conta.get(inicio) || { vezes: 0, recente: 0 };
       c.vezes += 1;
-      if (data >= trinta) c.recente += 1;
+      if (recente(data)) c.recente += 1;
       conta.set(inicio, c);
     }
 
@@ -431,7 +432,7 @@ export function posicoesSofridas(rolls, sessions, limite = 6) {
       if (!chave) continue;
       const c = conta.get(chave) || { vezes: 0, recente: 0 };
       c.vezes += 1;
-      if (data >= trinta) c.recente += 1;
+      if (recente(data)) c.recente += 1;
       conta.set(chave, c);
     }
   }

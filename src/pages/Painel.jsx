@@ -17,6 +17,8 @@ import { minhasTecnicas, meusBuracos, resumoGraus, jogoPrincipal, grauPorN } fro
 import { recomendacoesDoAluno, INTENCOES } from '../lib/recomendar';
 import { progressoDaMeta, tituloDaMeta, metaDeHorasNoAno } from '../lib/metas';
 import LinhaDeMeta from '../components/LinhaDeMeta';
+import RotuloPeriodo from '../components/RotuloPeriodo';
+import { periodoDeDados } from '../lib/periodo';
 import Recomendacao from '../components/Recomendacao';
 import { sequencia, textoSequencia, resumoSemana, lerSemana, rotuloSemana, escudos, textoEscudo, semanasProtegidas } from '../lib/semana';
 import { situacao, guiaDeEstudo } from '../lib/lesao';
@@ -438,7 +440,7 @@ export default function Painel() {
             <div style={{ padding: '18px 18px 4px' }}>
               <div className="card-head" style={{ marginBottom: 4 }}>
                 <div>
-                  <div className="eyebrow">sai dos pontos que você marca</div>
+                  <RotuloPeriodo periodo={periodoDeDados('desde-inicio')}>sai dos pontos que você marca</RotuloPeriodo>
                   <h2 className="h-sec">Onde você fica por cima e onde fica por baixo</h2>
                 </div>
                 <span className="micro muted nowrap">pts IBJJF</span>
@@ -459,7 +461,10 @@ Toda vez que você marca um ponto, o app anota a posição que veio junto. Passa
           {dash.finalizacoes !== false && (
             <Card>
               <div className="card-head">
-                <h2 className="h-sec">Você finaliza com</h2>
+                <div>
+                  <RotuloPeriodo periodo={periodoDeDados('desde-inicio')} />
+                  <h2 className="h-sec">Você finaliza com</h2>
+                </div>
                 <Chip tone="jade">{r.finalizacoes}</Chip>
               </div>
               <BarrasTop dados={r.topAplicadas} tone="jade" vazio="Marque as finalizações nos rolas." />

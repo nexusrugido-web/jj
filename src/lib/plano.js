@@ -1,7 +1,8 @@
 import { supabase } from './supabase';
 import { db, getMeta, setMeta } from '../db/db';
-import { hoje, addDias, diasEntre } from './utils';
+import { hoje, diasEntre } from './utils';
 import { ligada } from './chaves';
+import { ultimosDias, dentroDoPeriodo } from './periodo';
 
 /* ============================================================
    PLANO
@@ -131,11 +132,11 @@ export function podeVer(acesso, recurso) {
   return !!acesso?.premium;
 }
 
-/* corta o histórico, sem esconder que existe mais */
+/* corta o histórico, sem esconder que existe mais. Só vale com a
+   cobrança ligada: desligada, todo mundo vê tudo. */
 export function recortarHistorico(lista, acesso, campoData = 'data') {
   if (!ligada('cobranca') || acesso?.premium) return { itens: lista, cortados: 0 };
-  const limite = addDias(hoje(), -LIMITES.historicoDias);
-  const dentro = lista.filter((x) => (x[campoData] || '') >= limite);
+  const dentro = dentroDoPeriodo(lista, ultimosDias(LIMITES.historicoDias), campoData);
   return { itens: dentro, cortados: lista.length - dentro.length };
 }
 

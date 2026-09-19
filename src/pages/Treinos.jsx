@@ -21,7 +21,8 @@ import {
 } from '../components/UI';
 import { hoje, fmtData, fmtDur, relativo, mmss, buscaMatch, mesPorExtenso } from '../lib/utils';
 import { useLimite } from '../components/Limite';
-import { LIMITES } from '../lib/plano';
+import { LIMITES, recortarHistorico } from '../lib/plano';
+import { HistoricoCortado } from '../components/Plano';
 import { useCronometro, useMarco, vibrar } from '../lib/timer';
 
 const TIPOS = [
@@ -204,7 +205,7 @@ export default function Treinos() {
     return m;
   }, [rolls]);
 
-  const lista = useMemo(() => sessions.filter((s) => {
+  const filtrados = useMemo(() => sessions.filter((s) => {
     if (filtroTipo !== 'todos' && s.tipo !== filtroTipo) return false;
     if (!busca) return true;
     const rs = rolasPorSessao.get(s.id) || [];
@@ -212,6 +213,9 @@ export default function Treinos() {
     return [s.foco, notaDaSessao(s), acadById[s.academiaId]?.nome, profById[s.professorId]?.nome, s.academia, s.professor, textoRolas]
       .some((c) => buscaMatch(c, busca));
   }), [sessions, busca, filtroTipo, rolasPorSessao, acadById, profById]);
+  /* no plano grátis, com a cobrança ligada, o histórico mostra os
+     últimos 30 dias e avisa quantos ficaram antes */
+  const { itens: lista, cortados } = useMemo(() => recortarHistorico(filtrados, acesso), [filtrados, acesso]);
 
   /* o que a IA entendeu vira um treino aberto pra você conferir.
      Nada é salvo antes de você olhar. */
@@ -406,6 +410,7 @@ export default function Treinos() {
             texto="Escolha as técnicas da aula e marque se pegou. Depois registre os rolas com os pontos e as anotações, é dali que sai o seu domínio e o seu estilo de jogo."
             acao={<Btn variant="primary" icon={Plus} onClick={abrirNova}>Registrar treino</Btn>}
           />
+          <HistoricoCortado cortados={cortados} onAssinar={() => irPara('ajustes')} />
         </Card>
       ) : (
         <div className="col" style={{ gap: 10 }}>
@@ -587,6 +592,7 @@ export default function Treinos() {
               Mostrar mais ({lista.length - mostrar})
             </Btn>
           )}
+          {lista.length <= mostrar && <HistoricoCortado cortados={cortados} onAssinar={() => irPara('ajustes')} />}
         </div>
       )}
 
