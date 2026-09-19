@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import { useApp } from '../contexto';
 import { db } from '../db/db';
-import { RESULTADOS_ROLA } from '../db/seed';
 import { PONTOS, POSICOES_INICIAIS, PESO_REL, posInicialPorId, pesoRelPorId, somarPontos, agruparPontos } from '../db/scoring';
 import { placarDaRola, ROTULO_RESULTADO, TOM_RESULTADO, posicoesImplicadas } from '../lib/game';
 import { CONTEXTOS } from '../lib/graus';
@@ -901,16 +900,28 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
 
       <div className="col" style={{ gap: 9 }}>
         {rolas.map((r, i) => {
-          const res = RESULTADOS_ROLA.find((x) => x.id === resultadoDerivado(r));
+          /* o placar decide tudo: pontos, vantagem e empate também
+             têm nome. A lista antiga só conhecia os quatro casos de
+             finalização, e a etiqueta saía vazia no resto. */
+          const res = resultadoDerivado(r);
           const open = rolaAberta === i;
           const parceiro = partners.find((p) => p.id === r.partnerId);
           return (
             <div key={i} className="card" style={{ padding: 0 }}>
-              <button className="list-item" style={{ padding: 12, borderBottom: open ? '1px solid var(--seam)' : 0 }} onClick={() => setRolaAberta(open ? null : i)}>
+              {/* a linha inteira abre o rola, menos a lixeira: por isso são
+                  dois botões lado a lado, e não um dentro do outro */}
+              <div className="list-item" style={{ padding: 12, borderBottom: open ? '1px solid var(--seam)' : 0 }}>
+                <button
+                  type="button"
+                  className="grow row"
+                  style={{ gap: 12, alignItems: 'center', textAlign: 'left', minWidth: 0 }}
+                  onClick={() => setRolaAberta(open ? null : i)}
+                  aria-expanded={open}
+                >
                 <span className="num micro muted">#{i + 1}</span>
                 <div className="grow row wrap" style={{ gap: 6 }}>
                   <span className="tiny">{parceiro?.nome || 'Sem parceiro'}</span>
-                  <Chip tone={res?.cor === 'neutro' ? '' : res?.cor}>{res?.nome}</Chip>
+                  <Chip tone={TOM_RESULTADO[res] || ''}>{ROTULO_RESULTADO[res]}</Chip>
                   <span className="micro muted num">{r.duracao}min</span>
                   {(r.contexto || 'rola') !== 'rola' && <Chip>{CONTEXTOS.find((c) => c.id === r.contexto)?.nome}</Chip>}
                   <Chip><Trophy size={10} /> {somarPontos(r.ptsMeus)}×{somarPontos(r.ptsDele)}</Chip>
@@ -918,10 +929,11 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
                   {(r.subsSofridas || []).length > 0 && <Chip tone="blood">−{r.subsSofridas.length}</Chip>}
                   {r.notas?.trim() && <MessageSquare size={12} className="muted" />}
                 </div>
-                <button className="btn ghost icon sm" onClick={(e) => { e.stopPropagation(); setRolas(rolas.filter((_, j) => j !== i)); }} aria-label="Remover rola">
+                </button>
+                <button type="button" className="btn ghost icon sm" onClick={() => setRolas(rolas.filter((_, j) => j !== i))} aria-label="Remover rola">
                   <Trash2 size={14} />
                 </button>
-              </button>
+              </div>
 
               {open && (
                 <div className="col" style={{ padding: 12, gap: 12 }}>

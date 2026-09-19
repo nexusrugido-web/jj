@@ -825,9 +825,3 @@ export const REGIOES_CORPO = [
   'Lombar', 'Quadril', 'Tornozelo', 'Pé', 'Punho', 'Orelha', 'Costas', 'Outra',
 ];
 
-export const RESULTADOS_ROLA = [
-  { id: 'finalizei', nome: 'Finalizei', cor: 'jade' },
-  { id: 'fui_finalizado', nome: 'Fui finalizado', cor: 'blood' },
-  { id: 'neutro', nome: 'Nenhum tapa', cor: 'neutro' },
-  { id: 'ambos', nome: 'Trocamos taps', cor: 'warn' },
-];
