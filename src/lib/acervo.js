@@ -38,6 +38,13 @@ function daTabela(l) {
     descricao: l.descricao || null,
     capa: l.capa_url || null,
     checkout: l.checkout_url || null,
+    /* o que o vídeo ensina, no vocabulário de src/lib/vocab.js */
+    posicaoLado: l.posicao_lado || [],
+    habilidades: l.habilidades || [],
+    tecnicas: l.tecnicas || [],
+    formato: l.formato || null,
+    nivel: l.nivel || null,
+    classificacao: l.classificacao || 'legado',
   };
 }
 
@@ -85,7 +92,7 @@ export async function acervoLocal() {
    lista antiga baixa tudo de novo uma vez, pra limpar o que ficou.
    ------------------------------------------------------------ */
 const CHAVE_FORMATO = 'acervo_formato';
-const FORMATO = 2;
+const FORMATO = 3;
 
 /* a regra, sem banco nem rede: o que fica na lista depois de uma
    resposta do servidor. completa = a resposta é o acervo inteiro. */

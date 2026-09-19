@@ -2691,3 +2691,8 @@ body.player-cheio .sheet-overlay { backdrop-filter: none; -webkit-backdrop-filte
   .rec-passo { padding-right: 0; }
   .rec-passo:not(:last-child)::after { right: auto; left: 12px; top: 28px; width: 1px; height: 8px; }
 }
+
+/* ---------- acervo: posição e lado de cada vídeo ---------- */
+.ens-pos { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--seam); }
+.ens-pos:last-child { border-bottom: 0; }
+.ens-pos > .tiny { flex: 1; min-width: 92px; }

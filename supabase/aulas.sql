@@ -90,6 +90,9 @@ create policy aula_escrita on public.aula
 
 -- ------------------------------------------------------------
 -- 4. A DATA DE ATUALIZACAO SE CUIDA SOZINHA
+--
+-- estudo.sql troca esta funcao por uma que ignora o que so o
+-- painel ve (a descricao do YouTube). Rodado depois, ela vale.
 -- ------------------------------------------------------------
 create or replace function public.tocar_aula()
 returns trigger language plpgsql set search_path = public as $$

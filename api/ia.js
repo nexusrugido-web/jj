@@ -9,9 +9,17 @@
    - plano_ataque    : gera uma árvore de ataque
    - revisar_dieta   : comenta um plano alimentar
    - revisar_treino  : comenta um programa de academia
+   - classificar_videos : diz o que cada vídeo do acervo ensina, no
+                          vocabulário de src/lib/vocab.js
 */
 
+import { POSICOES, HABILIDADES, FORMATOS, NIVEIS, SITUACOES } from '../src/lib/vocab.js';
+
 const GROQ = 'https://api.groq.com/openai/v1/chat/completions';
+
+/* a lista que a IA pode usar, no formato "id (nome)" ou "id: descrição" */
+const lista = (itens, comDesc = false) =>
+  itens.map((x) => (comDesc && x.desc ? `${x.id}: ${x.desc}` : `${x.id} (${x.nome})`)).join('\n');
 
 const MODELO_JSON = 'openai/gpt-oss-120b';
 const MODELO_WEB = 'groq/compound';
@@ -171,6 +179,54 @@ Técnicas conhecidas: ${(p.tecnicas || []).slice(0, 250).join(', ')}`,
     user: `Perfil e plano do dia:\n${JSON.stringify(p.dados)}`,
   }),
 
+  /* ------------------------------------------------------------
+     Até 6 vídeos por chamada. A resposta passa por
+     src/lib/classificar.js antes de ir pro banco: id fora da lista
+     é jogado fora, e a certeza dela não é a última palavra.
+     ------------------------------------------------------------ */
+  classificar_videos: (p) => ({
+    modelo: MODELO_JSON,
+    json: true,
+    esforco: 'low',
+    maxTokens: 4000,
+    system:
+`Você classifica aulas de jiu-jitsu brasileiro do canal Neuro Jitsu, que ensina a lógica do jiu-jitsu, a maioria pra faixa branca e azul.
+Pra cada vídeo você recebe título, descrição do YouTube, etiquetas e duração. Diga o que ele ensina usando SÓ os ids das listas. Id fora da lista é descartado.
+
+POSIÇÕES, no formato "posicao:lado". O lado é o de QUEM ASSISTE e vai usar a aula:
+- baixo = quem está embaixo ou joga guarda. "cem:baixo" ensina sair ou defender embaixo do 100kg; "guarda_fechada:baixo" ensina quem joga a guarda.
+- cima = quem está por cima ou tenta passar. "cem:cima" ensina controlar no 100kg; "guarda_fechada:cima" ensina abrir e passar a guarda fechada.
+- neutro = vale pros dois lados, ou a posição não tem lado (em pé, 50/50).
+Só marque posição que o vídeo trata. Aula de conceito geral pode ficar sem posição.
+${lista(POSICOES)}
+
+HABILIDADES (uma ou mais):
+${lista(HABILIDADES)}
+
+FORMATO (um só):
+${lista(FORMATOS, true)}
+
+NÍVEL (um só, ou null se não der pra saber):
+${lista(NIVEIS, true)}
+
+SITUAÇÕES de quem assiste (zero ou mais, só quando o vídeo claramente ajuda quem está nela):
+${lista(SITUACOES, true)}
+
+TÉCNICAS: os nomes das técnicas específicas que o vídeo ensina, como se fala no tatame ("armlock", "triângulo", "kimura", "fuga de quadril", "raspagem de tesoura"). Vazio se não ensina técnica específica.
+
+certeza: de 0 a 1. Abaixo de 0.6 quando o título e a descrição não deixam claro o que o vídeo ensina (título genérico, só data, só hashtag). Aí diga a dúvida em uma frase em "duvida".
+
+Responda SOMENTE JSON, com um item por vídeo recebido, na mesma ordem:
+{"videos":[{"id":"...","posicoes":["cem:baixo"],"habilidades":["escapada"],"formato":"tecnica","nivel":"fundamento","situacoes":[],"tecnicas":["fuga de quadril"],"certeza":0.85,"duvida":""}]}`,
+    user: JSON.stringify((p.videos || []).slice(0, 6).map((v) => ({
+      id: v.id,
+      titulo: String(v.titulo || '').slice(0, 200),
+      descricao: String(v.descricao || '').slice(0, 700),
+      etiquetas: (v.tags || []).slice(0, 12),
+      duracao_segundos: v.duracao,
+    }))),
+  }),
+
   revisar_treino: (p) => ({
     modelo: MODELO_JSON,
     json: true,
@@ -215,7 +271,8 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: cfg.modelo,
         temperature: cfg.json ? 0.3 : 0.4,
-        max_tokens: 1800,
+        max_tokens: cfg.maxTokens || 1800,
+        ...(cfg.esforco ? { reasoning_effort: cfg.esforco } : {}),
         messages: [
           { role: 'system', content: cfg.system },
           { role: 'user', content: cfg.user },
@@ -226,7 +283,9 @@ export default async function handler(req, res) {
 
     if (!r.ok) {
       const t = await r.text();
-      return res.status(502).json({ erro: 'A Groq recusou a chamada.', detalhe: t.slice(0, 400) });
+      /* 429 passa como 429: a esteira do acervo espera e tenta de
+         novo, em vez de marcar o vídeo como erro */
+      return res.status(r.status === 429 ? 429 : 502).json({ erro: 'A Groq recusou a chamada.', detalhe: t.slice(0, 400) });
     }
 
     const data = await r.json();
