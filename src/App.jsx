@@ -244,6 +244,21 @@ export default function App() {
     })();
   }, []);
 
+  /* O vídeo novo também chega quando o app volta pra frente. No
+     celular o app instalado fica dias aberto sem recarregar, e só
+     buscar na abertura deixava o aluno sem as aulas novas. Busca só
+     a diferença, e no máximo a cada 10 minutos. */
+  useEffect(() => {
+    let ultima = Date.now();
+    const aoVoltar = () => {
+      if (document.visibilityState !== 'visible' || Date.now() - ultima < 10 * 60 * 1000) return;
+      ultima = Date.now();
+      sincronizarAcervo().catch(() => {});
+    };
+    document.addEventListener('visibilitychange', aoVoltar);
+    return () => document.removeEventListener('visibilitychange', aoVoltar);
+  }, []);
+
   /* ---------- auth listener ---------- */
   useEffect(() => {
     if (!supabaseConfigurado) return;

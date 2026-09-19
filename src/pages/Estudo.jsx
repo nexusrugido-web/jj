@@ -12,10 +12,11 @@ import {
   Card, Btn, Chip, Empty, Stat, Sheet, Busca, Bar, Seg, useToast,
 } from '../components/UI';
 import {
-  aulasDoTema, aulasParaEstilo, aulasParaDor, aulasParaTecnica, aulaParaSituacao,
-  resumoAcervo, capa, duracaoTexto, registrarAulaVista, aulasDeEntrada,
+  aulasDoTema, resumoAcervo, capa, duracaoTexto, registrarAulaVista, aulasDeEntrada,
 } from '../lib/aulas';
-import { TEMAS_AULA, TEMA_POR_DOR } from '../db/aulas';
+import { aulasPara } from '../lib/motor';
+import { pedidoDaRec, DIFICULDADES, PEDIDO_DO_ESTILO } from '../lib/necessidades';
+import { TEMAS_AULA } from '../db/aulas';
 import { acervo } from '../lib/acervo';
 import { minhasTecnicas, meusBuracos } from '../lib/graus';
 import { recomendacoesDoAluno } from '../lib/recomendar';
@@ -83,16 +84,13 @@ export default function Estudo() {
     const blocos = [];
     const usados = new Set();
 
-    /* Cada recomendação puxa aula do assunto dela, não do estilo
-       genérico. Antes, recomendação sem técnica nomeada caía no
-       estilo e vinha vídeo de guarda pra problema de defesa. */
+    /* Cada recomendação puxa aula do assunto dela, pelo que o
+       vídeo ensina, e nenhum vídeo se repete entre os blocos. */
     for (const r of recs) {
-      const lista = aulaParaSituacao({
-        tecnica: r.alvo || null,
-        posicao: r.posicao || null,
-        intencao: r.intencao,
+      const lista = aulasPara(pedidoDaRec(r), {
         faixa,
-        vistas: [...vistas, ...usados],
+        vistas,
+        excluir: [...usados],
         quantidade: 2,
         soAula: true,
       });
@@ -100,8 +98,10 @@ export default function Estudo() {
       if (lista.length) blocos.push({ motivo: r.titulo, texto: r.texto, aulas: lista });
     }
 
-    if (settings.estiloDeclarado) {
-      const lista = aulasParaEstilo(settings.estiloDeclarado, { faixa, vistas: [...vistas, ...usados], quantidade: 4 });
+    if (PEDIDO_DO_ESTILO[settings.estiloDeclarado]) {
+      const lista = aulasPara(PEDIDO_DO_ESTILO[settings.estiloDeclarado], {
+        faixa, vistas, excluir: [...usados], quantidade: 4,
+      });
       if (lista.length) blocos.push({
         motivo: `Combina com o seu jogo`,
         texto: `Você marcou que joga ${estiloPorId(settings.estiloDeclarado).nome.toLowerCase()}. Estas aulas puxam pra esse lado.`,
@@ -278,25 +278,25 @@ export default function Estudo() {
         <>
           <Card style={{ marginBottom: 14 }}>
             <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-              Estas são as dificuldades que mais aparecem entre quem está começando. Escolha a que parece com a sua
-              e o app monta uma trilha em cima dela.
+              Estas são as dificuldades que os alunos mais contam. Escolha a que parece com a sua e o app monta
+              uma trilha em cima dela.
             </p>
           </Card>
           <div className="col" style={{ gap: 12 }}>
-            {Object.entries(TEMA_POR_DOR).map(([id, d]) => (
-              <Card key={id} className="hover">
+            {DIFICULDADES.map((d) => (
+              <Card key={d.id} className="hover">
                 <button
                   className="row"
                   style={{ width: '100%', gap: 12, textAlign: 'left' }}
-                  onClick={() => setDorAberta(dorAberta === id ? null : id)}
+                  onClick={() => setDorAberta(dorAberta === d.id ? null : d.id)}
                 >
                   <span className="stat-ico"><Layers size={15} /></span>
                   <span className="tiny" style={{ flex: 1, fontWeight: 600 }}>{d.nome}</span>
-                  <ChevronRight size={16} className="muted" style={{ transform: dorAberta === id ? 'rotate(90deg)' : 'none', transition: 'transform .2s' }} />
+                  <ChevronRight size={16} className="muted" style={{ transform: dorAberta === d.id ? 'rotate(90deg)' : 'none', transition: 'transform .2s' }} />
                 </button>
-                {dorAberta === id && (
+                {dorAberta === d.id && (
                   <div style={{ marginTop: 14 }}>
-                    <ListaAulas aulas={aulasParaDor(id, { faixa, vistas, quantidade: 5 })} vistas={vistas} onTocar={tocar} />
+                    <ListaAulas aulas={aulasPara(d.pedido, { faixa, vistas, quantidade: 5 })} vistas={vistas} onTocar={tocar} />
                   </div>
                 )}
               </Card>
@@ -384,6 +384,9 @@ function ListaAulas({ aulas, vistas, onTocar, grade = false }) {
               {a.f && <Chip>{a.f}</Chip>}
               {a.tm?.includes('logica') && <Chip tone="ice">lógica</Chip>}
             </div>
+            {a.porque?.length > 0 && (
+              <div className="micro muted" style={{ marginTop: 6 }}>ensina {a.porque.join(' · ')}</div>
+            )}
           </div>
         </button>
       ))}

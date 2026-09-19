@@ -738,39 +738,3 @@ export const TEMAS_AULA = [
   { id: 'competicao', nome: 'Faixa e competição', desc: 'Graduação, campeonato e o caminho' },
 ];
 
-/* qual tema atende cada intenção de recomendação */
-export const TEMA_POR_INTENCAO = {
-  corrigir: ['defesa', 'logica'],
-  repetir: ['logica', 'drill'],
-  consolidar: ['drill', 'logica'],
-  testar: ['logica', 'competicao'],
-  adaptar: ['logica'],
-  conectar: ['logica'],
-  refinar: ['logica'],
-  explorar: ['guarda', 'passagem', 'queda'],
-  validar: ['competicao'],
-  aprender: ['defesa', 'logica'],
-};
-
-/* qual tema atende cada estilo detectado no teste */
-export const TEMA_POR_ESTILO = {
-  quedador: ['queda', 'controle', 'logica'],
-  passador: ['passagem', 'controle', 'logica'],
-  guardeiro: ['guarda', 'raspagem', 'logica'],
-  finalizador: ['finalizacao', 'logica'],
-  controlador: ['controle', 'logica'],
-  defensor: ['defesa', 'logica', 'fisico'],
-  completo: ['logica', 'guarda', 'controle'],
-};
-
-/* as dores que os alunos mais relatam, e o tema que responde cada uma */
-export const TEMA_POR_DOR = {
-  porque: { nome: 'Entender o porquê das técnicas', temas: ['logica'] },
-  gas: { nome: 'Cansar rápido, faltar gás', temas: ['fisico', 'logica'] },
-  travar: { nome: 'Travar no rola, não saber o que fazer', temas: ['logica', 'drill'] },
-  apanhar: { nome: 'Apanhar muito, não conseguir sair', temas: ['defesa', 'logica'] },
-  guarda: { nome: 'Não conseguir jogar de guarda', temas: ['guarda', 'raspagem'] },
-  passar: { nome: 'Não conseguir passar a guarda', temas: ['passagem', 'controle'] },
-  esquecer: { nome: 'Esquecer a técnica na hora', temas: ['drill', 'logica'] },
-  corpo: { nome: 'Idade, dor ou lesão atrapalhando', temas: ['fisico', 'logica'] },
-};

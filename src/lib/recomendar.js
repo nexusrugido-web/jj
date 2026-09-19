@@ -1,5 +1,6 @@
 import { grauPorN, contextoPorId, requisitosDaFaixa, posicoesSofridas, NOME_POSICAO_SOFRIDA, TITULO_POSICAO_SOFRIDA } from './graus';
 import { diasEntre, hoje } from './utils';
+import { placarDaRola } from './game';
 
 /* ============================================================
    RECOMENDAÇÕES POR INTENÇÃO
@@ -199,6 +200,21 @@ export function gerarRecomendacoes({
     });
   }
 
+  /* Lutar com gente mais pesada foi das dificuldades mais citadas
+     no formulário de entrada dos alunos. Quando os rolas mostram
+     isso, vira recomendação com nome. */
+  const pesado = contraMaisPesado(rolls || []);
+  if (pesado) {
+    out.push({
+      intencao: 'corrigir',
+      alvo: null,
+      situacao: 'contra_pesado',
+      titulo: 'Contra quem é mais pesado',
+      texto: `Contra gente mais pesada você perdeu ${pesado.perdas} de ${pesado.n} rolas${pesado.outros !== null ? `, e contra o resto do pessoal, ${pesado.outros}% das vezes` : ''}. Contra peso, posição e alavanca rendem mais que força.`,
+      evidencia: `${pesado.perdas} de ${pesado.n} rolas contra mais pesados`,
+    });
+  }
+
   /* 2. ADAPTAR: o parceiro já leu a sua entrada */
   const paraAdaptar = tecnicas.find((t) =>
     t.refinamento >= 4 && t.transferencia <= 2 && t.grau >= 2 && t.melhorParceiro);
@@ -299,6 +315,30 @@ export function gerarRecomendacoes({
   return out
     .sort((a, b) => INTENCOES[a.intencao].ordem - INTENCOES[b.intencao].ordem)
     .slice(0, limite);
+}
+
+/* Perde contra mais pesado bem mais do que contra o resto? Com
+   pelo menos 4 rolas contra mais pesados, pra não tirar conclusão
+   de um dia ruim. */
+export function contraMaisPesado(rolls) {
+  const comPeso = rolls.filter((r) => r.pesoRel);
+  const pesados = comPeso.filter((r) => r.pesoRel === 'pesado');
+  const outros = comPeso.filter((r) => r.pesoRel !== 'pesado');
+  if (pesados.length < 4) return null;
+
+  const perdas = (lista) => lista.filter((r) => placarDaRola(r).perdeu).length;
+  const taxa = perdas(pesados) / pesados.length;
+  if (taxa < 0.5) return null;
+
+  const comparar = outros.length >= 3;
+  const taxaOutros = comparar ? perdas(outros) / outros.length : null;
+  if (comparar && taxa - taxaOutros < 0.2) return null;
+
+  return {
+    n: pesados.length,
+    perdas: perdas(pesados),
+    outros: comparar ? Math.round(taxaOutros * 100) : null,
+  };
 }
 
 /* ============================================================
@@ -403,7 +443,7 @@ export const RESULTADOS = [
 
 /* a chave identifica a sugestão, pra ela não voltar igual */
 export function chaveDaRec(r) {
-  return `${r.intencao}:${r.alvo || 'geral'}`;
+  return `${r.intencao}:${r.alvo || r.situacao || 'geral'}`;
 }
 
 /* remove o que você já marcou como feito recentemente */

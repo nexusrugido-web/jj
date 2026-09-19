@@ -4,7 +4,9 @@ import { Check, X, Minus, Play, Sparkles } from 'lucide-react';
 import { db } from '../db/db';
 import { Card, Btn, Chip, useToast } from './UI';
 import { INTENCOES, RESULTADOS, chaveDaRec, respostaAoMarcar } from '../lib/recomendar';
-import { aulaParaSituacao, capa, duracaoTexto, registrarAulaVista } from '../lib/aulas';
+import { capa, duracaoTexto, registrarAulaVista } from '../lib/aulas';
+import { aulasPara } from '../lib/motor';
+import { pedidoDaRec } from '../lib/necessidades';
 import Player from './Player';
 import { darXp } from '../lib/xp';
 import { hoje } from '../lib/utils';
@@ -35,13 +37,10 @@ export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFei
 
   const info = INTENCOES[rec.intencao] || INTENCOES.repetir;
 
-  /* a escada de busca: técnica, posição, problema, tema e por
-     fim lógica. Nunca volta de mãos vazias. */
+  /* o motor procura pelo que o vídeo ensina, no acervo inteiro.
+     Sem nada do assunto, cai no porquê das coisas. */
   const aulas = comAula
-    ? aulaParaSituacao({
-        tecnica: rec.alvo || null,
-        posicao: rec.posicao || null,
-        intencao: rec.intencao,
+    ? aulasPara(pedidoDaRec(rec), {
         faixa,
         vistas,
         quantidade: 1,
@@ -100,7 +99,9 @@ export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFei
         <button className="rec-aula" onClick={() => tocar(aulas[0])}>
           <Capa id={aulas[0].id} propria={aulas[0].capa} tamanho="mq" />
           <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-            <div className="micro" style={{ color: 'var(--dimmer)' }}>aula sobre isso</div>
+            <div className="micro" style={{ color: 'var(--dimmer)' }}>
+              {aulas[0].porque?.length ? `ensina ${aulas[0].porque.join(' · ')}` : 'aula sobre isso'}
+            </div>
             <div className="micro" style={{ fontWeight: 600, marginTop: 2, lineHeight: 1.35 }}>{aulas[0].t}</div>
           </div>
           <span className="micro muted num">{duracaoTexto(aulas[0].d)}</span>
