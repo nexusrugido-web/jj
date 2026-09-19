@@ -656,6 +656,8 @@ button.chip:hover { color: var(--chalk); border-color: var(--dimmer); }
   .shell, .main, .page { max-width: 100vw; overflow-x: clip; }
   .page > * { max-width: 100%; }
   .card { max-width: 100%; overflow-wrap: anywhere; }
+  /* número não quebra no meio: "10h4" em cima de "5" */
+  .card .stat-val { overflow-wrap: normal; }
   table { display: block; overflow-x: auto; max-width: 100%; }
   svg { max-width: 100%; }
 
