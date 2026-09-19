@@ -114,6 +114,7 @@ export function limparDaIa(bruta, indice) {
 }
 
 export const CERTEZA_MINIMA = 0.6;
+const CERTEZA_SO_TITULO = 0.8;
 const DESCRICAO_MINIMA = 80;
 
 /* ------------------------------------------------------------
@@ -166,11 +167,13 @@ export function decidir(video, ia) {
     motivos.push(`estava em ${antes.habilidades.join(', ')} e a IA disse ${ia.habilidades.join(', ')}`);
   }
 
-  /* título que não diz nada e descrição vazia: qualquer resposta
-     é chute, por mais segura que a IA pareça */
+  /* título sem nenhuma palavra conhecida e descrição vazia: só
+     passa se a IA estiver bem segura. "Quem faz jiu precisa fazer
+     musculação?" não tem palavra da lista e a IA acerta; "31 de
+     agosto de 2026" também não tem, e aí qualquer resposta é chute. */
   const tituloDiz = categorizar(video.titulo).temas.length > 0;
   const descricaoDiz = String(video.yt_descricao || '').trim().length >= DESCRICAO_MINIMA;
-  if (!tituloDiz && !descricaoDiz) {
+  if (!tituloDiz && !descricaoDiz && ia.certeza < CERTEZA_SO_TITULO) {
     motivos.push('título genérico e quase sem descrição');
   }
 

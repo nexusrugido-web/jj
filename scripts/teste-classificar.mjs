@@ -95,10 +95,14 @@ ok('e o que existia continua', nada.temas, ['logica', 'controle', 'competicao'])
 
 /* os vídeos que chegam novos, sem etiqueta de ninguém */
 const data = C.decidir({ titulo: '31 de agosto de 2026', temas: ['geral'], posicoes: [], yt_descricao: '#bjj' },
-  ia({ habilidades: ['passagem'], formato: 'tecnica', certeza: 0.95 }));
-ok('título que é uma data e sem descrição: revisar mesmo com a IA segura', [data.classificacao, data.classificacao_motivo],
+  ia({ habilidades: ['passagem'], formato: 'tecnica', certeza: 0.7 }));
+ok('título que é uma data e sem descrição: revisar, mesmo a IA achando que sabe', [data.classificacao, data.classificacao_motivo],
   ['revisar', 'título genérico e quase sem descrição']);
 ok('e o "geral" dá lugar ao tema que a IA achou', data.temas, ['passagem']);
+
+const semPalavra = C.decidir({ titulo: 'Quem faz jiu precisa fazer musculação? #bjj', temas: ['geral'], posicoes: [] },
+  ia({ habilidades: ['fisico'], formato: 'conceito', certeza: 0.85 }));
+ok('título sem palavra da lista, mas a IA bem segura: automática', semPalavra.classificacao, 'automatica');
 
 const genericoComDescricao = C.decidir({ titulo: '31 de agosto de 2026', temas: ['geral'], yt_descricao: 'Neste vídeo eu mostro como passar a guarda aberta controlando o quadril antes de passar a perna, com os três detalhes que mais erram.' },
   ia({ posicoes: ['guarda_aberta:cima'], habilidades: ['passagem'], formato: 'tecnica' }));

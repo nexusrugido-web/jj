@@ -209,13 +209,17 @@ ${lista(FORMATOS, true)}
 NÍVEL (um só, ou null se não der pra saber):
 ${lista(NIVEIS, true)}
 
-SITUAÇÕES de quem assiste (zero ou mais, só quando o vídeo claramente ajuda quem está nela):
+SITUAÇÕES de quem assiste. Marque sempre que o título ou a descrição tocar no problema (força, peso, gás, não saber o que fazer, esquecer a técnica, competir):
 ${lista(SITUACOES, true)}
 
-TÉCNICAS: os nomes das técnicas específicas que o vídeo ensina, como se fala no tatame ("armlock", "triângulo", "kimura", "fuga de quadril", "raspagem de tesoura"). Vazio se não ensina técnica específica.
+TÉCNICAS: as que o título ou a descrição citam pelo nome, como se fala no tatame ("armlock", "triângulo", "kimura", "arm drag", "raspagem de tesoura"). Não invente técnica que não foi citada.
 
 QUASE TODO SHORT VEM SEM DESCRIÇÃO. Quando o título já diz o assunto, classifique pelo título e dê certeza alta. Hashtag (#bjj, #jiujitsu) não é assunto.
-Exemplo: "Como sair da 100kg #bjj" => posicoes ["cem:baixo"], habilidades ["escapada"], formato "tecnica", certeza 0.8.
+Exemplos:
+"Como sair da 100kg #bjj" => posicoes ["cem:baixo"], habilidades ["escapada"], formato "tecnica", certeza 0.8
+"A lógica da raspagem tesourinha" => posicoes ["guarda_fechada:baixo"], habilidades ["raspagem"], formato "conceito", tecnicas ["raspagem de tesoura"], certeza 0.85
+"Jiu-jitsu sem força: aprenda isso" => habilidades ["fisico"], formato "conceito", situacoes ["menos_forca"], certeza 0.8
+"Como lutar contra alguém mais pesado" => formato "conceito", situacoes ["contra_pesado"], certeza 0.8
 
 certeza: de 0 a 1. Abaixo de 0.6 só quando nem o título nem a descrição dizem o assunto (só uma data, "testando", pedido de comentário). Aí deixe as listas vazias e diga a dúvida em uma frase em "duvida".
 
