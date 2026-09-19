@@ -105,6 +105,11 @@ export function Privacidade({ onVoltar }) {
           <li>Nome e e-mail, se você criar conta.</li>
           <li>O que você registra: treinos, rolas, técnicas, metas, lesões e aulas vistas.</li>
           <li>Faixa, academia e professor, se você preencher.</li>
+          <li>
+            Como você usa o Estudo: que aulas o app te recomendou, quais você abriu e terminou. Serve pra
+            melhorar as recomendações e saber que aula falta gravar, e a equipe só vê isso em números somados,
+            nunca o de uma pessoa.
+          </li>
         </ul>
         <p>
           Sem conta, nada disso sai do seu aparelho. Com conta, fica guardado no Supabase, em servidor

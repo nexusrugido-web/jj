@@ -6,7 +6,8 @@ import { Card, Btn, Chip, useToast } from './UI';
 import { INTENCOES, RESULTADOS, chaveDaRec, respostaAoMarcar } from '../lib/recomendar';
 import { capa, duracaoTexto, registrarAulaVista } from '../lib/aulas';
 import { aulasPara } from '../lib/motor';
-import { pedidoDaRec } from '../lib/necessidades';
+import { pedidoDaRec, descreverPedido } from '../lib/necessidades';
+import { medir, origem as origemDe } from '../lib/medir';
 import Player from './Player';
 import { darXp } from '../lib/xp';
 import { hoje } from '../lib/utils';
@@ -23,7 +24,7 @@ import { useLimite } from './Limite';
    sabe se o app está te ouvindo.
    ============================================================ */
 
-export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFeito, comAula = true }) {
+export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFeito, comAula = true, tela = 'painel' }) {
   const toast = useToast();
   const { acesso, irPara } = useApp();
   const { liberarVideo, aviso } = useLimite(acesso, irPara);
@@ -31,16 +32,19 @@ export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFei
   const [resposta, setResposta] = useState(null);
   const [tocando, setTocando] = useState(null);
 
+  const deOnde = origemDe(tela, 'rec', chaveDaRec(rec));
+
   async function tocar(a) {
-    if (await liberarVideo(a, `recomendacao:${chaveDaRec(rec)}`)) setTocando(a);
+    if (await liberarVideo(a, deOnde)) setTocando({ ...a, origem: deOnde });
   }
 
   const info = INTENCOES[rec.intencao] || INTENCOES.repetir;
 
   /* o motor procura pelo que o vídeo ensina, no acervo inteiro.
      Sem nada do assunto, cai no porquê das coisas. */
+  const pedido = pedidoDaRec(rec);
   const aulas = comAula
-    ? aulasPara(pedidoDaRec(rec), {
+    ? aulasPara(pedido, {
         faixa,
         vistas,
         quantidade: 1,
@@ -49,6 +53,15 @@ export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFei
         soAula: true,
       })
     : [];
+
+  /* o que apareceu, e quando não tinha vídeo do assunto */
+  const idDaAula = aulas[0]?.id || null;
+  const faltou = comAula && (!aulas.length || aulas.every((a) => a.reserva));
+  useEffect(() => {
+    if (!comAula) return;
+    if (idDaAula) medir('exibiu', { origem: deOnde, videoId: idDaAula });
+    if (faltou) medir('faltou', { origem: deOnde, detalhe: descreverPedido(pedido) });
+  }, [deOnde, idDaAula, faltou]);
 
   async function marcar(resultado) {
     await db.recFeitas.add({

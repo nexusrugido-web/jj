@@ -15,12 +15,13 @@ import {
   aulasDoTema, resumoAcervo, capa, duracaoTexto, registrarAulaVista, aulasDeEntrada,
 } from '../lib/aulas';
 import { aulasPara } from '../lib/motor';
-import { pedidoDaRec, DIFICULDADES, PEDIDO_DO_ESTILO } from '../lib/necessidades';
+import { pedidoDaRec, DIFICULDADES, PEDIDO_DO_ESTILO, descreverPedido } from '../lib/necessidades';
+import { medir, origem as origemDe } from '../lib/medir';
 import { TEMAS_AULA } from '../db/aulas';
 import { EscolherDificuldades, MAX_DIFICULDADES } from '../components/Dificuldades';
 import { acervo } from '../lib/acervo';
 import { minhasTecnicas, meusBuracos } from '../lib/graus';
-import { recomendacoesDoAluno } from '../lib/recomendar';
+import { recomendacoesDoAluno, chaveDaRec } from '../lib/recomendar';
 import { estiloPorId } from '../db/scoring';
 import { relativo } from '../lib/utils';
 import Quiz from '../components/Quiz';
@@ -58,9 +59,10 @@ export default function Estudo() {
 
   /* antes de abrir, o app pergunta duas coisas: este vídeo é
      vendido à parte, e ainda cabe um hoje no plano grátis */
-  async function tocar(a, origem = `estudo:${aba}`) {
+  async function tocar(a, origem = origemDe('estudo', aba)) {
     if (!a) return;
-    if (await liberarVideo(a, origem)) setTocando(a);
+    /* a origem vai junto com o vídeo, pra conclusão saber de onde veio */
+    if (await liberarVideo(a, origem)) setTocando({ ...a, origem });
   }
   const [dorAberta, setDorAberta] = useState(null);
   const [editandoDif, setEditandoDif] = useState(false);
@@ -92,8 +94,15 @@ export default function Estudo() {
 
     /* Cada recomendação puxa aula do assunto dela, pelo que o
        vídeo ensina, e nenhum vídeo se repete entre os blocos. */
+    /* cada bloco diz de onde veio, e se caiu na reserva por não ter
+       vídeo do assunto: é o que o painel mostra como pauta de gravação */
+    const bloco = (b, pedido, lista) => blocos.push({
+      ...b, aulas: lista, faltou: lista.every((a) => a.reserva), pedidoTexto: descreverPedido(pedido),
+    });
+
     for (const r of recs) {
-      const lista = aulasPara(pedidoDaRec(r), {
+      const pedido = pedidoDaRec(r);
+      const lista = aulasPara(pedido, {
         faixa,
         vistas,
         excluir: [...usados],
@@ -101,7 +110,7 @@ export default function Estudo() {
         soAula: true,
       });
       for (const a of lista) usados.add(a.id);
-      if (lista.length) blocos.push({ motivo: r.titulo, texto: r.texto, aulas: lista });
+      if (lista.length) bloco({ motivo: r.titulo, texto: r.texto, origem: origemDe('estudo', 'rec', chaveDaRec(r)) }, pedido, lista);
     }
 
     /* o que a pessoa disse que trava. Vale desde o primeiro dia,
@@ -111,18 +120,27 @@ export default function Estudo() {
       if (!d) continue;
       const lista = aulasPara(d.pedido, { faixa, vistas, excluir: [...usados], quantidade: 3 });
       for (const a of lista) usados.add(a.id);
-      if (lista.length) blocos.push({ motivo: d.nome, texto: 'Você marcou que isso te trava. Estas aulas vão direto nisso.', aulas: lista });
+      if (lista.length) {
+        bloco({
+          motivo: d.nome,
+          texto: 'Você marcou que isso te trava. Estas aulas vão direto nisso.',
+          origem: origemDe('estudo', 'dificuldade', d.id),
+        }, d.pedido, lista);
+      }
     }
 
     if (PEDIDO_DO_ESTILO[settings.estiloDeclarado]) {
-      const lista = aulasPara(PEDIDO_DO_ESTILO[settings.estiloDeclarado], {
+      const pedido = PEDIDO_DO_ESTILO[settings.estiloDeclarado];
+      const lista = aulasPara(pedido, {
         faixa, vistas, excluir: [...usados], quantidade: 4,
       });
-      if (lista.length) blocos.push({
-        motivo: `Combina com o seu jogo`,
-        texto: `Você marcou que joga ${estiloPorId(settings.estiloDeclarado).nome.toLowerCase()}. Estas aulas puxam pra esse lado.`,
-        aulas: lista,
-      });
+      if (lista.length) {
+        bloco({
+          motivo: `Combina com o seu jogo`,
+          texto: `Você marcou que joga ${estiloPorId(settings.estiloDeclarado).nome.toLowerCase()}. Estas aulas puxam pra esse lado.`,
+          origem: origemDe('estudo', 'estilo', settings.estiloDeclarado),
+        }, pedido, lista);
+      }
     }
     return blocos;
   }, [recs, faixa, vistas, settings.estiloDeclarado, minhas, acervoVer]);
@@ -152,6 +170,31 @@ export default function Estudo() {
     () => (tema ? aulasDoTema(tema, { faixa, vistas, busca, tipo, pagina }) : null),
     [tema, faixa, vistas, busca, tipo, pagina, acervoVer]
   );
+
+  const aulasDaDor = useMemo(() => {
+    const d = DIFICULDADES.find((x) => x.id === dorAberta);
+    return d ? aulasPara(d.pedido, { faixa, vistas, quantidade: 5 }) : [];
+  }, [dorAberta, faixa, vistas, acervoVer]);
+
+  /* o que o app mostrou, pra o painel saber se a recomendação vira
+     vídeo aberto. Conta uma vez por dia (src/lib/medir.js). */
+  useEffect(() => {
+    if (aba !== 'pravoce') return;
+    const lista = paraVoce.length ? paraVoce : [{ origem: origemDe('estudo', 'entrada'), aulas: entrada }];
+    for (const b of lista) {
+      for (const a of b.aulas) medir('exibiu', { origem: b.origem, videoId: a.id });
+      if (b.faltou) medir('faltou', { origem: b.origem, detalhe: b.pedidoTexto });
+    }
+  }, [aba, paraVoce, entrada]);
+
+  useEffect(() => {
+    if (aba !== 'dores' || !dorAberta) return;
+    const o = origemDe('estudo', 'aba-dificuldade', dorAberta);
+    for (const a of aulasDaDor) medir('exibiu', { origem: o, videoId: a.id });
+    if (aulasDaDor.every((a) => a.reserva)) {
+      medir('faltou', { origem: o, detalhe: DIFICULDADES.find((x) => x.id === dorAberta)?.nome });
+    }
+  }, [aba, dorAberta, aulasDaDor]);
 
   async function marcarVista(a, segundos) {
     const r = await registrarAulaVista(a, segundos);
@@ -236,7 +279,7 @@ export default function Estudo() {
               exatamente o que está te travando. Por enquanto, estas são as que mais destravam quem está
               chegando.
             </p>
-            <ListaAulas aulas={entrada} vistas={vistas} onTocar={tocar} />
+            <ListaAulas aulas={entrada} vistas={vistas} onTocar={(a) => tocar(a, origemDe('estudo', 'entrada'))} />
           </Card>
         ) : (
           <div className="col" style={{ gap: 16 }}>
@@ -249,7 +292,7 @@ export default function Estudo() {
                   </div>
                 </div>
                 <p className="tiny muted" style={{ marginBottom: 14, lineHeight: 1.65 }}>{b.texto}</p>
-                <ListaAulas aulas={b.aulas} vistas={vistas} onTocar={tocar} />
+                <ListaAulas aulas={b.aulas} vistas={vistas} onTocar={(a) => tocar(a, b.origem)} />
               </Card>
             ))}
 
@@ -306,7 +349,7 @@ export default function Estudo() {
                 ))}
               </div>
             </Card>
-            <ListaAulas aulas={doTema.itens} vistas={vistas} onTocar={tocar} grade />
+            <ListaAulas aulas={doTema.itens} vistas={vistas} onTocar={(a) => tocar(a, origemDe('estudo', 'tema', tema))} grade />
             {doTema.temMais && (
               <Btn onClick={() => setPagina(pagina + 1)} style={{ width: '100%', marginTop: 14 }}>
                 Ver mais
@@ -347,7 +390,7 @@ export default function Estudo() {
                     >
                       {minhas.includes(d.id) ? 'Não me trava mais' : 'Isso me trava'}
                     </button>
-                    <ListaAulas aulas={aulasPara(d.pedido, { faixa, vistas, quantidade: 5 })} vistas={vistas} onTocar={tocar} />
+                    <ListaAulas aulas={aulasDaDor} vistas={vistas} onTocar={(a) => tocar(a, origemDe('estudo', 'aba-dificuldade', d.id))} />
                   </div>
                 )}
               </Card>
@@ -385,7 +428,7 @@ export default function Estudo() {
               <button
                 key={a.id}
                 className="vista-item"
-                onClick={() => tocar({ id: a.videoId, t: a.titulo, d: a.duracao, k: a.tipo })}
+                onClick={() => tocar({ id: a.videoId, t: a.titulo, d: a.duracao, k: a.tipo }, origemDe('estudo', 'vistas'))}
               >
                 <Capa id={a.videoId} tamanho="mq" />
                 <div className="vista-txt">

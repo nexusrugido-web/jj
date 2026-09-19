@@ -1,7 +1,9 @@
 import { SEED } from '../db/seed';
 import { uidEstavel, chaveNome } from './uid';
 import { indiceDeTecnicas, acharTecnicas } from './classificar';
-import { DE_POSICAO_SOFRIDA, DE_POSICAO_BIBLIOTECA } from './vocab';
+import {
+  DE_POSICAO_SOFRIDA, DE_POSICAO_BIBLIOTECA, HABILIDADES, SITUACOES, FORMATOS, nomeDe, nomePosicaoLado,
+} from './vocab';
 
 /* ============================================================
    O QUE O ALUNO PRECISA, NA LÍNGUA DOS VÍDEOS
@@ -117,3 +119,18 @@ export const PEDIDO_DO_ESTILO = {
   defensor: { habilidades: ['escapada', 'defesa'], formatos: ['tecnica', 'conceito'] },
   completo: { formatos: ['conceito'], formatoEhAssunto: true },
 };
+
+/* ------------------------------------------------------------
+   O pedido em palavras, pro painel mostrar onde falta vídeo:
+   "100kg por baixo · Escapada", "Contra mais pesado".
+   ------------------------------------------------------------ */
+export function descreverPedido(pedido = {}) {
+  const partes = [
+    ...(pedido.nomes || []),
+    ...(pedido.posicoes || []).map(nomePosicaoLado),
+    ...(pedido.habilidades || []).map((h) => nomeDe(HABILIDADES, h)),
+    ...(pedido.situacoes || []).map((x) => nomeDe(SITUACOES, x)),
+    ...(pedido.formatoEhAssunto ? (pedido.formatos || []).slice(0, 1).map((f) => nomeDe(FORMATOS, f)) : []),
+  ];
+  return [...new Set(partes)].join(' · ') || 'geral';
+}

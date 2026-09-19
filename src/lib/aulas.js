@@ -259,7 +259,9 @@ export async function registrarAulaVista(aula, segundos = 0) {
 
   /* só número entra. Quem chamar errado não estraga o registro */
   const seg = Number(segundos) > 0 ? Math.round(Number(segundos)) : aula.d;
-  await registrarEventoVideo(aula, 'concluiu', { segundos: seg });
+  await registrarEventoVideo(aula, 'concluiu', { segundos: seg, origem: aula.origem || null });
+  const { medir } = await import('./medir');
+  medir('concluiu', { origem: aula.origem || null, videoId: aula.id, segundos: seg });
 
   const ja = await db.aulasVistas.where('videoId').equals(aula.id).first();
 

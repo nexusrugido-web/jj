@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   LayoutDashboard, Film, CreditCard, Users, Sliders, Megaphone, ArrowLeft, Link as LinkIcon,
-  MessageCircle, TrendingUp,
+  MessageCircle, TrendingUp, Gauge,
 } from 'lucide-react';
 
 /* ============================================================
@@ -37,6 +37,12 @@ export const SECOES = [
     nome: 'Vídeos',
     icone: Film,
     resumo: 'Cadastrar, categorizar e decidir de quem é cada vídeo do acervo.',
+  },
+  {
+    id: 'medicao',
+    nome: 'Medição',
+    icone: Gauge,
+    resumo: 'Se a recomendação vira vídeo assistido, o que é largado no meio e onde falta vídeo.',
   },
   {
     id: 'acessos',

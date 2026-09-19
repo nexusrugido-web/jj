@@ -5,6 +5,7 @@ import { LimiteDoDia } from './Plano';
 import { limiteDoDia } from '../lib/plano';
 import { estadoDoVideo } from '../lib/pago';
 import { abertosHoje, registrarEventoVideo } from '../lib/aulas';
+import { medir } from '../lib/medir';
 import { comOrigemDoApp } from '../lib/links';
 
 /* ============================================================
@@ -46,13 +47,21 @@ export function useLimite(acesso, irPara) {
     if (!aula) return false;
 
     const e = estadoDoVideo(aula, acesso);
-    if (!e.pode) { setPago(e); return false; }
+    if (!e.pode) {
+      medir('barrado', { origem, videoId: aula.id, detalhe: 'pago' });
+      setPago(e);
+      return false;
+    }
 
     const tipo = aula.k === 'aula' ? 'aula' : 'short';
     const jaAberto = (await abertosHoje(tipo)).has(aula.id);
-    if (!jaAberto && !(await liberado(tipo))) return false;
+    if (!jaAberto && !(await liberado(tipo))) {
+      medir('barrado', { origem, videoId: aula.id, detalhe: 'limite' });
+      return false;
+    }
 
     await registrarEventoVideo(aula, 'abriu', { origem });
+    medir('abriu', { origem, videoId: aula.id });
     return true;
   }, [acesso, liberado]);
 

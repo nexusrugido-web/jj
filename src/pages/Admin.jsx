@@ -10,6 +10,7 @@ import {
 } from '../components/UI';
 import { carregarChaves, souAdminNoServidor } from '../lib/chaves';
 import Acervo from '../components/Acervo';
+import Medicao from '../components/Medicao';
 import Numeros from '../components/Numeros';
 import Contas from '../components/Contas';
 import Links from '../components/Links';
@@ -337,6 +338,8 @@ export default function Admin() {
       </>)}
 
       {aba === 'acervo' && <Acervo />}
+
+      {aba === 'medicao' && <Medicao />}
 
       {aba === 'acessos' && (<>
       {/* chaves por grupo */}

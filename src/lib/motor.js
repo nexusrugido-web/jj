@@ -244,7 +244,7 @@ export function aulasPara(pedido, {
     if (pedido.reserva === false) return [];
     return aulasPara({ formatos: ['conceito'], formatoEhAssunto: true, reserva: false }, {
       faixa, vistas, excluir, quantidade, lista,
-    }).map((a) => ({ ...a, porque: [] }));
+    }).map((a) => ({ ...a, porque: [], reserva: true }));
   }
 
   const ordenar = (l) => l.sort((a, b) => (b.nota - a.nota) || (a.sorteio - b.sorteio));

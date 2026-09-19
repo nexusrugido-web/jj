@@ -108,6 +108,7 @@ export default function Dominio() {
               <Recomendacao
                 key={`${r.intencao}:${r.alvo || i}`}
                 rec={r}
+                tela="dominio"
                 faixa={faixa}
                 vistas={vistas.map((v) => v.videoId)}
               />
