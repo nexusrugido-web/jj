@@ -1,4 +1,4 @@
-import { hoje, addDias, diasEntre, pct, mesNome } from './utils';
+import { hoje, addDias, diasEntre, pct, mesNome, fmtData } from './utils';
 import { placarDaRola } from './game';
 import { somarPontos } from '../db/scoring';
 import { FAIXA_ORDEM } from './utils';
@@ -17,6 +17,56 @@ export const PERIODOS = [
   { id: '1a', nome: '1 ano', dias: 365, grao: 'mes' },
   { id: 'tudo', nome: 'Tudo', dias: null, grao: 'mes' },
 ];
+
+/* ============================================================
+   O PERÍODO DOS DADOS
+
+   Um cadastro só de períodos com nome. Todo número que depende
+   de tempo pede o período aqui, e o rótulo que aparece na tela
+   sai do mesmo objeto que filtrou os dados: o que está escrito é
+   o que foi contado.
+
+   Início e fim inclusivos: "últimos 30 dias" é hoje e os 29 dias
+   antes. A semana começa na segunda. As datas são o dia no
+   calendário de quem usa, nunca o de Greenwich.
+
+   desde   o primeiro dia de "desde o início" (o primeiro treino)
+           e de "desde a meta" (o dia em que a meta foi criada)
+   ============================================================ */
+const CADASTRO_DE_PERIODOS = {
+  'semana-atual': { rotulo: 'Esta semana', curto: 'Semana', grao: 'dia' },
+  'ultimos-30': { rotulo: 'Últimos 30 dias', curto: '30 dias', dias: 30, grao: 'dia' },
+  '3m': { rotulo: 'Últimos 3 meses', curto: '3 meses', dias: 90, grao: 'semana' },
+  '6m': { rotulo: 'Últimos 6 meses', curto: '6 meses', dias: 182, grao: 'semana' },
+  'ano-atual': { rotulo: 'Este ano', curto: 'Este ano' },
+  'desde-inicio': { rotulo: 'Desde o início', curto: 'Tudo' },
+  'desde-a-meta': { rotulo: 'Desde a meta', curto: 'Desde a meta' },
+};
+
+const segundaDa = (dia) => addDias(dia, -((new Date(dia + 'T00:00:00').getDay() + 6) % 7));
+
+export function periodoDeDados(id, { hoje: dia = hoje(), desde = null } = {}) {
+  const chave = CADASTRO_DE_PERIODOS[id] ? id : 'ultimos-30';
+  const c = CADASTRO_DE_PERIODOS[chave];
+  let ini = dia;
+  let fim = dia;
+  if (c.dias) ini = addDias(dia, -(c.dias - 1));
+  else if (chave === 'semana-atual') { ini = segundaDa(dia); fim = addDias(ini, 6); }
+  else if (chave === 'ano-atual') ini = `${dia.slice(0, 4)}-01-01`;
+  else if (desde && desde < dia) ini = desde;
+  const dias = diasEntre(ini, fim) + 1;
+  const grao = c.grao || (dias > 400 ? 'mes' : dias > 120 ? 'semana' : 'dia');
+  return { id: chave, ini, fim, dias, grao, rotulo: c.rotulo, rotuloCurto: c.curto };
+}
+
+export const dentroDoPeriodo = (lista, periodo, campo = 'data') =>
+  lista.filter((x) => x[campo] >= periodo.ini && x[campo] <= periodo.fim);
+
+/* "Últimos 30 dias · 21/08 a 19/09", com o ano quando o intervalo vira o ano */
+export function rotuloDoPeriodo(periodo) {
+  const curto = periodo.ini.slice(0, 4) === periodo.fim.slice(0, 4);
+  return `${periodo.rotulo} · ${fmtData(periodo.ini, { curto })} a ${fmtData(periodo.fim, { curto })}`;
+}
 
 export const METRICAS = [
   {
@@ -319,12 +369,13 @@ export function marcadoresGraduacao(gradings, serie) {
 }
 
 /* ---------- dados do calendário ---------- */
-export function calendarioDoAno(sessions, rolls, ano) {
+/* o que cada dia de ini a fim teve de treino */
+function treinosPorDia(sessions, rolls, ini, fim) {
   const dataDe = new Map(sessions.map((s) => [s.id, s.data]));
   const porDia = new Map();
 
   for (const s of sessions) {
-    if (!s.data || !s.data.startsWith(String(ano))) continue;
+    if (!s.data || s.data < ini || s.data > fim) continue;
     const o = porDia.get(s.data) || { treinos: [], minutos: 0, rolas: 0, subsFeitas: 0, subsSofridas: 0 };
     o.treinos.push(s);
     o.minutos += Number(s.duracao) || 0;
@@ -338,39 +389,59 @@ export function calendarioDoAno(sessions, rolls, ano) {
     o.subsFeitas += (r.subsAplicadas || []).length;
     o.subsSofridas += (r.subsSofridas || []).length;
   }
+  return porDia;
+}
 
-  const meses = [];
-  for (let m = 0; m < 12; m++) {
-    const primeiro = new Date(ano, m, 1);
-    const ultimo = new Date(ano, m + 1, 0).getDate();
-    const offset = (primeiro.getDay() + 6) % 7; // segunda = 0
-    const dias = [];
-    for (let i = 0; i < offset; i++) dias.push(null);
-    for (let d = 1; d <= ultimo; d++) {
-      const iso = `${ano}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const info = porDia.get(iso);
-      const min = info?.minutos || 0;
-      dias.push({
-        dia: d, iso, info,
-        nivel: !min ? 0 : min < 45 ? 1 : min < 75 ? 2 : min < 120 ? 3 : 4,
-        futuro: iso > hoje(),
-        hoje: iso === hoje(),
-      });
-    }
-    meses.push({ mes: m, nome: mesNome(m), dias });
+/* os dias de ini a fim, com o vazio antes pra semana começar na segunda */
+function diasEmSemanas(ini, fim, porDia) {
+  const agora = hoje();
+  const offset = (new Date(ini + 'T00:00:00').getDay() + 6) % 7;
+  const dias = Array(offset).fill(null);
+  for (let iso = ini; iso <= fim; iso = addDias(iso, 1)) {
+    const info = porDia.get(iso);
+    const min = info?.minutos || 0;
+    dias.push({
+      dia: Number(iso.slice(8, 10)), iso, info,
+      nivel: !min ? 0 : min < 45 ? 1 : min < 75 ? 2 : min < 120 ? 3 : 4,
+      futuro: iso > agora,
+      hoje: iso === agora,
+    });
   }
+  return dias;
+}
 
-  const treinados = [...porDia.keys()].length;
+function resumoDosDias(porDia, semanas) {
   const minutos = [...porDia.values()].reduce((a, o) => a + o.minutos, 0);
-  const rolasTotal = [...porDia.values()].reduce((a, o) => a + o.rolas, 0);
+  const rolas = [...porDia.values()].reduce((a, o) => a + o.rolas, 0);
 
-  // maior sequência do ano
+  // maior sequência
   const ord = [...porDia.keys()].sort();
   let maior = 0, run = 0, prev = null;
   for (const d of ord) {
     run = prev && diasEntre(prev, d) === 1 ? run + 1 : 1;
     maior = Math.max(maior, run);
     prev = d;
+  }
+
+  return {
+    treinados: porDia.size,
+    horas: Math.round(minutos / 60),
+    rolas,
+    maiorSequencia: maior,
+    mediaSemana: Number((porDia.size / semanas).toFixed(1)),
+  };
+}
+
+const pad2 = (n) => String(n).padStart(2, '0');
+const fimDoMes = (ano, mes) => `${ano}-${pad2(mes + 1)}-${pad2(new Date(ano, mes + 1, 0).getDate())}`;
+const MESES_LONGOS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+
+export function calendarioDoAno(sessions, rolls, ano) {
+  const porDia = treinosPorDia(sessions, rolls, `${ano}-01-01`, `${ano}-12-31`);
+
+  const meses = [];
+  for (let m = 0; m < 12; m++) {
+    meses.push({ mes: m, nome: mesNome(m), dias: diasEmSemanas(`${ano}-${pad2(m + 1)}-01`, fimDoMes(ano, m), porDia) });
   }
 
   // melhor mês
@@ -384,13 +455,24 @@ export function calendarioDoAno(sessions, rolls, ano) {
   return {
     meses,
     resumo: {
-      treinados,
-      horas: Math.round(minutos / 60),
-      rolas: rolasTotal,
-      maiorSequencia: maior,
-      mediaSemana: Number((treinados / 52).toFixed(1)),
+      ...resumoDosDias(porDia, 52),
       melhorMes: melhor ? { nome: mesNome(Number(melhor[0])), horas: Math.round(melhor[1] / 60) } : null,
     },
+  };
+}
+
+/* ---------- os últimos 30 dias, pro calendário da tela ----------
+   A mesma janela de "últimos 30 dias" dos números, com o resumo
+   só desses dias. */
+export function janelaDoCalendario(sessions, rolls, { fim = hoje() } = {}) {
+  const p = periodoDeDados('ultimos-30', { hoje: fim });
+  const porDia = treinosPorDia(sessions, rolls, p.ini, p.fim);
+  return {
+    ini: p.ini,
+    fim: p.fim,
+    rotulo: p.rotulo,
+    dias: diasEmSemanas(p.ini, p.fim, porDia),
+    resumo: resumoDosDias(porDia, p.dias / 7),
   };
 }
 
@@ -475,10 +557,21 @@ export function taxaPorFaixa(sessions, rolls, partners, periodo = 'tudo', minhaF
   };
 }
 
-/* ---------- calendário de um mês só ---------- */
+/* ---------- calendário de um mês só, pro histórico ----------
+   O resumo é só desse mês, e a média por semana conta até hoje
+   quando o mês ainda não acabou. */
 export function mesDoCalendario(sessions, rolls, ano, mes) {
-  const { meses } = calendarioDoAno(sessions, rolls, ano);
-  return meses[mes];
+  const ini = `${ano}-${pad2(mes + 1)}-01`;
+  const fim = fimDoMes(ano, mes);
+  const porDia = treinosPorDia(sessions, rolls, ini, fim);
+  const corridos = diasEntre(ini, fim < hoje() ? fim : hoje()) + 1;
+  return {
+    mes, ano, ini, fim,
+    nome: mesNome(mes),
+    rotulo: `${MESES_LONGOS[mes]} de ${ano}`,
+    dias: diasEmSemanas(ini, fim, porDia),
+    resumo: resumoDosDias(porDia, Math.max(1, corridos) / 7),
+  };
 }
 
 export function mesesDisponiveis(sessions) {
