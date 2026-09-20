@@ -1,5 +1,5 @@
 import { hoje, diasEntre, pct, fmtData } from './utils';
-import { periodoDeDados, dentroDoPeriodo, rotuloDoPeriodo } from './periodo';
+import { periodoDeDados, dentroDoPeriodo } from './periodo';
 import { grauPorN, requisitosDaFaixa } from './graus';
 
 /* ============================================================
@@ -228,7 +228,7 @@ export function metaDeHorasNoAno(sessions, alvo) {
   const h = Math.round(min / 60);
   return {
     conta: true, atual: h, alvo, pct: pct(h, alvo), horas: true,
-    valor: deAte(h, alvo, true), periodo, quando: rotuloDoPeriodo(periodo),
+    valor: deAte(h, alvo, true), periodo, quando: periodo.rotulo,
     texto: h >= alvo ? `${h}h neste ano, meta batida.` : `${h}h de ${alvo}h neste ano.`,
   };
 }
@@ -277,7 +277,7 @@ function calcular(meta, dados = {}) {
       atual: n,
       alvo,
       pct: pct(n, alvo),
-      valor: deAte(n, alvo), periodo, quando: rotuloDoPeriodo(periodo),
+      valor: deAte(n, alvo), periodo, quando: periodo.rotulo,
       texto: n >= alvo
         ? `${n} de ${alvo} nesta semana, meta batida.`
         : `${n} de ${alvo} nesta semana.`,
@@ -326,7 +326,7 @@ function calcular(meta, dados = {}) {
       pct: recente === 0 ? 100 : Math.max(0, 100 - recente * 25),
       valor: `${recente} ${recente === 1 ? 'vez' : 'vezes'}`,
       periodo,
-      quando: `${rotuloDoPeriodo(periodo)} · objetivo: nenhuma`,
+      quando: `${periodo.rotulo} · quanto menos, melhor`,
       texto: recente === 0
         ? `Nenhuma vez nos últimos 30 dias. ${meta.alvo || 'Isso'} parou de te pegar.`
         : `${recente} ${recente === 1 ? 'vez' : 'vezes'} nos últimos 30 dias. Quanto menos, melhor.`,
@@ -362,7 +362,7 @@ function calcular(meta, dados = {}) {
     const n = dentroDoPeriodo(dados.aulas || [], periodo).length;
     const alvo = Number(meta.alvo) || 1;
     return {
-      conta: true, atual: n, alvo, pct: pct(n, alvo), valor: deAte(n, alvo), periodo, quando: rotuloDoPeriodo(periodo),
+      conta: true, atual: n, alvo, pct: pct(n, alvo), valor: deAte(n, alvo), periodo, quando: periodo.rotulo,
       texto: n >= alvo ? `${n} de ${alvo} aulas, meta batida.` : `${n} de ${alvo} aulas assistidas.`,
     };
   }
@@ -372,7 +372,7 @@ function calcular(meta, dados = {}) {
     const n = dentroDoPeriodo(dados.quiz || [], periodo).filter((q) => q.acertou).length;
     const alvo = Number(meta.alvo) || 1;
     return {
-      conta: true, atual: n, alvo, pct: pct(n, alvo), valor: deAte(n, alvo), periodo, quando: rotuloDoPeriodo(periodo),
+      conta: true, atual: n, alvo, pct: pct(n, alvo), valor: deAte(n, alvo), periodo, quando: periodo.rotulo,
       texto: `${n} de ${alvo} acertos.`,
     };
   }
@@ -383,7 +383,7 @@ function calcular(meta, dados = {}) {
     const n = (dados.rolls || []).filter((r) => ids.has(r.sessionId) && (r.contexto || 'rola') !== 'drill').length;
     const alvo = Number(meta.alvo) || 1;
     return {
-      conta: true, atual: n, alvo, pct: pct(n, alvo), valor: deAte(n, alvo), periodo, quando: rotuloDoPeriodo(periodo),
+      conta: true, atual: n, alvo, pct: pct(n, alvo), valor: deAte(n, alvo), periodo, quando: periodo.rotulo,
       texto: `${n} de ${alvo} rolas.`,
     };
   }
@@ -394,7 +394,7 @@ function calcular(meta, dados = {}) {
     const n = (dados.rolls || []).filter((r) => ids.has(r.sessionId) && r.posInicial === meta.alvo).length;
     const alvo = Number(meta.quantidade) || 10;
     return {
-      conta: true, atual: n, alvo, pct: pct(n, alvo), valor: deAte(n, alvo), periodo, quando: rotuloDoPeriodo(periodo),
+      conta: true, atual: n, alvo, pct: pct(n, alvo), valor: deAte(n, alvo), periodo, quando: periodo.rotulo,
       texto: n ? `${n} de ${alvo} rolas começando daí.` : 'Nenhum rola começou dessa posição ainda.',
     };
   }
@@ -406,7 +406,7 @@ function calcular(meta, dados = {}) {
     const alvo = Number(meta.alvo) || 1;
     return {
       conta: true, atual: h, alvo, pct: pct(h, alvo), horas: true,
-      valor: deAte(h, alvo, true), periodo, quando: rotuloDoPeriodo(periodo), texto: `${h}h de ${alvo}h.`,
+      valor: deAte(h, alvo, true), periodo, quando: periodo.rotulo, texto: `${h}h de ${alvo}h.`,
     };
   }
 

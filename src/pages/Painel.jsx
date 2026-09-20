@@ -2,17 +2,17 @@ import React, { useMemo, useState, useEffect } from 'react';
 import {
   Flame, Clock, Swords, Percent, TriangleAlert, Target, Repeat, Wind,
   ArrowRight, Plus, Award, Activity, Trophy, Sparkles, Loader,
-  ShieldCheck, HeartPulse,
+  ShieldCheck, HeartPulse, Check,
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { useApp } from '../contexto';
-import { Card, Stat, Btn, Contador, Bar, Empty, Chip } from '../components/UI';
+import { Card, Stat, Btn, Contador, Bar, Empty, Chip, Field, Stepper } from '../components/UI';
 import { EscadaPosicional, BarrasTop, Donut } from '../components/Charts';
 import Calendario from '../components/Calendario';
 import GraficoEvolucao from '../components/GraficoEvolucao';
 import { resumo, escadaPosicional, treinosNaSemana } from '../lib/stats';
-import { fmtDur, relativo, fmtData } from '../lib/utils';
+import { fmtDur, relativo, mesLongo } from '../lib/utils';
 import { minhasTecnicas, meusBuracos, resumoGraus, jogoPrincipal, grauPorN } from '../lib/graus';
 import { recomendacoesDoAluno, INTENCOES } from '../lib/recomendar';
 import { progressoDaMeta, tituloDaMeta, metaDeHorasNoAno } from '../lib/metas';
@@ -311,50 +311,22 @@ export default function Painel() {
         </Card>
       )}
 
-      {/* ---- ritmo da semana. Só vira meta se você tiver criado uma ---- */}
-      {(() => {
-        const metaFreq = (goals || []).find((g) => g.tipo === 'frequencia' && g.origem !== 'sugerida' && g.status === 'ativa');
-        const alvo = metaFreq ? Number(metaFreq.alvo) : 0;
-        return (
-          <Card style={{ marginBottom: 14 }}>
-            <div className="row" style={{ gap: 18, flexWrap: 'wrap' }}>
-              <Donut
-                valor={semana.qtd}
-                max={alvo || Math.max(1, semana.qtd)}
-                label={alvo ? `${semana.qtd}/${alvo}` : String(semana.qtd)}
-                sub="semana"
-                size={104}
-              />
-              <div style={{ flex: 1, minWidth: 200 }}>
-                <div className="eyebrow">{alvo ? 'meta que você criou' : 'esta semana'}</div>
-                <div className="h-sec" style={{ marginTop: 4 }}>
-                  {alvo
-                    ? (semana.qtd >= alvo
-                        ? 'Meta batida'
-                        : `${semana.qtd} de ${alvo} treinos`)
-                    : (semana.qtd === 0
-                        ? 'Nenhum treino registrado ainda'
-                        : `${semana.qtd} ${semana.qtd === 1 ? 'treino' : 'treinos'} registrados`)}
-                </div>
-                <p className="tiny muted" style={{ marginTop: 6 }}>
-                  {fmtData(semana.ini, { curto: true })} a {fmtData(semana.fim, { curto: true })}
-                  {r.streak.ultimo && `, último treino ${relativo(r.streak.ultimo)}`}
-                </p>
-                {!alvo && sessions.length >= 3 && (
-                  <p className="micro muted" style={{ marginTop: 8 }}>
-                    Se quiser um alvo de frequência, dá pra criar em Metas. Sem isso o app só mostra o que aconteceu.
-                  </p>
-                )}
-                <div className="row wrap" style={{ marginTop: 12, gap: 6 }}>
-                  {naGame > 0 && <Chip tone="jade">{naGame} no jogo</Chip>}
-                  {aprendendo > 0 && <Chip tone="warn">{aprendendo} aprendendo</Chip>}
-                  {paraRevisar.length > 0 && <Chip tone="blood">{paraRevisar.length} pra revisar</Chip>}
-                </div>
-              </div>
-            </div>
-          </Card>
-        );
-      })()}
+      {/* ---- o ritmo da semana ---- */}
+      <SemanaDoRitmo
+        semana={semana}
+        metaFreq={(goals || []).find((g) => g.tipo === 'frequencia' && g.origem !== 'sugerida' && g.status === 'ativa')}
+        porSemana={Number(settings.metaSemanal) || 0}
+        ultimoTreino={r.streak.ultimo}
+        salvarSettings={salvarSettings}
+        irPara={irPara}
+        chips={
+          <>
+            {naGame > 0 && <Chip tone="jade">{naGame} no jogo</Chip>}
+            {aprendendo > 0 && <Chip tone="warn">{aprendendo} aprendendo</Chip>}
+            {paraRevisar.length > 0 && <Chip tone="blood">{paraRevisar.length} pra revisar</Chip>}
+          </>
+        }
+      />
 
       {/* ---- convite pro teste de estilo ---- */}
       {!settings.estiloDeclarado && !settings.quizDispensado && !jogo.estilo && sessions.length > 0 && (
@@ -646,5 +618,93 @@ function Finalizacoes({ dadas = 0, sofridas = 0 }) {
         </p>
       </Sheet>
     </>
+  );
+}
+
+/* ============================================================
+   O RITMO DA SEMANA
+
+   O alvo é o que a pessoa respondeu no começo ("treino 3x por
+   semana"), e o círculo vai fechando com os treinos registrados.
+   Quem criou uma meta de frequência em Metas manda nela.
+
+   A semana vai de segunda a domingo e zera na segunda, então a
+   tela diz isso com todas as letras, em vez de dois números
+   soltos com barra.
+   ============================================================ */
+function SemanaDoRitmo({ semana, metaFreq, porSemana, ultimoTreino, salvarSettings, irPara, chips }) {
+  const [mudando, setMudando] = useState(false);
+  const [quanto, setQuanto] = useState(porSemana || 3);
+  const alvo = metaFreq ? Number(metaFreq.alvo) : porSemana;
+  const feito = semana.qtd;
+
+  const d1 = Number(semana.ini.slice(8, 10));
+  const d2 = Number(semana.fim.slice(8, 10));
+  const intervalo = mesLongo(semana.ini) === mesLongo(semana.fim)
+    ? `de segunda ${d1} a domingo ${d2} de ${mesLongo(semana.fim)}`
+    : `de segunda ${d1} de ${mesLongo(semana.ini)} a domingo ${d2} de ${mesLongo(semana.fim)}`;
+
+  return (
+    <Card style={{ marginBottom: 14 }}>
+      <div className="row" style={{ gap: 18, flexWrap: 'wrap' }}>
+        <Donut
+          valor={feito}
+          max={alvo || Math.max(1, feito)}
+          label={alvo ? `${feito}/${alvo}` : String(feito)}
+          sub="semana"
+          size={104}
+        />
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <div className="eyebrow">{metaFreq ? 'meta que você criou' : 'o ritmo que você marcou'}</div>
+          <div className="h-sec" style={{ marginTop: 4 }}>
+            {!alvo
+              ? (feito === 0 ? 'Nenhum treino esta semana' : `${feito} ${feito === 1 ? 'treino' : 'treinos'} esta semana`)
+              : feito >= alvo
+                ? 'Semana cumprida'
+                : `${feito} de ${alvo} treinos`}
+          </div>
+          <p className="tiny muted" style={{ marginTop: 6, lineHeight: 1.6 }}>
+            Esta semana, {intervalo}
+            {ultimoTreino && `. Último treino ${relativo(ultimoTreino)}`}
+            . Zera na segunda que vem.
+          </p>
+          {alvo > 0 && feito < alvo && (
+            <p className="micro muted" style={{ marginTop: 6 }}>
+              {alvo - feito === 1 ? 'Falta um treino' : `Faltam ${alvo - feito} treinos`} até domingo.
+            </p>
+          )}
+          <div className="row wrap" style={{ marginTop: 12, gap: 6 }}>
+            {chips}
+            <button
+              className="btn ghost xs"
+              onClick={() => (metaFreq ? irPara('metas') : setMudando(true))}
+            >
+              {metaFreq ? 'ver a meta' : 'mudar o ritmo'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <Sheet
+        aberto={mudando} onClose={() => setMudando(false)}
+        titulo="Quantas vezes por semana" subtitulo="é o alvo do círculo, dá pra mudar quando quiser"
+        footer={(
+          <>
+            <Btn variant="ghost" onClick={() => setMudando(false)}>Cancelar</Btn>
+            <Btn variant="primary" icon={Check} onClick={async () => { await salvarSettings({ metaSemanal: quanto }); setMudando(false); }}>
+              Salvar
+            </Btn>
+          </>
+        )}
+      >
+        <Field label="Treinos por semana">
+          <Stepper value={quanto} onChange={setQuanto} min={1} max={14} />
+        </Field>
+        <p className="micro muted" style={{ lineHeight: 1.7 }}>
+          Vale como alvo do círculo e ajuda o app a te colocar num grupo de ritmo parecido na liga.
+          Pra acompanhar de verdade, com histórico, crie uma meta de frequência em Metas.
+        </p>
+      </Sheet>
+    </Card>
   );
 }

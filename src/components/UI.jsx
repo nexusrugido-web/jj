@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
-import { X, Check, AlertTriangle, Minus, Plus, Search } from 'lucide-react';
+import { X, Check, AlertTriangle, Minus, Plus, Search, CalendarDays } from 'lucide-react';
+import { hoje, addDias, fmtData } from '../lib/utils';
 import { FAIXAS } from '../db/seed';
+import Sheet from './Sheet';
 
 /* ---------------- Toasts ---------------- */
 const ToastCtx = createContext(() => {});
@@ -53,6 +55,43 @@ export function Field({ label, children, hint }) {
 }
 
 export const Input = (p) => <input className={`input ${p.type === 'number' ? 'num-in' : ''}`} {...p} />;
+
+/* ============================================================
+   CAMPO DE NÚMERO QUE DEIXA APAGAR
+
+   Com o valor preso ao número, apagar o conteúdo virava 0 na
+   hora, e o zero ficava grudado no que a pessoa digitava depois:
+   quem queria 60 acabava com "060". Aqui o texto é local
+   enquanto o campo está em uso, e só o número sai pra fora.
+   ============================================================ */
+export function NumeroInput({ valor, onChange, vazio = 0, ...p }) {
+  const [texto, setTexto] = React.useState(valor == null ? '' : String(valor));
+  const digitando = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!digitando.current) setTexto(valor == null ? '' : String(valor));
+  }, [valor]);
+
+  return (
+    <Input
+      type="number"
+      inputMode="numeric"
+      value={texto}
+      onFocus={() => { digitando.current = true; }}
+      onBlur={() => {
+        digitando.current = false;
+        if (texto === '') { setTexto(String(vazio)); onChange(vazio); }
+        else setTexto(String(Number(texto)));
+      }}
+      onChange={(e) => {
+        const t = e.target.value;
+        setTexto(t);
+        onChange(t === '' ? vazio : Number(t));
+      }}
+      {...p}
+    />
+  );
+}
 export const Textarea = (p) => <textarea className="textarea" {...p} />;
 export const Select = ({ children, ...p }) => <select className="select" {...p}>{children}</select>;
 
@@ -167,7 +206,8 @@ export function Empty({ icon: Icon, titulo, texto, acao }) {
 }
 
 /* ---------------- Modal / Confirmar (agora vêm do Sheet) ---------------- */
-export { default as Sheet, Modal, ConfirmarSheet as Confirmar } from './Sheet';
+export { Sheet };
+export { Modal, ConfirmarSheet as Confirmar } from './Sheet';
 
 /* ---------------- Contador animado ---------------- */
 export function Contador({ valor, dur = 900, suffix = '' }) {
@@ -189,6 +229,57 @@ export function Contador({ valor, dur = 900, suffix = '' }) {
     return () => cancelAnimationFrame(raf);
   }, [alvo, dur]);
   return <>{n.toLocaleString('pt-BR')}{suffix}</>;
+}
+
+/* ============================================================
+   QUANDO FOI
+
+   Quase todo registro é de hoje ou de ontem. Um campo de data
+   obriga a pessoa a abrir o calendário do sistema e confirmar o
+   óbvio. Aqui o botão já diz "Hoje", e quem registra depois
+   escolhe na folha, inclusive outro dia qualquer.
+   ============================================================ */
+const DIAS_DA_SEMANA = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+const diaDaSemana = (iso) => DIAS_DA_SEMANA[new Date(`${iso}T00:00:00`).getDay()];
+
+export function EscolherData({ valor, onChange, titulo = 'Quando foi', futuro = false }) {
+  const [aberto, setAberto] = useState(false);
+  const atalhos = [
+    { data: hoje(), nome: 'Hoje' },
+    { data: addDias(hoje(), -1), nome: 'Ontem' },
+    { data: addDias(hoje(), -2), nome: 'Anteontem' },
+  ];
+  const atalho = atalhos.find((a) => a.data === valor);
+
+  return (
+    <>
+      <button type="button" className="input" onClick={() => setAberto(true)} style={{ textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <CalendarDays size={14} className="muted" />
+        {atalho ? atalho.nome : `${diaDaSemana(valor)}, ${fmtData(valor)}`}
+      </button>
+
+      <Sheet aberto={aberto} onClose={() => setAberto(false)} titulo={titulo}>
+        <div className="col" style={{ gap: 9 }}>
+          {atalhos.map((a) => (
+            <button
+              key={a.data} type="button"
+              className={`opcao-meta ${valor === a.data ? 'on' : ''}`}
+              onClick={() => { onChange(a.data); setAberto(false); }}
+            >
+              <div className="tiny" style={{ fontWeight: 600 }}>{a.nome}</div>
+              <div className="micro muted" style={{ marginTop: 2 }}>{diaDaSemana(a.data)}, {fmtData(a.data)}</div>
+            </button>
+          ))}
+        </div>
+        <Field label="Outro dia">
+          <Input
+            type="date" value={valor} max={futuro ? undefined : hoje()}
+            onChange={(e) => { if (e.target.value) { onChange(e.target.value); setAberto(false); } }}
+          />
+        </Field>
+      </Sheet>
+    </>
+  );
 }
 
 /* ---------------- Editor de lista genérico (flexibilidade) ---------------- */

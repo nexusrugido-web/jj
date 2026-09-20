@@ -1863,6 +1863,9 @@ button.liga-linha:hover { border-color: var(--seam-hi); }
 
 /* rolagem horizontal de chips sem barra feia */
 .chips-scroll {
+  /* flex: none porque dentro da folha (que é flex em coluna) a linha
+     era espremida e os botões apareciam cortados pela metade */
+  flex: none;
   display: flex; gap: 7px; overflow-x: auto;
   padding-bottom: 4px; margin-bottom: 12px;
   scrollbar-width: none; -webkit-overflow-scrolling: touch;

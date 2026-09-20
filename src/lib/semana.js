@@ -1,4 +1,4 @@
-import { hoje, addDias, diasEntre, fmtData } from './utils';
+import { hoje, addDias, diasEntre, mesLongo } from './utils';
 import { placarDaRola } from './game';
 import { semanaDe } from './xp';
 
@@ -174,7 +174,14 @@ export function semanasComTreino(sessions, limite = 8) {
   return set.slice(0, limite);
 }
 
-export const rotuloSemana = (w) => `${fmtData(w, { curto: true })} a ${fmtData(addDias(w, 6), { curto: true })}`;
+/* "de 14 a 20 de setembro": data escrita, que é como as pessoas falam */
+export const rotuloSemana = (w) => {
+  const fim = addDias(w, 6);
+  const dia = (iso) => Number(iso.slice(8, 10));
+  return mesLongo(w) === mesLongo(fim)
+    ? `de ${dia(w)} a ${dia(fim)} de ${mesLongo(fim)}`
+    : `de ${dia(w)} de ${mesLongo(w)} a ${dia(fim)} de ${mesLongo(fim)}`;
+};
 
 /* ============================================================
    ESCUDO DE CONSTÂNCIA

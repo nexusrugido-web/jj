@@ -20,8 +20,10 @@ const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'o
 export const mesNome = (i) => MESES[i];
 
 const MESES_LONGOS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+/* '2026-09-19' vira "setembro" */
+export const mesLongo = (iso) => MESES_LONGOS[Number(iso.slice(5, 7)) - 1];
 /* '2026-09' ou '2026-09-19' vira "setembro de 2026" */
-export const mesPorExtenso = (iso) => `${MESES_LONGOS[Number(iso.slice(5, 7)) - 1]} de ${iso.slice(0, 4)}`;
+export const mesPorExtenso = (iso) => `${mesLongo(iso)} de ${iso.slice(0, 4)}`;
 
 export function diasEntre(a, b) {
   const ms = new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00');

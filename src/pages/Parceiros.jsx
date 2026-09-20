@@ -8,7 +8,7 @@ import { useApp } from '../contexto';
 import { db } from '../db/db';
 import { FAIXAS } from '../db/seed';
 import {
-  Card, Btn, Field, Input, Textarea, Select, Sheet, Chip, Empty, Confirmar,
+  Card, Btn, Field, Input, NumeroInput, Textarea, Select, Sheet, Chip, Empty, Confirmar,
   useToast, BeltTag, Busca, Bar, Seg, Stat,
 } from '../components/UI';
 import { statsParceiro } from '../lib/stats';
@@ -134,7 +134,7 @@ export function AbaParceiros() {
                   {FAIXAS.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
                 </Select>
               </Field>
-              <Field label="Graus"><Input type="number" inputMode="numeric" min="0" max="4" value={edit.graus} onChange={(e) => setEdit({ ...edit, graus: Number(e.target.value) })} /></Field>
+              <Field label="Graus"><NumeroInput min="0" max="4" valor={edit.graus} onChange={(v) => setEdit({ ...edit, graus: v })} /></Field>
               <Field label="Peso (kg)"><Input type="number" inputMode="decimal" value={edit.pesoKg} onChange={(e) => setEdit({ ...edit, pesoKg: e.target.value })} /></Field>
             </div>
             <Field label="Academia">
@@ -371,7 +371,7 @@ function AbaProfessores() {
                   {FAIXAS.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
                 </Select>
               </Field>
-              <Field label="Graus"><Input type="number" inputMode="numeric" min="0" max="6" value={edit.graus} onChange={(e) => setEdit({ ...edit, graus: Number(e.target.value) })} /></Field>
+              <Field label="Graus"><NumeroInput min="0" max="6" valor={edit.graus} onChange={(v) => setEdit({ ...edit, graus: v })} /></Field>
             </div>
             <Field label="Notas"><Textarea value={edit.notas} onChange={(e) => setEdit({ ...edit, notas: e.target.value })} placeholder="Estilo de aula, o que ele cobra…" /></Field>
           </>

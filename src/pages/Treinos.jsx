@@ -15,7 +15,7 @@ import Voz, { temVoz } from '../components/Voz';
 import { darXp, checarConsistencia } from '../lib/xp';
 import { SeletorTecnica, ListaFoco, APRENDIZADO } from '../components/SeletorTecnica';
 import {
-  Card, Btn, Field, Input, Textarea, Select, Sheet, Chip, Stepper, Empty, Stat,
+  Card, Btn, Field, Input, NumeroInput, EscolherData, Textarea, Select, Sheet, Chip, Stepper, Empty, Stat,
   Confirmar, useToast, TagsInput, SubsInput, Busca, PontosInput, EscolhaChips, ParceiroRapido,
 } from '../components/UI';
 import { hoje, fmtData, fmtDur, relativo, mmss, buscaMatch, mesPorExtenso } from '../lib/utils';
@@ -803,8 +803,8 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
   return (
     <>
       <div className="grid g3" style={{ gap: 12 }}>
-        <Field label="Data"><Input type="date" value={s.data} onChange={(e) => set('data', e.target.value)} /></Field>
-        <Field label="Duração (min)"><Input type="number" inputMode="numeric" value={s.duracao} onChange={(e) => set('duracao', Number(e.target.value))} /></Field>
+        <Field label="Quando foi"><EscolherData valor={s.data} onChange={(v) => set('data', v)} titulo="Quando foi o treino" /></Field>
+        <Field label="Duração (min)"><NumeroInput valor={s.duracao} onChange={(v) => set('duracao', v)} /></Field>
         <Field label="Tipo">
           <Select value={s.tipo} onChange={(e) => set('tipo', e.target.value)}>
             {TIPOS.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
@@ -955,7 +955,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
                         onEscolher={(id) => setRola(i, { partnerId: id })}
                       />
                     </Field>
-                    <Field label="Duração (min)"><Input type="number" inputMode="numeric" value={r.duracao} onChange={(e) => setRola(i, { duracao: Number(e.target.value) })} /></Field>
+                    <Field label="Duração (min)"><NumeroInput valor={r.duracao} onChange={(v) => setRola(i, { duracao: v })} /></Field>
                   </div>
 
                   <Field label="Anotação desta rola" hint="O que funcionou, onde travou, o detalhe que faltou.">

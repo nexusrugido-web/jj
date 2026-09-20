@@ -9,7 +9,7 @@ import { minhasTecnicas } from '../lib/graus';
 import { db } from '../db/db';
 import { FAIXAS } from '../db/seed';
 import {
-  Card, Btn, Field, Input, Textarea, Select, Modal, Sheet, Chip, Empty,
+  Card, Btn, Field, Input, NumeroInput, Textarea, Select, Modal, Sheet, Chip, Empty,
   Confirmar, useToast, Seg, Busca, TagsInput,
 } from '../components/UI';
 import { buscaMatch, podeUsar, FAIXA_ORDEM } from '../lib/utils';
@@ -651,7 +651,7 @@ function GerenciarListas({ categories, positions, toast }) {
                   <option value="perna">Pernas</option>
                   <option value="inferior">Inferior</option>
                 </Select>
-                <Input type="number" value={p.pts} onChange={(e) => db.positions.update(p.id, { pts: Number(e.target.value) })} style={{ width: 70 }} />
+                <NumeroInput valor={p.pts} onChange={(v) => db.positions.update(p.id, { pts: v })} style={{ width: 70 }} />
                 <button className="btn ghost icon sm" onClick={() => db.positions.update(p.id, { arquivada: 1 })} aria-label="Arquivar"><Trash2 size={14} /></button>
               </div>
             ))}

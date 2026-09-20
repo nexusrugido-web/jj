@@ -7,7 +7,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { useApp } from '../contexto';
 import {
-  Card, Btn, Field, Input, Textarea, Select, Sheet, Chip, Empty,
+  Card, Btn, Field, Input, NumeroInput, Textarea, Select, Sheet, Chip, Empty,
   Confirmar, useToast, Bar, Seg, Stat,
 } from '../components/UI';
 import { SeletorTecnica } from '../components/SeletorTecnica';
@@ -355,9 +355,9 @@ export default function Metas() {
                       onClick={() => setEdit({ ...edit, alvo: n })}>{n}</button>
                   ))}
                 </div>
-                <Input
-                  type="number" min="1" value={edit.alvo || ''} style={{ marginTop: 8 }}
-                  onChange={(e) => setEdit({ ...edit, alvo: Number(e.target.value) })}
+                <NumeroInput
+                  min="1" valor={edit.alvo || ''} style={{ marginTop: 8 }}
+                  onChange={(v) => setEdit({ ...edit, alvo: v })}
                   placeholder="ou digite outro número"
                 />
               </Field>
@@ -400,8 +400,7 @@ export default function Metas() {
 
             {edit.tipo === 'volume' && (
               <Field label="Quantas horas" hint="Serve mais pra olhar depois do que pra perseguir no dia a dia.">
-                <Input type="number" inputMode="numeric" value={edit.alvo}
-                  onChange={(e) => setEdit({ ...edit, alvo: Number(e.target.value) })} />
+                <NumeroInput valor={edit.alvo} onChange={(v) => setEdit({ ...edit, alvo: v })} />
               </Field>
             )}
 
