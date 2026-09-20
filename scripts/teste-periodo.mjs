@@ -202,12 +202,13 @@ const prog = (x, dados = {}) => M.progressoDaMeta(assumida(x), { sessions: trein
 
 const freq = prog({ tipo: 'frequencia', alvo: 3 });
 ok('frequência: conta a semana e escreve qual', [freq.atual, freq.valor, freq.quando],
-  [P.dentroDoPeriodo(treinosM, semanaAgora).length, `${P.dentroDoPeriodo(treinosM, semanaAgora).length} de 3`, P.rotuloDoPeriodo(semanaAgora)]);
+  [P.dentroDoPeriodo(treinosM, semanaAgora).length, `${P.dentroDoPeriodo(treinosM, semanaAgora).length} de 3`, 'Esta semana']);
+ok('a meta diz o período pelo nome, sem o intervalo de datas', freq.quando.includes('/'), false);
 
 const buracosM = [{ nome: 'Americana', recente: 2 }];
 const defesa = prog({ tipo: 'defesa', alvo: 'Americana', ajuste: 3 }, { buracos: buracosM });
 ok('defesa: as vezes que te pegaram, sem conta invertida', [defesa.valor, defesa.pct, defesa.semBotao], ['2 vezes', 50, true]);
-ok('defesa: período e objetivo escritos', defesa.quando, `${P.rotuloDoPeriodo(P.periodoDeDados('ultimos-30'))} · objetivo: nenhuma`);
+ok('defesa: período e o que fazer, em português', defesa.quando, 'Últimos 30 dias · quanto menos, melhor');
 ok('defesa: ajuste antigo (da conta invertida) não entra', defesa.atual, 2);
 ok('defesa zerada é meta batida', prog({ tipo: 'defesa', alvo: 'Kimura' }, { buracos: buracosM }).pct, 100);
 
@@ -224,7 +225,7 @@ ok('meta com início conta desde a meta', [doDia.valor, doDia.quando.startsWith(
 
 const horas = M.metaDeHorasNoAno(treinosM, 200);
 const noAno = treinosM.filter((s) => s.data.slice(0, 4) === H.slice(0, 4)).reduce((a, s) => a + s.duracao, 0);
-ok('horas no ano: meta como as outras, com o período', [horas.valor, horas.quando], [`${Math.round(noAno / 60)}h de 200h`, P.rotuloDoPeriodo(P.periodoDeDados('ano-atual'))]);
+ok('horas no ano: meta como as outras, com o período', [horas.valor, horas.quando], [`${Math.round(noAno / 60)}h de 200h`, 'Este ano']);
 
 /* ---------- as janelas que não vão pra tela ---------- */
 ok('ultimosDias: n dias até hoje, inclusivos', faixa(P.ultimosDias(14, { hoje: '2026-09-19' })), ['2026-09-06', '2026-09-19', 14]);
