@@ -61,8 +61,12 @@ async function subir() {
         data: l.data,
       })),
     });
-    if (error) throw error;
-    await setMeta('liga_marca', marca);
+    /* falhar aqui não pode impedir a ofensiva de subir logo
+       abaixo: são duas coisas independentes, e antes um throw
+       daqui matava a outra em silêncio. Quem chama engole o erro,
+       então sem este log não sobrava rastro nenhum. */
+    if (error) console.error('[liga] pontos', error);
+    else await setMeta('liga_marca', marca);
   }
 
   /* a ofensiva sobe junto: é ela que o ranking e o grupo mostram */
@@ -70,7 +74,8 @@ async function subir() {
   const chaveSeq = `${uid}:${dias}`;
   if ((await getMeta('liga_sequencia', null)) !== chaveSeq) {
     const { error } = await supabase.from('perfil').update({ sequencia: dias }).eq('user_id', uid);
-    if (!error) await setMeta('liga_sequencia', chaveSeq);
+    if (error) console.error('[liga] ofensiva', error);
+    else await setMeta('liga_sequencia', chaveSeq);
   }
   return true;
 }
