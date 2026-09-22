@@ -140,7 +140,12 @@ $$;
 -- ganha. Duas notificacoes no mesmo minuto e o caminho mais
 -- rapido pra pessoa desligar tudo.
 -- ------------------------------------------------------------
-create or replace function public.fila_de_notificacao()
+/* a versao antiga nao tinha argumento. Sem derrubar ela, o
+   Postgres fica com as duas e a chamada sem argumento cai na
+   velha, que nao sabe testar. */
+drop function if exists public.fila_de_notificacao();
+
+create or replace function public.fila_de_notificacao(p_teste uuid default null)
 returns table (
   user_id  uuid,
   tipo     text,
@@ -155,6 +160,21 @@ returns table (
 )
 language plpgsql security definer set search_path = public as $$
 begin
+  /* TESTE: pula todas as regras e manda pra todos os aparelhos de
+     uma pessoa so. Serve pra ver a notificacao na mao sem esperar
+     a hora certa, e pra saber se a corrente inteira (banco ->
+     funcao -> servico de push -> aparelho) esta de pe. */
+  if p_teste is not null then
+    return query
+    select i.user_id, 'teste'::text, (now() at time zone i.fuso)::date,
+           'Testando os avisos'::text,
+           'Se voce esta vendo isto no celular, a corrente inteira funciona.'::text,
+           '/?go=jornada'::text, 1, i.endpoint, i.p256dh, i.auth
+    from public.push_inscricao i
+    where i.user_id = p_teste;
+    return;
+  end if;
+
   return query
   with aparelho as (
     select
@@ -266,7 +286,111 @@ begin
   ));
 end $$;
 
-revoke all on function public.fila_de_notificacao() from public, anon, authenticated;
+revoke all on function public.fila_de_notificacao(uuid) from public, anon, authenticated;
+
+
+-- ------------------------------------------------------------
+-- 5b. O DIAGNOSTICO E O TESTE
+--
+-- Notificacao que nao chega quase nunca e uma coisa so: e um elo
+-- da corrente que arrebentou. Estas duas funcoes dizem qual.
+--
+--   select * from public.diagnostico_de_aviso('seu@email.com');
+--   select public.testar_aviso('seu@email.com');
+-- ------------------------------------------------------------
+create or replace function public.diagnostico_de_aviso(p_email text)
+returns table (elo text, situacao text, detalhe text)
+language plpgsql security definer set search_path = public as $$
+declare
+  v_user uuid;
+  v_n    int;
+  v_fuso text;
+  v_hoje date;
+begin
+  select id into v_user from auth.users where email = lower(trim(p_email));
+  if v_user is null then
+    return query select '1. conta'::text, 'NAO'::text, ('nenhuma conta com o email ' || p_email)::text;
+    return;
+  end if;
+  return query select '1. conta'::text, 'ok'::text, v_user::text;
+
+  select count(*), max(fuso) into v_n, v_fuso from public.push_inscricao where user_id = v_user;
+  v_fuso := coalesce(v_fuso, 'America/Sao_Paulo');
+  v_hoje := (now() at time zone v_fuso)::date;
+
+  return query select '2. aparelho inscrito'::text,
+    case when v_n > 0 then 'ok' else 'NAO' end::text,
+    case when v_n > 0 then v_n || ' aparelho(s), fuso ' || v_fuso
+         else 'ninguem tocou em Ligar avisos. No iPhone so funciona com o app instalado na tela de inicio.' end::text;
+
+  return query select '3. interruptor'::text,
+    case when coalesce((select notificar from public.perfil where user_id = v_user), false)
+      then 'ok' else 'NAO' end::text,
+    'perfil.notificar'::text;
+
+  return query select '4. ofensiva no servidor'::text,
+    case when coalesce((select sequencia from public.perfil where user_id = v_user), 0) > 0
+      then 'ok' else 'NAO' end::text,
+    ('perfil.sequencia = ' || coalesce((select sequencia from public.perfil where user_id = v_user), 0)
+      || '. Se for 0, o app ainda nao subiu a ofensiva: abra o app logado.')::text;
+
+  return query select '5. hora do aviso'::text, 'info'::text,
+    ('sai as ' || public.hora_da_pessoa(v_user, v_fuso) || 'h; agora sao '
+      || extract(hour from now() at time zone v_fuso)::int || 'h no fuso ' || v_fuso)::text;
+
+  return query select '6. ja fechou o dia?'::text,
+    case when exists (
+      select 1 from public.pontos p
+      where p.user_id = v_user
+        and (p.data = v_hoje or (p.evento = 'treino' and p.data >= v_hoje - 2 and p.data < v_hoje))
+    ) then 'SIM' else 'nao' end::text,
+    'quem ja fechou o dia nao recebe cobranca de ofensiva, e isso esta certo'::text;
+
+  return query select '7. cron agendado'::text,
+    case when exists (select 1 from cron.job where jobname = 'notificar') then 'ok' else 'NAO' end::text,
+    coalesce((select schedule from cron.job where jobname = 'notificar'), 'rode a secao 8 deste arquivo')::text;
+
+  return query select '8. segredos do vault'::text,
+    case when (select count(*) from vault.secrets where name in ('url_notificar', 'chave_notificar')) = 2
+      then 'ok' else 'NAO' end::text,
+    'precisa de url_notificar e chave_notificar'::text;
+
+  return query select '9. ja saiu alguma?'::text, 'info'::text,
+    coalesce((select count(*)::text || ' aviso(s), ultimo em ' || max(enviado_em)::text
+      from public.notificacao_envio where user_id = v_user), 'nenhum ainda')::text;
+end $$;
+
+
+create or replace function public.testar_aviso(p_email text)
+returns text language plpgsql security definer set search_path = public as $$
+declare
+  v_user uuid;
+  v_n    int;
+begin
+  select id into v_user from auth.users where email = lower(trim(p_email));
+  if v_user is null then return 'nenhuma conta com esse email'; end if;
+
+  select count(*) into v_n from public.push_inscricao where user_id = v_user;
+  if v_n = 0 then
+    return 'nenhum aparelho inscrito. Abra o app logado: Ajustes -> Avisos -> Ligar avisos.';
+  end if;
+
+  if (select count(*) from vault.secrets where name in ('url_notificar', 'chave_notificar')) < 2 then
+    return 'faltam os segredos url_notificar e/ou chave_notificar no vault.';
+  end if;
+
+  perform net.http_post(
+    url     := (select decrypted_secret from vault.decrypted_secrets where name = 'url_notificar'),
+    headers := jsonb_build_object(
+      'Content-Type',  'application/json',
+      'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'chave_notificar')
+    ),
+    body    := jsonb_build_object('teste', v_user)
+  );
+
+  return 'mandei pra ' || v_n || ' aparelho(s). Chega em segundos. Se nao chegar, veja os logs da funcao notificar no painel.';
+end $$;
+
 
 
 -- ------------------------------------------------------------

@@ -47,10 +47,16 @@ webPush.setVapidDetails(contato, publica, privada);
 
 const site = Deno.env.get('SITE_URL') ?? 'https://jj-theta-eight.vercel.app';
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
   const db = createClient(url, chave);
 
-  const { data: fila, error } = await db.rpc('fila_de_notificacao');
+  /* {"teste": "<user_id>"} pula todas as regras e manda um aviso
+     pros aparelhos daquela pessoa. E o que o testar_aviso() do
+     banco usa pra a gente ver a notificacao sem esperar a hora. */
+  let teste: string | null = null;
+  try { teste = (await req.json())?.teste ?? null; } catch { teste = null; }
+
+  const { data: fila, error } = await db.rpc('fila_de_notificacao', { p_teste: teste });
   if (error) {
     console.error('[notificar] fila', error);
     return new Response(JSON.stringify({ erro: error.message }), { status: 500 });
@@ -99,8 +105,13 @@ Deno.serve(async () => {
     }),
   );
 
-  const { error: erroMarca } = await db.rpc('marcar_notificacao', { p_linhas: resultados });
-  if (erroMarca) console.error('[notificar] marcar', erroMarca);
+  /* o teste nao entra no historico: senao sujaria a conta de
+     quantos avisos a pessoa ignorou, que e o que decide quando
+     parar de mandar */
+  if (!teste) {
+    const { error: erroMarca } = await db.rpc('marcar_notificacao', { p_linhas: resultados });
+    if (erroMarca) console.error('[notificar] marcar', erroMarca);
+  }
 
   return Response.json({
     fila: fila.length,
