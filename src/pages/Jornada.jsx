@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
-  Flame, Award, Info, Lock, Check, Swords, ChevronRight, Crown, ShieldCheck,
+  Flame, Award, Info, Lock, Check, Swords, ChevronRight, Crown, ShieldCheck, Share2,
 } from 'lucide-react';
 import { db } from '../db/db';
 import { useApp } from '../contexto';
-import { Card, Btn, Stat, Empty, Bar, Sheet } from '../components/UI';
+import { Card, Btn, Stat, Empty, Bar, Sheet, useToast } from '../components/UI';
+import { compartilhar } from '../lib/card';
 import Liga from '../components/Liga';
 import Par from '../components/Par';
 import RankingOfensivas from '../components/RankingOfensivas';
@@ -402,13 +403,46 @@ function BlocoOfensiva({ o, pontos, lesoes, irPara }) {
           </span>
         </div>
 
-        {!o.fechouHoje && (
-          <Btn size="sm" variant="primary" style={{ marginLeft: 'auto' }} onClick={() => irPara('estudo')}>
-            Fechar o dia <ChevronRight size={13} />
-          </Btn>
-        )}
+        <div className="row" style={{ gap: 8, marginLeft: 'auto' }}>
+          {/* só dá pra compartilhar o que já virou alguma coisa.
+              "1 dia seguido" não é conquista, é terça-feira. */}
+          {o.dias >= 7 && <BtnCompartilhar o={o} />}
+          {!o.fechouHoje && (
+            <Btn size="sm" variant="primary" onClick={() => irPara('estudo')}>
+              Fechar o dia <ChevronRight size={13} />
+            </Btn>
+          )}
+        </div>
       </div>
     </div>
+  );
+}
+
+/* O card é a única coisa do app que sai do app. Quem vê o print
+   consegue clicar e cair aqui: imagem solta não traz ninguém. */
+function BtnCompartilhar({ o }) {
+  const toast = useToast();
+  const [indo, setIndo] = useState(false);
+
+  return (
+    <Btn
+      size="sm"
+      icon={Share2}
+      disabled={indo}
+      onClick={async () => {
+        setIndo(true);
+        const r = await compartilhar(
+          'ofensiva',
+          { dias: o.dias, recorde: o.recorde },
+          `${o.dias} dias seguidos no tatame.`
+        );
+        setIndo(false);
+        if (r === 'copiado') toast('Link copiado');
+        else if (r === 'erro') toast('Não consegui gerar o card agora');
+      }}
+    >
+      {indo ? '…' : 'Compartilhar'}
+    </Btn>
   );
 }
 

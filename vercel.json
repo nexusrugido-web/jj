@@ -8,7 +8,11 @@
       "destination": "/api/r?c=:codigo"
     },
     {
-      "source": "/((?!api/|assets/|sw\\.js|manifest\\.webmanifest|.*\\.png).*)",
+      "source": "/c/:codigo",
+      "destination": "/api/c?c=:codigo"
+    },
+    {
+      "source": "/((?!api/|c/|assets/|sw\\.js|manifest\\.webmanifest|.*\\.png).*)",
       "destination": "/index.html"
     }
   ],

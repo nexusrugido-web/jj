@@ -5,7 +5,7 @@
    - fontes externas: cache-first
    Os DADOS ficam no IndexedDB, entao o app inteiro funciona sem internet. */
 
-const VERSION = 'neurojitsu-v12-7';
+const VERSION = 'neurojitsu-v12-8';
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
 
@@ -120,9 +120,11 @@ self.addEventListener('fetch', (event) => {
   if (FORA.some((d) => url.hostname.endsWith(d))) return;
 
   // O link curto (/r/...) responde com redirecionamento pra
-  // Hotmart. Se passasse pela regra de navegacao abaixo, o
-  // redirecionamento seria guardado no lugar do app offline.
-  if (url.origin === self.location.origin && url.pathname.startsWith('/r/')) return;
+  // Hotmart, e o card (/c/...) e uma pagina servida pelo
+  // servidor. Se passassem pela regra de navegacao abaixo,
+  // qualquer um dos dois seria guardado no lugar do app offline.
+  if (url.origin === self.location.origin
+      && (url.pathname.startsWith('/r/') || url.pathname.startsWith('/c/'))) return;
 
   // Navegacao do proprio app: tenta rede, cai pro shell
   if (request.mode === 'navigate' && url.origin === self.location.origin) {

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Trophy, Award, Plus, Clock, Swords, Flame, Sparkles, Check,
-  ChevronRight, Medal, Trash2,
+  ChevronRight, Medal, Trash2, Share2,
 } from 'lucide-react';
 import { useApp } from '../contexto';
 import { db } from '../db/db';
@@ -13,9 +13,34 @@ import {
 } from '../components/UI';
 import { resumo as resumoGeral } from '../lib/stats';
 import { ofensiva } from '../lib/ofensiva';
+import { compartilhar } from '../lib/card';
 import { minhasTecnicas, resumoGraus } from '../lib/graus';
 import { proximaGraduacao, FAIXAS_ORDEM } from '../lib/milestones';
 import { hoje, fmtData, relativo, diasEntre, fmtDur } from '../lib/utils';
+
+/* O card é a única coisa do app que sai do app. Link e não
+   imagem: quem vê um print não tem pra onde clicar. */
+function Compartilhar({ tipo, dados, texto, variante }) {
+  const toast = useToast();
+  const [indo, setIndo] = useState(false);
+  return (
+    <Btn
+      size="sm"
+      variant={variante}
+      icon={Share2}
+      disabled={indo}
+      onClick={async () => {
+        setIndo(true);
+        const res = await compartilhar(tipo, dados, texto);
+        setIndo(false);
+        if (res === 'copiado') toast('Link copiado');
+        else if (res === 'erro') toast('Não consegui gerar o card agora');
+      }}
+    >
+      {indo ? '…' : 'Compartilhar'}
+    </Btn>
+  );
+}
 
 const ICONES = { horas: Clock, rolas: Swords, dominio: Award, streak: Flame, tecnica: Sparkles, inicio: Check, pontos: Trophy };
 
@@ -123,6 +148,28 @@ export default function Conquistas() {
         <Card><Stat icon={Trophy} valor={marcos.length} label="marcos" /></Card>
       </div>
 
+      {/* o resumo inteiro num card só: é o que mostra evolução de
+          verdade, e é o que alguém posta no fim de um ciclo */}
+      {r.sessoes > 0 && (
+        <div className="row" style={{ gap: 10, marginBottom: 14 }}>
+          <p className="micro muted" style={{ flex: 1, lineHeight: 1.6 }}>
+            Tudo isso num card que dá pra mandar pro grupo da academia.
+          </p>
+          <Compartilhar
+            tipo="resumo"
+            dados={{
+              periodo: 'desde o começo',
+              horas: r.matHoras,
+              treinos: r.sessoes,
+              rolas: r.rolas,
+              subiram: esteira.filter((t) => t.nivel === 'dominado').map((t) => t.nome).slice(0, 6),
+            }}
+            texto={`${r.matHoras}h no tatame, ${r.sessoes} treinos e ${r.rolas} rolas.`}
+            variante="primary"
+          />
+        </div>
+      )}
+
       {/* ---- próximo marco de horas ---- */}
       <ProximoMarco horas={r.matHoras} />
 
@@ -168,7 +215,14 @@ export default function Conquistas() {
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontWeight: 700, fontFamily: 'var(--display)', fontSize: 15, letterSpacing: '-0.02em' }}>{m.titulo}</div>
                   <p className="micro muted" style={{ marginTop: 4 }}>{m.texto}</p>
-                  <div className="micro" style={{ color: 'var(--dimmer)', marginTop: 6 }}>{relativo(m.data)}</div>
+                  <div className="row" style={{ gap: 8, marginTop: 6 }}>
+                    <span className="micro" style={{ color: 'var(--dimmer)', flex: 1 }}>{relativo(m.data)}</span>
+                    <Compartilhar
+                      tipo="marco"
+                      dados={{ titulo: m.titulo, texto: m.texto }}
+                      texto={m.titulo}
+                    />
+                  </div>
                 </div>
               </Card>
             );
