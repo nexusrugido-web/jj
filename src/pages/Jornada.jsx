@@ -1,17 +1,19 @@
 import React, { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
-  Flame, Award, Info, Lock, Check, Swords, ChevronRight, Crown,
+  Flame, Award, Info, Lock, Check, Swords, ChevronRight, Crown, ShieldCheck,
 } from 'lucide-react';
 import { db } from '../db/db';
 import { useApp } from '../contexto';
 import { Card, Btn, Stat, Empty, Bar, Sheet } from '../components/UI';
 import Liga from '../components/Liga';
 import Par from '../components/Par';
+import RankingOfensivas from '../components/RankingOfensivas';
 import ListaResumida from '../components/ListaResumida';
 import RotuloPeriodo from '../components/RotuloPeriodo';
 import { periodoDeDados, dentroDoPeriodo } from '../lib/periodo';
 import { EVENTOS, DIVISOES, divisaoPorXp, proximaDivisao, semanaDe } from '../lib/xp';
+import { ofensiva, textoOfensiva, diasFechados, diasParadosPorLesao, MAX_ESCUDOS, DIAS_POR_ESCUDO } from '../lib/ofensiva';
 import { relativo, hoje, addDias, fmtData } from '../lib/utils';
 
 /* Duas janelas, e não quatro.
@@ -117,6 +119,9 @@ export default function Jornada() {
     [pontos]
   );
 
+  const lesoes = useLiveQuery(() => db.injuries.toArray(), [], []) || [];
+  const ofa = useMemo(() => ofensiva(pontos, undefined, lesoes), [pontos, lesoes]);
+
   if (!pontos.length) {
     return (
       <div className="page">
@@ -143,6 +148,8 @@ export default function Jornada() {
   return (
     <div className="page">
       <Cabecalho onComo={() => setComoFunciona(true)} />
+
+      <BlocoOfensiva o={ofa} pontos={pontos} lesoes={lesoes} irPara={irPara} />
 
       {/* ---- a fase em que você está ---- */}
       <div className="arena" style={{ '--cor': `var(--${dados.divisao.cor})` }}>
@@ -257,7 +264,20 @@ export default function Jornada() {
         </div>
       </Card>
 
+      <RankingOfensivas />
       <Par />
+
+      {/* ---- fase, divisão e faixa são três coisas ----
+          O bloco de cima diz "Fase 2, Praticante" e a liga logo
+          abaixo diz "divisão roxa". Sem esta linha, são duas
+          escadas na mesma tela e ninguém sabe qual é qual. */}
+      <p className="micro muted" style={{ margin: '0 4px 12px', lineHeight: 1.7 }}>
+        A <b style={{ color: 'var(--chalk)' }}>fase</b> lá de cima é sua e sai dos seus pontos: ela só sobe.
+        A <b style={{ color: 'var(--chalk)' }}>divisão</b> aqui embaixo é a da liga, e ela sobe e desce toda
+        semana conforme você vai contra os outros. Nenhuma das duas é a sua{' '}
+        <b style={{ color: 'var(--chalk)' }}>faixa</b>, que continua sendo o que vale no tatame.
+      </p>
+
       <Liga />
 
       {/* histórico */}
@@ -298,6 +318,83 @@ export default function Jornada() {
       </Card>
 
       <ComoFunciona aberto={comoFunciona} onClose={() => setComoFunciona(false)} />
+    </div>
+  );
+}
+
+/* ============================================================
+   A OFENSIVA
+
+   O primeiro bloco da tela, porque é o número que faz a pessoa
+   abrir o app amanhã. A pista mostra os últimos catorze dias:
+   aceso é dia fechado, e o último quadradinho tracejado é hoje
+   quando ainda não fechou.
+
+   O botão só aparece quando falta fechar o dia. Nos outros dias
+   ele seria só mais um botão.
+   ============================================================ */
+function BlocoOfensiva({ o, pontos, lesoes, irPara }) {
+  const frase = textoOfensiva(o);
+  const cor = frase.tom || (o.viva ? 'roar' : 'dim');
+
+  /* os catorze dias que cabem na tela, do mais antigo pro de hoje */
+  /* a mesma conta da ofensiva, e não uma cópia: o dia pago pelo
+     treino tem que acender na pista igual ele conta lá */
+  const fechados = new Set(diasFechados(pontos));
+  const gelo = diasParadosPorLesao(lesoes);
+  const pista = Array.from({ length: 14 }, (_, i) => {
+    const dia = addDias(hoje(), -(13 - i));
+    /* dia congelado não pode aparecer apagado: apagado lê como
+       dia perdido, e ele não foi perdido */
+    return { dia, on: fechados.has(dia), gelo: !fechados.has(dia) && gelo.has(dia), hoje: i === 13 };
+  });
+
+  return (
+    <div className={`ofa${o.viva ? ' viva' : ''}`} style={{ '--cor': `var(--${cor})` }}>
+      <div className="ofa-topo">
+        <span className="ofa-chama"><Flame size={22} /></span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="eyebrow">ofensiva</div>
+          <div className="ofa-num">
+            <span className="num">{o.dias}</span>
+            <span className="ofa-dia">{o.dias === 1 ? 'dia seguido' : 'dias seguidos'}</span>
+          </div>
+        </div>
+        {o.recorde > o.dias && o.recorde >= 3 && (
+          <span className="fita-recorde" title="seu recorde">
+            <Crown size={12} /> {o.recorde}
+          </span>
+        )}
+      </div>
+
+      <div className="ofa-pista">
+        {pista.map((d) => (
+          <i key={d.dia} className={d.on ? 'on' : d.gelo ? 'gelo' : d.hoje ? 'hoje' : ''} />
+        ))}
+      </div>
+
+      <p className="ofa-txt">{frase.texto}</p>
+
+      <div className="ofa-pe">
+        <div className="escudos">
+          {Array.from({ length: MAX_ESCUDOS }).map((_, i) => (
+            <span key={i} className={`escudo ${i < o.escudos ? 'cheio' : ''}`}>
+              <ShieldCheck size={12} />
+            </span>
+          ))}
+          <span className="micro muted" style={{ marginLeft: 4 }}>
+            {o.escudos
+              ? `${o.escudos} ${o.escudos === 1 ? 'escudo' : 'escudos'}`
+              : `escudo em ${o.faltaProEscudo} ${o.faltaProEscudo === 1 ? 'dia' : 'dias'}`}
+          </span>
+        </div>
+
+        {!o.fechouHoje && (
+          <Btn size="sm" variant="primary" style={{ marginLeft: 'auto' }} onClick={() => irPara('estudo')}>
+            Fechar o dia <ChevronRight size={13} />
+          </Btn>
+        )}
+      </div>
     </div>
   );
 }
@@ -545,9 +642,45 @@ function ComoFunciona({ aberto, onClose }) {
         Cada coisa tem um teto diário. Assistir vinte vídeos numa tarde não vale mais que ir treinar, porque o
         que faz você melhorar é o tatame.
       </p>
+      <div className="divider" />
+      <div className="eyebrow">a ofensiva</div>
       <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        E a sua sequência de semanas tem escudo. A cada quatro semanas seguidas você ganha um, até três
-        guardados. Se precisar faltar por lesão ou viagem, o escudo segura a sequência no lugar de você.
+        São dias seguidos aparecendo, e não dias seguidos de tatame. Ninguém treina jiu-jitsu sete dias por
+        semana, e uma ofensiva que cobra isso quebra na primeira semana.
+      </p>
+      <p className="tiny muted" style={{ lineHeight: 1.7 }}>
+        Qualquer coisa que dê ponto fecha o dia: uma aula rápida de trinta segundos, uma pergunta do quiz, uma
+        revisão, ou o treino registrado.
+      </p>
+      <p className="tiny muted" style={{ lineHeight: 1.7 }}>
+        E treino paga os <b style={{ color: 'var(--chalk)' }}>dois dias seguintes</b>, porque recuperação é
+        parte do treino. Quem treina três vezes por semana nunca perde a ofensiva sem estudar nada. Quem treina
+        duas precisa aparecer uma vez no fim de semana, e são trinta segundos.
+      </p>
+      <p className="tiny muted" style={{ lineHeight: 1.7 }}>
+        A cada {DIAS_POR_ESCUDO} dias seguidos você ganha um escudo, até {MAX_ESCUDOS} guardados. Ele é gasto
+        sozinho, sem perguntar, no dia que você não conseguir aparecer — porque quem esqueceu o dia não abriu
+        o app pra confirmar nada. Quem está em {DIAS_POR_ESCUDO - 1} dias e some perde tudo. Quem passou
+        dos {DIAS_POR_ESCUDO} tem como voltar.
+      </p>
+
+      <div className="divider" />
+      <div className="eyebrow">fase, divisão e faixa</div>
+      <div className="col" style={{ gap: 9 }}>
+        {[
+          ['Fase', 'Sai dos seus pontos, só sua. Nunca volta pra trás.', 'chalk'],
+          ['Divisão', 'É a da liga, contra outras pessoas. Sobe e desce toda semana.', 'accent'],
+          ['Faixa', 'A do tatame. O app não mexe nela, quem gradua é o seu professor.', 'jade'],
+        ].map(([nome, texto, cor]) => (
+          <div key={nome} className="row" style={{ gap: 11, alignItems: 'flex-start', padding: '10px 12px', background: 'var(--void)', borderRadius: 10 }}>
+            <span className="tiny" style={{ fontWeight: 700, color: `var(--${cor})`, minWidth: 58 }}>{nome}</span>
+            <p className="micro muted" style={{ flex: 1, lineHeight: 1.6 }}>{texto}</p>
+          </div>
+        ))}
+      </div>
+      <p className="micro muted" style={{ lineHeight: 1.65 }}>
+        A divisão da liga usa nome de faixa porque é a régua que todo jiuziteiro entende. Um faixa branca que
+        vai bem chega na divisão roxa, e continua sendo faixa branca.
       </p>
     </Sheet>
   );

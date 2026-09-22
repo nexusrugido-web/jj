@@ -220,7 +220,7 @@ export default function Liga({ compacto = false }) {
               </span>
               {misturado && <BeltTag faixa={div} graus={0} />}
               {l.sequencia > 0 && (
-                <span className="micro num row" style={{ gap: 3, color: 'var(--roar)' }} title="semanas seguidas treinando">
+                <span className="micro num row" style={{ gap: 3, color: 'var(--roar)' }} title="dias de ofensiva">
                   <Flame size={12} /> {l.sequencia}
                 </span>
               )}
@@ -366,7 +366,7 @@ function PerfilDoColega({ linha, onClose }) {
             <BeltTag faixa={p.divisao} graus={0}>Divisão {p.divisao}</BeltTag>
           </div>
           <div className="grid g2" style={{ gap: 14 }}>
-            <Stat size="sm" icon={Flame} valor={p.sequencia || 0} label={p.sequencia === 1 ? 'semana seguida' : 'semanas seguidas'} tone={p.sequencia ? 'roar' : undefined} />
+            <Stat size="sm" icon={Flame} valor={p.sequencia || 0} label={p.sequencia === 1 ? 'dia de ofensiva' : 'dias de ofensiva'} tone={p.sequencia ? 'roar' : undefined} />
             <Stat size="sm" icon={Dumbbell} valor={p.treinos_semana ? `${p.treinos_semana}x` : '?'} label="treinos por semana" />
             <Stat size="sm" icon={Trophy} valor={p.xp_semana || 0} label="pontos nesta semana" tone="accent" />
             <Stat size="sm" valor={p.total || 0} label="pontos na jornada" />

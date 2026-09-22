@@ -5,3 +5,6 @@ dist
 .env.local
 .DS_Store
 *.log
+
+# lista de alunos: tem nome real de gente, nunca vai pro repositorio
+alunos*.csv

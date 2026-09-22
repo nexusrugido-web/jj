@@ -20,7 +20,8 @@ import LinhaDeMeta from '../components/LinhaDeMeta';
 import RotuloPeriodo from '../components/RotuloPeriodo';
 import { periodoDeDados } from '../lib/periodo';
 import Recomendacao from '../components/Recomendacao';
-import { sequencia, textoSequencia, resumoSemana, lerSemana, rotuloSemana, escudos, textoEscudo, semanasProtegidas } from '../lib/semana';
+import { resumoSemana, lerSemana, rotuloSemana } from '../lib/semana';
+import { ofensiva, textoOfensiva, MAX_ESCUDOS } from '../lib/ofensiva';
 import { situacao, guiaDeEstudo } from '../lib/lesao';
 import { analisarJogo } from '../lib/game';
 import { estiloPorId } from '../db/scoring';
@@ -64,11 +65,11 @@ export default function Painel() {
   const respostasQuiz = useLiveQuery(() => db.quizRespostas.toArray(), [], []) || [];
   const feitas = useLiveQuery(() => db.recFeitas.toArray(), [], []) || [];
   const vistasAulas = useLiveQuery(() => db.aulasVistas.toArray(), [], []) || [];
-  const seq = useMemo(() => sequencia(sessions), [sessions]);
-  const fraseSeq = useMemo(() => textoSequencia(seq, sessions), [seq, sessions]);
   const lesoes = useLiveQuery(() => db.injuries.toArray(), [], []) || [];
-  const protegidas = useMemo(() => semanasProtegidas(lesoes, vistasAulas), [lesoes, vistasAulas]);
-  const escudo = useMemo(() => escudos(sessions, protegidas), [sessions, protegidas]);
+  /* a lesão que tira do tatame congela a ofensiva: sem isso,
+     quem operou o joelho perde tudo enquanto está de molho */
+  const ofa = useMemo(() => ofensiva(pontos, undefined, lesoes), [pontos, lesoes]);
+  const fraseSeq = useMemo(() => textoOfensiva(ofa), [ofa]);
 
   const esteira = useMemo(() => minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa), [rolls, partners, sessions, techniques, settings.faixa]);
   const recap = useMemo(() => resumoSemana(sessions, rolls, esteira, pontos), [sessions, rolls, esteira, pontos]);
@@ -261,8 +262,10 @@ export default function Painel() {
       <PrimeirosPassos sessions={sessions} rolls={rolls} tecnicas={esteira} irPara={irPara} />
       <AvisoDeVolta sessions={sessions} irPara={irPara} />
 
-      {/* ---- sequência e resumo da semana ---- */}
-      {sessions.length > 0 && (
+      {/* ---- ofensiva e resumo da semana ---- */}
+      {/* a ofensiva também existe pra quem só estudou, então o
+          card não pode depender de ter treino registrado */}
+      {(sessions.length > 0 || ofa.ultimoDia) && (
         <Card className={fraseSeq.tom === 'jade' ? 'accent' : ''} style={{ marginBottom: 14 }}>
           <div className="row" style={{ gap: 13, alignItems: 'flex-start', marginBottom: recap.vazia ? 0 : 14 }}>
             <span className="stat-ico" style={{ color: `var(--${fraseSeq.tom || 'dim'})` }}>
@@ -271,22 +274,22 @@ export default function Painel() {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="h-sec">{fraseSeq.titulo}</div>
               <p className="tiny muted" style={{ marginTop: 5, lineHeight: 1.65 }}>{fraseSeq.texto}</p>
-              {seq.recorde > seq.semanas && seq.recorde >= 3 && (
+              {ofa.recorde > ofa.dias && ofa.recorde >= 3 && (
                 <p className="micro muted" style={{ marginTop: 6 }}>
-                  Seu recorde é de {seq.recorde} semanas seguidas.
+                  Seu recorde é de {ofa.recorde} dias seguidos.
                 </p>
               )}
 
-              {(escudo.tem > 0 || escudo.gastos > 0) && (
+              {(ofa.escudos > 0 || ofa.gastos > 0) && (
                 <div className="escudos">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <span key={i} className={`escudo ${i < escudo.tem ? 'cheio' : ''}`}>
+                  {Array.from({ length: MAX_ESCUDOS }).map((_, i) => (
+                    <span key={i} className={`escudo ${i < ofa.escudos ? 'cheio' : ''}`}>
                       <ShieldCheck size={12} />
                     </span>
                   ))}
                   <span className="micro muted" style={{ marginLeft: 4 }}>
-                    {escudo.tem
-                      ? `${escudo.tem} ${escudo.tem === 1 ? 'escudo' : 'escudos'}`
+                    {ofa.escudos
+                      ? `${ofa.escudos} ${ofa.escudos === 1 ? 'escudo' : 'escudos'}`
                       : 'escudo gasto'}
                   </span>
                 </div>

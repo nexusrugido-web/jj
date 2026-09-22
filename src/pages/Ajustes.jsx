@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import {
   Download, Upload, Trash2, Check, Smartphone, Palette, User, Database,
   RefreshCw, FileJson, FileSpreadsheet, TriangleAlert, Cloud, CloudOff,
-  LogOut, LogIn, Sparkles, Loader, Info,
+  LogOut, LogIn, Sparkles, Loader, Info, Bell, BellOff,
 } from 'lucide-react';
 import { useApp } from '../contexto';
 import Plano from '../components/Plano';
@@ -18,6 +18,7 @@ import { ehStandalone, detectarPlataforma } from '../lib/pwa';
 import { supabaseConfigurado, sair, traduzErro } from '../lib/supabase';
 import { sincronizar, migrarParaNuvem, limparCursor } from '../lib/sync';
 import { iaDisponivel } from '../lib/ai';
+import { podeNotificar, ligarNotificacao, desligarNotificacao, estaLigada } from '../lib/push';
 import { useEffect } from 'react';
 
 const ACENTOS = [
@@ -313,6 +314,8 @@ export default function Ajustes() {
         </div>
       </Card>
 
+      <Notificacoes sessao={sessao} />
+
       {/* dados */}
       <Card style={{ marginBottom: 14 }}>
         <div className="card-head"><h2 className="h-sec row" style={{ gap: 8 }}><Database size={17} /> Seus dados</h2></div>
@@ -396,5 +399,96 @@ export default function Ajustes() {
         texto="Todos os treinos, rolas, técnicas, metas e registros somem definitivamente. Baixe um backup antes se tiver qualquer dúvida."
       />
     </div>
+  );
+}
+
+/* ============================================================
+   NOTIFICACOES
+
+   Tres estados, e cada um precisa de uma tela diferente:
+
+   nao da       iPhone sem o app instalado. Nao adianta oferecer
+                um botao que nao vai funcionar: a explicacao e
+                que o Push so existe pra app na tela de inicio.
+   negada       ela ja disse nao uma vez. O navegador nao deixa
+                perguntar de novo, entao o caminho e o ajuste do
+                sistema, e dizer isso e melhor que um botao morto.
+   da           o botao, e ele pede a permissao dentro do clique.
+
+   Por que nao tem lista de "quero esta, nao quero aquela": sao
+   quatro avisos, no maximo um por dia, e quem nao abre para de
+   receber sozinho. Uma tela de preferencia pra isso seria mais
+   trabalho pra pessoa do que o problema que resolve.
+   ============================================================ */
+function Notificacoes({ sessao }) {
+  const toast = useToast();
+  const [ligado, setLigado] = useState(false);
+  const [ocupado, setOcupado] = useState(false);
+  const { pode, motivo } = podeNotificar();
+
+  useEffect(() => { estaLigada().then(setLigado); }, [sessao]);
+
+  async function alternar() {
+    setOcupado(true);
+    try {
+      if (ligado) {
+        await desligarNotificacao(sessao?.user?.id);
+        setLigado(false);
+        toast('Notificações desligadas');
+        return;
+      }
+      const r = await ligarNotificacao(sessao?.user?.id);
+      if (r === 'ligada') {
+        setLigado(true);
+        toast('Pronto. Você é avisado antes de perder a ofensiva.');
+      } else if (r === 'negada') {
+        toast('O navegador bloqueou. Libere nos ajustes do site.');
+      } else {
+        toast('Não consegui ligar agora.');
+      }
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  return (
+    <Card style={{ marginBottom: 14 }}>
+      <div className="card-head">
+        <h2 className="h-sec row" style={{ gap: 8 }}><Bell size={17} /> Avisos</h2>
+      </div>
+
+      <p className="tiny muted" style={{ marginBottom: 12, lineHeight: 1.7 }}>
+        No máximo um por dia, na hora em que você costuma usar o app. Avisam quando a ofensiva está pra cair,
+        quando a liga fecha, e o resultado dela na segunda.
+      </p>
+
+      {!sessao ? (
+        <p className="micro muted">Entre com a sua conta pra ligar os avisos.</p>
+      ) : motivo === 'instalar' ? (
+        <p className="micro muted" style={{ lineHeight: 1.7 }}>
+          No iPhone, aviso só chega pra app instalado na tela de início — é regra do iOS, não ajuste do app.
+          Instale pelo Safari em Compartilhar → Adicionar à Tela de Início e volte aqui.
+        </p>
+      ) : motivo === 'negada' ? (
+        <p className="micro muted" style={{ lineHeight: 1.7 }}>
+          Você bloqueou os avisos neste navegador, e ele não deixa perguntar de novo. Pra liberar, é nos
+          ajustes do site, no cadeado ao lado do endereço.
+        </p>
+      ) : !pode ? (
+        <p className="micro muted">Este navegador não recebe avisos.</p>
+      ) : (
+        <div className="row" style={{ gap: 10 }}>
+          <Btn
+            variant={ligado ? 'ghost' : 'primary'}
+            icon={ligado ? BellOff : Bell}
+            disabled={ocupado}
+            onClick={alternar}
+          >
+            {ocupado ? 'Um instante' : ligado ? 'Desligar avisos' : 'Ligar avisos'}
+          </Btn>
+          {ligado && <Chip tone="jade"><Check size={11} /> ligados neste aparelho</Chip>}
+        </div>
+      )}
+    </Card>
   );
 }

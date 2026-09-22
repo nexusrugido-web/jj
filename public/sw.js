@@ -5,7 +5,7 @@
    - fontes externas: cache-first
    Os DADOS ficam no IndexedDB, entao o app inteiro funciona sem internet. */
 
-const VERSION = 'neurojitsu-v12-6';
+const VERSION = 'neurojitsu-v12-7';
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
 
@@ -33,6 +33,74 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('message', (event) => {
   if (event.data === 'SKIP_WAITING') self.skipWaiting();
+});
+
+/* ============================================================
+   PUSH
+
+   No iOS 18.4+ e no Safari 26 o sistema mostra a notificacao
+   sozinho, pelo Declarative Web Push: este handler nem chega a
+   ser chamado, e e por isso que a notificacao aparece mesmo se
+   o codigo aqui quebrar.
+
+   No Chrome, que ainda nao entende o formato, o payload chega
+   cru aqui e a gente monta na mao. O mesmo JSON, dos dois lados.
+
+   Nao existe push silencioso: todo push tem que virar
+   notificacao visivel. Se este handler nao mostrar nada, o
+   Chrome mostra "Este site foi atualizado em segundo plano" no
+   nosso lugar, e repetir isso custa a permissao.
+   ============================================================ */
+self.addEventListener('push', (event) => {
+  let n = {};
+  try {
+    n = (event.data?.json() || {}).notification || {};
+  } catch {
+    n = {};
+  }
+
+  const titulo = n.title || 'NeuroJitsu';
+  const opcoes = {
+    body: n.body || '',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    lang: n.lang || 'pt-BR',
+    tag: n.tag || 'neurojitsu',
+    renotify: true,
+    data: { navigate: n.navigate || '/' },
+  };
+
+  event.waitUntil(
+    (async () => {
+      await self.registration.showNotification(titulo, opcoes);
+      /* o numero na bolinha do icone. O formato declarativo faz
+         isso sozinho pelo app_badge; aqui e na mao. */
+      if (self.navigator.setAppBadge && n.app_badge) {
+        await self.navigator.setAppBadge(Number(n.app_badge) || 1).catch(() => {});
+      }
+    })()
+  );
+});
+
+/* Toque na notificacao: traz a aba que ja existe em vez de abrir
+   outra. Quem toca duas vezes nao quer dois apps abertos. */
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const destino = event.notification.data?.navigate || '/';
+
+  event.waitUntil(
+    (async () => {
+      const abas = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      for (const aba of abas) {
+        if (new URL(aba.url).origin === self.location.origin) {
+          await aba.focus();
+          if ('navigate' in aba) await aba.navigate(destino).catch(() => {});
+          return;
+        }
+      }
+      await self.clients.openWindow(destino);
+    })()
+  );
 });
 
 self.addEventListener('fetch', (event) => {

@@ -2727,3 +2727,79 @@ button.liga-linha:hover { border-color: var(--seam-hi); }
 .ens-pos { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--seam); }
 .ens-pos:last-child { border-bottom: 0; }
 .ens-pos > .tiny { flex: 1; min-width: 92px; }
+
+/* ---------- a ofensiva: o bloco de cima da Jornada ---------- */
+.ofa {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r-lg);
+  border: 1px solid color-mix(in srgb, var(--cor, var(--roar)) 28%, var(--seam));
+  background:
+    radial-gradient(130% 100% at 12% -10%, color-mix(in srgb, var(--cor, var(--roar)) 18%, transparent), transparent 60%),
+    linear-gradient(180deg, var(--mat-top), var(--mat));
+  padding: 20px;
+  margin-bottom: 14px;
+}
+.ofa-topo { display: flex; align-items: center; gap: 12px; }
+.ofa-chama {
+  display: grid; place-items: center;
+  width: 46px; height: 46px; flex: none;
+  border-radius: 14px;
+  color: var(--cor, var(--roar));
+  background: color-mix(in srgb, var(--cor, var(--roar)) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cor, var(--roar)) 30%, transparent);
+}
+.ofa.viva .ofa-chama { animation: ofa-pulsa 2.6s var(--ease) infinite; }
+@keyframes ofa-pulsa {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--cor, var(--roar)) 26%, transparent); }
+  50%      { box-shadow: 0 0 0 9px transparent; }
+}
+.ofa-num { display: flex; align-items: baseline; gap: 8px; }
+.ofa-num .num { font-size: clamp(34px, 10vw, 46px); font-weight: 700; line-height: .92; color: var(--chalk); }
+.ofa-dia { font-size: 12.5px; color: var(--dim); }
+.ofa-txt { font-size: 12.5px; color: var(--dim); margin-top: 13px; line-height: 1.65; }
+.ofa-pista { display: flex; gap: 4px; margin-top: 15px; }
+.ofa-pista i {
+  flex: 1; height: 6px; border-radius: 99px;
+  background: var(--seam);
+  transition: background .4s var(--ease);
+}
+.ofa-pista i.on { background: var(--cor, var(--roar)); }
+.ofa-pista i.hoje {
+  background: transparent;
+  border: 1px dashed color-mix(in srgb, var(--cor, var(--roar)) 55%, transparent);
+}
+.ofa-pe { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 15px; }
+.ofa-pe .escudos { margin-top: 0; }
+
+/* ---------- ranking de ofensivas ---------- */
+.rank-linha {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 11px;
+  border-radius: var(--r-sm);
+  background: var(--void);
+  border: 1px solid transparent;
+}
+.rank-linha.podio { background: color-mix(in srgb, var(--roar) 7%, var(--void)); }
+.rank-linha.eu { border-color: color-mix(in srgb, var(--accent) 45%, var(--seam)); }
+.rank-pos {
+  display: grid; place-items: center;
+  width: 22px; flex: none;
+  font-size: 11.5px; color: var(--dimmer);
+}
+.rank-linha.podio .rank-pos { color: var(--roar); }
+.rank-nome { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank-linha.eu .rank-nome { font-weight: 600; }
+.rank-dias { gap: 4px; font-size: 12.5px; font-weight: 700; color: var(--roar); flex: none; }
+.rank-corte {
+  font-family: var(--mono);
+  font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--dimmer);
+  margin-top: 7px; padding-top: 9px;
+  border-top: 1px dashed var(--seam);
+}
+.ofa-pista i.gelo {
+  /* dia que a lesão congelou: não foi fechado, mas também não
+     foi perdido, então não pode parecer nenhum dos dois */
+  background: color-mix(in srgb, var(--ice) 45%, var(--seam));
+}

@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 import { db, getMeta, setMeta } from '../db/db';
 import { semanaDe } from './xp';
 import { hoje, addDias } from './utils';
-import { sequencia } from './semana';
+import { ofensiva } from './ofensiva';
 
 /* ============================================================
    A LIGA, DO LADO DO APARELHO
@@ -65,10 +65,11 @@ async function subir() {
     await setMeta('liga_marca', marca);
   }
 
-  const semanasSeguidas = sequencia(await db.sessions.toArray()).semanas;
-  const chaveSeq = `${uid}:${semanasSeguidas}`;
+  /* a ofensiva sobe junto: é ela que o ranking e o grupo mostram */
+  const dias = ofensiva(await db.pontos.toArray()).dias;
+  const chaveSeq = `${uid}:${dias}`;
   if ((await getMeta('liga_sequencia', null)) !== chaveSeq) {
-    const { error } = await supabase.from('perfil').update({ sequencia: semanasSeguidas }).eq('user_id', uid);
+    const { error } = await supabase.from('perfil').update({ sequencia: dias }).eq('user_id', uid);
     if (!error) await setMeta('liga_sequencia', chaveSeq);
   }
   return true;

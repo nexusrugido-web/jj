@@ -22,6 +22,7 @@ import { carregarLinks, observarLinks } from './lib/links';
 import { registrarErro, marcarPasso, erroDeAcesso } from './lib/monitor';
 import { carregarChaves, carregarRecado, souAdmin, ligada, observarChaves, todasAsChaves } from './lib/chaves';
 import { sincronizarMarcos } from './lib/milestones';
+import { abriuOApp } from './lib/push';
 import { analisarJogo, placarDaRola } from './lib/game';
 import { somarPontos } from './db/scoring';
 
@@ -253,6 +254,14 @@ export default function App() {
       marcarEngajamento();
     })();
   }, []);
+
+  /* Abriu: limpa a bolinha do ícone e avisa que o aviso
+     funcionou. É isso que faz o servidor parar de mandar pra
+     quem nunca abre — sete sem resposta e ele cala a boca,
+     antes que o Chrome casse a permissão por conta própria. */
+  useEffect(() => {
+    if (sessao) abriuOApp(sessao.user?.id).catch(() => {});
+  }, [sessao]);
 
   /* O vídeo novo também chega quando o app volta pra frente. No
      celular o app instalado fica dias aberto sem recarregar, e só
