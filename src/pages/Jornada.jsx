@@ -344,9 +344,18 @@ function BlocoOfensiva({ o, pontos, lesoes, irPara }) {
   const gelo = diasParadosPorLesao(lesoes);
   const pista = Array.from({ length: 14 }, (_, i) => {
     const dia = addDias(hoje(), -(13 - i));
-    /* dia congelado não pode aparecer apagado: apagado lê como
-       dia perdido, e ele não foi perdido */
-    return { dia, on: fechados.has(dia), gelo: !fechados.has(dia) && gelo.has(dia), hoje: i === 13 };
+    const cheio = fechados.has(dia);
+    /* só o que está dentro da corrente de agora acende forte. O
+       que veio antes de ela começar fica apagado, senão a pista
+       mostra catorze dias iguais enquanto o número diz "1 dia". */
+    const vale = !!o.desde && dia >= o.desde;
+    return {
+      dia,
+      classe: cheio ? (vale ? 'on' : 'feito')
+        /* congelado não é dia perdido, então não pode ficar cinza */
+        : gelo.has(dia) ? 'gelo' : '',
+      agora: i === 13,
+    };
   });
 
   return (
@@ -367,10 +376,14 @@ function BlocoOfensiva({ o, pontos, lesoes, irPara }) {
         )}
       </div>
 
-      <div className="ofa-pista">
+      <div className="ofa-pista" title="os últimos 14 dias">
         {pista.map((d) => (
-          <i key={d.dia} className={d.on ? 'on' : d.gelo ? 'gelo' : d.hoje ? 'hoje' : ''} />
+          <i key={d.dia} className={`${d.classe}${d.agora ? ' agora' : ''}`} />
         ))}
+      </div>
+      <div className="ofa-legenda">
+        <span>14 dias atrás</span>
+        <span>hoje</span>
       </div>
 
       <p className="ofa-txt">{frase.texto}</p>

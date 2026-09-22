@@ -164,5 +164,15 @@ ok('aula anteontem nao cobre ontem', o([aula(addDias(HOJE, -2)), aula(HOJE)]).di
 /* treinar hoje nao adianta amanha, que ainda nao chegou */
 ok('treino de hoje nao conta o amanha', o([treino(HOJE)]).dias, 1);
 
+/* ---------- desde: o primeiro dia da corrente de agora ----------
+   A pista da Jornada acende so daqui pra frente. Sem isso ela
+   mostra catorze dias iguais enquanto o numero diz "1 dia". */
+ok('um dia so: comeca hoje', o(seguidos(1)).desde, HOJE);
+ok('cinco dias: comeca ha 4', o(seguidos(5)).desde, addDias(HOJE, -4));
+ok('quebrou e voltou hoje: comeca hoje', o(comLesao).desde, HOJE);
+ok('quebrada nao tem inicio', o(seguidos(14, addDias(HOJE, -2))).desde, null);
+ok('escudo segurou: o inicio nao muda', salvou.desde, addDias(HOJE, -16));
+ok('lesao congelou: o inicio nao muda', oL(comLesao, lesao5).desde, addDias(HOJE, -15));
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

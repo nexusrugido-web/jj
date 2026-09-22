@@ -23,6 +23,7 @@ import { registrarErro, marcarPasso, erroDeAcesso } from './lib/monitor';
 import { carregarChaves, carregarRecado, souAdmin, ligada, observarChaves, todasAsChaves } from './lib/chaves';
 import { sincronizarMarcos } from './lib/milestones';
 import { abriuOApp } from './lib/push';
+import { ofensiva } from './lib/ofensiva';
 import { analisarJogo, placarDaRola } from './lib/game';
 import { somarPontos } from './db/scoring';
 
@@ -403,7 +404,9 @@ export default function App() {
       const novos = await sincronizarMarcos({
         matHoras: r.matHoras, rolas: r.rolas, sessoes: r.sessoes,
         dominadas: dom.g3 + dom.g4, primeiraFinalizacao: primeira,
-        streakRecorde: r.streak.recorde,
+        /* o marco "X dias seguidos" conta a ofensiva, que é o que
+           a tela mostra. r.streak conta só dias de treino. */
+        streakRecorde: ofensiva(await db.pontos.toArray()).recorde,
         pontos: jogo.ptsMeus,
         primeiraRaspagemAcima: raspouAcima,
         saldoPositivoPesado: saldoPesado,

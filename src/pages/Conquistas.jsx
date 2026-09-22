@@ -12,6 +12,7 @@ import {
   useToast, Stat, BeltTag, Stepper, Confirmar,
 } from '../components/UI';
 import { resumo as resumoGeral } from '../lib/stats';
+import { ofensiva } from '../lib/ofensiva';
 import { minhasTecnicas, resumoGraus } from '../lib/graus';
 import { proximaGraduacao, FAIXAS_ORDEM } from '../lib/milestones';
 import { hoje, fmtData, relativo, diasEntre, fmtDur } from '../lib/utils';
@@ -27,6 +28,9 @@ export default function Conquistas() {
   const [excluir, setExcluir] = useState(null);
 
   const r = useMemo(() => resumoGeral(sessions, rolls), [sessions, rolls]);
+  const pontos = useLiveQuery(() => db.pontos.toArray(), [], []) || [];
+  const lesoes = useLiveQuery(() => db.injuries.toArray(), [], []) || [];
+  const ofa = useMemo(() => ofensiva(pontos, undefined, lesoes), [pontos, lesoes]);
   const esteira = useMemo(() => minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa), [rolls, partners, sessions, techniques, settings.faixa]);
   const dom = useMemo(() => resumoGraus(esteira), [esteira]);
 
@@ -115,7 +119,7 @@ export default function Conquistas() {
       <div className="grid g4" style={{ marginBottom: 14 }}>
         <Card><Stat icon={Clock} valor={`${r.matHoras}h`} label="tatame total" tone="roar" /></Card>
         <Card><Stat icon={Award} valor={dom.g3 + dom.g4} label="técnicas dominadas" tone="jade" /></Card>
-        <Card><Stat icon={Flame} valor={r.streak.recorde} label="recorde de streak" /></Card>
+        <Card><Stat icon={Flame} valor={ofa.recorde} label="recorde de ofensiva" /></Card>
         <Card><Stat icon={Trophy} valor={marcos.length} label="marcos" /></Card>
       </div>
 

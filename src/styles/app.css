@@ -2760,14 +2760,28 @@ button.liga-linha:hover { border-color: var(--seam-hi); }
 .ofa-txt { font-size: 12.5px; color: var(--dim); margin-top: 13px; line-height: 1.65; }
 .ofa-pista { display: flex; gap: 4px; margin-top: 15px; }
 .ofa-pista i {
-  flex: 1; height: 6px; border-radius: 99px;
-  background: var(--seam);
-  transition: background .4s var(--ease);
+  flex: 1; height: 8px; border-radius: 99px;
+  /* dia sem nada: vazio, e vazio nao pode competir com o aceso */
+  background: color-mix(in srgb, var(--seam) 70%, transparent);
+  transition: background .3s var(--ease);
 }
+/* dentro da ofensiva de agora */
 .ofa-pista i.on { background: var(--cor, var(--roar)); }
-.ofa-pista i.hoje {
-  background: transparent;
-  border: 1px dashed color-mix(in srgb, var(--cor, var(--roar)) 55%, transparent);
+/* fechado, mas antes da ofensiva atual comecar: historico, nao placar */
+.ofa-pista i.feito { background: color-mix(in srgb, var(--cor, var(--roar)) 22%, var(--seam)); }
+/* congelado pela lesao: nem aceso nem perdido */
+.ofa-pista i.gelo { background: color-mix(in srgb, var(--ice) 50%, var(--seam)); }
+/* hoje, sempre marcado, cheio ou vazio */
+.ofa-pista i.agora {
+  outline: 2px solid color-mix(in srgb, var(--chalk) 45%, transparent);
+  outline-offset: 2px;
+}
+.ofa-legenda {
+  display: flex; justify-content: space-between;
+  margin-top: 7px;
+  font-family: var(--mono);
+  font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--dimmer);
 }
 .ofa-pe { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 15px; }
 .ofa-pe .escudos { margin-top: 0; }
@@ -2797,9 +2811,4 @@ button.liga-linha:hover { border-color: var(--seam-hi); }
   color: var(--dimmer);
   margin-top: 7px; padding-top: 9px;
   border-top: 1px dashed var(--seam);
-}
-.ofa-pista i.gelo {
-  /* dia que a lesão congelou: não foi fechado, mas também não
-     foi perdido, então não pode parecer nenhum dos dois */
-  background: color-mix(in srgb, var(--ice) 45%, var(--seam));
 }

@@ -121,7 +121,7 @@ export default function Painel() {
                   finalizacoesAplicadas: r.topAplicadas, finalizacoesSofridas: r.topSofridas,
                   tecnicasDominadas: esteira.filter((e) => e.nivel === 'dominado').map((e) => e.nome),
                   jogoA: meuJogo.map((e) => e.nome),
-                  streak: r.streak.atual,
+                  streak: ofa.dias,
                 };
                 const res = await analisarDiario(resumoIa, settings.faixa);
                 setAnalise(res?.dados || { leitura: res?.texto || '' });
@@ -149,12 +149,15 @@ export default function Painel() {
       {/* ---- números principais ---- */}
       <div className="grid g4" style={{ marginBottom: 14 }}>
         <Card className="hover">
+          {/* a mesma ofensiva da Jornada. Antes aqui morava outra
+              conta (calcStreak, só dias de treino), e as duas
+              telas mostravam números diferentes pra mesma coisa. */}
           <Stat
             icon={Flame}
-            tone={r.streak.atual > 0 ? 'roar' : undefined}
-            valor={<Contador valor={r.streak.atual} />}
-            label="dias de streak"
-            sub={`recorde ${r.streak.recorde}`}
+            tone={ofa.dias > 0 ? 'roar' : undefined}
+            valor={<Contador valor={ofa.dias} />}
+            label={ofa.dias === 1 ? 'dia de ofensiva' : 'dias de ofensiva'}
+            sub={`recorde ${ofa.recorde}`}
           />
         </Card>
         <Card className="hover">

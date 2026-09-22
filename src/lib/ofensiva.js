@@ -107,6 +107,11 @@ export function ofensiva(pontos = [], hojeIso = hoje(), lesoes = []) {
   let ganhos = 0;
   let gastos = 0;
   let anterior = null;
+  /* o primeiro dia da corrente de agora. A pista precisa dele pra
+     acender só o que está valendo: sem isso ela mostra catorze
+     dias iguais enquanto o número diz "1 dia", e as duas coisas
+     na mesma tela leem como defeito. */
+  let inicio = null;
 
   const creditar = () => {
     if (corrente > 0 && corrente % DIAS_POR_ESCUDO === 0) {
@@ -118,6 +123,7 @@ export function ofensiva(pontos = [], hojeIso = hoje(), lesoes = []) {
   for (const d of dias) {
     if (!anterior) {
       corrente = 1;
+      inicio = d;
     } else {
       const distancia = diasEntre(anterior, d);
       if (distancia === 1) {
@@ -128,7 +134,12 @@ export function ofensiva(pontos = [], hojeIso = hoje(), lesoes = []) {
         gastos += cobertos;
         /* o dia coberto não conta ponto na ofensiva, só impede
            a queda. Quem viajou não ganha dia de presente. */
-        corrente = cobertos >= perdidos ? corrente + 1 : 1;
+        if (cobertos >= perdidos) {
+          corrente += 1;
+        } else {
+          corrente = 1;
+          inicio = d;
+        }
       }
     }
     anterior = d;
@@ -158,6 +169,7 @@ export function ofensiva(pontos = [], hojeIso = hoje(), lesoes = []) {
     faltaProEscudo: faltaPro(viva ? corrente : 0, viva ? Math.max(0, ganhos - gastos) : 0),
     ultimoDia,
     diasParados: parados,
+    desde: viva ? inicio : null,
   };
 }
 
