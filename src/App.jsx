@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef, Suspense, startTransition } from 'react';
 import { AppCtx } from './contexto';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, ensureSeed, getMeta, setMeta, DEFAULT_SETTINGS, registrarSync, limparDuplicados, migrarGameplans, migrarCompeticoes, renomearAntigos, consertarAulasVistas, consertarContextoDoDrill } from './db/db';
+import { db, ensureSeed, getMeta, setMeta, DEFAULT_SETTINGS, registrarSync, limparDuplicados, limparTreinosRepetidos, migrarGameplans, migrarCompeticoes, renomearAntigos, consertarAulasVistas, consertarContextoDoDrill } from './db/db';
 import { ToastProvider } from './components/UI';
 import Layout from './components/Layout';
 import InstallPrompt from './components/InstallPrompt';
@@ -212,6 +212,7 @@ export default function App() {
          o Estudo abre com o acervo velho e troca na cara da pessoa */
       await passo('acervo', acervoLocal);
       await passo('limpar duplicados', limparDuplicados);
+      await passo('treinos repetidos', limparTreinosRepetidos);
       await passo('migrar planos', migrarGameplans);
       await passo('migrar campeonatos', migrarCompeticoes);
       await passo('renomear posições', renomearAntigos);

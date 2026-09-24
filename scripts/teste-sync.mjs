@@ -67,5 +67,26 @@ await db.techniques.update(tec.id, { ...(await db.techniques.get(tec.id)), detal
 ok('edição e criação do aluno entram na fila', fila.map((x) => x.tabela), ['techniques', 'partners', 'partners', 'techniques']);
 ok('técnica que o aluno mexeu deixa de ser semente', sementeIntacta('techniques', await db.techniques.get(tec.id)), false);
 
+/* ---------- treinos repetidos pelo toque duplo no salvar ---------- */
+const { limparTreinosRepetidos } = await import('../src/db/db.js');
+await db.sessions.clear(); await db.rolls.clear(); await db.pontos.clear();
+const t0 = Date.now() - 86400000;
+const treino = { data: '2026-09-24', tipo: 'gi', duracao: 60, academiaId: 1, professorId: 1, nota: '' };
+const criar = async (criadoEm, extra = {}) => {
+  const id = await db.sessions.add({ ...treino, ...extra, criadoEm });
+  await db.rolls.add({ sessionId: id, partnerId: 2, subsSofridas: ['Americana'], data: treino.data });
+  await db.pontos.add({ evento: 'rola', xp: 12, refId: `rola:${id}:0`, data: treino.data });
+  return id;
+};
+const primeiro = await criar(t0);
+await criar(t0 + 60000);
+await criar(t0 + 120000);
+const tarde = await criar(t0 + 3 * 3600000);
+const outro = await criar(t0 + 180000, { duracao: 90 });
+const apagados = await limparTreinosRepetidos();
+ok('toque duplo: sai só o repetido em minutos', [apagados, (await db.sessions.toArray()).map((s) => s.id)], [2, [primeiro, tarde, outro]]);
+ok('os rolas e os pontos dos repetidos saem junto', [await db.rolls.count(), await db.pontos.count()], [3, 3]);
+ok('rodar de novo não apaga mais nada', await limparTreinosRepetidos(), 0);
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

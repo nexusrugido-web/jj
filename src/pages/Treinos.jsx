@@ -121,6 +121,7 @@ export default function Treinos() {
   const professores = useLiveQuery(() => db.professors.filter((p) => !p.arquivada).toArray(), [], []) || [];
 
   const [editando, setEditando] = useState(null);
+  const [salvando, setSalvando] = useState(false);
   const [rolasEdit, setRolasEdit] = useState([]);
   const [excluir, setExcluir] = useState(null);
   const [aberta, setAberta] = useState(null);
@@ -291,7 +292,24 @@ export default function Treinos() {
     setRolasEdit((rolasPorSessao.get(s.id) || []).map((r) => ({ ...r })));
   }
 
+  /* Um toque, um treino. Antes, se algo demorava ou falhava depois de
+     gravar o treino, a folha ficava aberta sem aviso, a pessoa tocava
+     de novo e cada toque virava um treino repetido. Agora o botão trava,
+     treino e rolas gravam juntos (ou nada), e os pontos vêm depois. */
   async function salvar() {
+    if (salvando) return;
+    setSalvando(true);
+    try {
+      await gravarTreino();
+    } catch (e) {
+      console.error('[treino]', e);
+      toast('Não consegui salvar o treino. Nada foi gravado, tente de novo.', 'err');
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  async function gravarTreino() {
     const s = { ...editando };
     // o foco vem das técnicas escolhidas, sem campo duplicado
     if (!s.foco) {
@@ -304,29 +322,37 @@ export default function Treinos() {
     s.academia = acadById[s.academiaId]?.nome || s.academia || '';
     s.professor = profById[s.professorId]?.nome || s.professor || '';
     let id = s.id;
-    if (id) {
-      await db.sessions.put(s);
-      await db.rolls.where('sessionId').equals(id).delete();
-    } else {
-      id = await db.sessions.add({ ...s, criadoEm: Date.now() });
-    }
-    for (const r of rolasEdit) {
-      const { id: _drop, uid: _u, updatedAt: _up, ...rest } = r;
-      const pos = posicoesImplicadas(r, positions);
-      await db.rolls.add({
-        ...rest, ...pos,
-        resultado: resultadoDerivado(r),
-        /* o contexto sai do tipo do treino: rola de treino Drill nascia
-           "rola" e contava como luta e como uso sob resistência */
-        contexto: s.tipo === 'drill' ? 'drill' : ehCompeticao(s.tipo) ? 'competicao'
-          : (['drill', 'competicao'].includes(r.contexto) ? 'rola' : r.contexto || 'rola'),
-        v2: 1,                      // marca que esse rola passou pelo placar
-        sessionId: id, data: s.data,
-      });
-    }
-    await fecharLesaoAberta();
-    const ganho = await premiar(s, id);
+    await db.transaction('rw', db.sessions, db.rolls, async () => {
+      if (id) {
+        await db.sessions.put(s);
+        await db.rolls.where('sessionId').equals(id).delete();
+      } else {
+        id = await db.sessions.add({ ...s, criadoEm: Date.now() });
+      }
+      for (const r of rolasEdit) {
+        const { id: _drop, uid: _u, updatedAt: _up, ...rest } = r;
+        const pos = posicoesImplicadas(r, positions);
+        await db.rolls.add({
+          ...rest, ...pos,
+          resultado: resultadoDerivado(r),
+          /* o contexto sai do tipo do treino: rola de treino Drill nascia
+             "rola" e contava como luta e como uso sob resistência */
+          contexto: s.tipo === 'drill' ? 'drill' : ehCompeticao(s.tipo) ? 'competicao'
+            : (['drill', 'competicao'].includes(r.contexto) ? 'rola' : r.contexto || 'rola'),
+          v2: 1,                      // marca que esse rola passou pelo placar
+          sessionId: id, data: s.data,
+        });
+      }
+    });
+    /* o treino já está gravado: daqui pra frente nada desfaz ele */
     setEditando(null);
+    let ganho = 0;
+    try {
+      await fecharLesaoAberta();
+      ganho = await premiar(s, id);
+    } catch (e) {
+      console.error('[treino] pontos', e);
+    }
     toast(ganho > 0 ? `Treino salvo, +${ganho} pontos` : 'Treino salvo');
   }
 
@@ -630,7 +656,7 @@ export default function Treinos() {
         footer={
           <>
             <Btn variant="ghost" onClick={() => setEditando(null)}>Cancelar</Btn>
-            <Btn variant="primary" icon={Check} onClick={salvar}>Salvar treino</Btn>
+            <Btn variant="primary" icon={Check} onClick={salvar} disabled={salvando}>{salvando ? 'Salvando…' : 'Salvar treino'}</Btn>
           </>
         }
       >

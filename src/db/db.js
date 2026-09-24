@@ -587,3 +587,55 @@ export function toCSV(rows, colunas) {
   };
   return [cols.join(','), ...rows.map((r) => cols.map((c) => esc(r[c])).join(','))].join('\n');
 }
+
+/* ============================================================
+   TREINOS REPETIDOS
+
+   Um bug do botão de salvar (24/09/2026) deixava a folha aberta
+   sem aviso, e cada toque a mais gravava o mesmo treino de novo.
+   Repetido é o treino igual em tudo (dia, tipo, duração, academia,
+   professor, anotação, técnicas e rolas) criado até 10 minutos
+   depois de outro. Quem treina duas vezes no dia registra com
+   horas de diferença, e esse fica. Sai o repetido, os rolas dele
+   e os pontos que ele gerou; apagar também apaga na nuvem.
+   ============================================================ */
+const JANELA_DE_REPETIDO = 10 * 60 * 1000;
+
+export async function limparTreinosRepetidos() {
+  const sessoes = (await db.sessions.toArray()).sort((a, b) => (a.criadoEm || 0) - (b.criadoEm || 0));
+  if (sessoes.length < 2) return 0;
+  const rolas = await db.rolls.toArray();
+  const rolasDe = new Map();
+  for (const r of rolas) {
+    if (!rolasDe.has(r.sessionId)) rolasDe.set(r.sessionId, []);
+    rolasDe.get(r.sessionId).push(r);
+  }
+  const semId = ({ id, uid, sessionId, updatedAt, criadoEm, sincronizado, ...resto }) => resto;
+  const assinatura = (s) => JSON.stringify([
+    semId(s),
+    (rolasDe.get(s.id) || []).map((r) => JSON.stringify(semId(r))).sort(),
+  ]);
+
+  const ultimaVez = new Map();
+  const apagar = [];
+  for (const s of sessoes) {
+    const k = assinatura(s);
+    const antes = ultimaVez.get(k);
+    if (antes !== undefined && s.criadoEm && (s.criadoEm - antes) <= JANELA_DE_REPETIDO) apagar.push(s);
+    ultimaVez.set(k, s.criadoEm || 0);
+  }
+  if (!apagar.length) return 0;
+
+  const ids = new Set(apagar.map((s) => s.id));
+  const refs = (p) => {
+    const m = String(p.refId || '').match(/^(treino|rola):(\d+)/);
+    return m && ids.has(Number(m[2]));
+  };
+  const pontos = (await db.pontos.toArray()).filter(refs);
+  for (const s of apagar) {
+    await db.rolls.where('sessionId').equals(s.id).delete();
+    await db.sessions.delete(s.id);
+  }
+  for (const p of pontos) await db.pontos.delete(p.id);
+  return apagar.length;
+}
