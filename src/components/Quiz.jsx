@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Check, X, Lightbulb, ChevronRight, Brain, RotateCcw } from 'lucide-react';
 import { db } from '../db/db';
@@ -18,7 +18,9 @@ import { LimiteDoDia } from './Plano';
 export default function Quiz({ faixa = 'branca', dor = null, tema = null, onSair }) {
   const toast = useToast();
   const { acesso, irPara } = useApp();
-  const respondidas = useLiveQuery(() => db.quizRespostas.toArray(), [], []) || [];
+  /* sem valor padrão: undefined é "ainda carregando", e a rodada espera */
+  const respondidasDb = useLiveQuery(() => db.quizRespostas.toArray(), []);
+  const respondidas = respondidasDb || [];
 
   /* No plano grátis é uma rodada por dia. A conta é feita ao
      abrir e ao pedir outra rodada, nunca no meio: quem começou
@@ -37,10 +39,14 @@ export default function Quiz({ faixa = 'branca', dor = null, tema = null, onSair
   const [acertos, setAcertos] = useState(0);
   const [ganho, setGanho] = useState(0);
 
-  const lista = useMemo(
-    () => fila || perguntasPara({ faixa, dor, tema, limite: 5, respondidas, sorteio: revisa ? null : sorteio }),
-    [fila, faixa, dor, tema, respondidas, revisa, sorteio]
-  );
+  /* a rodada é montada uma vez e fica parada até acabar. Antes ela era
+     refeita a cada resposta, e a pergunta seguinte pulava ou repetia */
+  useEffect(() => {
+    if (!fila && respondidasDb) {
+      setFila(perguntasPara({ faixa, dor, tema, limite: 5, respondidas: respondidasDb, sorteio: revisa ? null : sorteio }));
+    }
+  }, [fila, respondidasDb, faixa, dor, tema, revisa, sorteio]);
+  const lista = fila || [];
 
   const p = lista[i];
   const terminou = i >= lista.length;
@@ -93,6 +99,8 @@ export default function Quiz({ faixa = 'branca', dor = null, tema = null, onSair
     );
   }
 
+  if (!fila) return null;
+
   if (!lista.length) {
     return (
       <Card>
@@ -113,7 +121,7 @@ export default function Quiz({ faixa = 'branca', dor = null, tema = null, onSair
             <Brain size={26} />
           </div>
           <div className="center">
-            <div className="eyebrow">rodada concluída</div>
+            <div className="eyebrow">rodada de hoje feita</div>
             <h2 style={{ fontSize: 24, fontWeight: 800, marginTop: 7 }}>
               {acertos} de {lista.length}
             </h2>
@@ -126,8 +134,17 @@ export default function Quiz({ faixa = 'branca', dor = null, tema = null, onSair
             </p>
           </div>
           {ganho > 0 && <Chip tone="jade">+{ganho} pontos</Chip>}
+          {/* o que vem depois, sem a pessoa precisar adivinhar */}
+          <div className="valida bom" style={{ maxWidth: 380, textAlign: 'left' }}>
+            <Check size={15} className="valida-ico" style={{ color: 'var(--jade)' }} />
+            <p className="micro muted" style={{ lineHeight: 1.6 }}>
+              {revisa
+                ? 'Próxima rodada já está pronta: ela começa pelas que você errou.'
+                : 'A próxima rodada abre amanhã, com perguntas novas. No premium o quiz não acaba e volta nas que você errou.'}
+            </p>
+          </div>
           <div className="row" style={{ gap: 9 }}>
-            <Btn icon={RotateCcw} onClick={recomecar}>Mais perguntas</Btn>
+            {revisa && <Btn icon={RotateCcw} onClick={recomecar}>Próxima rodada</Btn>}
             {onSair && <Btn variant="ghost" onClick={onSair}>Sair</Btn>}
           </div>
         </div>
