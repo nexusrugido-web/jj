@@ -161,14 +161,13 @@ export function Chip({ children, on, onClick, tone = '', ...p }) {
 }
 
 export function Stat({ valor, label, sub, icon: Icon, tone, size }) {
+  /* o número manda; o ícone vai pequeno junto do rótulo, sem roubar largura */
+  const cor = tone ? { color: `var(--${tone})` } : undefined;
   return (
-    <div className="row stat-caixa" style={{ alignItems: 'flex-start', gap: 12 }}>
-      {Icon && <span className="stat-ico" style={tone ? { color: `var(--${tone})`, background: `color-mix(in srgb, var(--${tone}) 14%, transparent)` } : undefined}><Icon size={16} /></span>}
-      <div className="stat">
-        <span className={`stat-val num ${size === 'sm' ? 'sm' : ''}`} style={tone ? { color: `var(--${tone})` } : undefined}>{valor}</span>
-        <span className="stat-lab">{label}</span>
-        {sub && <span className="stat-sub">{sub}</span>}
-      </div>
+    <div className="stat">
+      <span className={`stat-val num ${size === 'sm' ? 'sm' : ''}`} style={cor}>{valor}</span>
+      <span className="stat-lab">{Icon && <Icon size={14} style={cor} />}{label}</span>
+      {sub && <span className="stat-sub">{sub}</span>}
     </div>
   );
 }

@@ -7,7 +7,7 @@ import {
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { useApp } from '../contexto';
-import { Card, Stat, Btn, Contador, Bar, Empty, Chip, Field, Stepper } from '../components/UI';
+import { Card, Btn, Contador, Bar, Empty, Chip, Field, Stepper } from '../components/UI';
 import { EscadaPosicional, BarrasTop, Donut } from '../components/Charts';
 import Calendario from '../components/Calendario';
 import GraficoEvolucao from '../components/GraficoEvolucao';
@@ -144,35 +144,32 @@ export default function Painel() {
         </Card>
       )}
 
-      {/* ---- números principais ---- */}
-      <div className="grid g4 painel-numeros" style={{ marginBottom: 14 }}>
-        <Card className="hover">
-          {/* a mesma ofensiva da Jornada. Antes aqui morava outra
-              conta (calcStreak, só dias de treino), e as duas
-              telas mostravam números diferentes pra mesma coisa. */}
-          <Stat
-            icon={Flame}
-            tone={ofa.dias > 0 ? 'roar' : undefined}
-            valor={<Contador valor={ofa.dias} />}
-            label={ofa.dias === 1 ? 'dia de ofensiva' : 'dias de ofensiva'}
-            sub={`recorde ${ofa.recorde}`}
-          />
-        </Card>
-        <Card className="hover">
-          <Stat icon={Clock} valor={<Contador valor={r.matHoras} suffix="h" />} label="no tatame" sub={`${r.sessoes} ${r.sessoes === 1 ? 'treino' : 'treinos'}`} />
-        </Card>
-        <Card className="hover">
-          <Stat
-            icon={Swords}
-            valor={<Contador valor={r.rolas} />}
-            label={r.rolas === 1 ? 'luta registrada' : 'lutas registradas'}
-            sub="treino técnico não conta"
-          />
-        </Card>
-        <Card className="hover">
+      {/* ---- o placar: um cartão, os números que importam ----
+          a ofensiva é a mesma da Liga (pontos), não dias de treino */}
+      <Card className="painel-placar" style={{ marginBottom: 14 }}>
+        <div className="placar-tres">
+          <div className="placar-item">
+            <span className="placar-num num" style={ofa.dias > 0 ? { color: 'var(--roar)' } : undefined}>
+              <Contador valor={ofa.dias} />
+            </span>
+            <span className="placar-rot"><Flame size={14} /> {ofa.dias === 1 ? 'dia de ofensiva' : 'dias de ofensiva'}</span>
+            <span className="placar-sub">recorde {ofa.recorde}</span>
+          </div>
+          <div className="placar-item">
+            <span className="placar-num num"><Contador valor={r.matHoras} suffix="h" /></span>
+            <span className="placar-rot"><Clock size={14} /> no tatame</span>
+            <span className="placar-sub">{r.sessoes} {r.sessoes === 1 ? 'treino' : 'treinos'}</span>
+          </div>
+          <div className="placar-item">
+            <span className="placar-num num"><Contador valor={r.rolas} /></span>
+            <span className="placar-rot"><Swords size={14} /> {r.rolas === 1 ? 'luta' : 'lutas'}</span>
+            <span className="placar-sub">sem contar drill</span>
+          </div>
+        </div>
+        <div className="placar-fin">
           <Finalizacoes dadas={r.finalizacoes} sofridas={r.taps} />
-        </Card>
-      </div>
+        </div>
+      </Card>
 
       {(() => {
         const aberta = lesoes.find((l) => l.status !== 'curada' && l.impacto === 'parado');
@@ -545,10 +542,8 @@ function Finalizacoes({ dadas = 0, sofridas = 0 }) {
 
   return (
     <>
-      <div className="row" style={{ alignItems: 'flex-start', gap: 8 }}>
-        <span className="stat-ico"><Swords size={15} /></span>
-        <span className="stat-lab fin-titulo">finalizações</span>
-        <span className="spacer" />
+      <div className="row" style={{ gap: 8 }}>
+        <span className="placar-rot" style={{ flex: 1 }}>Finalizações</span>
         <button className="ajuda" onClick={() => setAjuda(true)} aria-label="O que é isso">?</button>
       </div>
 
