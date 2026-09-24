@@ -44,18 +44,17 @@ const PASSOS = [
     icone: Layers,
     titulo: 'Nem toda repetição vale o mesmo',
     corpo: [
-      'Encaixar cinco vezes no colega de sempre não é igual a encaixar cinco vezes em gente diferente, e nem uma nem outra é igual a encaixar num faixa mais alta. Por isso cada uso vale um tanto.',
+      'Encaixar num faixa mais alta, ou em alguém bem mais pesado, não é igual a encaixar no colega do seu tamanho. Por isso cada uso vale um tanto.',
     ],
     fatores: true,
   },
   {
     icone: Dna,
-    titulo: 'Os dois caminhos pro 3º grau',
+    titulo: 'Do 3º grau em diante, o tempo conta',
     corpo: [
-      'Chegando no 2º grau a técnica já funciona contra resistência. Do 3º em diante o app quer saber se ela funciona de verdade, e existem duas formas de provar isso.',
-      'A prova por variedade é usar a técnica em pessoas diferentes. Cada corpo reage de um jeito, cada um tem uma defesa preferida, e uma técnica que só funciona num tipo de parceiro ainda não é sua.',
-      'A prova por profundidade é continuar encaixando na mesma pessoa. Parece o caminho fácil, mas é o contrário: depois que ele viu a sua entrada duas ou três vezes, ele começa a antecipar. Se ainda assim sai, é porque você refinou o timing e o disfarce.',
-      'As duas provam a mesma coisa por caminhos diferentes, então o app aceita qualquer uma e nunca exige as duas. Quem treina sempre com o mesmo grupo não fica travado, e quem roda muito open mat também não.',
+      'Chegando no 2º grau a técnica já funciona contra resistência. Do 3º em diante o app quer saber se ela é jogo seu ou foi uma fase boa.',
+      'Por isso o 3º grau pede que ela saia em semanas diferentes e em pelo menos duas pessoas, e a Assinatura pede meses. Quem treina sempre com o mesmo grupo não fica travado.',
+      'E o grau conquistado fica. Uma técnica nunca desce, nem quando você pega faixa nova e a régua sobe.',
     ],
   },
   {
@@ -130,10 +129,10 @@ export default function Tour({ aberto, onClose, onConcluir }) {
           <div className="col" style={{ gap: 9, marginTop: 2 }}>
             {[
               ['Onde aconteceu', 'Treinar com o parceiro colaborando constrói o movimento e vale pro 1º grau. Encaixar no rola, com ele tentando impedir, é o que faz subir. Em competição vale ainda mais, porque tem regra, adrenalina e alguém que nunca te viu.'],
-              ['A faixa de quem estava do outro lado', 'Encaixar num azul não é o mesmo que encaixar num branca. Quanto mais graduado o parceiro, mais aquele uso pesa. E a partir do 3º grau o app passa a exigir alguns encaixes em quem tem mais tempo de tatame que você.'],
+              ['A faixa de quem estava do outro lado', 'Encaixar num azul não é o mesmo que encaixar num branca. Quanto mais graduado o parceiro, mais aquele uso pesa. E pra chegar na Assinatura, uma parte dos encaixes tem que ser em quem tem mais tempo de tatame que você.'],
               ['O peso dele', 'Raspar alguém quinze quilos mais pesado exige alavanca e timing que não são necessários contra alguém do seu tamanho. Isso conta a favor.'],
               ['Em quantas pessoas saiu', 'Cada parceiro tem um jogo. Funcionar em gente diferente mostra que a técnica não depende de um corpo específico.'],
-              ['Quantas vezes saiu no mesmo', 'Repetir na mesma pessoa fica mais difícil com o tempo, porque ela aprende a sua entrada. Continuar encaixando é sinal de refinamento.'],
+              ['Quando saiu', 'Uma semana inspirada não faz uma técnica. Do 3º grau em diante ela precisa sair em semanas diferentes.'],
             ].map(([t, d]) => (
               <div key={t} className="card" style={{ background: 'var(--void)', padding: 13 }}>
                 <div className="tiny" style={{ fontWeight: 600, marginBottom: 5 }}>{t}</div>

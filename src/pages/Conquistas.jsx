@@ -14,7 +14,8 @@ import {
 import { resumo as resumoGeral } from '../lib/stats';
 import { ofensiva } from '../lib/ofensiva';
 import { compartilhar } from '../lib/card';
-import { minhasTecnicas, resumoGraus } from '../lib/graus';
+import { minhasTecnicas, resumoGraus, requisitosDaFaixa, grauPorN } from '../lib/graus';
+import { Ponteira } from '../components/Ponteira';
 import { proximaGraduacao, FAIXAS_ORDEM } from '../lib/milestones';
 import { hoje, fmtData, relativo, diasEntre, fmtDur } from '../lib/utils';
 
@@ -50,13 +51,14 @@ export default function Conquistas() {
   const marcos = useLiveQuery(() => db.milestones.orderBy('data').reverse().toArray(), [], []) || [];
   const graduacoes = useLiveQuery(() => db.gradings.orderBy('data').reverse().toArray(), [], []) || [];
   const [registrar, setRegistrar] = useState(null);
+  const [faixaNova, setFaixaNova] = useState(null);
   const [excluir, setExcluir] = useState(null);
 
   const r = useMemo(() => resumoGeral(sessions, rolls), [sessions, rolls]);
   const pontos = useLiveQuery(() => db.pontos.toArray(), [], []) || [];
   const lesoes = useLiveQuery(() => db.injuries.toArray(), [], []) || [];
   const ofa = useMemo(() => ofensiva(pontos, undefined, lesoes), [pontos, lesoes]);
-  const esteira = useMemo(() => minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa), [rolls, partners, sessions, techniques, settings.faixa]);
+  const esteira = useMemo(() => minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa, graduacoes), [rolls, partners, sessions, techniques, settings.faixa, graduacoes]);
   const dom = useMemo(() => resumoGraus(esteira), [esteira]);
 
   const ultimaGrad = graduacoes[0];
@@ -84,6 +86,9 @@ export default function Conquistas() {
     await salvarSettings({ faixa: g.faixa, graus: g.tipo === 'faixa' ? 0 : g.graus });
     setRegistrar(null);
     toast('Parabéns! Graduação registrada 🥋');
+    /* faixa nova sobe a régua: quem vê o próximo grau mais longe precisa
+       saber que não perdeu nada do que já tinha */
+    if (g.tipo === 'faixa') setFaixaNova({ faixa: g.faixa, antes: settings.faixa });
   }
 
   return (
@@ -265,6 +270,8 @@ export default function Conquistas() {
         )}
       </Sheet>
 
+      <FaixaNova aviso={faixaNova} tecnica={esteira[0]} onClose={() => setFaixaNova(null)} />
+
       <Confirmar
         aberto={!!excluir} onClose={() => setExcluir(null)}
         onConfirmar={async () => { await db.gradings.delete(excluir.id); toast('Removido'); }}
@@ -323,5 +330,42 @@ export function Celebracao({ marco, onFechar }) {
         <Btn variant="primary" onClick={onFechar} style={{ marginTop: 22, width: '100%', minHeight: 46 }}>Valeu</Btn>
       </div>
     </div>
+  );
+}
+
+/* ============================================================
+   FAIXA NOVA, TÉCNICAS INTACTAS
+
+   Com a faixa nova, o próximo grau de cada técnica pede mais. Sem
+   explicar, o aluno vê a barra andar pra trás no dia mais feliz do
+   ano e acha que perdeu alguma coisa.
+   ============================================================ */
+function FaixaNova({ aviso, tecnica, onClose }) {
+  if (!aviso) return null;
+  const nome = (id) => FAIXAS.find((f) => f.id === id)?.nome?.toLowerCase() || id;
+  const g = tecnica ? grauPorN(tecnica.grau) : null;
+  const req = tecnica?.proximo ? requisitosDaFaixa(aviso.faixa)[tecnica.proximo] : null;
+  return (
+    <Sheet
+      aberto onClose={onClose} titulo={`Faixa ${nome(aviso.faixa)}, parabéns`}
+      footer={<Btn variant="primary" onClick={onClose} style={{ width: '100%' }}>Bora treinar</Btn>}
+    >
+      <p className="tiny" style={{ lineHeight: 1.7 }}>
+        Suas técnicas não perdem nada com a faixa nova. Cada uma continua no grau que você conquistou.
+      </p>
+      {tecnica && g && (
+        <div className="card" style={{ background: 'var(--void)', display: 'flex', gap: 12, alignItems: 'center' }}>
+          <Ponteira n={tecnica.grau} />
+          <p className="tiny" style={{ lineHeight: 1.6 }}>
+            <b>{tecnica.nome}</b> continua no {g.nome}: {g.curto.toLowerCase()}.
+          </p>
+        </div>
+      )}
+      <p className="tiny muted" style={{ lineHeight: 1.7 }}>
+        O que muda é daqui pra frente. A faixa {nome(aviso.faixa)} pede um pouco mais pra subir o próximo grau,
+        porque o que era notável na {nome(aviso.antes)} vira rotina agora.
+        {req && tecnica && ` Pro ${grauPorN(tecnica.proximo).nome} da ${tecnica.nome}, agora são ${req.usos} usos no rola.`}
+      </p>
+    </Sheet>
   );
 }

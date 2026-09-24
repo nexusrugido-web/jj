@@ -22,15 +22,15 @@ const ok = (nome, real, esperado) => {
 };
 
 /* ---------- o que falta pro próximo grau ---------- */
-const base = { grau: 2, proximo: 3, progresso: 60, soDrill: false, contraAcima: 0, melhorParceiro: 1 };
+const base = { grau: 2, proximo: 3, progresso: 60, soDrill: false, contraAcima: 0, semanas: 4, meses: 2 };
 ok('só falta volume: diz quantas vezes',
-  faltaPara({ ...base, usosResistencia: 12, transferencia: 4, refinamento: 4 }).resumo,
+  faltaPara({ ...base, volume: 12, transferencia: 2 }).resumo,
   'Faltam 3 vezes no rola pra subir pro 3º grau');
-ok('falta volume e gente diferente: avisa que tem mais',
-  faltaPara({ ...base, usosResistencia: 12, transferencia: 3, refinamento: 4 }, 'branca', [{ id: 1, nome: 'Caio' }]).resumo,
+ok('falta volume e semanas diferentes: avisa que tem mais',
+  faltaPara({ ...base, volume: 12, transferencia: 2, semanas: 2 }).resumo,
   'Faltam 3 vezes no rola, e mais uma coisa, pra subir pro 3º grau');
 ok('2º grau: uma vez no singular',
-  faltaPara({ grau: 1, proximo: 2, progresso: 80, soDrill: false, usosResistencia: 4, transferencia: 1, refinamento: 4 }).resumo,
+  faltaPara({ grau: 1, proximo: 2, progresso: 80, soDrill: false, volume: 4, transferencia: 1 }).resumo,
   'Falta 1 vez no rola pra subir pro 2º grau');
 
 /* ---------- drill não é luta, em lugar nenhum ---------- */

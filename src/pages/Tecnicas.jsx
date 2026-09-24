@@ -38,7 +38,7 @@ const vazia = () => ({
 });
 
 export default function Tecnicas() {
-  const { techniques, categories, positions, settings, reviews, rolls, partners, sessions, irPara } = useApp();
+  const { techniques, categories, positions, settings, reviews, rolls, partners, sessions, gradings, irPara } = useApp();
   const toast = useToast();
   const [busca, setBusca] = useState('');
   const [cat, setCat] = useState('todas');
@@ -54,8 +54,8 @@ export default function Tecnicas() {
   /* o grau de cada técnica sai dos rolas, não de um campo
      que ninguém preenche */
   const minhas = useMemo(
-    () => minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa),
-    [rolls, partners, sessions, techniques, settings.faixa]
+    () => minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa, gradings),
+    [rolls, partners, sessions, techniques, settings.faixa, gradings]
   );
   const grauPorNome = useMemo(
     () => Object.fromEntries(minhas.map((t) => [String(t.nome).toLowerCase(), t.grau])),

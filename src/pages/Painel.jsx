@@ -71,7 +71,7 @@ export default function Painel() {
   const ofa = useMemo(() => ofensiva(pontos, undefined, lesoes), [pontos, lesoes]);
   const fraseSeq = useMemo(() => textoOfensiva(ofa), [ofa]);
 
-  const esteira = useMemo(() => minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa), [rolls, partners, sessions, techniques, settings.faixa]);
+  const esteira = useMemo(() => minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa, gradings), [rolls, partners, sessions, techniques, settings.faixa, gradings]);
   const recap = useMemo(() => resumoSemana(sessions, rolls, esteira, { faixa: settings.faixa }), [sessions, rolls, esteira, settings.faixa]);
   const buracos = useMemo(() => meusBuracos(rolls, partners, sessions, settings.faixa), [rolls, partners, sessions, settings.faixa]);
 
@@ -380,7 +380,7 @@ export default function Painel() {
           </p>
           <div className="col" style={{ gap: 8 }}>
             {esteira.slice(0, 3).map((t) => (
-              <TecnicaNaHome key={t.nome} t={t} faixa={settings.faixa} partners={partners} onAbrir={() => irPara('dominio')} />
+              <TecnicaNaHome key={t.nome} t={t} faixa={settings.faixa} onAbrir={() => irPara('dominio')} />
             ))}
           </div>
 
@@ -531,7 +531,7 @@ Toda vez que você marca um ponto, o app anota a posição que veio junto. Passa
           {[
             ['Conheço o movimento', 'Apareceu pelo menos uma vez num rola seu.'],
             ['Funciona no rola', 'Saiu várias vezes com o outro resistindo de verdade.'],
-            ['Faz parte do meu jogo', 'Sai em gente diferente, ou você já refinou bastante na mesma pessoa.'],
+            ['Faz parte do meu jogo', 'Sai em gente diferente e em semanas diferentes. Não foi uma fase boa.'],
             ['Assinatura', 'É o seu golpe. Sai até contra quem é mais graduado que você.'],
           ].map(([n, d], i) => (
             <div key={n} className="row" style={{ gap: 11, alignItems: 'flex-start' }}>
@@ -627,14 +627,14 @@ function Finalizacoes({ dadas = 0, sofridas = 0 }) {
    UMA TÉCNICA NA HOME
 
    O grau de hoje, a barra até o próximo e, embaixo, o que falta
-   fazer. No 2º grau a conta é só de vezes no rola, então dá pra
-   mostrar ela inteira ("1 de 5") e a barra bate com o número.
+   fazer. No 2º grau a conta é só de usos no rola (pelo peso de cada
+   um), então dá pra mostrar ela inteira ("1 de 5") e a barra bate.
    ============================================================ */
-function TecnicaNaHome({ t, faixa, partners, onAbrir }) {
+function TecnicaNaHome({ t, faixa, onAbrir }) {
   const g = grauPorN(t.grau);
   const prox = t.proximo ? grauPorN(t.proximo) : null;
-  const falta = faltaPara(t, faixa, partners);
-  const conta = t.proximo === 2 && !t.soDrill && t.requisitos ? `${t.usosResistencia} de ${t.requisitos.usos}` : null;
+  const falta = faltaPara(t, faixa);
+  const conta = t.proximo === 2 && !t.soDrill && t.requisitos ? `${Math.min(t.requisitos.usos, Math.floor(t.volume))} de ${t.requisitos.usos}` : null;
 
   return (
     <button className="tec-home" onClick={onAbrir}>

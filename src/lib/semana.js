@@ -120,7 +120,7 @@ export function resumoSemana(sessions, rolls, tecnicas = [], { semana = null, fa
      contra o de hoje. Antes era um palpite pelo progresso, que quase
      nunca acertava e nunca via ninguém chegar no 4º grau. */
   const subiram = tecnicas.filter((t) => t.grau >= 2 && t.ultima >= alvo
-    && calcularAtaque((t.historico || []).filter((u) => u.data && u.data < alvo), faixa).grau < t.grau);
+    && Math.max(t.grauGuardado || 0, calcularAtaque((t.historico || []).filter((u) => u.data && u.data < alvo), faixa).grau) < t.grau);
 
   return {
     semana: alvo,

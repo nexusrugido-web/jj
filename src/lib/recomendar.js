@@ -364,7 +364,7 @@ export function recomendacoesDoAluno({
 /* ============================================================
    O QUE FALTA PRO PRÓXIMO GRAU, em português
    ============================================================ */
-export function faltaPara(t, faixa = 'branca', partners = []) {
+export function faltaPara(t, faixa = 'branca') {
   if (!t || t.grau >= 4) return null;
   const req = requisitosDaFaixa(faixa)[t.proximo];
   if (!req) return null;
@@ -380,31 +380,27 @@ export function faltaPara(t, faixa = 'branca', partners = []) {
     };
   }
 
-  const faltamUsos = Math.max(0, req.usos - t.usosResistencia);
+  /* o uso vale pelo peso (faixa e tamanho do parceiro), então o que
+     falta é contado em usos comuns, arredondado pra cima */
+  const faltamUsos = Math.max(0, Math.ceil(req.usos - (t.volume ?? t.usosResistencia) - 1e-9));
   if (faltamUsos > 0) {
     pecas.push(faltamUsos === 1
       ? `encaixar mais uma vez no rola`
       : `encaixar mais ${faltamUsos} vezes no rola`);
   }
 
-  const okTransf = !req.transferencia || t.transferencia >= req.transferencia;
-  const okRefino = !req.refinamento || t.refinamento >= req.refinamento;
-  if (!okTransf && !okRefino) {
-    const faltamPessoas = req.transferencia - t.transferencia;
-    const faltamRepet = req.refinamento - t.refinamento;
-    const nome = t.melhorParceiro ? NOME_PARCEIRO(partners, t.melhorParceiro) : 'no mesmo parceiro';
-    pecas.push(
-      faltamPessoas <= faltamRepet
-        ? `usar em mais ${faltamPessoas} ${faltamPessoas === 1 ? 'pessoa' : 'pessoas'}, ou continuar encaixando no ${nome} mais ${faltamRepet} vezes`
-        : `continuar encaixando no ${nome} mais ${faltamRepet} vezes, ou abrir pra mais ${faltamPessoas} ${faltamPessoas === 1 ? 'pessoa' : 'pessoas'}`
-    );
+  const falta = (quanto, um, varios) => (quanto === 1 ? um : varios.replace('#', quanto));
+  if (req.transferencia && t.transferencia < req.transferencia) {
+    pecas.push(falta(req.transferencia - t.transferencia, 'sair em mais uma pessoa diferente', 'sair em mais # pessoas diferentes'));
   }
-
+  if (req.semanas && t.semanas < req.semanas) {
+    pecas.push(falta(req.semanas - t.semanas, 'sair em mais uma semana diferente', 'sair em mais # semanas diferentes'));
+  }
+  if (req.meses && t.meses < req.meses) {
+    pecas.push(falta(req.meses - t.meses, 'sair em mais um mês diferente', 'sair em mais # meses diferentes'));
+  }
   if (req.acima && t.contraAcima < req.acima) {
-    const f = req.acima - t.contraAcima;
-    pecas.push(f === 1
-      ? `encaixar uma vez em alguém de faixa acima da sua`
-      : `encaixar ${f} vezes em gente de faixa acima da sua`);
+    pecas.push(falta(req.acima - t.contraAcima, 'encaixar uma vez em alguém de faixa acima da sua', 'encaixar # vezes em gente de faixa acima da sua'));
   }
 
   if (!pecas.length) {
@@ -416,10 +412,11 @@ export function faltaPara(t, faixa = 'branca', partners = []) {
     : `Falta ${pecas.slice(0, -1).join(', ')} e ${pecas[pecas.length - 1]}.`;
 
   const porque = t.proximo === 2
-    ? 'O 2º grau só chega quando a técnica funciona com alguém tentando impedir.'
+    ? 'O 2º grau chega quando a técnica funciona com alguém tentando impedir.'
     : t.proximo === 3
-      ? 'O 3º grau aceita dois caminhos, funcionar em gente diferente ou continuar funcionando em quem já conhece sua entrada.'
-      : 'O 4º grau pede volume e uso contra quem está no seu nível ou acima.';
+      ? 'O 3º grau pede que ela saia em gente diferente e em semanas diferentes: não é uma fase boa, é jogo seu.'
+      : 'O 4º grau pede volume, uso contra quem está acima de você e meses de constância.';
+  const peso = faltamUsos > 0 ? ' Encaixar em alguém de faixa acima, ou mais pesado, conta mais.' : '';
 
   /* "20% para o 2º grau" parecia que faltava 20%. O resumo diz o
      que falta fazer, que é o que dá pra levar pro tatame. */
@@ -431,7 +428,7 @@ export function faltaPara(t, faixa = 'branca', partners = []) {
     ? `${faltamUsos === 1 ? 'Falta 1 vez' : `Faltam ${faltamUsos} vezes`} no rola${eMais} pra subir pro ${g.nome}`
     : `Falta ${pecas[0]}${eMais} pra subir pro ${g.nome}`;
 
-  return { resumo, texto: `${texto} ${porque}`, alvo: g };
+  return { resumo, texto: `${texto} ${porque}${peso}`, alvo: g };
 }
 
 /* ============================================================

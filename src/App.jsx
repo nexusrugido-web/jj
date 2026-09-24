@@ -378,6 +378,9 @@ export default function App() {
   const rolls = useLiveQuery(() => db.rolls.toArray(), [], []);
   const reviews = useLiveQuery(() => db.reviews.toArray(), [], []);
   const goals = useLiveQuery(() => db.goals.toArray(), [], []);
+  /* as graduações entram no grau das técnicas: o que foi conquistado
+     com a régua da faixa anterior não volta (lib/graus, grauGuardado) */
+  const gradings = useLiveQuery(() => db.gradings.toArray(), [], []);
 
   /* ---------- tema ---------- */
   useEffect(() => {
@@ -392,7 +395,7 @@ export default function App() {
     if (!sessions.length) return;
     const t = setTimeout(async () => {
       const r = calcResumo(sessions, rolls);
-      const esteira = minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa);
+      const esteira = minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa, gradings || []);
       const dom = resumoGraus(esteira);
       /* a primeira pela data do treino, não pela ordem em que foi digitada
          (treino atrasado existe), e só rola de verdade: o marco diz "rola viva" */
@@ -430,7 +433,7 @@ export default function App() {
       marcosChecados.current = true;
     }, 900);
     return () => clearTimeout(t);
-  }, [pronto, sessions, rolls, techniques, partners, settings.faixa, settings.celebrar]);
+  }, [pronto, sessions, rolls, techniques, partners, gradings, settings.faixa, settings.celebrar]);
 
   if (!pronto) {
     return (
@@ -506,7 +509,7 @@ export default function App() {
     settings, salvarSettings, irPara, rota,
     positions: positions || [], categories: categories || [], techniques: techniques || [],
     partners: partners || [], sessions: sessions || [], rolls: rolls || [],
-    reviews: reviews || [], goals: goals || [],
+    reviews: reviews || [], goals: goals || [], gradings: gradings || [],
     sessao, sync, erroBoot, acervoVer,
     abrirInstalar: () => setInstalarAberto(true),
     abrirLogin: () => setTelaLogin(true),

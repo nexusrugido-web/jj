@@ -34,7 +34,7 @@ import { EVENTOS } from '../lib/xp';
 const NENHUMA = [];
 
 export default function Estudo() {
-  const { settings, salvarSettings, rolls, partners, sessions, techniques, irPara, ligada, acesso, acervoVer } = useApp();
+  const { settings, salvarSettings, rolls, partners, sessions, techniques, gradings, irPara, ligada, acesso, acervoVer } = useApp();
   const toast = useToast();
   const { liberarVideo, aviso } = useLimite(acesso, irPara);
   const faixa = settings.faixa || 'branca';
@@ -75,8 +75,8 @@ export default function Estudo() {
   const resumo = useMemo(() => resumoAcervo(vistas), [vistas, acervoVer]);
 
   const tecnicas = useMemo(
-    () => minhasTecnicas(rolls, partners, sessions, techniques, faixa),
-    [rolls, partners, sessions, techniques, faixa]
+    () => minhasTecnicas(rolls, partners, sessions, techniques, faixa, gradings),
+    [rolls, partners, sessions, techniques, faixa, gradings]
   );
   const buracos = useMemo(() => meusBuracos(rolls, partners, sessions, faixa), [rolls, partners, sessions, faixa]);
   const todasRecs = useMemo(

@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "lint:copy": "node scripts/lint-copy.mjs",
     "lint:ciclos": "node scripts/ciclos.mjs",
-    "check": "npm run lint:copy && npm run lint:simbolos && npm run lint:ciclos && npm run build && npm run lint:chunks && npm run teste:boot && npm run teste:limites && npm run teste:categorias && npm run teste:estudo && npm run teste:vocab && npm run teste:classificar && npm run teste:motor && npm run teste:grafico && npm run teste:liga && npm run teste:medir && npm run teste:periodo && npm run teste:competicao && npm run teste:ofensiva && npm run teste:placar && npm run teste:coerencia && npm run teste:telas && npm run teste:login",
+    "check": "npm run lint:copy && npm run lint:simbolos && npm run lint:ciclos && npm run build && npm run lint:chunks && npm run teste:boot && npm run teste:limites && npm run teste:categorias && npm run teste:estudo && npm run teste:vocab && npm run teste:classificar && npm run teste:motor && npm run teste:grafico && npm run teste:liga && npm run teste:medir && npm run teste:periodo && npm run teste:competicao && npm run teste:ofensiva && npm run teste:placar && npm run teste:coerencia && npm run teste:telas && npm run teste:login && npm run teste:graus",
     "lint:chunks": "node scripts/chunks.mjs",
     "teste:boot": "node scripts/teste-boot.mjs",
     "lint:simbolos": "node scripts/simbolos.mjs",
@@ -29,7 +29,8 @@
     "teste:placar": "node scripts/teste-placar.mjs",
     "teste:coerencia": "node scripts/teste-coerencia.mjs",
     "teste:telas": "node scripts/teste-telas.mjs",
-    "teste:login": "node scripts/teste-login.mjs"
+    "teste:login": "node scripts/teste-login.mjs",
+    "teste:graus": "node scripts/teste-graus.mjs"
   },
   "dependencies": {
     "@sentry/react": "^10.74.0",

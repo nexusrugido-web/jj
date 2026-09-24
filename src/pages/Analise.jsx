@@ -49,8 +49,8 @@ export default function Analise() {
   const escada = useMemo(() => escadaPosicional(rolasF, positions), [rolasF, positions]);
   /* as técnicas do período escolhido, não do histórico inteiro */
   const minhasDoPeriodo = useMemo(
-    () => minhasTecnicas(rolasF, partners, filtradas, techniques, settings.faixa),
-    [rolasF, partners, filtradas, techniques, settings.faixa]
+    () => minhasTecnicas(rolasF, partners, filtradas, techniques, settings.faixa, gradings),
+    [rolasF, partners, filtradas, techniques, settings.faixa, gradings]
   );
   const radar = useMemo(
     () => radarHabilidades(minhasDoPeriodo, categories, techniques),

@@ -19,7 +19,7 @@ import { posInicialPorId } from '../db/scoring';
 import { limitarLista, LIMITES, RECOMENDACOES_NA_TELA } from '../lib/plano';
 
 export default function Dominio() {
-  const { rolls, partners, sessions, techniques, categories, goals, settings, irPara, acesso } = useApp();
+  const { rolls, partners, sessions, techniques, categories, goals, gradings, settings, irPara, acesso } = useApp();
   const [filtro, setFiltro] = useState('todas');
   const [busca, setBusca] = useState('');
   const [detalhe, setDetalhe] = useState(null);
@@ -30,8 +30,8 @@ export default function Dominio() {
   const vistas = useLiveQuery(() => db.aulasVistas.toArray(), [], []) || [];
 
   const tecnicas = useMemo(
-    () => minhasTecnicas(rolls, partners, sessions, techniques, faixa),
-    [rolls, partners, sessions, techniques, faixa]
+    () => minhasTecnicas(rolls, partners, sessions, techniques, faixa, gradings),
+    [rolls, partners, sessions, techniques, faixa, gradings]
   );
   const buracos = useMemo(() => meusBuracos(rolls, partners, sessions, faixa), [rolls, partners, sessions, faixa]);
   const resumo = useMemo(() => resumoGraus(tecnicas), [tecnicas]);
@@ -204,7 +204,7 @@ export default function Dominio() {
       <div className="trilha">
         {lista.map((t) => {
           const g = grauPorN(t.grau);
-          const falta = faltaPara(t, faixa, partners);
+          const falta = faltaPara(t, faixa);
           const cat = catById[t.categoriaId];
           const tend = TENDENCIAS[t.tendencia];
           return (
@@ -267,7 +267,7 @@ function Cabecalho({ onComo }) {
 function Detalhe({ t, onClose, cat, faixa, partners, sessions, goals }) {
   if (!t) return null;
   const g = grauPorN(t.grau);
-  const falta = faltaPara(t, faixa, partners);
+  const falta = faltaPara(t, faixa);
   const req = requisitosDaFaixa(faixa);
   const tend = TENDENCIAS[t.tendencia];
   const nomeP = (id) => partners.find((p) => p.id === id)?.nome || 'esse parceiro';
@@ -280,7 +280,8 @@ function Detalhe({ t, onClose, cat, faixa, partners, sessions, goals }) {
 
   const porFaixa = {};
   for (const h of t.historico.filter((x) => contextoPorId(x.contexto).evidencia === 'resistencia')) {
-    porFaixa[h.faixaParceiro] = (porFaixa[h.faixaParceiro] || 0) + 1;
+    const f = h.faixaParceiro || 'faixa não marcada';
+    porFaixa[f] = (porFaixa[f] || 0) + 1;
   }
 
   return (
@@ -309,16 +310,17 @@ function Detalhe({ t, onClose, cat, faixa, partners, sessions, goals }) {
       )}
 
       <div>
-        <div className="eyebrow" style={{ marginBottom: 9 }}>os cinco fatores desta técnica</div>
+        <div className="eyebrow" style={{ marginBottom: 9 }}>o que conta pro grau dela</div>
         <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(104px,1fr))', gap: 10 }}>
           <Card style={{ padding: 12 }}><Stat size="sm" valor={t.usosResistencia} label="vezes no rola" tone="jade" /></Card>
           <Card style={{ padding: 12 }}><Stat size="sm" valor={t.transferencia} label="pessoas" /></Card>
-          <Card style={{ padding: 12 }}><Stat size="sm" valor={t.refinamento} label="na mesma pessoa" /></Card>
+          <Card style={{ padding: 12 }}><Stat size="sm" valor={t.semanas} label="semanas diferentes" /></Card>
+          <Card style={{ padding: 12 }}><Stat size="sm" valor={t.meses} label="meses diferentes" /></Card>
           <Card style={{ padding: 12 }}><Stat size="sm" valor={t.contraAcima} label="em faixa acima" tone={t.contraAcima ? 'roar' : undefined} /></Card>
           <Card style={{ padding: 12 }}><Stat size="sm" valor={t.usosDrill} label="no treino técnico" /></Card>
         </div>
         <p className="micro muted" style={{ marginTop: 10, lineHeight: 1.6 }}>
-          O peso do parceiro também entra, aumentando o valor de cada encaixe em alguém mais pesado que você.
+          Cada encaixe vale mais quando o parceiro é de faixa acima da sua ou mais pesado que você.
         </p>
       </div>
 
@@ -446,10 +448,10 @@ function ComoFunciona({ aberto, onClose, faixa }) {
       <div className="col" style={{ gap: 9 }}>
         {[
           ['Onde aconteceu', 'Treinar com o parceiro colaborando constrói o movimento e coloca a técnica no 1º grau. Encaixar no rola, com ele tentando impedir, é o que faz subir. Competição vale ainda mais.', 'ice'],
-          ['A faixa do parceiro', 'Encaixar num azul não é o mesmo que encaixar num branca. Quanto mais graduado, mais aquele uso pesa. Do 3º grau em diante o app passa a exigir alguns encaixes em quem tem mais tempo que você.', 'roar'],
+          ['A faixa do parceiro', 'Encaixar num azul não é o mesmo que encaixar num branca. Quanto mais graduado, mais aquele uso pesa. Pra chegar na Assinatura, uma parte dos encaixes tem que ser em quem tem mais tempo que você.', 'roar'],
           ['O peso dele', 'Raspar alguém bem mais pesado exige alavanca e timing que não são necessários contra alguém do seu tamanho. Isso conta a favor.', 'roar'],
           ['Em quantas pessoas saiu', 'Cada parceiro tem um jogo. Funcionar em gente diferente mostra que a técnica não depende de um corpo específico.', 'jade'],
-          ['Quantas vezes saiu na mesma pessoa', 'Repetir fica mais difícil com o tempo, porque ela aprende a sua entrada. Continuar encaixando é sinal de refinamento.', 'jade'],
+          ['Quando saiu', 'Uma semana inspirada não faz uma técnica. Do 3º grau em diante, ela precisa sair em semanas diferentes, e a Assinatura pede meses.', 'jade'],
         ].map(([t, d, cor]) => (
           <div key={t} className="card" style={{ background: 'var(--void)', padding: 13, borderLeft: `2px solid var(--${cor})` }}>
             <div className="tiny" style={{ fontWeight: 600, marginBottom: 5 }}>{t}</div>
@@ -469,37 +471,37 @@ function ComoFunciona({ aberto, onClose, faixa }) {
       </div>
 
       <div className="divider" />
-      <div className="eyebrow">os dois caminhos pro 3º grau</div>
-      <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        A partir do 3º grau existem duas formas de provar que a técnica é sua. O app aceita qualquer uma das duas
-        e nunca exige as duas juntas.
-      </p>
-      <div className="grid g2" style={{ gap: 10 }}>
-        <div className="card" style={{ background: 'var(--void)', padding: 13 }}>
-          <div className="tiny" style={{ fontWeight: 600, marginBottom: 5 }}>Por variedade</div>
-          <p className="micro muted" style={{ lineHeight: 1.6 }}>
-            Usar em pessoas diferentes. Prova que ela não depende de um corpo ou de um jogo específico.
-          </p>
-        </div>
-        <div className="card" style={{ background: 'var(--void)', padding: 13 }}>
-          <div className="tiny" style={{ fontWeight: 600, marginBottom: 5 }}>Por profundidade</div>
-          <p className="micro muted" style={{ lineHeight: 1.6 }}>
-            Continuar encaixando na mesma pessoa. Depois que ela viu a entrada algumas vezes, começa a antecipar.
-            Se ainda sai, é refinamento.
-          </p>
-        </div>
+      <div className="eyebrow">o que cada grau pede</div>
+      <div className="col" style={{ gap: 9 }}>
+        {[
+          ['1º grau', 'Apareceu uma vez, até no treino técnico.'],
+          ['2º grau', `Saiu ${req[2].usos} vezes no rola, com alguém tentando impedir.`],
+          ['3º grau', `Saiu ${req[3].usos} vezes, em pelo menos ${req[3].transferencia} pessoas e em ${req[3].semanas} semanas diferentes${req[3].acima ? ', com uma delas em faixa acima da sua' : ''}.`],
+          ['4º grau', `Saiu ${req[4].usos} vezes, em pelo menos ${req[4].transferencia} pessoas, em ${req[4].meses} meses diferentes e ${req[4].acima} vezes em faixa acima da sua.`],
+        ].map(([n, d]) => (
+          <div key={n} className="row" style={{ gap: 10, alignItems: 'baseline' }}>
+            <span className="tiny" style={{ fontWeight: 700, minWidth: 58 }}>{n}</span>
+            <p className="micro muted" style={{ lineHeight: 1.6 }}>{d}</p>
+          </div>
+        ))}
       </div>
       <p className="micro muted" style={{ lineHeight: 1.65 }}>
-        Isso existe porque quem treina sempre com o mesmo grupo não pode ficar travado, e quem roda muito open mat
-        também não. Os dois caminhos são legítimos.
+        Treinar sempre com o mesmo grupo não trava ninguém: duas pessoas já bastam pro 3º grau. E encaixar muitas
+        vezes no mesmo parceiro, que já conhece a sua entrada, aparece na ficha da técnica como sinal de refinamento.
+      </p>
+
+      <div className="divider" />
+      <div className="eyebrow">o grau que você conquistou fica</div>
+      <p className="tiny muted" style={{ lineHeight: 1.7 }}>
+        Uma técnica nunca desce de grau. Quando você pega faixa nova, a régua sobe pro próximo grau, mas o que você
+        já conquistou com a faixa anterior continua seu.
       </p>
 
       <div className="divider" />
       <div className="eyebrow">a régua sobe com a sua faixa</div>
       <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        Você é faixa {faixa}. Pra chegar no 4º grau, uma técnica precisa de {req[4].usos} usos no rola
-        e {req[4].acima} {req[4].acima === 1 ? 'encaixe' : 'encaixes'} em faixa acima da sua.
-        Quanto mais graduado, mais alta fica a exigência, porque o que é notável na branca vira rotina na roxa.
+        Os números acima são pra faixa {faixa}. Quanto mais graduado, mais alta fica a exigência, porque o que é
+        notável na branca vira rotina na roxa.
       </p>
     </Sheet>
   );

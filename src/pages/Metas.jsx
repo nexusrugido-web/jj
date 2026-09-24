@@ -35,7 +35,7 @@ const vazia = () => ({
 });
 
 export default function Metas() {
-  const { goals, sessions, rolls, partners, techniques, categories, positions, settings, salvarSettings, irPara } = useApp();
+  const { goals, sessions, rolls, partners, techniques, gradings, categories, positions, settings, salvarSettings, irPara } = useApp();
   const toast = useToast();
   const [edit, setEdit] = useState(null);
   const [excluir, setExcluir] = useState(null);
@@ -44,8 +44,8 @@ export default function Metas() {
 
   const faixa = settings.faixa || 'branca';
   const tecnicas = useMemo(
-    () => minhasTecnicas(rolls, partners, sessions, techniques, faixa),
-    [rolls, partners, sessions, techniques, faixa]
+    () => minhasTecnicas(rolls, partners, sessions, techniques, faixa, gradings),
+    [rolls, partners, sessions, techniques, faixa, gradings]
   );
   const buracos = useMemo(() => meusBuracos(rolls, partners, sessions, faixa), [rolls, partners, sessions, faixa]);
 
@@ -157,7 +157,7 @@ export default function Metas() {
               <CartaoMeta
                 key={g.id} g={g}
                 dados={{ sessions, rolls, tecnicas, buracos, aulas, quiz }}
-                faixa={faixa} partners={partners}
+                faixa={faixa}
                 onEdit={() => setEdit({ ...g })}
                 onDel={() => setExcluir(g)}
                 onConcluir={async () => { await db.goals.update(g.id, { status: 'concluida', concluidaEm: hoje() }); toast('Meta concluída'); }}
@@ -316,7 +316,7 @@ export default function Metas() {
                 {edit.alvo && (() => {
                   const t = tecnicas.find((x) => x.nome === edit.alvo);
                   if (!t) return <p className="micro muted">Essa técnica ainda não apareceu nos seus registros. Assim que aparecer, o acompanhamento começa.</p>;
-                  const f = faltaPara(t, faixa, partners);
+                  const f = faltaPara(t, faixa);
                   return (
                     <div className="valida bom">
                       <Target size={14} className="valida-ico" style={{ color: 'var(--jade)' }} />
@@ -446,11 +446,11 @@ function tituloAutomatico(g) {
   return '';
 }
 
-function CartaoMeta({ g, dados, faixa, partners, onEdit, onDel, onConcluir, onContar }) {
+function CartaoMeta({ g, dados, faixa, onEdit, onDel, onConcluir, onContar }) {
   const p = progressoDaMeta(g, dados);
   const tipo = tipoPorId(g.tipo);
   const t = g.tipo === 'tecnica' ? dados.tecnicas.find((x) => x.nome === g.alvo) : null;
-  const falta = t ? faltaPara(t, faixa, partners) : null;
+  const falta = t ? faltaPara(t, faixa) : null;
 
   return (
     <Card className="hover" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
