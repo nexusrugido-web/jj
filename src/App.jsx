@@ -54,6 +54,7 @@ const Privacidade = lazy(() => import('./pages/Legal').then((m) => ({ default: m
 const MeuJogo = lazy(() => import('./pages/MeuJogo'));
 const Metas = lazy(() => import('./pages/Metas'));
 const LigaPagina = lazy(() => import('./pages/Liga'));
+const AmigosPagina = lazy(() => import('./pages/Amigos'));
 const Dominio = lazy(() => import('./pages/Dominio'));
 import Treinos from './pages/Treinos';
 import Conquistas, { Celebracao } from './pages/Conquistas';
@@ -65,7 +66,7 @@ import Onboarding from './pages/Onboarding';
 
 const PAGINAS = {
   painel: Painel, treinos: Treinos, tecnicas: Tecnicas,
-  estudo: Estudo, liga: LigaPagina, admin: Admin,
+  estudo: Estudo, liga: LigaPagina, amigos: AmigosPagina, admin: Admin,
   termos: Termos, privacidade: Privacidade, dominio: Dominio, meujogo: MeuJogo, analise: Analise, conquistas: Conquistas,
   metas: Metas, parceiros: Parceiros,
   academia: Academia, nutricao: Nutricao, respiracao: Respiracao,
@@ -75,10 +76,12 @@ const PAGINAS = {
 /* liga os hooks do banco na fila de sincronização */
 registrarSync(enfileirar);
 
-function rotaDaURL() {
+function rotaDaURL(abrindo = false) {
   const pedida = new URLSearchParams(location.search).get('go');
-  /* a Jornada virou a Liga: notificação e link antigos ainda mandam ?go=jornada */
-  const p = pedida === 'jornada' || (!pedida && conviteInicial) ? 'liga' : pedida;
+  /* a Jornada virou a Liga: notificação e link antigos ainda mandam ?go=jornada.
+     Convite de sala abre em Amigos (inclusive o link antigo com ?go=liga),
+     só na abertura: voltar de tela depois não pode cair lá de novo */
+  const p = abrindo && conviteInicial ? 'amigos' : pedida === 'jornada' ? 'liga' : pedida;
   return PAGINAS[p] ? p : 'painel';
 }
 
@@ -136,7 +139,7 @@ class RedeDaPagina extends React.Component {
 
 export default function App() {
   const [pronto, setPronto] = useState(false);
-  const [rota, setRota] = useState(rotaDaURL);
+  const [rota, setRota] = useState(() => rotaDaURL(true));
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [instalarAberto, setInstalarAberto] = useState(false);
   const [sessao, setSessao] = useState(null);

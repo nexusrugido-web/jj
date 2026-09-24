@@ -282,6 +282,9 @@ h1, h2, h3, h4 { font-family: var(--display); font-weight: 700; letter-spacing: 
 .btn.ghost { background: transparent; border-color: transparent; color: var(--dim); }
 .btn.ghost:hover { background: var(--mat-hi); color: var(--chalk); }
 .btn.outline { background: transparent; }
+/* o segundo botão ao lado do principal: mesma cor, sem o preenchimento */
+.btn.contorno { background: transparent; border-color: color-mix(in srgb, var(--accent) 65%, transparent); color: var(--accent); }
+.btn.contorno:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); border-color: var(--accent); }
 .btn.danger { color: var(--blood); border-color: color-mix(in srgb, var(--blood) 30%, var(--seam)); }
 .btn.danger:hover { background: color-mix(in srgb, var(--blood) 15%, transparent); border-color: var(--blood); }
 .btn.sm { padding: 6px 11px; font-size: 12.5px; border-radius: var(--r-xs); }
@@ -1552,6 +1555,9 @@ button.liga-linha:hover { border-color: var(--seam-hi); }
   border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--seam));
 }
 .amigo-aviso.sugestao { background: var(--void); border-color: var(--seam); }
+/* card inteiro que leva pra outra aba */
+.card.atalho { display: flex; align-items: center; gap: 12px; width: 100%; color: inherit; font: inherit; cursor: pointer; }
+.card.atalho:hover { border-color: var(--seam-hi); }
 .sala-vaga { justify-content: center; border: 1px dashed var(--seam-hi); background: transparent; }
 
 /* ---------- pódio da liga ---------- */
@@ -2797,3 +2803,60 @@ button.liga-linha:hover { border-color: var(--seam-hi); }
   margin-top: 7px; padding-top: 9px;
   border-top: 1px dashed var(--seam);
 }
+
+/* ============================================================
+   CELULAR: LEITURA
+   Texto corrido perto de 16px (abaixo disso a leitura fica mais
+   lenta), rótulo nunca abaixo de 11px, toque de 44px ou mais e
+   espaço em múltiplos de 4 e 8. Fica no fim do arquivo pra ganhar
+   das regras de desktop que vêm antes.
+   ============================================================ */
+@media (max-width: 780px) {
+  body { font-size: 16px; }
+  .tiny { font-size: 14px; }
+  .micro { font-size: 12.5px; }
+  .eyebrow { font-size: 11px; letter-spacing: 0.14em; }
+  .h-sec { font-size: 19px; }
+  .stat-lab, .label { font-size: 11px; letter-spacing: 0.1em; }
+  .stat-sub { font-size: 13px; line-height: 1.4; }
+  .card { padding: 16px; }
+  .card-head { margin-bottom: 16px; }
+
+  .btn { min-height: 46px; font-size: 14.5px; }
+  .btn.sm { min-height: 40px; padding: 0 14px; font-size: 13.5px; }
+  .btn.xs { min-height: 34px; font-size: 12.5px; }
+  .btn.icon { width: 46px; }
+  .btn.icon.sm { width: 40px; }
+  .btn.icon.xs { width: 34px; }
+  .chip { font-size: 12.5px; }
+  .mobilebar button { font-size: 10.5px; }
+
+  /* número em cima, ícone em cima dele: a largura toda vai pro texto */
+  .stat-caixa { flex-direction: column; gap: 10px; }
+  .stat-caixa .stat-val { font-size: 30px; }
+
+  /* Painel: três números lado a lado, finalizações na linha inteira.
+     Card de altura igual sem sobrar vão embaixo do texto. */
+  .painel-numeros { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .painel-numeros > .card { padding: 14px 12px; }
+  .painel-numeros > :last-child { grid-column: 1 / -1; }
+  .painel-numeros .stat-caixa .stat-val { font-size: 28px; }
+  .painel-numeros .fin-titulo { align-self: center; margin-top: 0; }
+  .painel-numeros .fin-par { gap: 18px; }
+  .painel-numeros .fin-lado { flex: 1; }
+  .painel-numeros .fin-num { font-size: 30px; }
+  .painel-numeros .fin-rot { font-size: 11px; }
+}
+
+/* ---------- figurinha pro story ---------- */
+.figurinha-previa {
+  display: grid; place-items: center; aspect-ratio: 1; width: 100%; max-width: 340px; margin: 0 auto;
+  border-radius: var(--r); overflow: hidden; background: #3a4248;
+}
+/* xadrez: mostra que a imagem sai sem fundo */
+.figurinha-previa.xadrez {
+  background-color: #4a5257;
+  background-image: conic-gradient(#3a4146 25%, transparent 0 50%, #3a4146 0 75%, transparent 0);
+  background-size: 28px 28px;
+}
+.figurinha-previa img { width: 100%; height: 100%; object-fit: contain; display: block; }

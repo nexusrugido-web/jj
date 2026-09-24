@@ -41,7 +41,7 @@ export async function verSala(codigo) {
 }
 
 /* o convite que chega pelo link fica guardado até a pessoa estar
-   logada e na tela da liga pra responder */
+   logada e na tela de amigos pra responder */
 const CHAVE = 'convite:sala';
 
 export function conviteDaURL() {
@@ -63,7 +63,7 @@ export function esquecerConvite() {
   try { sessionStorage.removeItem(CHAVE); } catch { /* sem armazenamento, some ao fechar */ }
 }
 
-export const linkDaSala = (codigo) => `${location.origin}/?go=liga&sala=${codigo}`;
+export const linkDaSala = (codigo) => `${location.origin}/?go=amigos&sala=${codigo}`;
 
 /* no celular abre a folha de compartilhar; no computador, o WhatsApp */
 export async function convidar(codigo) {

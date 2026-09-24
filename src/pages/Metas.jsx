@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import {
   Plus, Target, Trash2, Pencil, Check, Trophy, Repeat, Sparkles,
-  ShieldAlert, Clock, X, Minus,
+  ShieldAlert, Clock, X, Minus, Share2,
 } from 'lucide-react';
+import Figurinha from '../components/Figurinha';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { useApp } from '../contexto';
@@ -41,6 +42,7 @@ export default function Metas() {
   const [excluir, setExcluir] = useState(null);
   const [seletorAberto, setSeletorAberto] = useState(false);
   const [aba, setAba] = useState('minhas');
+  const [story, setStory] = useState(null);
 
   const faixa = settings.faixa || 'branca';
   const tecnicas = useMemo(
@@ -160,6 +162,9 @@ export default function Metas() {
                 faixa={faixa}
                 onEdit={() => setEdit({ ...g })}
                 onDel={() => setExcluir(g)}
+                onCompartilhar={(p) => setStory(p.concluida
+                  ? { selo: 'meta concluída', grande: tituloDaMeta(g) }
+                  : { selo: 'minha meta', grande: p.valor || tituloDaMeta(g), sub: p.valor ? tituloDaMeta(g) : '', pct: p.pct })}
                 onConcluir={async () => { await db.goals.update(g.id, { status: 'concluida', concluidaEm: hoje() }); toast('Meta concluída'); }}
                 onContar={async (passo) => {
                   /* meta manual guarda o número inteiro; as outras
@@ -232,6 +237,8 @@ export default function Metas() {
                       {g.concluidaEm && `, concluída ${relativo(g.concluidaEm)}`}
                     </div>
                   </div>
+                  <button className="btn ghost icon sm" aria-label="Compartilhar"
+                    onClick={() => setStory({ selo: 'meta concluída', grande: g.titulo })}><Share2 size={14} /></button>
                   <button className="btn ghost icon sm" onClick={() => setExcluir(g)}><Trash2 size={13} /></button>
                 </div>
               </Card>
@@ -239,6 +246,8 @@ export default function Metas() {
           </div>
         )
       )}
+
+      <Figurinha aberto={!!story} onClose={() => setStory(null)} dados={story} />
 
       {/* editor */}
       <Sheet
@@ -455,7 +464,7 @@ function tituloAutomatico(g) {
   return '';
 }
 
-function CartaoMeta({ g, dados, faixa, onEdit, onDel, onConcluir, onContar }) {
+function CartaoMeta({ g, dados, faixa, onEdit, onDel, onConcluir, onContar, onCompartilhar }) {
   const p = progressoDaMeta(g, dados);
   const tipo = tipoPorId(g.tipo);
   const t = g.tipo === 'tecnica' ? dados.tecnicas.find((x) => x.nome === g.alvo) : null;
@@ -463,20 +472,20 @@ function CartaoMeta({ g, dados, faixa, onEdit, onDel, onConcluir, onContar }) {
 
   return (
     <Card className="hover" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {/* título na largura toda: os botões ficam na linha dos selos */}
       <div className="row" style={{ alignItems: 'flex-start' }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="row wrap" style={{ gap: 6 }}>
-            <Chip tone={tipo.processo ? 'jade' : 'warn'}>{tipo.nome}</Chip>
-            <Chip>{ORIGENS[g.origem]?.nome || 'Você criou'}</Chip>
-            {p.concluida && <Chip tone="jade"><Check size={11} /> feita</Chip>}
-          </div>
-          <h3 className="h-sec" style={{ marginTop: 9 }}>{tituloDaMeta(g)}</h3>
+        <div className="row wrap" style={{ gap: 6, flex: 1, minWidth: 0 }}>
+          <Chip tone={tipo.processo ? 'jade' : 'warn'}>{tipo.nome}</Chip>
+          <Chip>{ORIGENS[g.origem]?.nome || 'Você criou'}</Chip>
+          {p.concluida && <Chip tone="jade"><Check size={11} /> feita</Chip>}
         </div>
         <div className="row" style={{ gap: 2 }}>
+          <button className="btn ghost icon sm" aria-label="Compartilhar" onClick={() => onCompartilhar(p)}><Share2 size={14} /></button>
           <button className="btn ghost icon sm" onClick={onEdit}><Pencil size={14} /></button>
           <button className="btn ghost icon sm" onClick={onDel}><Trash2 size={14} /></button>
         </div>
       </div>
+      <h3 className="h-sec" style={{ marginTop: -4 }}>{tituloDaMeta(g)}</h3>
 
       {g.tipo === 'tecnica' && t && (
         <div className="row" style={{ gap: 9 }}>

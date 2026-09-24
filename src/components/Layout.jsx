@@ -3,7 +3,7 @@ import {
   LayoutDashboard, NotebookPen, Library, Swords, Repeat, ChartNoAxesColumn,
   Target, Wind, Dumbbell, HeartPulse, Trophy, Users, Settings as Cog,
   MoreHorizontal, Download, Award, Apple, CloudOff, Cloud, RefreshCw, LogIn, Dna,
-  GraduationCap, Flame, Shield, Megaphone, CircleHelp, X,
+  GraduationCap, Flame, Shield, Megaphone, CircleHelp, X, UsersRound,
 } from 'lucide-react';
 import { Modal } from './UI';
 
@@ -13,6 +13,7 @@ export const ROTAS_TODAS = [
   { id: 'tecnicas', nome: 'Técnicas', icon: Library, grupo: 'No tatame' },
   { id: 'estudo', nome: 'Estudo', icon: GraduationCap, grupo: 'No tatame' },
   { id: 'liga', nome: 'Liga', icon: Flame, grupo: 'No tatame' },
+  { id: 'amigos', nome: 'Amigos', icon: UsersRound, grupo: 'No tatame' },
 
   { id: 'meujogo', nome: 'Meu jogo', icon: Dna, grupo: 'Evolução' },
   { id: 'dominio', nome: 'Minhas técnicas', icon: Award, grupo: 'Evolução' },
@@ -30,7 +31,7 @@ export const ROTAS_TODAS = [
   { id: 'ajustes', nome: 'Ajustes', icon: Cog, grupo: 'Sistema' },
 ];
 
-const POR_CHAVE = { estudo: 'estudo', academia: 'musculacao' };
+const POR_CHAVE = { estudo: 'estudo', academia: 'musculacao', amigos: 'liga' };
 
 const visiveis = (ehAdmin, ligada) => ROTAS_TODAS.filter((r) => {
   if (r.admin && !ehAdmin) return false;

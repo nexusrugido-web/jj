@@ -145,7 +145,7 @@ export default function Painel() {
       )}
 
       {/* ---- números principais ---- */}
-      <div className="grid g4" style={{ marginBottom: 14 }}>
+      <div className="grid g4 painel-numeros" style={{ marginBottom: 14 }}>
         <Card className="hover">
           {/* a mesma ofensiva da Jornada. Antes aqui morava outra
               conta (calcStreak, só dias de treino), e as duas
@@ -198,7 +198,7 @@ export default function Painel() {
                   <Btn size="sm" variant="primary" onClick={() => irPara('estudo', { tema: guia.busque[0] })}>
                     Estudar sobre isso
                   </Btn>
-                  <Btn size="sm" variant="ghost" onClick={() => irPara('lesoes')}>Ver a lesão</Btn>
+                  <Btn size="sm" variant="contorno" onClick={() => irPara('lesoes')}>Ver a lesão</Btn>
                 </div>
               </div>
             </div>
@@ -547,6 +547,7 @@ function Finalizacoes({ dadas = 0, sofridas = 0 }) {
     <>
       <div className="row" style={{ alignItems: 'flex-start', gap: 8 }}>
         <span className="stat-ico"><Swords size={15} /></span>
+        <span className="stat-lab fin-titulo">finalizações</span>
         <span className="spacer" />
         <button className="ajuda" onClick={() => setAjuda(true)} aria-label="O que é isso">?</button>
       </div>

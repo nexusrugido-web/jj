@@ -157,7 +157,7 @@ if (raiz.innerHTML.includes('login-card') || raiz.innerHTML.includes('entrada-ca
 }
 
 /* ---------- todas as telas ---------- */
-const telas = ['painel', 'treinos', 'tecnicas', 'estudo', 'liga', 'jornada', 'dominio', 'meujogo', 'analise', 'conquistas',
+const telas = ['painel', 'treinos', 'tecnicas', 'estudo', 'liga', 'amigos', 'jornada', 'dominio', 'meujogo', 'analise', 'conquistas',
   'metas', 'parceiros', 'academia', 'nutricao', 'respiracao', 'lesoes', 'ajustes', 'termos', 'privacidade'];
 let falhas = 0;
 for (const t of telas) {
@@ -171,6 +171,8 @@ for (const t of telas) {
   const ok = !novos.length && !telaDeErro && !vazia;
   if (!ok) falhas++;
   console.log(`${ok ? 'ok   ' : 'FALHA'} ${t}${telaDeErro ? ' (tela de erro)' : ''}${vazia ? ' (vazia)' : ''}`);
+  /* TELAS_HTML=<pasta> guarda o HTML de cada tela, pra tirar print */
+  if (process.env.TELAS_HTML) fs.writeFileSync(path.join(process.env.TELAS_HTML, `${t}.html`), raiz.innerHTML);
   for (const e of novos.slice(0, 2)) console.log('      ', e.split('\n').slice(0, 3).join('\n       '));
 }
 

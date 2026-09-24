@@ -13,33 +13,21 @@ import {
 } from '../components/UI';
 import { resumo as resumoGeral } from '../lib/stats';
 import { ofensiva } from '../lib/ofensiva';
-import { compartilhar } from '../lib/card';
+import Figurinha from '../components/Figurinha';
 import { minhasTecnicas, resumoGraus, requisitosDaFaixa, grauPorN } from '../lib/graus';
 import { Ponteira } from '../components/Ponteira';
 import { proximaGraduacao, FAIXAS_ORDEM } from '../lib/milestones';
 import { hoje, fmtData, relativo, diasEntre, fmtDur } from '../lib/utils';
 
-/* O card é a única coisa do app que sai do app. Link e não
-   imagem: quem vê um print não tem pra onde clicar. */
-function Compartilhar({ tipo, dados, texto, variante }) {
-  const toast = useToast();
-  const [indo, setIndo] = useState(false);
+/* Abre a figurinha pro story (a imagem, com o @ do app). O card
+   em link continua lá dentro, pra quem prefere mandar no grupo. */
+function Compartilhar({ tipo, dados, texto, variante, figura }) {
+  const [aberto, setAberto] = useState(false);
   return (
-    <Btn
-      size="sm"
-      variant={variante}
-      icon={Share2}
-      disabled={indo}
-      onClick={async () => {
-        setIndo(true);
-        const res = await compartilhar(tipo, dados, texto);
-        setIndo(false);
-        if (res === 'copiado') toast('Link copiado');
-        else if (res === 'erro') toast('Não consegui gerar o card agora');
-      }}
-    >
-      {indo ? '…' : 'Compartilhar'}
-    </Btn>
+    <>
+      <Btn size="sm" variant={variante} icon={Share2} onClick={() => setAberto(true)}>Compartilhar</Btn>
+      <Figurinha aberto={aberto} onClose={() => setAberto(false)} dados={figura} link={{ tipo, dados, texto }} />
+    </>
   );
 }
 
@@ -170,6 +158,7 @@ export default function Conquistas() {
               subiram: esteira.filter((t) => t.grau >= 3).map((t) => t.nome).slice(0, 6),
             }}
             texto={`${r.matHoras}h no tatame, ${r.sessoes} treinos e ${r.rolas} rolas.`}
+            figura={{ selo: 'desde o começo', grande: `${r.matHoras}h no tatame`, sub: `${r.sessoes} treinos · ${r.rolas} rolas` }}
             variante="primary"
           />
         </div>
@@ -226,6 +215,7 @@ export default function Conquistas() {
                       tipo="marco"
                       dados={{ titulo: m.titulo, texto: m.texto }}
                       texto={m.titulo}
+                      figura={{ selo: 'marco atingido', grande: m.titulo, sub: m.texto }}
                     />
                   </div>
                 </div>
@@ -312,6 +302,7 @@ function ProximoMarco({ horas }) {
 
 /* ---------- celebração em tela cheia ---------- */
 export function Celebracao({ marco, onFechar }) {
+  const [story, setStory] = useState(false);
   useEffect(() => {
     if (!marco) return;
     try { navigator.vibrate?.([120, 60, 120, 60, 220]); } catch { /* nada */ }
@@ -328,7 +319,15 @@ export function Celebracao({ marco, onFechar }) {
         <h2 style={{ fontSize: 26, fontWeight: 800, marginTop: 8, letterSpacing: '-0.03em' }}>{marco.titulo}</h2>
         <p className="tiny muted" style={{ marginTop: 10, maxWidth: 320, marginInline: 'auto' }}>{marco.texto}</p>
         <Btn variant="primary" onClick={onFechar} style={{ marginTop: 22, width: '100%', minHeight: 46 }}>Valeu</Btn>
+        <Btn variant="contorno" icon={Share2} onClick={() => setStory(true)} style={{ marginTop: 10, width: '100%' }}>
+          Compartilhar no story
+        </Btn>
       </div>
+      <Figurinha
+        aberto={story} onClose={() => setStory(false)}
+        dados={{ selo: 'marco atingido', grande: marco.titulo, sub: marco.texto }}
+        link={{ tipo: 'marco', dados: { titulo: marco.titulo, texto: marco.texto }, texto: marco.titulo }}
+      />
     </div>
   );
 }

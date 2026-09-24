@@ -162,7 +162,7 @@ export function Chip({ children, on, onClick, tone = '', ...p }) {
 
 export function Stat({ valor, label, sub, icon: Icon, tone, size }) {
   return (
-    <div className="row" style={{ alignItems: 'flex-start', gap: 12 }}>
+    <div className="row stat-caixa" style={{ alignItems: 'flex-start', gap: 12 }}>
       {Icon && <span className="stat-ico" style={tone ? { color: `var(--${tone})`, background: `color-mix(in srgb, var(--${tone}) 14%, transparent)` } : undefined}><Icon size={16} /></span>}
       <div className="stat">
         <span className={`stat-val num ${size === 'sm' ? 'sm' : ''}`} style={tone ? { color: `var(--${tone})` } : undefined}>{valor}</span>

@@ -1,15 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
-  Flame, Info, Swords, ChevronRight, Crown, ShieldCheck, Share2,
+  Flame, Info, Swords, ChevronRight, Crown, ShieldCheck, Share2, UsersRound,
 } from 'lucide-react';
 import { db } from '../db/db';
 import { useApp } from '../contexto';
-import { Card, Btn, Empty, Sheet, useToast } from '../components/UI';
-import { compartilhar } from '../lib/card';
+import { Card, Btn, Empty, Sheet } from '../components/UI';
+import Figurinha from '../components/Figurinha';
 import Liga from '../components/Liga';
-import Sala from '../components/Sala';
-import Amigos from '../components/Amigos';
 import RankingOfensivas from '../components/RankingOfensivas';
 import ListaResumida from '../components/ListaResumida';
 import { EVENTOS, semanaDe } from '../lib/xp';
@@ -31,8 +29,6 @@ export default function LigaPagina() {
   const { irPara, settings } = useApp();
   const pontos = useLiveQuery(() => db.pontos.toArray(), [], []) || [];
   const [comoFunciona, setComoFunciona] = useState(false);
-  /* criar, entrar ou sair da sala muda o grupo: a liga busca de novo */
-  const [versaoDoGrupo, setVersaoDoGrupo] = useState(0);
 
   const dados = useMemo(() => {
     const soma = (f) => pontos.filter(f).reduce((a, x) => a + (x.xp || 0), 0);
@@ -82,10 +78,16 @@ export default function LigaPagina() {
 
       <BlocoOfensiva o={ofa} pontos={pontos} lesoes={lesoes} irPara={irPara} />
 
-      {/* a corrida desta semana primeiro, depois quem corre com você */}
-      <Liga key={versaoDoGrupo} />
-      <Amigos key={`a${versaoDoGrupo}`} onMudou={() => setVersaoDoGrupo((v) => v + 1)} />
-      <Sala key={`s${versaoDoGrupo}`} onMudou={() => setVersaoDoGrupo((v) => v + 1)} />
+      {/* a corrida desta semana primeiro; amigos e sala moram na aba deles */}
+      <Liga />
+      <button type="button" className="card atalho" onClick={() => irPara('amigos')} style={{ marginBottom: 14 }}>
+        <span className="stat-ico" style={{ color: 'var(--accent)' }}><UsersRound size={17} /></span>
+        <span style={{ flex: 1, textAlign: 'left' }}>
+          <span className="h-sec" style={{ display: 'block', fontSize: 16 }}>Amigos e sala</span>
+          <span className="tiny muted">Chame os amigos pra correr a liga numa sala só de vocês.</span>
+        </span>
+        <ChevronRight size={18} className="muted" />
+      </button>
 
       {/* ---- a arena da semana ---- */}
       <DueloDaSemana
@@ -264,31 +266,18 @@ function BlocoOfensiva({ o, pontos, lesoes, irPara }) {
   );
 }
 
-/* O card é a única coisa do app que sai do app. Quem vê o print
-   consegue clicar e cair aqui: imagem solta não traz ninguém. */
+/* A figurinha da ofensiva pro story, com o link do card junto */
 function BtnCompartilhar({ o }) {
-  const toast = useToast();
-  const [indo, setIndo] = useState(false);
-
+  const [aberto, setAberto] = useState(false);
   return (
-    <Btn
-      size="sm"
-      icon={Share2}
-      disabled={indo}
-      onClick={async () => {
-        setIndo(true);
-        const r = await compartilhar(
-          'ofensiva',
-          { dias: o.dias, recorde: o.recorde },
-          `${o.dias} dias seguidos no tatame.`
-        );
-        setIndo(false);
-        if (r === 'copiado') toast('Link copiado');
-        else if (r === 'erro') toast('Não consegui gerar o card agora');
-      }}
-    >
-      {indo ? '…' : 'Compartilhar'}
-    </Btn>
+    <>
+      <Btn size="sm" icon={Share2} onClick={() => setAberto(true)}>Compartilhar</Btn>
+      <Figurinha
+        aberto={aberto} onClose={() => setAberto(false)}
+        dados={{ selo: 'ofensiva', grande: `${o.dias} dias seguidos`, sub: `no tatame · recorde de ${o.recorde}` }}
+        link={{ tipo: 'ofensiva', dados: { dias: o.dias, recorde: o.recorde }, texto: `${o.dias} dias seguidos no tatame.` }}
+      />
+    </>
   );
 }
 
@@ -348,7 +337,7 @@ function DueloDaSemana({ agora = 0, passada = 0, recorde = 0, irPara }) {
 
       <div className="row wrap" style={{ gap: 8, marginTop: 12 }}>
         <Btn size="sm" variant="primary" onClick={() => irPara('treinos')}>Registrar treino</Btn>
-        <Btn size="sm" variant="ghost" onClick={() => irPara('estudo')}>
+        <Btn size="sm" variant="contorno" onClick={() => irPara('estudo')}>
           Estudar <ChevronRight size={13} />
         </Btn>
       </div>
