@@ -512,6 +512,7 @@ export default function App() {
         <Onboarding
           settings={settings}
           salvarSettings={salvarSettings}
+          acesso={acesso}
           onPronto={async () => { await salvarSettings({ onboardingFeito: 1 }); setOnboarding(false); }}
         />
       </ToastProvider>

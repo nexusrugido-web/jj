@@ -5,6 +5,7 @@ import { db } from '../db/db';
 import { FAIXAS } from '../db/seed';
 import { QUIZ, estiloDoQuiz, estiloPorId } from '../db/scoring';
 import { hoje } from '../lib/utils';
+import { podeVer, LIMITES } from '../lib/plano';
 import { EscolherDificuldades } from '../components/Dificuldades';
 
 /* ============================================================
@@ -30,8 +31,10 @@ const TEMPO = [
   { id: '5a+', nome: 'Mais de 5 anos' },
 ];
 
-export default function Onboarding({ settings, salvarSettings, onPronto }) {
+export default function Onboarding({ settings, salvarSettings, acesso, onPronto }) {
   const toast = useToast();
+  /* no grátis são até LIMITES.metasAtivas metas ativas, as mesmas regras da aba Metas */
+  const tetoDeMetas = podeVer(acesso, 'metas') ? Infinity : LIMITES.metasAtivas;
   const [passo, setPasso] = useState(0);
   const [perfil, setPerfil] = useState({
     nome: settings.nome || '',
@@ -295,9 +298,12 @@ export default function Onboarding({ settings, salvarSettings, onPronto }) {
                   const on = metasEscolhidas.includes(s.id);
                   return (
                     <button key={s.id} type="button" className={`opcao-meta ${on ? 'on' : ''}`}
-                      onClick={() => setMetasEscolhidas(on
-                        ? metasEscolhidas.filter((x) => x !== s.id)
-                        : [...metasEscolhidas, s.id])}>
+                      onClick={() => {
+                        if (!on && metasEscolhidas.length >= tetoDeMetas) return toast(`No plano grátis são até ${LIMITES.metasAtivas} metas por vez.`);
+                        setMetasEscolhidas(on
+                          ? metasEscolhidas.filter((x) => x !== s.id)
+                          : [...metasEscolhidas, s.id]);
+                      }}>
                       <div className="row" style={{ gap: 9 }}>
                         <span style={{
                           width: 20, height: 20, borderRadius: 6, flex: 'none', display: 'grid', placeItems: 'center',
@@ -316,7 +322,7 @@ export default function Onboarding({ settings, salvarSettings, onPronto }) {
             )}
 
             <p className="micro muted">
-              Você pode criar, mudar ou apagar metas quando quiser, na aba Metas.
+              Dá pra mudar ou trocar as metas quando quiser, na aba Metas.
             </p>
           </div>
         )}

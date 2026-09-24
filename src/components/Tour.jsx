@@ -8,7 +8,7 @@ import { GRAUS } from '../lib/graus';
 
 /* ============================================================
    TOUR
-   Seis telas explicando o app pra quem nunca viu.
+   Oito telas explicando o app pra quem nunca viu.
    Fica reabrível em Ajustes.
    ============================================================ */
 
