@@ -7,7 +7,7 @@ import { useApp } from '../contexto';
 import { Card, Btn, Sheet, Busca, Empty } from '../components/UI';
 import Guia, { Passos } from '../components/Guia';
 import { Vitrine } from '../components/Plano';
-import { GRUPOS, EXERCICIOS, orientacaoDeCarga, planoDoExercicio } from '../db/exercicios';
+import { GRUPOS, EXERCICIOS, orientacaoDeCarga, planoDoExercicio, ehNovo } from '../db/exercicios';
 import { buscaMatch } from '../lib/utils';
 import { podeVer } from '../lib/plano';
 import { semanaDe } from '../lib/xp';
@@ -58,13 +58,12 @@ export default function Academia() {
           </div>
           <div className="col" style={{ gap: 8 }}>
             {porGrupo[g.id].map((e) => {
-              const p = planoDoExercicio(e);
               return (
                 <button key={e.id} type="button" className="exerc-item" onClick={() => setAberto(e)}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="row" style={{ gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
                       <span className="tiny" style={{ fontWeight: 700 }}>{e.nome}</span>
-                      <span className="forca-dose num">{p.series.replace(' séries de ', ' × ').replace(' repetições', '')}</span>
+                      {ehNovo(e) && <span className="forca-novo">novo</span>}
                     </div>
                     <p className="micro muted" style={{ marginTop: 4, lineHeight: 1.6 }}>{e.entrega}</p>
                   </div>
@@ -89,11 +88,13 @@ export default function Academia() {
         <Vitrine
           recurso="musculacao"
           fundo={grupos}
-          titulo="Os exercícios que deixam o seu jiu-jitsu mais forte, e como encaixar cada um no seu treino"
-          texto="A mão que não abre no terceiro minuto, o quadril que faz a ponte sair, o pescoço que aguenta o cross-face. São 33 exercícios escolhidos pelo que eles entregam no tatame, cada um com o plano pronto: quantas séries, quanto descanso, em que dia entra e como subir nas próximas quatro semanas. Você não troca a academia que já faz, só coloca o que falta nela."
+          titulo="Os exercícios que deixam o seu jiu-jitsu mais forte, com mais gás e menos lesão"
+          texto={`A mão que não abre no terceiro minuto, o fôlego que aguenta o rola até o fim, o joelho e o pescoço que não te tiram do tatame. São ${EXERCICIOS.length} exercícios, e contando: a lista cresce com exercício novo o tempo todo, e cada um vem com o plano pronto (quantas séries, quanto descanso, em que dia entra e como subir nas próximas quatro semanas). Você não troca a academia que já faz, só coloca o que falta nela.`}
           itens={[
             'O plano de cada exercício pra somar no treino que você já faz',
-            'Pegada, puxada, quadril e pescoço: o que a ciência do grappling mais relaciona com resultado',
+            'Força: pegada, puxada e quadril, o que a ciência do grappling mais relaciona com resultado',
+            'Resistência: treino de gás em rajadas, do jeito que o rola cansa de verdade',
+            'Prevenção de lesão: joelho, ombro, virilha, lombar e pescoço, pra você não parar de treinar',
             'Por que a força chega antes do músculo: nas primeiras semanas quem muda é o seu sistema nervoso',
             'Quanta academia cabe na sua semana de tatame, sem roubar o seu rola',
           ]}
@@ -122,7 +123,8 @@ export default function Academia() {
             </h2>
             <p className="tiny muted" style={{ marginTop: 6, lineHeight: 1.7 }}>{orientacao.texto}</p>
             <p className="micro muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
-              Toque num exercício pra ver o plano dele e onde encaixar no treino que você já faz.
+              São {EXERCICIOS.length} exercícios de força, resistência e prevenção de lesão, e a lista não para de crescer.
+              Toque num deles pra ver o plano e onde encaixar no treino que você já faz.
             </p>
           </div>
         </div>

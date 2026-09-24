@@ -3262,11 +3262,6 @@ body::after {
 .row.wrap > .chip { white-space: normal; text-align: left; line-height: 1.25; padding-top: 5px; padding-bottom: 5px; }
 
 /* ---------- força pro jiu-jitsu ---------- */
-.forca-dose {
-  font-size: var(--fs-meta); font-weight: 700; color: var(--accent);
-  padding: 2px 8px; border-radius: 99px; white-space: nowrap;
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-}
 .forca-plano { display: flex; flex-direction: column; border: 1px solid var(--seam); border-radius: var(--r-sm); overflow: hidden; }
 .forca-linha { display: flex; gap: var(--e3); align-items: flex-start; padding: var(--e3); border-bottom: 1px solid var(--seam); background: var(--void); }
 .forca-linha:last-child { border-bottom: 0; }
@@ -3294,3 +3289,7 @@ body::after {
 /* ---------- o diamante do premium, na cor de destaque ---------- */
 .diamante { flex: none; color: var(--accent); vertical-align: -2px; filter: drop-shadow(0 0 5px color-mix(in srgb, var(--accent) 50%, transparent)); }
 .btn .diamante, .seg .diamante { margin-left: 2px; }
+.forca-novo {
+  font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
+  padding: 2px 7px; border-radius: 99px; color: var(--accent-ink); background: var(--accent);
+}

@@ -17,6 +17,7 @@ export const GRUPOS = [
   { id: 'empurrar', nome: 'Empurrar', desc: 'Enquadramento e pressão' },
   { id: 'pernas', nome: 'Pernas', desc: 'Base pra não cair e pra derrubar' },
   { id: 'core', nome: 'Core', desc: 'Resistir a ser girado' },
+  { id: 'resistencia', nome: 'Resistência', desc: 'O gás que aguenta o rola até o fim' },
   { id: 'prevencao', nome: 'Prevenção', desc: 'Ombro, joelho, coluna e pescoço' },
 ];
 
@@ -100,6 +101,22 @@ export const EXERCICIOS = [
     entrega: 'Lombar resistente, que é a queixa número um de quem passa dos trinta e cinco.' },
   { id: 'mobilidade-quadril', nome: 'Mobilidade de quadril', g: 'prevencao', tipo: 'tempo',
     entrega: 'Quadril que abre. Guarda melhor e menos dor depois do treino.' },
+  { id: 'nordico', nome: 'Nórdico (posterior de coxa)', g: 'prevencao', tipo: 'reps', novo: '2026-09-24',
+    entrega: 'O exercício com mais prova de que reduz lesão de posterior de coxa. Protege a perna na queda e na passagem em pé.' },
+  { id: 'copenhagen', nome: 'Prancha Copenhagen (virilha)', g: 'prevencao', tipo: 'tempo', novo: '2026-09-24',
+    entrega: 'Adutor forte, que é a virilha que estira quando alguém abre a sua guarda à força ou na chave de pé.' },
+
+  /* ---------- resistência ---------- */
+  { id: 'remo-intervalado', nome: 'Remo ergométrico intervalado', g: 'resistencia', tipo: 'tempo', novo: '2026-09-24',
+    entrega: 'Gás de rola de verdade: forte, pausa curta, forte de novo. E puxa com as costas, igual no tatame.' },
+  { id: 'bike-intervalada', nome: 'Bike intervalada', g: 'resistencia', tipo: 'tempo', novo: '2026-09-24',
+    entrega: 'Condicionamento sem impacto no joelho, bom pra quem já sente a articulação depois do treino.' },
+  { id: 'sprawl-circuito', nome: 'Circuito de sprawl e levantada', g: 'resistencia', tipo: 'tempo', novo: '2026-09-24',
+    entrega: 'O movimento do jiu-jitsu com o coração lá em cima: defender a queda cansado e levantar sem entregar as costas.' },
+  { id: 'complexo-kettlebell', nome: 'Complexo de kettlebell', g: 'resistencia', tipo: 'tempo', novo: '2026-09-24',
+    entrega: 'Força e fôlego juntos: balanço, agachamento e remada sem largar o peso, como segurar uma posição cansado.' },
+  { id: 'kimono-barra', nome: 'Pegada no kimono pendurado', g: 'resistencia', tipo: 'tempo', novo: '2026-09-24',
+    entrega: 'Resistência de pegada no próprio pano: é a mão que ainda fecha no último minuto do rola.' },
 ];
 
 export const exerciciosDoGrupo = (g) => EXERCICIOS.filter((e) => e.g === g);
@@ -127,6 +144,9 @@ const TIPO_DO_PLANO = {
   'dead-hang': 'isometria', farmer: 'isometria', pinca: 'isometria', prancha: 'isometria', hollow: 'isometria',
   pescoco: 'isometria', 'band-walk': 'isometria', 'mobilidade-quadril': 'isometria',
   'face-pull': 'leve', 'rotacao-externa': 'leve', 'rosca-punho': 'leve', pallof: 'leve', 'giro-russo': 'leve',
+  nordico: 'corpo', copenhagen: 'isometria',
+  'remo-intervalado': 'intervalo', 'bike-intervalada': 'intervalo', 'sprawl-circuito': 'intervalo',
+  'complexo-kettlebell': 'intervalo', 'kimono-barra': 'isometria',
 };
 
 const PLANOS = {
@@ -185,6 +205,18 @@ const PLANOS = {
       'Semana 4: volta pros 20 segundos com mais carga ou numa versão mais difícil.',
     ],
   },
+  /* o rola é esforço forte em rajadas, com pausa curta: o treino de gás copia isso */
+  intervalo: {
+    series: '6 a 8 tiros de 30 segundos forte, com 30 segundos leve entre eles',
+    descanso: 'O leve entre os tiros já é o descanso: não para de vez',
+    carga: 'Forte a ponto de ficar ofegante, como o fim de um rola. Conseguiu conversar no tiro, tá leve.',
+    semanas: [
+      'Semana 1: 6 tiros de 20 segundos forte e 40 leve.',
+      'Semana 2: 6 tiros de 30 forte e 30 leve.',
+      'Semana 3: 8 tiros de 30 forte e 30 leve.',
+      'Semana 4: 5 rounds de 1 minuto forte e 1 leve, que é o mais parecido com um rola.',
+    ],
+  },
   leve: {
     series: '3 séries de 12 a 15 repetições',
     descanso: '60 segundos',
@@ -206,6 +238,7 @@ const ONDE_ENCAIXA = {
   pernas: 'No dia de perna, como primeiro exercício, com a perna ainda descansada.',
   core: 'No fim de qualquer treino. Cinco a dez minutos já resolvem.',
   prevencao: 'No aquecimento, antes da academia ou antes do tatame.',
+  resistencia: 'Num dia sem rola forte: no fim do treino de academia ou sozinho, de 15 a 20 minutos.',
 };
 
 /* como fazer e o erro que mais aparece, exercício por exercício */
@@ -242,8 +275,19 @@ const DETALHE = {
   'band-walk': ['Elástico acima do joelho, meio agachado, anda de lado sem deixar os joelhos se juntarem.', 'Ficar em pé demais e andar balançando o tronco.'],
   pescoco: ['Deitado ou em pé, empurra a cabeça contra a mão (frente, trás e lados) sem deixar a cabeça se mexer.', 'Começar com movimento e peso. No começo é só isometria, contra a própria mão.'],
   'extensao-lombar': ['No banco de lombar, desce o tronco e sobe até alinhar com as pernas.', 'Subir além da linha do corpo, arqueando a lombar.'],
+  nordico: ['Ajoelhado, com alguém ou algo segurando o seu tornozelo, desce o corpo reto pra frente o mais devagar que conseguir e amortece com as mãos.', 'Dobrar o quadril pra descer. O corpo desce reto, como uma tábua, e quem segura é o posterior da coxa.'],
+  copenhagen: ['De lado, com o pé de cima apoiado num banco e o antebraço no chão, levanta o quadril e segura o corpo reto.', 'Deixar o quadril cair. Se estiver difícil demais, apoia o joelho no banco em vez do pé.'],
+  'remo-intervalado': ['Empurra com as pernas primeiro, depois puxa com as costas e por último com os braços; volta na ordem contrária.', 'Puxar só com os braços, que cansam antes de o coração subir.'],
+  'bike-intervalada': ['Carga que dá pra girar rápido no tiro e leve no descanso, sem parar de pedalar.', 'Carga tão pesada que a perna trava e o tiro vira força, não fôlego.'],
+  'sprawl-circuito': ['Cai no sprawl jogando o quadril no chão, volta de pé e faz uma levantada técnica. Repete até o fim do tiro.', 'Cair de joelho no chão no sprawl. O quadril desce, o joelho fica fora.'],
+  'complexo-kettlebell': ['Faz balanço, agachamento segurando o peso no peito e remada, sem soltar o kettlebell até o fim do tiro.', 'Peso pesado demais, que obriga a parar no meio. O certo é terminar o tiro sem largar.'],
+  'kimono-barra': ['Pendura o kimono (ou duas toalhas) na barra e segura pela gola e pela manga, braços estendidos.', 'Segurar com a ponta dos dedos. Pega com a mão inteira, como numa pegada de verdade.'],
   'mobilidade-quadril': ['Posição do 90/90: as duas pernas dobradas no chão, gira o quadril de um lado pro outro devagar.', 'Forçar a amplitude com dor. Mobilidade se ganha com frequência, não com força.'],
 };
+
+/* exercício que entrou há menos de 30 dias ganha a etiqueta de novo */
+export const ehNovo = (e, hojeIso = new Date().toISOString().slice(0, 10)) =>
+  !!e.novo && (Date.parse(hojeIso) - Date.parse(e.novo)) / 86400000 <= 30;
 
 export function planoDoExercicio(e) {
   const p = PLANOS[TIPO_DO_PLANO[e.id]] || PLANOS.leve;
