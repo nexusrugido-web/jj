@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Dumbbell, Info, Search, ChevronRight, Check, Brain, CalendarDays, Hand, TriangleAlert,
-  Repeat, Timer, Weight, MapPin,
+  Dumbbell, Info, Search, ChevronRight, Brain, CalendarDays, Hand, TriangleAlert,
+  Repeat, Timer, Weight, MapPin, TrendingUp,
 } from 'lucide-react';
 import { useApp } from '../contexto';
 import { Card, Btn, Sheet, Busca, Empty } from '../components/UI';
-import Guia, { Passos } from '../components/Guia';
+import Guia from '../components/Guia';
 import { Vitrine } from '../components/Plano';
 import { GRUPOS, EXERCICIOS, orientacaoDeCarga, planoDoExercicio, ehNovo } from '../db/exercicios';
 import { buscaMatch } from '../lib/utils';
@@ -63,6 +63,7 @@ export default function Academia() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="row" style={{ gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
                       <span className="tiny" style={{ fontWeight: 700 }}>{e.nome}</span>
+                      <span className="forca-dose num">{planoDoExercicio(e).dose}</span>
                       {ehNovo(e) && <span className="forca-novo">novo</span>}
                     </div>
                     <p className="micro muted" style={{ marginTop: 4, lineHeight: 1.6 }}>{e.entrega}</p>
@@ -89,9 +90,10 @@ export default function Academia() {
           recurso="musculacao"
           fundo={grupos}
           titulo="Os exercícios que deixam o seu jiu-jitsu mais forte, com mais gás e menos lesão"
-          texto={`A mão que não abre no terceiro minuto, o fôlego que aguenta o rola até o fim, o joelho e o pescoço que não te tiram do tatame. São ${EXERCICIOS.length} exercícios, e contando: a lista cresce com exercício novo o tempo todo, e cada um vem com o plano pronto (quantas séries, quanto descanso, em que dia entra e como subir nas próximas quatro semanas). Você não troca a academia que já faz, só coloca o que falta nela.`}
+          texto={`A mão que não abre no terceiro minuto, o fôlego que aguenta o rola até o fim, o joelho e o pescoço que não te tiram do tatame. São ${EXERCICIOS.length} exercícios, e contando: a lista cresce com exercício novo o tempo todo, e cada um vem com o plano pronto: séries e repetições (tipo 3 × 8 a 12), quantas vezes por semana, em que dia entra e a regra pra subir a carga semana após semana, sem data pra acabar. Você não troca a academia que já faz, só coloca o que falta nela.`}
           itens={[
-            'O plano de cada exercício pra somar no treino que você já faz',
+            'Séries, repetições e quantas vezes por semana, pra somar no treino que você já faz',
+            'A regra pra subir a carga sempre, sem plano que acaba depois de um mês',
             'Força: pegada, puxada e quadril, o que a ciência do grappling mais relaciona com resultado',
             'Resistência: treino de gás em rajadas, do jeito que o rola cansa de verdade',
             'Prevenção de lesão: joelho, ombro, virilha, lombar e pescoço, pra você não parar de treinar',
@@ -166,32 +168,33 @@ export default function Academia() {
   );
 }
 
-/* o plano de um exercício, pronto pra encaixar no treino de academia */
+/* o plano de um exercício: a dose em destaque, quantas vezes, e a regra
+   pra subir sem prazo pra acabar (dupla progressão) */
 function PlanoDoExercicio({ e }) {
   const p = planoDoExercicio(e);
+  const busca = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${e.nome} execução`)}`;
   return (
     <>
-      <div className="valida bom">
-        <Check size={15} className="valida-ico" style={{ color: 'var(--jade)' }} />
-        <div>
-          <div className="tiny" style={{ fontWeight: 600 }}>O que entrega no tatame</div>
-          <p className="micro muted" style={{ marginTop: 4, lineHeight: 1.65 }}>{e.entrega}</p>
-        </div>
+      <div className="forca-dose-grande">
+        <span className="num">{p.dose}</span>
+        <span>{p.vezes}</span>
       </div>
 
       <div className="forca-plano">
-        <div className="forca-linha"><MapPin size={15} /><div><b>Onde entra</b><span>{p.ondeEncaixa}</span></div></div>
-        <div className="forca-linha"><Repeat size={15} /><div><b>Quanto</b><span>{p.series}</span></div></div>
+        <div className="forca-linha"><Repeat size={15} /><div><b>Séries e repetições</b><span>{p.series}</span></div></div>
         <div className="forca-linha"><Timer size={15} /><div><b>Descanso</b><span>{p.descanso}</span></div></div>
         <div className="forca-linha"><Weight size={15} /><div><b>Carga</b><span>{p.carga}</span></div></div>
+        <div className="forca-linha"><MapPin size={15} /><div><b>Onde entra</b><span>{p.ondeEncaixa}</span></div></div>
       </div>
 
-      {p.como && (
+      <div className="valida bom">
+        <TrendingUp size={15} className="valida-ico" style={{ color: 'var(--jade)' }} />
         <div>
-          <div className="eyebrow row" style={{ gap: 6 }}><Hand size={13} /> Como fazer</div>
-          <p className="tiny" style={{ lineHeight: 1.65 }}>{p.como}</p>
+          <div className="tiny" style={{ fontWeight: 600 }}>Como ficar mais forte toda semana</div>
+          <p className="micro" style={{ marginTop: 4, lineHeight: 1.65 }}>{p.progressao}</p>
+          <p className="micro muted num" style={{ marginTop: 6, lineHeight: 1.6 }}>{p.exemplo}</p>
         </div>
-      )}
+      </div>
 
       {p.erro && (
         <div className="valida atencao">
@@ -204,9 +207,13 @@ function PlanoDoExercicio({ e }) {
       )}
 
       <div>
-        <div className="eyebrow row" style={{ gap: 6 }}><CalendarDays size={13} /> As próximas 4 semanas</div>
-        <Passos itens={p.semanas} />
+        <div className="eyebrow">O que entrega no tatame</div>
+        <p className="tiny" style={{ lineHeight: 1.65 }}>{e.entrega}</p>
       </div>
+
+      <Btn variant="contorno" icon={Search} onClick={() => window.open(busca, '_blank', 'noopener')}>
+        Ver o exercício no YouTube
+      </Btn>
 
       <p className="micro muted" style={{ lineHeight: 1.6 }}>
         Sentiu dor na articulação (não é o cansaço do músculo), para e fala com quem te acompanha na academia.

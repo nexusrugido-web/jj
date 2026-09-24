@@ -149,84 +149,75 @@ const TIPO_DO_PLANO = {
   'complexo-kettlebell': 'intervalo', 'kimono-barra': 'isometria',
 };
 
+/* Dupla progressão: uma faixa de repetições; sobe uma repetição por
+   vez e, quando fizer o topo da faixa em todas as séries, aumenta a
+   carga e volta pro começo. Não acaba nunca e qualquer um entende.
+   Frequência: 2 a 3 vezes por semana é o que as diretrizes de força
+   recomendam (ACSM) e o que cabe junto com o tatame. */
 const PLANOS = {
   pesado: {
-    series: '3 séries de 4 a 6 repetições',
+    dose: '3 × 5 a 8',
+    series: '3 séries de 5 a 8 repetições',
+    vezes: '2 vezes por semana',
     descanso: '2 a 3 minutos entre as séries',
-    carga: 'Pesada, mas parando com umas 2 repetições sobrando. Falhar não deixa mais forte, só mais cansado pro tatame.',
-    semanas: [
-      'Semana 1: carga média, 3 × 5, só pra acertar o movimento.',
-      'Semana 2: mesma carga, 3 × 6.',
-      'Semana 3: sobe um pouco a carga e volta pra 3 × 4.',
-      'Semana 4: tenta 3 × 6 com a carga nova. Conseguiu, repete o ciclo daqui.',
-    ],
+    carga: 'A mais pesada que você consegue fazer 5 repetições bem feitas, parando antes de falhar.',
+    progressao: 'Começa com 3 × 5. A cada treino, tenta uma repetição a mais numa das séries. Quando fizer 3 × 8 com a mesma carga, sobe o mínimo possível (2 a 5 kg) e volta pra 3 × 5.',
+    exemplo: 'Ex.: 3 × 5 com 60 kg → 5, 6, 5 → 6, 6, 6 → … → 8, 8, 8 → 62,5 kg e volta pra 3 × 5.',
   },
   pesadoLado: {
-    series: '3 séries de 6 a 8 repetições de cada lado',
+    dose: '3 × 8 a 12 cada lado',
+    series: '3 séries de 8 a 12 repetições de cada lado',
+    vezes: '2 vezes por semana',
     descanso: '90 segundos a 2 minutos',
-    carga: 'Pesada o suficiente pra última repetição sair devagar, mas sem perder a postura. Comece pelo lado mais fraco.',
-    semanas: [
-      'Semana 1: 3 × 6 de cada lado, carga média.',
-      'Semana 2: 3 × 8 de cada lado.',
-      'Semana 3: sobe a carga e volta pra 3 × 6.',
-      'Semana 4: 3 × 8 com a carga nova.',
-    ],
+    carga: 'A que dá 8 repetições de cada lado sem perder a postura. Começa pelo lado mais fraco.',
+    progressao: 'Começa com 3 × 8 de cada lado. A cada treino, uma repetição a mais. Quando fizer 3 × 12 dos dois lados, sobe o peso (o próximo halter) e volta pra 3 × 8.',
+    exemplo: 'Ex.: 3 × 8 com 16 kg → 3 × 9 → … → 3 × 12 → 18 kg e volta pra 3 × 8.',
   },
   explosivo: {
-    series: '4 séries de 8 a 10 repetições rápidas',
+    dose: '4 × 8 a 12',
+    series: '4 séries de 8 a 12 repetições rápidas',
+    vezes: '2 vezes por semana',
     descanso: '90 segundos',
-    carga: 'Moderada. O que importa é a velocidade de cada repetição: ficou lento, a série acabou.',
-    semanas: [
-      'Semana 1: 4 × 8, aprendendo a jogar o quadril e não levantar com o braço.',
-      'Semana 2: 4 × 10.',
-      'Semana 3: carga um pouco maior, 4 × 8.',
-      'Semana 4: 4 × 10 com a carga nova, todas rápidas.',
-    ],
+    carga: 'Moderada. Cada repetição tem que sair rápida: ficou lenta, a série acabou.',
+    progressao: 'Começa com 4 × 8. Quando fizer 4 × 12 com todas rápidas, pega o próximo peso (uns 4 kg a mais) e volta pra 4 × 8.',
+    exemplo: 'Ex.: 4 × 8 com 16 kg → 4 × 10 → 4 × 12 → 20 kg e volta pra 4 × 8.',
   },
   corpo: {
-    series: '3 séries, parando umas 2 repetições antes de falhar',
+    dose: '3 × 6 a 12',
+    series: '3 séries de 6 a 12 repetições',
+    vezes: '2 a 3 vezes por semana',
     descanso: '90 segundos',
-    carga: 'O próprio peso. Ficou fácil (mais de 12 repetições), coloca peso ou passa pra uma versão mais difícil.',
-    semanas: [
-      'Semana 1: anota quantas saem em cada série, parando 2 antes de falhar.',
-      'Semana 2: uma repetição a mais em cada série.',
-      'Semana 3: mais uma.',
-      'Semana 4: passou de 12? Coloca peso, ou troca por uma versão mais difícil.',
-    ],
+    carga: 'O próprio peso. Não chegou em 6? Usa uma versão mais fácil (elástico, joelho no chão) até chegar.',
+    progressao: 'A cada treino, uma repetição a mais numa das séries. Quando fizer 3 × 12, coloca peso (mochila, cinto, colete) de 2,5 a 5 kg e volta pra 3 × 6.',
+    exemplo: 'Ex.: 6, 5, 5 → 6, 6, 5 → … → 12, 12, 12 → com 5 kg de mochila e volta pra 3 × 6.',
   },
   isometria: {
-    series: '3 séries de 20 a 40 segundos',
+    dose: '3 × 20 a 45 s',
+    series: '3 séries de 20 a 45 segundos',
+    vezes: '3 vezes por semana (pegada e pescoço respondem bem a mais vezes)',
     descanso: '60 a 90 segundos',
-    carga: 'Segurar parado, com a postura certa, até o fim do tempo. A última série tem que ser difícil de terminar.',
-    semanas: [
-      'Semana 1: 3 × 20 segundos.',
-      'Semana 2: 3 × 30 segundos.',
-      'Semana 3: 3 × 40 segundos.',
-      'Semana 4: volta pros 20 segundos com mais carga ou numa versão mais difícil.',
-    ],
+    carga: 'Segurar parado, com a postura certa. A última série tem que ser difícil de terminar.',
+    progressao: 'Começa com 3 × 20 segundos. A cada treino, 5 segundos a mais. Quando fizer 3 × 45, aumenta a carga (ou uma versão mais difícil) e volta pros 20.',
+    exemplo: 'Ex.: 3 × 20 s → 3 × 25 s → … → 3 × 45 s → mais peso e volta pra 3 × 20 s.',
+  },
+  leve: {
+    dose: '3 × 12 a 20',
+    series: '3 séries de 12 a 20 repetições',
+    vezes: '2 a 3 vezes por semana',
+    descanso: '60 segundos',
+    carga: 'Leve e controlada. Se precisa roubar no movimento, está pesado.',
+    progressao: 'Começa com 3 × 12. A cada treino, uma repetição a mais. Quando fizer 3 × 20, sobe o mínimo de carga e volta pra 3 × 12.',
+    exemplo: 'Ex.: 3 × 12 com o elástico fraco → … → 3 × 20 → elástico médio e volta pra 3 × 12.',
   },
   /* o rola é esforço forte em rajadas, com pausa curta: o treino de gás copia isso */
   intervalo: {
-    series: '6 a 8 tiros de 30 segundos forte, com 30 segundos leve entre eles',
+    dose: '6 a 10 tiros',
+    series: '6 a 10 tiros de 30 segundos forte, com 30 segundos leve entre eles',
+    vezes: '1 a 2 vezes por semana, em dia sem rola forte',
     descanso: 'O leve entre os tiros já é o descanso: não para de vez',
-    carga: 'Forte a ponto de ficar ofegante, como o fim de um rola. Conseguiu conversar no tiro, tá leve.',
-    semanas: [
-      'Semana 1: 6 tiros de 20 segundos forte e 40 leve.',
-      'Semana 2: 6 tiros de 30 forte e 30 leve.',
-      'Semana 3: 8 tiros de 30 forte e 30 leve.',
-      'Semana 4: 5 rounds de 1 minuto forte e 1 leve, que é o mais parecido com um rola.',
-    ],
-  },
-  leve: {
-    series: '3 séries de 12 a 15 repetições',
-    descanso: '60 segundos',
-    carga: 'Leve e controlada. É exercício de qualidade de movimento, não de carga: se precisar roubar, tá pesado.',
-    semanas: [
-      'Semana 1: 3 × 15, carga leve.',
-      'Semana 2: 3 × 15 com uma pausa de 1 segundo no fim de cada repetição.',
-      'Semana 3: sobe um pouco a carga, 3 × 12.',
-      'Semana 4: 3 × 15 com a carga nova.',
-    ],
+    carga: 'Forte a ponto de ficar ofegante, como o fim de um rola. Conseguiu conversar no tiro, está leve.',
+    progressao: 'Começa com 6 tiros. A cada treino, um tiro a mais. Quando fizer 10, o tiro passa a ter 40 segundos forte e 20 leve, e volta pra 6.',
+    exemplo: 'Ex.: 6 tiros → 7 → … → 10 → 6 tiros de 40/20.',
   },
 };
 
@@ -241,48 +232,48 @@ const ONDE_ENCAIXA = {
   resistencia: 'Num dia sem rola forte: no fim do treino de academia ou sozinho, de 15 a 20 minutos.',
 };
 
-/* como fazer e o erro que mais aparece, exercício por exercício */
-const DETALHE = {
-  'dead-hang': ['Pendura com as mãos na largura dos ombros, braços estendidos e ombros ativos (sem deixar o corpo afundar entre eles).', 'Soltar os ombros e ficar só pendurado nas articulações.'],
-  farmer: ['Um peso pesado em cada mão, peito aberto, e anda devagar, sem deixar o peso balançar.', 'Usar peso leve e andar rápido. Tem que ser pesado a ponto de a mão querer abrir.'],
-  'barra-toalha': ['Passa duas toalhas pela barra e puxa segurando nelas, como se fosse a gola do kimono.', 'Começar com a barra inteira de toalha. Comece pendurado na toalha antes de puxar.'],
-  pinca: ['Segura duas anilhas lisas juntas só com os dedos e o polegar, braço estendido ao lado do corpo.', 'Usar anilha com borda, que vira pegada de mão fechada e não trabalha o polegar.'],
-  'rosca-punho': ['Antebraço apoiado no banco, só o punho sobe e desce com a barra ou o halter.', 'Mexer o cotovelo junto. Só o punho se move.'],
-  barra: ['Pega na largura dos ombros, puxa até o queixo passar a barra e desce até esticar o braço.', 'Meia repetição, sem esticar o braço embaixo. É o fim do movimento que mais vale no jiu-jitsu.'],
-  'remada-curvada': ['Tronco inclinado uns 45 graus, costas retas, puxa a barra até o umbigo.', 'Levantar o tronco pra ajudar a subir o peso. Aí vira outro exercício.'],
-  'remada-unilateral': ['Um joelho e uma mão no banco, puxa o halter até o quadril com o cotovelo colado.', 'Girar o tronco pra puxar mais peso. O tronco fica parado.'],
-  puxada: ['Puxa a barra até a parte de cima do peito, com o peito aberto e os ombros pra trás.', 'Puxar atrás da nuca. Não ajuda em nada e força o ombro.'],
-  'face-pull': ['Corda na polia na altura do rosto, puxa na direção da testa abrindo os cotovelos.', 'Puxar com o corpo e peso demais. É exercício de ombro, leve e controlado.'],
-  'levantamento-terra': ['Barra colada na canela, costas retas, empurra o chão com as pernas até ficar em pé.', 'Arredondar a lombar pra tirar a barra do chão. Carga menor e costas retas.'],
-  'terra-romeno': ['Joelho levemente dobrado, leva o quadril pra trás descendo a barra rente à perna até sentir o posterior da coxa.', 'Dobrar demais o joelho e virar agachamento.'],
-  'kettlebell-swing': ['O quadril joga o peso pra frente, como um salto parado; o braço só acompanha.', 'Levantar o peso com o braço e o ombro.'],
-  'elevacao-pelvica': ['Costas apoiadas no banco, barra no quadril, sobe o quadril até alinhar com o tronco e aperta o glúteo em cima.', 'Arquear a lombar pra subir mais. O movimento para quando o quadril alinha.'],
-  'ponte-gluteo': ['Deitado, pés no chão perto do quadril, sobe o quadril apertando o glúteo e desce devagar.', 'Empurrar com a lombar em vez do glúteo.'],
-  supino: ['Pés firmes no chão, escápulas juntas, desce a barra até o peito e empurra de volta.', 'Quicar a barra no peito pra ajudar a subir.'],
-  desenvolvimento: ['Em pé ou sentado, empurra o peso acima da cabeça sem arquear as costas.', 'Arquear a lombar pra empurrar mais peso.'],
-  flexao: ['Corpo reto da cabeça ao pé, desce o peito até perto do chão e empurra.', 'Deixar o quadril cair e fazer meia repetição.'],
-  paralela: ['Nas barras paralelas, desce até o ombro ficar na altura do cotovelo e sobe.', 'Descer demais e forçar o ombro. Na altura do cotovelo já está bom.'],
-  agachamento: ['Barra nas costas, desce empurrando o quadril pra trás até a coxa ficar paralela ao chão, joelho na direção do pé.', 'Deixar o joelho cair pra dentro na subida.'],
-  'agachamento-frontal': ['Barra na frente dos ombros, cotovelos altos, desce com o tronco bem reto.', 'Deixar o cotovelo cair e a barra rolar pra frente.'],
-  afundo: ['Um passo à frente, desce até o joelho de trás quase encostar no chão e volta.', 'Passo curto demais, que joga todo o peso no joelho da frente.'],
-  'levantada-tecnica': ['Sentado, apoia uma mão atrás e o pé do lado oposto, levanta o quadril e passa a perna pra trás, ficando de base.', 'Levantar de frente, entregando a cabeça e as costas.'],
-  pallof: ['De lado pra polia, segura o cabo no peito e estica os braços à frente sem deixar o tronco girar.', 'Deixar o corpo girar junto. O trabalho é justamente não girar.'],
-  prancha: ['Antebraços no chão, corpo reto, aperta o abdômen e o glúteo.', 'Deixar o quadril cair ou subir demais.'],
-  hollow: ['Deitado, lombar colada no chão, levanta os ombros e as pernas esticadas.', 'Deixar a lombar desgrudar do chão. Dobra os joelhos até conseguir.'],
-  'ab-roda': ['De joelhos, rola a roda pra frente com o abdômen travado e volta puxando com o abdômen.', 'Ir longe demais e deixar a lombar afundar.'],
-  'giro-russo': ['Sentado, pés fora do chão, gira o tronco levando o peso de um lado pro outro.', 'Mexer só os braços. Quem gira é o tronco.'],
-  'rotacao-externa': ['Cotovelo colado no corpo dobrado a 90 graus, gira o antebraço pra fora com elástico ou halter leve.', 'Descolar o cotovelo do corpo pra ajudar.'],
-  'band-walk': ['Elástico acima do joelho, meio agachado, anda de lado sem deixar os joelhos se juntarem.', 'Ficar em pé demais e andar balançando o tronco.'],
-  pescoco: ['Deitado ou em pé, empurra a cabeça contra a mão (frente, trás e lados) sem deixar a cabeça se mexer.', 'Começar com movimento e peso. No começo é só isometria, contra a própria mão.'],
-  'extensao-lombar': ['No banco de lombar, desce o tronco e sobe até alinhar com as pernas.', 'Subir além da linha do corpo, arqueando a lombar.'],
-  nordico: ['Ajoelhado, com alguém ou algo segurando o seu tornozelo, desce o corpo reto pra frente o mais devagar que conseguir e amortece com as mãos.', 'Dobrar o quadril pra descer. O corpo desce reto, como uma tábua, e quem segura é o posterior da coxa.'],
-  copenhagen: ['De lado, com o pé de cima apoiado num banco e o antebraço no chão, levanta o quadril e segura o corpo reto.', 'Deixar o quadril cair. Se estiver difícil demais, apoia o joelho no banco em vez do pé.'],
-  'remo-intervalado': ['Empurra com as pernas primeiro, depois puxa com as costas e por último com os braços; volta na ordem contrária.', 'Puxar só com os braços, que cansam antes de o coração subir.'],
-  'bike-intervalada': ['Carga que dá pra girar rápido no tiro e leve no descanso, sem parar de pedalar.', 'Carga tão pesada que a perna trava e o tiro vira força, não fôlego.'],
-  'sprawl-circuito': ['Cai no sprawl jogando o quadril no chão, volta de pé e faz uma levantada técnica. Repete até o fim do tiro.', 'Cair de joelho no chão no sprawl. O quadril desce, o joelho fica fora.'],
-  'complexo-kettlebell': ['Faz balanço, agachamento segurando o peso no peito e remada, sem soltar o kettlebell até o fim do tiro.', 'Peso pesado demais, que obriga a parar no meio. O certo é terminar o tiro sem largar.'],
-  'kimono-barra': ['Pendura o kimono (ou duas toalhas) na barra e segura pela gola e pela manga, braços estendidos.', 'Segurar com a ponta dos dedos. Pega com a mão inteira, como numa pegada de verdade.'],
-  'mobilidade-quadril': ['Posição do 90/90: as duas pernas dobradas no chão, gira o quadril de um lado pro outro devagar.', 'Forçar a amplitude com dor. Mobilidade se ganha com frequência, não com força.'],
+/* o erro que mais aparece, exercício por exercício */
+const ERRO_COMUM = {
+  'dead-hang': 'Soltar os ombros e ficar só pendurado nas articulações.',
+  farmer: 'Usar peso leve e andar rápido. Tem que ser pesado a ponto de a mão querer abrir.',
+  'barra-toalha': 'Começar com a barra inteira de toalha. Comece pendurado na toalha antes de puxar.',
+  pinca: 'Usar anilha com borda, que vira pegada de mão fechada e não trabalha o polegar.',
+  'rosca-punho': 'Mexer o cotovelo junto. Só o punho se move.',
+  barra: 'Meia repetição, sem esticar o braço embaixo. É o fim do movimento que mais vale no jiu-jitsu.',
+  'remada-curvada': 'Levantar o tronco pra ajudar a subir o peso. Aí vira outro exercício.',
+  'remada-unilateral': 'Girar o tronco pra puxar mais peso. O tronco fica parado.',
+  puxada: 'Puxar atrás da nuca. Não ajuda em nada e força o ombro.',
+  'face-pull': 'Puxar com o corpo e peso demais. É exercício de ombro, leve e controlado.',
+  'levantamento-terra': 'Arredondar a lombar pra tirar a barra do chão. Carga menor e costas retas.',
+  'terra-romeno': 'Dobrar demais o joelho e virar agachamento.',
+  'kettlebell-swing': 'Levantar o peso com o braço e o ombro.',
+  'elevacao-pelvica': 'Arquear a lombar pra subir mais. O movimento para quando o quadril alinha.',
+  'ponte-gluteo': 'Empurrar com a lombar em vez do glúteo.',
+  supino: 'Quicar a barra no peito pra ajudar a subir.',
+  desenvolvimento: 'Arquear a lombar pra empurrar mais peso.',
+  flexao: 'Deixar o quadril cair e fazer meia repetição.',
+  paralela: 'Descer demais e forçar o ombro. Na altura do cotovelo já está bom.',
+  agachamento: 'Deixar o joelho cair pra dentro na subida.',
+  'agachamento-frontal': 'Deixar o cotovelo cair e a barra rolar pra frente.',
+  afundo: 'Passo curto demais, que joga todo o peso no joelho da frente.',
+  'levantada-tecnica': 'Levantar de frente, entregando a cabeça e as costas.',
+  pallof: 'Deixar o corpo girar junto. O trabalho é justamente não girar.',
+  prancha: 'Deixar o quadril cair ou subir demais.',
+  hollow: 'Deixar a lombar desgrudar do chão. Dobra os joelhos até conseguir.',
+  'ab-roda': 'Ir longe demais e deixar a lombar afundar.',
+  'giro-russo': 'Mexer só os braços. Quem gira é o tronco.',
+  'rotacao-externa': 'Descolar o cotovelo do corpo pra ajudar.',
+  'band-walk': 'Ficar em pé demais e andar balançando o tronco.',
+  pescoco: 'Começar com movimento e peso. No começo é só isometria, contra a própria mão.',
+  'extensao-lombar': 'Subir além da linha do corpo, arqueando a lombar.',
+  nordico: 'Dobrar o quadril pra descer. O corpo desce reto, como uma tábua, e quem segura é o posterior da coxa.',
+  copenhagen: 'Deixar o quadril cair. Se estiver difícil demais, apoia o joelho no banco em vez do pé.',
+  'remo-intervalado': 'Puxar só com os braços, que cansam antes de o coração subir.',
+  'bike-intervalada': 'Carga tão pesada que a perna trava e o tiro vira força, não fôlego.',
+  'sprawl-circuito': 'Cair de joelho no chão no sprawl. O quadril desce, o joelho fica fora.',
+  'complexo-kettlebell': 'Peso pesado demais, que obriga a parar no meio. O certo é terminar o tiro sem largar.',
+  'kimono-barra': 'Segurar com a ponta dos dedos. Pega com a mão inteira, como numa pegada de verdade.',
+  'mobilidade-quadril': 'Forçar a amplitude com dor. Mobilidade se ganha com frequência, não com força.',
 };
 
 /* exercício que entrou há menos de 30 dias ganha a etiqueta de novo */
@@ -291,8 +282,7 @@ export const ehNovo = (e, hojeIso = new Date().toISOString().slice(0, 10)) =>
 
 export function planoDoExercicio(e) {
   const p = PLANOS[TIPO_DO_PLANO[e.id]] || PLANOS.leve;
-  const [como, erro] = DETALHE[e.id] || ['', ''];
-  return { ...p, ondeEncaixa: ONDE_ENCAIXA[e.g] || '', como, erro };
+  return { ...p, ondeEncaixa: ONDE_ENCAIXA[e.g] || '', erro: ERRO_COMUM[e.id] || '' };
 }
 
 /* ---------- quanto de musculação faz sentido ---------- */
