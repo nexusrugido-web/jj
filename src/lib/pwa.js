@@ -37,6 +37,11 @@ export function iniciarPWA() {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     });
   }
+
+  /* pede pro navegador não apagar os dados quando faltar espaço. O
+     Safari do iPhone ainda apaga tudo após 7 dias sem abrir, se o app
+     não estiver instalado: aí só conta ou tela de início protegem. */
+  navigator.storage?.persist?.().catch(() => {});
 }
 
 function avisar() {
