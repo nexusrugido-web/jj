@@ -2,12 +2,21 @@
    que roda no servidor da Vercel. Em ambiente local sem a function,
    o app avisa e segue funcionando normalmente. */
 
+import { supabase } from './supabase';
+
 let disponivel = null;
+
+/* o /api/ia só atende quem está logado: toda chamada leva o token da conta */
+export async function cabecalhoIA() {
+  const { data } = (await supabase?.auth.getSession()) || {};
+  const token = data?.session?.access_token;
+  return { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+}
 
 export async function chamarIA(acao, params = {}) {
   const r = await fetch('/api/ia', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await cabecalhoIA(),
     body: JSON.stringify({ acao, ...params }),
   });
 

@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { Btn, Chip, Sheet, useToast, Select, Field } from './UI';
 import { pontosPorId } from '../db/scoring';
+import { cabecalhoIA } from '../lib/ai';
 
 /* ============================================================
    FALAR EM VEZ DE DIGITAR
@@ -142,7 +143,7 @@ export default function Voz({
     try {
       const resposta = await fetch('/api/ia', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await cabecalhoIA(),
         body: JSON.stringify({
           acao: 'ler_treino',
           texto: completo,

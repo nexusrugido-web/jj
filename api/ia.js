@@ -6,9 +6,7 @@
    - validar_tecnica : usa busca web real (groq/compound) pra checar regra IBJJF
    - autopreencher   : preenche os campos da técnica só pelo nome
    - analisar        : lê o resumo do diário e sugere foco
-   - plano_ataque    : gera uma árvore de ataque
-   - revisar_dieta   : comenta um plano alimentar
-   - revisar_treino  : comenta um programa de academia
+   - ler_treino      : transforma o treino falado em dados
    - classificar_videos : diz o que cada vídeo do acervo ensina, no
                           vocabulário de src/lib/vocab.js
 */
@@ -23,6 +21,43 @@ const lista = (itens, comDesc = false) =>
 
 const MODELO_JSON = 'openai/gpt-oss-120b';
 const MODELO_WEB = 'groq/compound';
+
+/* ============================================================
+   QUEM PODE CHAMAR
+
+   Sem isto, qualquer pessoa na internet usava a chave da Groq, e
+   a Análise IA era paga só na tela. Toda ação pede a conta do
+   aluno (o token, conferido no próprio Supabase). A Análise IA
+   pede premium quando a cobrança está ligada; classificar vídeo
+   é só de quem administra.
+   ============================================================ */
+const SUPA = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+const ANON = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+
+const doSupabase = (caminho, token, corpo) => fetch(`${SUPA}${caminho}`, {
+  method: corpo ? 'POST' : 'GET',
+  headers: { apikey: ANON, Authorization: `Bearer ${token || ANON}`, 'Content-Type': 'application/json' },
+  ...(corpo ? { body: JSON.stringify(corpo) } : {}),
+});
+
+async function barrar(acao, req) {
+  const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  if (!SUPA || !ANON) return { status: 503, erro: 'A IA não consegue conferir a conta neste servidor.' };
+  if (!token || !(await doSupabase('/auth/v1/user', token)).ok) {
+    return { status: 401, erro: 'Entre na sua conta pra usar a IA.' };
+  }
+  const admin = await (await doSupabase('/rest/v1/rpc/sou_admin', token, {})).json().catch(() => false);
+  if (acao === 'classificar_videos' && admin !== true) return { status: 403, erro: 'Só quem administra classifica vídeo.' };
+  if (acao === 'analisar' && admin !== true) {
+    const chave = await (await doSupabase('/rest/v1/chave?id=eq.cobranca&select=ligada')).json().catch(() => []);
+    if (chave?.[0]?.ligada) {
+      const acesso = await (await doSupabase('/rest/v1/rpc/meu_acesso', token, {})).json().catch(() => null);
+      const r = Array.isArray(acesso) ? acesso[0] : acesso;
+      if (!r?.premium) return { status: 402, erro: 'A Análise IA é do premium.' };
+    }
+  }
+  return null;
+}
 
 const LIMITE = new Map(); // rate limit simples por IP
 
@@ -156,30 +191,6 @@ Técnicas conhecidas: ${(p.tecnicas || []).slice(0, 250).join(', ')}`,
     user: `Resumo do aluno (faixa ${p.faixa || 'branca'}):\n${JSON.stringify(p.resumo)}`,
   }),
 
-  plano_ataque: (p) => ({
-    modelo: MODELO_JSON,
-    json: true,
-    system:
-      'Você é um professor de Jiu-Jitsu montando um plano de ataque encadeado. Responda SOMENTE JSON válido. ' +
-      'Schema: {"nome":string,"resumo":string,"aviso":string,"passos":[{"gatilho":string,"acao":string,"seFalhar":string,"proxima":string,"detalhe":string}]}. ' +
-      'Entre 3 e 5 passos. Cada passo encadeia com a reação do oponente. ' +
-      'Respeite a legalidade IBJJF da faixa informada: faixa branca só pode chave de pé reta; nada de heel hook, toe hold, kneebar até marrom. ' +
-      'Se algo for ilegal para a faixa, coloque no campo aviso. Português do Brasil, direto.',
-    user: `Monte um plano de ataque a partir da posição "${p.posicao}" para um praticante faixa ${p.faixa || 'branca'}, modalidade ${p.modo || 'ambos'}. ${p.contexto ? 'Contexto extra: ' + p.contexto : ''}`,
-  }),
-
-  revisar_dieta: (p) => ({
-    modelo: MODELO_JSON,
-    json: true,
-    system:
-      'Você é um educador em nutrição esportiva. Responda SOMENTE JSON válido. ' +
-      'Schema: {"leitura":string,"pontos":[{"nivel":"bom"|"atencao"|"ruim","titulo":string,"texto":string}],"sugestoes":[string],"ressalva":string}. ' +
-      'Baseie-se em diretrizes gerais (1,6–2,2 g de proteína por kg; fibra ~14g/1000kcal; gordura 20–35% das calorias). ' +
-      'NÃO prescreva dieta individual. ressalva deve dizer que isso é orientação geral e não substitui nutricionista. ' +
-      'Português do Brasil, prático, sem moralismo com comida.',
-    user: `Perfil e plano do dia:\n${JSON.stringify(p.dados)}`,
-  }),
-
   /* ------------------------------------------------------------
      Até 6 vídeos por chamada. A resposta passa por
      src/lib/classificar.js antes de ir pro banco: id fora da lista
@@ -235,17 +246,6 @@ Responda SOMENTE JSON, com um item por vídeo recebido, na mesma ordem:
     }))),
   }),
 
-  revisar_treino: (p) => ({
-    modelo: MODELO_JSON,
-    json: true,
-    system:
-      'Você é um educador em treinamento de força para atletas de grappling. Responda SOMENTE JSON válido. ' +
-      'Schema: {"leitura":string,"pontos":[{"nivel":"bom"|"atencao"|"ruim","titulo":string,"texto":string}],"sugestoes":[string],"ressalva":string}. ' +
-      'Considere: 10–20 séries semanais por grupo; 2–3 sessões de força pra quem treina BJJ 3–5x; equilíbrio empurrar/puxar; pescoço e pegada importam no BJJ; ' +
-      'grip pesado nunca antes de rolar; fadiga concorrente. NÃO prescreva individualmente. ' +
-      'ressalva deve dizer que não substitui educador físico. Português do Brasil.',
-    user: `Programa e contexto:\n${JSON.stringify(p.dados)}`,
-  }),
 };
 
 export default async function handler(req, res) {
@@ -269,6 +269,9 @@ export default async function handler(req, res) {
 
   const build = PROMPTS[acao];
   if (!build) return res.status(400).json({ erro: `Ação desconhecida: ${acao}` });
+
+  const barrado = await barrar(acao, req);
+  if (barrado) return res.status(barrado.status).json({ erro: barrado.erro });
 
   const cfg = build(params);
 

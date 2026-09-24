@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { cabecalhoIA } from './ai';
 import { buscarNoYoutube } from './youtube';
 import { limparDaIa, decidir } from './classificar';
 
@@ -54,7 +55,7 @@ async function perguntarIa(videos) {
   for (let tentativa = 0; tentativa < 5; tentativa++) {
     const r = await fetch('/api/ia', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await cabecalhoIA(),
       body: JSON.stringify({ acao: 'classificar_videos', videos }),
     });
     const corpo = await r.json().catch(() => ({}));
