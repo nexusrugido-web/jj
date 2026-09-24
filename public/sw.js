@@ -51,6 +51,56 @@ self.addEventListener('message', (event) => {
    Chrome mostra "Este site foi atualizado em segundo plano" no
    nosso lugar, e repetir isso custa a permissao.
    ============================================================ */
+/* ------------------------------------------------------------
+   COMO CADA AVISO APARECE
+
+   O servidor diz o tipo (tag) e, na ofensiva, quantos dias. O texto
+   que a pessoa lê mora aqui, com acento e emoji: sobe com o app,
+   sem mexer no servidor. Tipo que não está aqui usa o texto dele.
+   ------------------------------------------------------------ */
+const ROTA = {
+  estudar: '/?go=estudo',
+  treino: '/?go=treinos',
+  liga: '/?go=liga',
+};
+
+function aviso(n) {
+  const dias = Number(String(n.title || '').match(/^\d+/)?.[0]) || 0;
+  const tipo = n.tag || '';
+  if (tipo === 'ofensiva') {
+    return {
+      titulo: dias > 1 ? `🔥 ${dias} dias seguidos. Não deixa cair hoje` : '🔥 Sua ofensiva fecha hoje',
+      corpo: 'Uma aula rápida de um minuto já mantém ela de pé.',
+      acoes: [
+        { acao: 'estudar', titulo: 'Aula rápida', rota: ROTA.estudar },
+        { acao: 'treino', titulo: 'Registrar treino', rota: ROTA.treino },
+      ],
+    };
+  }
+  if (tipo === 'liga') {
+    return {
+      titulo: '🏆 A liga fecha hoje',
+      corpo: 'Ainda dá pra subir no seu grupo antes da meia-noite.',
+      acoes: [{ acao: 'liga', titulo: 'Ver meu grupo', rota: ROTA.liga }],
+    };
+  }
+  if (tipo === 'resultado') {
+    return {
+      titulo: '📊 A liga fechou',
+      corpo: 'Veja onde você terminou e com quem você corre nesta semana.',
+      acoes: [{ acao: 'liga', titulo: 'Ver resultado', rota: ROTA.liga }],
+    };
+  }
+  if (tipo === 'volta') {
+    return {
+      titulo: '🥋 O tatame continua aí',
+      corpo: 'Seu jogo está do jeito que você deixou. Dá pra voltar com uma aula rápida.',
+      acoes: [{ acao: 'estudar', titulo: 'Aula rápida', rota: ROTA.estudar }],
+    };
+  }
+  return { titulo: n.title || 'NeuroJitsu', corpo: n.body || '', acoes: [] };
+}
+
 self.addEventListener('push', (event) => {
   let n = {};
   try {
@@ -59,9 +109,10 @@ self.addEventListener('push', (event) => {
     n = {};
   }
 
-  const titulo = n.title || 'NeuroJitsu';
+  const bonito = aviso(n);
+  const titulo = bonito.titulo;
   const opcoes = {
-    body: n.body || '',
+    body: bonito.corpo,
     icon: '/icon-192.png',
     /* o ícone pequeno da barra de status: o Android só aceita silhueta
        branca em fundo transparente, a logo colorida vira um quadrado */
@@ -69,7 +120,12 @@ self.addEventListener('push', (event) => {
     lang: n.lang || 'pt-BR',
     tag: n.tag || 'neurojitsu',
     renotify: true,
-    data: { navigate: n.navigate || '/' },
+    vibrate: [80, 40, 80],
+    timestamp: Date.now(),
+    /* os botões embaixo do aviso, como no Duolingo: o toque já leva
+       pra ação, sem abrir o app e procurar */
+    actions: bonito.acoes.map(({ acao, titulo: t }) => ({ action: acao, title: t })),
+    data: { navigate: n.navigate || '/', rotas: Object.fromEntries(bonito.acoes.map((a) => [a.acao, a.rota])) },
   };
 
   event.waitUntil(
@@ -88,7 +144,9 @@ self.addEventListener('push', (event) => {
    outra. Quem toca duas vezes nao quer dois apps abertos. */
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const destino = event.notification.data?.navigate || '/';
+  /* tocou num botão: vai pra ação dele; tocou no aviso: pra onde o servidor mandou */
+  const dados = event.notification.data || {};
+  const destino = (event.action && dados.rotas?.[event.action]) || dados.navigate || '/';
 
   event.waitUntil(
     (async () => {

@@ -1,8 +1,9 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import {
   Flame, Clock, Swords, Target, ArrowRight, Plus, Award, Trophy, Sparkles, Loader, ShieldCheck,
-  HeartPulse, Check, BarChart3,
+  HeartPulse, Check, BarChart3, ChevronRight,
 } from 'lucide-react';
+import MinhaOfensiva from '../components/MinhaOfensiva';
 import Guia from '../components/Guia';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
@@ -40,6 +41,7 @@ export default function Painel() {
   const [analise, setAnalise] = useState(null);
   const [carregandoIa, setCarregandoIa] = useState(false);
   const [conviteIa, setConviteIa] = useState(false);
+  const [ofensivaAberta, setOfensivaAberta] = useState(false);
   /* no grátis ficam os números; os gráficos e o "o que treinar" são do premium */
   const graficosLivres = podeVer(acesso, 'analise');
   const recsLivres = podeVer(acesso, 'recomendacoes');
@@ -153,14 +155,27 @@ export default function Painel() {
       {/* ---- o placar: um cartão, os números que importam ----
           a ofensiva é a mesma da Liga (pontos), não dias de treino */}
       <Card className="painel-placar" style={{ marginBottom: 14 }}>
-        <div className="placar-tres">
-          <div className="placar-item">
-            <span className="placar-num num" style={ofa.dias > 0 ? { color: 'var(--roar)' } : undefined}>
-              <Contador valor={ofa.dias} />
+        <div className="placar-principal">
+        {/* a ofensiva é o número que traz a pessoa de volta: faixa própria,
+            e o toque abre a sequência, o escudo e a semana contra a passada */}
+        <button type="button" className="placar-ofa" onClick={() => setOfensivaAberta(true)}>
+          <span className="placar-ofa-chama"><Flame size={24} /></span>
+          <span className="placar-ofa-txt">
+            <span className="placar-ofa-linha">
+              <span className="placar-num num" style={ofa.dias > 0 ? { color: 'var(--roar)' } : undefined}>
+                <Contador valor={ofa.dias} />
+              </span>
+              <span className="placar-rot">{ofa.dias === 1 ? 'dia de ofensiva' : 'dias de ofensiva'}</span>
             </span>
-            <span className="placar-rot"><Flame size={14} /> {ofa.dias === 1 ? 'dia de ofensiva' : 'dias de ofensiva'}</span>
-            <span className="placar-sub">recorde {ofa.recorde}</span>
-          </div>
+            <span className="placar-sub">
+              recorde {ofa.recorde} · {ofa.escudos
+                ? `${ofa.escudos} ${ofa.escudos === 1 ? 'escudo' : 'escudos'}`
+                : `escudo em ${ofa.faltaProEscudo} ${ofa.faltaProEscudo === 1 ? 'dia' : 'dias'}`}
+            </span>
+          </span>
+          <span className="placar-ofa-ver">Ver <ChevronRight size={15} /></span>
+        </button>
+        <div className="placar-dois">
           <div className="placar-item">
             <span className="placar-num num"><Contador valor={r.matHoras} suffix="h" /></span>
             <span className="placar-rot"><Clock size={14} /> no tatame</span>
@@ -170,6 +185,7 @@ export default function Painel() {
             <span className="placar-num num"><Contador valor={r.rolas} /></span>
             <span className="placar-rot"><Swords size={14} /> {r.rolas === 1 ? 'luta' : 'lutas'}</span>
           </div>
+        </div>
         </div>
         <div className="placar-fin">
           <Finalizacoes dadas={r.finalizacoes} sofridas={r.taps} />
@@ -464,6 +480,8 @@ Toda vez que você marca um ponto, o app anota a posição que veio junto. Passa
           onAssinar={() => irPara('ajustes')}
         />
       )}
+
+      <MinhaOfensiva aberto={ofensivaAberta} onClose={() => setOfensivaAberta(false)} />
 
       {/* a IA é do premium: no grátis o botão abre o convite */}
       <Sheet aberto={conviteIa} onClose={() => setConviteIa(false)} titulo="">

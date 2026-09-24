@@ -3029,7 +3029,6 @@ body::after {
 }
 
 /* ---------- o placar do Painel ---------- */
-.placar-tres { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .placar-item { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 0 14px; border-left: 1px solid var(--seam); }
 .placar-item:first-child { padding-left: 0; border-left: 0; }
 .placar-num { font-family: var(--display); font-weight: 800; font-size: 36px; letter-spacing: -0.045em; line-height: 1; }
@@ -3043,7 +3042,7 @@ body::after {
 @media (min-width: 781px) {
   /* no computador cabe tudo numa linha: os três e as finalizações ao lado */
   .painel-placar { display: flex; align-items: stretch; gap: var(--e6); }
-  .painel-placar .placar-tres { flex: 3; }
+  .painel-placar .placar-principal { flex: 3; }
   .painel-placar .placar-fin { flex: 2; margin: 0; padding: 0 0 0 var(--e6); border-top: 0; border-left: 1px solid var(--seam); }
 }
 @media (max-width: 780px) { .placar-item .placar-rot .lucide { display: none; } }
@@ -3232,3 +3231,24 @@ body::after {
 .ajuste-linha:active { background: var(--mat-hi); }
 .ajuste-linha-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .ajuste-linha-txt .micro { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- placar do Painel: a ofensiva em faixa própria ---------- */
+.placar-ofa {
+  display: flex; align-items: center; gap: var(--e3); width: 100%;
+  padding: var(--e3); margin-bottom: var(--e4); border-radius: var(--r-sm);
+  text-align: left; color: inherit; font: inherit;
+  background: color-mix(in srgb, var(--roar) 8%, var(--void));
+  border: 1px solid color-mix(in srgb, var(--roar) 28%, var(--seam));
+}
+.placar-ofa:active { background: color-mix(in srgb, var(--roar) 14%, var(--void)); }
+.placar-ofa-chama {
+  flex: none; width: 48px; height: 48px; border-radius: 14px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--roar); background: color-mix(in srgb, var(--roar) 16%, transparent);
+}
+.placar-ofa-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.placar-ofa-linha { display: flex; align-items: baseline; gap: var(--e2); flex-wrap: wrap; }
+.placar-ofa .placar-num { font-size: 40px; }
+.placar-ofa .placar-rot { font-size: var(--fs-sec); }
+.placar-ofa-ver { flex: none; display: inline-flex; align-items: center; gap: 2px; font-size: var(--fs-meta); font-weight: 700; color: var(--roar); }
+.placar-dois { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }

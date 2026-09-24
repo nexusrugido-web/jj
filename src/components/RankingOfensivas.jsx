@@ -20,7 +20,8 @@ import { Card, Btn, BeltTag } from './UI';
    daqui.
    ============================================================ */
 
-export default function RankingOfensivas() {
+/* limite: dentro do popup da Liga mostra só os primeiros, mais a sua linha */
+export default function RankingOfensivas({ limite = null }) {
   const { sessao, ligada } = useApp();
   const [linhas, setLinhas] = useState([]);
   const [carregando, setCarregando] = useState(true);
@@ -43,22 +44,33 @@ export default function RankingOfensivas() {
 
   useEffect(() => { if (ativa) buscar(); else setCarregando(false); }, [ativa, sessao]);
 
-  if (!ativa || carregando || !linhas.length) return null;
+  const noPopup = limite !== null;
+  if (!ativa || carregando || !linhas.length) {
+    if (!noPopup) return null;
+    return (
+      <p className="tiny muted">
+        {carregando ? 'Carregando o ranking…'
+          : !ativa ? 'O ranking abre quando a liga estiver ligada.'
+            : 'Ninguém fechou um dia ainda. O primeiro a fechar entra aqui.'}
+      </p>
+    );
+  }
 
   const eu = linhas.find((l) => l.sou_eu);
+  const mostradas = noPopup ? linhas.filter((l) => l.de_fora || l.posicao <= limite) : linhas;
 
   return (
     <Card style={{ marginBottom: 14 }}>
       <div className="card-head">
         <div>
           <div className="eyebrow">dias seguidos aparecendo</div>
-          <h2 className="h-sec row" style={{ gap: 8 }}><Flame size={16} /> As maiores ofensivas</h2>
+          {!noPopup && <h2 className="h-sec row" style={{ gap: 8 }}><Flame size={16} /> As maiores ofensivas</h2>}
         </div>
         <Btn size="sm" variant="ghost" icon={RefreshCw} onClick={buscar}>Atualizar</Btn>
       </div>
 
       <div className="col" style={{ gap: 5 }}>
-        {linhas.map((l) => (
+        {mostradas.map((l) => (
           <React.Fragment key={`${l.posicao}-${l.nome}-${l.de_fora}`}>
             {l.de_fora && <div className="rank-corte">sua posição</div>}
             <div className={`rank-linha${l.sou_eu ? ' eu' : ''}${l.posicao <= 3 && !l.de_fora ? ' podio' : ''}`}>
