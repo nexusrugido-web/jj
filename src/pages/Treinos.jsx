@@ -935,7 +935,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
                     <Field label="Duração (min)"><NumeroInput valor={r.duracao} onChange={(v) => setRola(i, { duracao: v })} /></Field>
                   </div>
 
-                  <Field label="Anotação desta rola" hint="O que funcionou, onde travou, o detalhe que faltou.">
+                  <Field label="Anotação deste rola" hint="O que funcionou, onde travou, o detalhe que faltou.">
                     <Textarea
                       value={r.notas || ''}
                       onChange={(e) => setRola(i, { notas: e.target.value })}

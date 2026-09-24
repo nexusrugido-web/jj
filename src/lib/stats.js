@@ -119,51 +119,6 @@ export function escadaPosicional(rolls, positions, opcoes = {}) {
   });
 }
 
-/* ---------- radar de habilidades ---------- */
-/* ============================================================
-   RADAR DE HABILIDADES
-
-   Antes ele lia um campo que o usuário marcava na mão, e como
-   ninguém marca, o radar ficava parado em zero pra sempre.
-
-   Agora ele sai do que aconteceu nos treinos: cada técnica que
-   você aplicou soma no eixo da categoria dela, com peso pelo
-   grau. Se você registrar mais, o radar mexe.
-   ============================================================ */
-export function radarHabilidades(minhas, categories, techniques = []) {
-  const catDaTecnica = new Map(techniques.map((t) => [t.nome.toLowerCase(), t.categoriaId]));
-
-  const porCategoria = new Map();
-  for (const t of minhas) {
-    const catId = t.categoriaId ?? catDaTecnica.get(String(t.nome).toLowerCase());
-    if (!catId) continue;
-    const atual = porCategoria.get(catId) || { soma: 0, tecnicas: 0, usos: 0 };
-    /* grau pesa mais que quantidade: uma técnica no 3º grau vale
-       mais que três que você usou uma vez cada */
-    atual.soma += (t.grau || 0) * 2 + Math.min(6, t.usosResistencia || 0);
-    atual.tecnicas += 1;
-    atual.usos += t.usosResistencia || 0;
-    porCategoria.set(catId, atual);
-  }
-
-  const valores = [...porCategoria.values()].map((x) => x.soma);
-  const teto = Math.max(14, ...valores);
-
-  return categories
-    .filter((c) => !c.arquivada)
-    .slice(0, 8)
-    .map((c) => {
-      const d = porCategoria.get(c.id) || { soma: 0, tecnicas: 0, usos: 0 };
-      return {
-        nome: c.nome,
-        cor: c.cor,
-        valor: Math.round((d.soma / teto) * 100),
-        total: d.tecnicas,
-        usos: d.usos,
-      };
-    });
-}
-
 /* ---------- buracos no jogo ---------- */
 export function buracosNoJogo(rolls, positions) {
   const sofridas = new Map();

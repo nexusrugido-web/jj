@@ -45,6 +45,7 @@ export const RECOMENDACOES_NA_TELA = 10;
 export const RECURSOS = {
   registro:      { premium: false, nome: 'Registrar treinos e rolas', desc: 'Todo treino e todo rola, sem limite, sempre grátis.' },
   graus:         { premium: false, nome: 'Grau de todas as técnicas', desc: 'Cada técnica que sai nos seus rolas ganha grau, e você vê quando ela sobe.' },
+  estilo:        { premium: false, nome: 'Seu estilo de jogo', desc: 'O Meu jogo mostra o seu estilo, onde você ganha e onde você cede.' },
   liga:          { premium: false, nome: 'Liga e ofensiva', desc: 'O ranking da semana, a ofensiva e o card pra compartilhar.' },
   biblioteca:    { premium: false, nome: 'Biblioteca de técnicas', desc: 'As 626 técnicas, completa.' },
   offline:       { premium: false, nome: 'Funciona sem internet', desc: 'E sem conta, se você quiser.' },
@@ -52,7 +53,7 @@ export const RECURSOS = {
 
   historico:     { premium: true, nome: 'Histórico completo', desc: `No grátis você vê os últimos ${LIMITES.historicoDias} dias.` },
   analise:       { premium: true, nome: 'Análise e gráficos', desc: 'Evolução, escada posicional, taxa por faixa.' },
-  meujogo:       { premium: true, nome: 'Estilo detectado', desc: 'O que os seus números dizem sobre o seu jogo.' },
+  meujogo:       { premium: true, nome: 'Meu jogo por situação', desc: 'Como você vai contra mais pesado, mais leve e em cada posição em que o rola começa.' },
   ia:            { premium: true, nome: 'Leitura da IA', desc: 'Insights e sugestões em cima do seu histórico.' },
   sync:          { premium: true, nome: 'Sincronizar aparelhos', desc: 'Celular, tablet e computador no mesmo lugar.' },
   aulasIlimitadas:{ premium: true, nome: 'Aulas sem limite', desc: `No grátis é ${LIMITES.aulasPorDia} aula completa e ${LIMITES.shortsPorDia} aula rápida por dia.` },

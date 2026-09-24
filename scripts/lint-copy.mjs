@@ -17,6 +17,8 @@ const PROIBIDOS = [
   { re: /\b(as|das|nas|essas|quantas|poucas|muitas|duas) rolas\b/gi, nome: '"rolas" no feminino' },
   { re: /\brolas? (registrada|completa)s?\b/gi, nome: '"rola" concordando no feminino' },
   { re: /\b(suas|numa) rolas?\b|\brolas? suas?\b/gi, nome: '"rola" no feminino (suas rolas, numa rola)' },
+  { re: /\b(nenhuma|toda|todas|outra|outras|mesma|mesmas|desta|dessa|nesta|pela|pelas|minha|minhas|nossa|boa|boas|nova|novas|primeiras|aquela) rolas?\b/gi, nome: '"rola" no feminino (nenhuma rola, toda rola, desta rola)' },
+  { re: /\brolas? (antigas?|vivas?|vencidas|perdidas|registradas|marcadas|feitas|seguidas|boas|novas)\b/gi, nome: '"rola" concordando no feminino (rolas antigas, rola viva)' },
 
   /* Texto que justifica decisão de produto em vez de ajudar o aluno.
      Ninguém abre o app querendo saber por que a equipe removeu algo. */
@@ -57,3 +59,4 @@ for (const a of arquivos) {
 }
 for (const [a, probs] of Object.entries(porArquivo)) console.log(`  ${a}\n    ${probs.join(' · ')}`);
 console.log(total ? `\n${total} ocorrência(s) a corrigir` : 'copy limpa');
+process.exit(total ? 1 : 0);

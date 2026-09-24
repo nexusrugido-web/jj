@@ -153,7 +153,7 @@ export function AbaParceiros() {
         aberto={!!excluir} onClose={() => setExcluir(null)}
         onConfirmar={async () => { await db.partners.update(excluir.id, { arquivada: 1 }); toast('Parceiro arquivado'); }}
         titulo="Arquivar parceiro" rotulo="Arquivar"
-        texto={`"${excluir?.nome}" sai da lista, mas os rolas antigas continuam registradas.`}
+        texto={`"${excluir?.nome}" sai da lista, mas os rolas antigos continuam registrados.`}
       />
     </>
   );

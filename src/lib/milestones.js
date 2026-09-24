@@ -33,7 +33,7 @@ export function definirMarcos({ matHoras, rolas, sessoes, dominadas, primeiraFin
     });
   }
   if (sessoes >= 1) lista.push({ chave: 'primeiro_treino', titulo: 'Primeiro treino registrado', texto: 'Começou. O resto é consequência.', tipo: 'inicio', valor: 1 });
-  if (primeiraFinalizacao) lista.push({ chave: 'primeira_finalizacao', titulo: 'Primeira finalização em rola viva', texto: `Contra resistência de verdade: ${primeiraFinalizacao}.`, tipo: 'tecnica', valor: 1 });
+  if (primeiraFinalizacao) lista.push({ chave: 'primeira_finalizacao', titulo: 'Primeira finalização no rola', texto: `Contra resistência de verdade: ${primeiraFinalizacao}.`, tipo: 'tecnica', valor: 1 });
   for (const n of [1, 3, 5, 10, 20]) {
     if (dominadas >= n) lista.push({
       chave: `dominadas_${n}`,
@@ -69,8 +69,8 @@ export function definirMarcos({ matHoras, rolas, sessoes, dominadas, primeiraFin
   });
   if (rolasComPontos >= 15) lista.push({
     chave: 'estilo_calculado',
-    titulo: 'Seu estilo agora vem dos dados',
-    texto: '15 rolas com pontuação. O app parou de usar o teste e passou a usar a sua realidade.',
+    titulo: 'Seu estilo saiu dos seus treinos',
+    texto: '15 rolas com pontos marcados. O Meu jogo agora mostra o estilo que aparece no tatame, não mais o do teste.',
     tipo: 'tecnica', valor: 15,
   });
   if (taxaVitoria >= 50 && rolasComPontos >= 20) lista.push({
@@ -86,11 +86,16 @@ export function definirMarcos({ matHoras, rolas, sessoes, dominadas, primeiraFin
 export async function sincronizarMarcos(dados) {
   const alvo = definirMarcos(dados);
   const existentes = await db.milestones.toArray();
-  const jaTem = new Set(existentes.map((m) => m.chave));
+  const jaTem = new Map(existentes.map((m) => [m.chave, m]));
   const novos = [];
 
   for (const m of alvo) {
-    if (jaTem.has(m.chave)) continue;
+    const velho = jaTem.get(m.chave);
+    if (velho) {
+      /* texto corrigido chega também em quem já tinha a conquista */
+      if (velho.titulo !== m.titulo) await db.milestones.update(velho.id, { titulo: m.titulo });
+      continue;
+    }
     const registro = { ...m, data: hoje(), visto: 0, criadoEm: Date.now() };
     await db.milestones.add(registro);
     novos.push(registro);

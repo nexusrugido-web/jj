@@ -1,8 +1,8 @@
 /* ============================================================
    PONTUAÇÃO IBJJF
    Finalização é evento raro. Ponto acontece o tempo todo ,
-   é por isso que registrar pontos dá dado em TODA rola,
-   não só nas que terminam em tap.
+   é por isso que registrar pontos dá dado em TODO rola,
+   não só nos que terminam em tap.
    ============================================================ */
 
 export const PONTOS = [
@@ -184,15 +184,6 @@ export const QUIZ = [
       { t: 'Seguro a posição e espero a brecha', e: { defesa: 3 } },
     ],
   },
-];
-
-export const EIXOS = [
-  { id: 'queda', nome: 'Queda', cor: 'ice' },
-  { id: 'passagem', nome: 'Passagem', cor: 'roar' },
-  { id: 'raspagem', nome: 'Raspagem', cor: 'jade' },
-  { id: 'controle', nome: 'Controle', cor: 'accent' },
-  { id: 'finalizacao', nome: 'Finalização', cor: 'blood' },
-  { id: 'defesa', nome: 'Defesa', cor: 'dim' },
 ];
 
 export function estiloDoQuiz(respostas) {

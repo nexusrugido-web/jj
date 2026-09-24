@@ -184,7 +184,7 @@ w.history.pushState({}, '', '/?go=metas'); w.dispatchEvent(new w.PopStateEvent('
 confere('meta de posição com nome, não código', raiz.textContent.includes('Trabalhar Guarda fechada (por baixo)'));
 
 w.history.pushState({}, '', '/?go=meujogo'); w.dispatchEvent(new w.PopStateEvent('popstate')); await esperar(1500);
-confere('drill antigo virou drill: Meu jogo conta 99 lutas, não 111', raiz.textContent.includes('calculado de 99 rolas'));
+confere('drill antigo virou drill: Meu jogo conta 99 lutas, não 111', raiz.textContent.includes('seu estilo · 99 rolas'));
 
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

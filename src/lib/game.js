@@ -1,5 +1,5 @@
 import {
-  PONTOS, pontosPorId, somarPontos, EIXOS, ESTILOS, estiloPorId,
+  pontosPorId, somarPontos, ESTILOS, estiloPorId,
   posInicialPorId, pesoRelPorId, PESO_REL,
 } from '../db/scoring';
 import { FAIXA_ORDEM, pct } from './utils';
@@ -53,13 +53,45 @@ export const TOM_RESULTADO = {
   ambos: 'warn', empate: '',
 };
 
+/* ---------- cada forma de pontuar, dos dois lados ----------
+   A tela conta em quantos rolas cada coisa aconteceu: "derrubou em
+   9 dos 18 rolas" se confere olhando a lista. Um rola com três
+   raspagens conta uma vez. */
+export const LANCES = [
+  { id: 'queda', meu: 'Derrubou', dele: 'Te derrubaram', nenhum: 'Nenhuma queda',
+    dica: 'Se o rola começa de joelhos, é normal. Se começa em pé, o jogo em pé ainda não entrou.' },
+  { id: 'passagem', meu: 'Passou a guarda', dele: 'Passaram a sua guarda', nenhum: 'Nenhuma passagem de guarda',
+    dica: 'Por cima, a guarda do parceiro ainda não abre.' },
+  { id: 'raspagem', meu: 'Raspou', dele: 'Te rasparam', nenhum: 'Nenhuma raspagem',
+    dica: 'Quando você cai por baixo, ainda não tem uma saída que funcione.' },
+  { id: 'montada', meu: 'Montou', dele: 'Te montaram', nenhum: 'Nenhuma montada',
+    dica: 'Depois de passar a guarda, o próximo passo ainda não saiu.' },
+  { id: 'costas', meu: 'Pegou as costas', dele: 'Pegaram as suas costas', nenhum: 'Nenhuma pegada nas costas',
+    dica: 'Vale 4 pontos e é de onde mais sai finalização.' },
+  { id: 'joelho', meu: 'Joelho na barriga', dele: 'Joelho na barriga em você', nenhum: 'Nenhum joelho na barriga',
+    dica: 'Transição rápida que vale 2 pontos e abre a montada.' },
+  { id: 'finalizacao', meu: 'Finalizou', dele: 'Te finalizaram', nenhum: 'Nenhuma finalização',
+    dica: 'Escolha um ataque de cada posição e busque só ele por umas semanas.' },
+];
+
+/* o que fazer com o que você mais cede */
+const DICA_DO_QUE_CEDE = {
+  queda: 'Postura e pegada vêm antes de qualquer defesa de queda.',
+  passagem: 'A retenção de guarda é o ponto a trabalhar. Peça um treino de posição começando na guarda, com o parceiro já tentando passar.',
+  raspagem: 'Quando você está por cima, te viram. Base e postura dentro da guarda resolvem a maior parte.',
+  montada: 'Depois que passam a sua guarda, você não volta. A saída do 100kg antes de virar montada é o ponto a trabalhar.',
+  costas: 'O giro pra fugir de baixo está entregando as costas. Vale treinar a saída de frente pro parceiro.',
+  joelho: 'Frame no joelho e virar de lado cedo, antes de o parceiro estabilizar.',
+  finalizacao: 'Saber defender a que mais te pega vale mais que aprender um ataque novo.',
+};
+
 /* ---------- resumo geral do jogo ---------- */
 export function analisarJogo(rolls, partners, sessions, faixaUsuario = 'branca') {
   const faixaDe = new Map(partners.map((p) => [p.id, p.faixa || 'branca']));
   const minhaOrdem = FAIXA_ORDEM[faixaUsuario] ?? 0;
 
   /* Um rola 0x0 TAMBÉM é dado: significa que ninguém pontuou.
-     Só ficam de fora os rolas antigas, registradas antes do placar existir,
+     Só ficam de fora os rolas antigos, registrados antes do placar existir,
      e o drill, que não é luta: a mesma regra do Painel e da Análise. */
   const comDados = rolls.filter((r) => (r.contexto || 'rola') !== 'drill' && (
     r.v2 ||
@@ -69,13 +101,25 @@ export function analisarJogo(rolls, partners, sessions, faixaUsuario = 'branca')
   ));
 
   let vitorias = 0, derrotas = 0, empates = 0;
-  let ptsMeus = 0, ptsDele = 0, minutos = 0;
-  const conquistei = {};
-  const sofri = {};
+  let ptsMeus = 0, ptsDele = 0;
   const porFaixa = new Map();
   const porPeso = new Map();
   const porPosicao = new Map();
   let vantMinhas = 0, vantDele = 0;
+
+  /* em quantos rolas cada coisa aconteceu, e com qual técnica */
+  const meuEm = {}, deleEm = {};
+  const tecMeu = {}, tecDele = {};
+  let controleEm = 0, limpos = 0;
+  const marca = (alvo, ids) => { for (const id of new Set(ids)) alvo[id] = (alvo[id] || 0) + 1; };
+  const contaTec = (alvo, id, nomes) => {
+    for (const nome of nomes || []) {
+      const k = String(nome).trim();
+      if (!k) continue;
+      alvo[id] = alvo[id] || new Map();
+      alvo[id].set(k, (alvo[id].get(k) || 0) + 1);
+    }
+  };
 
   for (const r of comDados) {
     const p = placarDaRola(r);
@@ -85,12 +129,20 @@ export function analisarJogo(rolls, partners, sessions, faixaUsuario = 'branca')
 
     ptsMeus += p.meus;
     ptsDele += p.dele;
-    minutos += Number(r.duracao) || 0;
     vantMinhas += Number(r.vantMinhas) || 0;
     vantDele += Number(r.vantDele) || 0;
 
-    for (const id of r.ptsMeus || []) conquistei[id] = (conquistei[id] || 0) + 1;
-    for (const id of r.ptsDele || []) sofri[id] = (sofri[id] || 0) + 1;
+    const meus = r.ptsMeus || [];
+    const dele = r.ptsDele || [];
+    marca(meuEm, [...meus, ...(p.finMeus ? ['finalizacao'] : [])]);
+    marca(deleEm, [...dele, ...(p.finDele ? ['finalizacao'] : [])]);
+    if (meus.some((id) => pontosPorId[id]?.eixo === 'controle')) controleEm++;
+    if (!dele.includes('passagem') && !p.finDele) limpos++;
+
+    contaTec(tecMeu, 'finalizacao', r.subsAplicadas);
+    contaTec(tecDele, 'finalizacao', r.subsSofridas);
+    for (const [ponto, nomes] of Object.entries(r.tecMeus || {})) contaTec(tecMeu, ponto, nomes);
+    for (const [ponto, nomes] of Object.entries(r.tecDele || {})) contaTec(tecDele, ponto, nomes);
 
     const faixa = faixaDe.get(r.partnerId) || 'branca';
     acumula(porFaixa, faixa, p);
@@ -100,8 +152,14 @@ export function analisarJogo(rolls, partners, sessions, faixaUsuario = 'branca')
   }
 
   const n = comDados.length;
-  const { eixos, bruto } = calcularEixos(conquistei, sofri, comDados);
-  const estilo = detectarEstilo(bruto, n);
+  const emQuantos = {
+    queda: meuEm.queda || 0,
+    passagem: meuEm.passagem || 0,
+    raspagem: meuEm.raspagem || 0,
+    controle: controleEm,
+    finalizacao: meuEm.finalizacao || 0,
+  };
+  const estilo = detectarEstilo(emQuantos, limpos, n);
 
   return {
     rolas: n,
@@ -110,17 +168,20 @@ export function analisarJogo(rolls, partners, sessions, faixaUsuario = 'branca')
     vitorias, derrotas, empates,
     taxaVitoria: pct(vitorias, n),
     ptsMeus, ptsDele,
-    saldo: ptsMeus - ptsDele,
     mediaMeus: n ? Number((ptsMeus / n).toFixed(1)) : 0,
     mediaDele: n ? Number((ptsDele / n).toFixed(1)) : 0,
-    porMinuto: minutos ? Number((ptsMeus / minutos).toFixed(2)) : 0,
     vantMinhas, vantDele,
-    conquistei: distribuir(conquistei),
-    sofri: distribuir(sofri),
+    lances: LANCES.map((l) => ({
+      ...l,
+      meus: meuEm[l.id] || 0,
+      deles: deleEm[l.id] || 0,
+      tecMeu: maisUsada(tecMeu[l.id]),
+      tecDele: maisUsada(tecDele[l.id]),
+    })),
+    limpos,
     porFaixa: [...porFaixa.entries()].map(([k, v]) => ({ chave: k, ...v })).sort((a, b) => (FAIXA_ORDEM[a.chave] ?? 0) - (FAIXA_ORDEM[b.chave] ?? 0)),
     porPeso: PESO_REL.map((p) => ({ chave: p.id, nome: p.nome, icone: p.icone, ...(porPeso.get(p.id) || vazio()) })).filter((x) => x.n > 0),
     porPosicao: [...porPosicao.entries()].map(([k, v]) => ({ chave: k, nome: posInicialPorId[k]?.nome || k, ...v })).sort((a, b) => b.n - a.n),
-    eixos,
     estilo,
   };
 }
@@ -137,130 +198,78 @@ function acumula(mapa, chave, p) {
   mapa.set(chave, o);
 }
 
-function distribuir(obj) {
-  const total = Object.values(obj).reduce((a, b) => a + b, 0);
-  return PONTOS
-    .map((p) => ({ ...p, n: obj[p.id] || 0, pct: pct(obj[p.id] || 0, total), total: (obj[p.id] || 0) * p.pts }))
-    .filter((x) => x.n > 0)
-    .sort((a, b) => b.n - a.n);
+function maisUsada(mapa) {
+  if (!mapa) return null;
+  const [nome, vezes] = [...mapa.entries()].sort((a, b) => b[1] - a[1])[0];
+  return { nome, vezes };
 }
 
-/* ---------- os seis eixos, de 0 a 100 ---------- */
-function calcularEixos(conquistei, sofri, rolls) {
-  const n = Math.max(1, rolls.length);
-  const porRola = (v) => v / n;
+/* ---------- o estilo que os dados dizem ----------
+   É o que aparece em mais rolas, a mesma conta que a tela mostra,
+   pra dar pra conferir olhando a lista. */
+const ESTILO_DO_EIXO = {
+  queda: 'quedador', passagem: 'passador', raspagem: 'guardeiro',
+  finalizacao: 'finalizador', controle: 'controlador',
+};
 
-  const finalizacoes = rolls.flatMap((r) => r.subsAplicadas || []).length;
-  const sofridas = rolls.flatMap((r) => r.subsSofridas || []).length;
-  const passagensSofridas = sofri.passagem || 0;
-
-  // bruto = quantas vezes por rola, normalizado pelo alvo. Pode passar de 1.
-  const bruto = {
-    queda: porRola(conquistei.queda || 0) / 0.5,
-    passagem: porRola(conquistei.passagem || 0) / 0.6,
-    raspagem: porRola(conquistei.raspagem || 0) / 0.6,
-    controle: porRola((conquistei.montada || 0) + (conquistei.costas || 0) + (conquistei.joelho || 0)) / 0.7,
-    finalizacao: porRola(finalizacoes) / 0.5,
-    defesa: Math.max(0, 1 - porRola(passagensSofridas + sofridas) / 1.0),
-  };
-
-  // exibido = fatiado em 0-100
-  const eixos = {};
-  for (const [k, v] of Object.entries(bruto)) eixos[k] = Math.min(100, Math.round(v * 100));
-
-  return { eixos, bruto };
-}
-
-/* ---------- o estilo que os dados dizem ---------- */
-function detectarEstilo(bruto, n) {
+function detectarEstilo(emQuantos, limpos, n) {
   if (n < MIN_ROLAS_ESTILO) return null;
 
-  // a defesa não deve ganhar de um jogo ofensivo: só conta se o resto for fraco
-  const ofensivos = ['queda', 'passagem', 'raspagem', 'controle', 'finalizacao'];
-  const picoOfensivo = Math.max(...ofensivos.map((k) => bruto[k] || 0));
+  const ordem = Object.entries(emQuantos).sort((a, b) => b[1] - a[1]);
+  const [topo, rolas] = ordem[0];
+  const [segundo, rolasSegundo] = ordem[1];
 
-  const ordenado = ofensivos
-    .map((k) => [k, bruto[k] || 0])
-    .sort((a, b) => b[1] - a[1]);
-
-  const [topo, valor] = ordenado[0];
-  const [segundoNome, segundo] = ordenado[1] || [null, 0];
-
-  // quase nada acontecendo: quem não pontua mas também não sofre é sobrevivente
-  if (picoOfensivo < 0.25) {
-    if ((bruto.defesa || 0) >= 0.6) {
-      return { id: 'defensor', confianca: 60 + Math.min(20, n - MIN_ROLAS_ESTILO), dominante: 'defesa', valor: Math.round((bruto.defesa || 0) * 100) };
-    }
-    return { id: 'completo', confianca: 40, dominante: null, valor: Math.round(valor * 100) };
+  /* quase nada acontecendo: quem não pontua mas também não sofre é sobrevivente */
+  if (rolas < n * 0.25) {
+    if (limpos >= n * 0.6) return { id: 'defensor', dominante: null, rolas: limpos };
+    return { id: 'completo', dominante: null, pouco: true };
   }
 
-  // combinações: passagem e controle são o mesmo jogo (por cima)
-  const porCima = (bruto.passagem || 0) + (bruto.controle || 0);
-  const porBaixo = (bruto.raspagem || 0) + (bruto.finalizacao || 0) * 0.5;
-  const emPe = bruto.queda || 0;
-
-  let id = null;
-  let dominante = topo;
-
-  if ((topo === 'passagem' || topo === 'controle') && (segundoNome === 'passagem' || segundoNome === 'controle')) {
-    // os dois no topo: quem manda é o maior dos dois
-    id = (bruto.passagem || 0) >= (bruto.controle || 0) ? 'passador' : 'controlador';
-    dominante = (bruto.passagem || 0) >= (bruto.controle || 0) ? 'passagem' : 'controle';
-  } else if (emPe >= porCima * 0.8 && emPe >= porBaixo * 0.8 && topo === 'queda') {
-    id = 'quedador';
-  } else {
-    const mapa = {
-      queda: 'quedador', passagem: 'passador', raspagem: 'guardeiro',
-      finalizacao: 'finalizador', controle: 'controlador',
-    };
-    id = mapa[topo];
+  /* passagem e controle são o mesmo jogo (por cima): quem manda é o maior dos dois */
+  const porCima = ['passagem', 'controle'];
+  if (porCima.includes(topo) && porCima.includes(segundo)) {
+    return { id: ESTILO_DO_EIXO[topo], dominante: topo, rolas };
   }
 
-  // sem pico claro entre eixos de jogos DIFERENTES = completo
-  const mesmaFamilia = new Set(['passagem', 'controle']);
-  const familiaIgual = mesmaFamilia.has(topo) && mesmaFamilia.has(segundoNome);
-  if (!familiaIgual && valor > 0 && (valor - segundo) / valor < 0.18) {
-    return { id: 'completo', confianca: 55, dominante: null, valor: Math.round(valor * 100) };
+  /* dois jogos diferentes quase empatados = completo */
+  if (rolas - rolasSegundo < rolas * 0.18) {
+    return { id: 'completo', dominante: null, topo, rolas, segundo, rolasSegundo };
   }
-
-  const gap = valor > 0 ? ((valor - segundo) / valor) * 100 : 0;
-  const confianca = Math.min(95, Math.round(50 + gap * 0.5 + Math.min(20, n - MIN_ROLAS_ESTILO)));
-  return { id, confianca, dominante, valor: Math.round(valor * 100) };
+  return { id: ESTILO_DO_EIXO[topo], dominante: topo, rolas };
 }
 
-/* ---------- leitura em texto: o que os números gritam ---------- */
+const FEZ = {
+  queda: 'derrubou', passagem: 'passou a guarda', raspagem: 'raspou',
+  controle: 'chegou na montada, nas costas ou no joelho na barriga', finalizacao: 'finalizou',
+};
+
+/* o porquê do estilo, com os números que estão na tela */
+export function porqueDoEstilo(estilo, n) {
+  if (!estilo) return '';
+  if (estilo.id === 'defensor') {
+    return `Você ainda pontua pouco, mas em ${estilo.rolas} dos ${n} rolas ninguém passou a sua guarda nem te finalizou.`;
+  }
+  if (estilo.pouco) {
+    return 'Nenhuma forma de pontuar aparece em mais de 1 a cada 4 rolas ainda. Quando uma se destacar, o estilo muda sozinho.';
+  }
+  if (estilo.id === 'completo') {
+    return `Você ${FEZ[estilo.topo]} em ${estilo.rolas} e ${FEZ[estilo.segundo]} em ${estilo.rolasSegundo} dos ${n} rolas. Nenhuma se destaca: você pontua de vários jeitos.`;
+  }
+  return `Você ${FEZ[estilo.dominante]} em ${estilo.rolas} dos ${n} rolas, mais do que qualquer outra forma de pontuar.`;
+}
+
+/* o que você mais cede, com o que fazer */
+export function oQueMaisCede(a) {
+  const pior = [...a.lances].filter((l) => l.deles > 0).sort((x, y) => y.deles - x.deles)[0];
+  if (!pior) return null;
+  const tec = pior.tecDele ? ` A que mais aparece: ${pior.tecDele.nome}.` : '';
+  return { ...pior, texto: `${DICA_DO_QUE_CEDE[pior.id]}${tec}` };
+}
+
+/* ---------- leitura por situação: peso e posição inicial ---------- */
 export function lerJogo(a) {
   const notas = [];
   if (!a.rolas) return notas;
-
-  const topoConq = a.conquistei[0];
-  const topoSofri = a.sofri[0];
-
-  if (topoConq && topoConq.pct >= 40) {
-    notas.push({
-      tom: 'jade',
-      titulo: `${topoConq.pct}% do que você conquista vem de ${topoConq.nome.toLowerCase()}`,
-      texto: 'Esse é o seu caminho natural pra pontuar. Vale afiar mais ainda, e ter um plano B pra quando fecharem essa porta.',
-    });
-  }
-  if (topoSofri && topoSofri.pct >= 40) {
-    notas.push({
-      tom: 'blood',
-      titulo: `${topoSofri.pct}% do que você concede é ${topoSofri.nome.toLowerCase()}`,
-      texto: topoSofri.id === 'passagem'
-        ? 'Sua retenção de guarda é o buraco. Peça sparring posicional começando na guarda aberta com o cara já pressionando.'
-        : 'Isso é o furo mais caro do seu jogo agora. Uma aula focada só na defesa disso muda seu mês.',
-    });
-  }
-
-  const semQueda = !a.conquistei.find((c) => c.id === 'queda');
-  if (semQueda && a.rolas >= 10) {
-    notas.push({
-      tom: 'warn',
-      titulo: 'Você nunca pontuou em pé',
-      texto: 'Ou você puxa guarda sempre, ou o jogo em pé está fora do radar. Em competição isso custa 2 pontos de graça.',
-    });
-  }
 
   const pesado = a.porPeso.find((p) => p.chave === 'pesado');
   const leve = a.porPeso.find((p) => p.chave === 'leve');
@@ -270,7 +279,7 @@ export function lerJogo(a) {
     if (tl - tp >= 30) {
       notas.push({
         tom: 'warn',
-        titulo: `Contra mais pesado você cai de ${tl}% para ${tp}% de vitória`,
+        titulo: `Contra mais pesado você vence ${pesado.v} de ${pesado.n}. Contra mais leve, ${leve.v} de ${leve.n}`,
         texto: 'Diferença grande. Normalmente é alavanca e ângulo, não força. Vale investir em frames e em jogo de perna.',
       });
     }
@@ -280,16 +289,8 @@ export function lerJogo(a) {
   if (pior && pct(pior.v, pior.n) <= 25) {
     notas.push({
       tom: 'blood',
-      titulo: `Começando em "${pior.nome}" você quase não sai vivo`,
-      texto: `${pior.v} ${pior.v === 1 ? 'vitória' : 'vitórias'} em ${pior.n} rolas. É exatamente aí que o sparring posicional resolve mais rápido.`,
-    });
-  }
-
-  if (a.vantMinhas >= 3) {
-    notas.push({
-      tom: 'warn',
-      titulo: `${a.vantMinhas} vantagens conquistadas`,
-      texto: 'Vantagem é "quase". Você chegou lá e não estabilizou os 3 segundos. Trabalhar a estabilização vira ponto direto.',
+      titulo: `Começando em "${pior.nome}" você venceu ${pior.v} de ${pior.n}`,
+      texto: 'É exatamente aí que o treino de posição resolve mais rápido: peça pra começar daí.',
     });
   }
 
@@ -303,14 +304,16 @@ export function compararEstilo(estiloDeclarado, analise) {
   if (real === estiloDeclarado) {
     return {
       bate: true,
-      titulo: 'Seus dados confirmam',
-      texto: `Você se declarou ${estiloPorId(estiloDeclarado).nome} e é exatamente isso que os seus pontos mostram.`,
+      titulo: 'Bate com o seu teste',
+      texto: `No teste você marcou ${estiloPorId(estiloDeclarado).nome}, e é isso que os seus rolas mostram.`,
     };
   }
   return {
     bate: false,
-    titulo: 'Seus dados discordam de você',
-    texto: `Você se declarou ${estiloPorId(estiloDeclarado).nome}, mas os seus pontos dizem ${estiloPorId(real).nome}. Não é erro, é o que acontece de verdade quando tem alguém resistindo.`,
+    titulo: 'Diferente do seu teste',
+    texto: `No teste você marcou ${estiloPorId(estiloDeclarado).nome}. ${real === 'completo'
+      ? 'Nos rolas, você pontua de vários jeitos, sem um que se destaque.'
+      : `Nos rolas, o que mais aparece é ${estiloPorId(real).nome}.`} O app segue o que acontece no rola, e o jogo de todo mundo muda com o tempo.`,
   };
 }
 

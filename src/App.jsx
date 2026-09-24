@@ -268,7 +268,7 @@ export default function App() {
 
   /* Abriu: limpa a bolinha do ícone e avisa que o aviso
      funcionou. É isso que faz o servidor parar de mandar pra
-     quem nunca abre — sete sem resposta e ele cala a boca,
+     quem nunca abre: sete sem resposta e ele cala a boca,
      antes que o Chrome casse a permissão por conta própria. */
   useEffect(() => {
     if (sessao) abriuOApp(sessao.user?.id).catch(() => {});
@@ -405,7 +405,7 @@ export default function App() {
       const esteira = minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa, gradings || [], settings.graus || 0);
       const dom = resumoGraus(esteira);
       /* a primeira pela data do treino, não pela ordem em que foi digitada
-         (treino atrasado existe), e só rola de verdade: o marco diz "rola viva" */
+         (treino atrasado existe), e só rola de verdade: o marco diz "rola de verdade" */
       const dataDe = new Map(sessions.map((s) => [s.id, s.data || '']));
       const primeira = rolls
         .filter((x) => (x.contexto || 'rola') !== 'drill' && (x.subsAplicadas || []).length)

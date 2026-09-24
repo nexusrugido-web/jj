@@ -23,6 +23,7 @@ import { acervo } from '../lib/acervo';
 import { minhasTecnicas, meusBuracos } from '../lib/graus';
 import { recomendacoesDoAluno, chaveDaRec } from '../lib/recomendar';
 import { estiloPorId } from '../db/scoring';
+import { analisarJogo } from '../lib/game';
 import { relativo } from '../lib/utils';
 import Quiz from '../components/Quiz';
 import { PERGUNTAS } from '../db/quiz';
@@ -78,6 +79,13 @@ export default function Estudo() {
     () => minhasTecnicas(rolls, partners, sessions, techniques, faixa, gradings, settings.graus || 0),
     [rolls, partners, sessions, techniques, faixa, gradings, settings.graus]
   );
+  /* o estilo que sai dos rolas manda; o do teste só vale antes disso,
+     igual ao Meu jogo */
+  const estiloDosRolas = useMemo(
+    () => analisarJogo(rolls, partners, sessions, faixa).estilo?.id || null,
+    [rolls, partners, sessions, faixa]
+  );
+  const estilo = estiloDosRolas || settings.estiloDeclarado;
   const buracos = useMemo(() => meusBuracos(rolls, partners, sessions, faixa), [rolls, partners, sessions, faixa]);
   const todasRecs = useMemo(
     () => recomendacoesDoAluno({ tecnicas, buracos, partners, sessions, rolls, faixa, feitas, limite: RECOMENDACOES_NA_TELA }),
@@ -132,21 +140,23 @@ export default function Estudo() {
       }
     }
 
-    if (PEDIDO_DO_ESTILO[settings.estiloDeclarado]) {
-      const pedido = PEDIDO_DO_ESTILO[settings.estiloDeclarado];
+    if (PEDIDO_DO_ESTILO[estilo]) {
+      const pedido = PEDIDO_DO_ESTILO[estilo];
       const lista = aulasPara(pedido, {
         faixa, vistas, excluir: [...usados], quantidade: 4,
       });
       if (lista.length) {
         bloco({
           motivo: `Combina com o seu jogo`,
-          texto: `Você marcou que joga ${estiloPorId(settings.estiloDeclarado).nome.toLowerCase()}. Estas aulas puxam pra esse lado.`,
-          origem: origemDe('estudo', 'estilo', settings.estiloDeclarado),
+          texto: estiloDosRolas
+            ? `Nos seus rolas, o seu estilo é ${estiloPorId(estilo).nome}. Estas aulas puxam pra esse lado.`
+            : `No teste você marcou ${estiloPorId(estilo).nome}. Estas aulas puxam pra esse lado.`,
+          origem: origemDe('estudo', 'estilo', estilo),
         }, pedido, lista);
       }
     }
     return blocos;
-  }, [recs, faixa, vistas, settings.estiloDeclarado, minhas, acervoVer]);
+  }, [recs, faixa, vistas, estilo, estiloDosRolas, minhas, acervoVer]);
 
   /* quem ainda não registrou nada precisa de algo pra ver hoje,
      e não de um aviso dizendo que a tela enche depois */

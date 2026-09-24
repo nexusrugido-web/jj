@@ -267,7 +267,8 @@ export default function Onboarding({ settings, salvarSettings, onPronto }) {
                     }}>{o.t}</button>
                   ))}
                 </div>
-                <button className="btn ghost xs" onClick={() => setEstilo('completo')} style={{ alignSelf: 'center' }}>
+                {/* pular não é resposta: sem estilo, o Meu jogo oferece o teste depois */}
+                <button className="btn ghost xs" onClick={() => { setEstilo(null); setPasso(passo + 1); }} style={{ alignSelf: 'center' }}>
                   Pular esta parte
                 </button>
               </>

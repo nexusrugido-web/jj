@@ -944,11 +944,6 @@ button.chip:hover { color: var(--chalk); border-color: var(--dimmer); }
 .quiz-barra { height: 4px; border-radius: 99px; background: var(--seam); overflow: hidden; }
 .quiz-barra > i { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width .4s var(--ease); }
 
-/* ---------- radar de eixos ---------- */
-.eixo-linha { display: grid; grid-template-columns: 92px 1fr 40px; align-items: center; gap: 10px; }
-.eixo-nome { font-size: 12.5px; }
-.eixo-val { text-align: right; font-family: var(--mono); font-size: 12px; }
-
 /* ---------- nomear a técnica do ponto ---------- */
 .pts-nomear {
   display: block; width: 100%; text-align: left;

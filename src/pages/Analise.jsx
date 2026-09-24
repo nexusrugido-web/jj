@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ChartNoAxesColumn, Download, TriangleAlert, Swords, Clock, Percent, Trophy, Grid3x3 } from 'lucide-react';
 import { useApp } from '../contexto';
 import { Card, Btn, Stat, Chip, Empty, Sheet, useToast } from '../components/UI';
-import { EscadaPosicional, Radar, BarrasTop, MatrizPosicoes } from '../components/Charts';
+import { EscadaPosicional, BarrasTop, MatrizPosicoes } from '../components/Charts';
 import Calendario from '../components/Calendario';
 import GraficoEvolucao from '../components/GraficoEvolucao';
 import TaxaPorFaixa from '../components/TaxaPorFaixa';
@@ -10,16 +10,15 @@ import { periodoDeDados, dentroDoPeriodo, rotuloDoPeriodo, primeiroTreino } from
 import SeletorPeriodo from '../components/SeletorPeriodo';
 import RotuloPeriodo from '../components/RotuloPeriodo';
 import ListaResumida from '../components/ListaResumida';
-import { minhasTecnicas } from '../lib/graus';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
-import { resumo, escadaPosicional, radarHabilidades, buracosNoJogo } from '../lib/stats';
+import { resumo, escadaPosicional, buracosNoJogo } from '../lib/stats';
 import { placarDaRola } from '../lib/game';
 import { toCSV } from '../db/db';
 import { baixarArquivo, fmtDur, contar, hoje } from '../lib/utils';
 
 export default function Analise() {
-  const { sessions, rolls, positions, categories, techniques, partners, settings, irPara } = useApp();
+  const { sessions, rolls, positions, partners, settings, irPara } = useApp();
   const gradings = useLiveQuery(() => db.gradings.toArray(), [], []) || [];
   const toast = useToast();
   const [periodoId, setPeriodoId] = useState('ultimos-30');
@@ -47,15 +46,6 @@ export default function Analise() {
 
   const r = useMemo(() => resumo(filtradas, rolasF), [filtradas, rolasF]);
   const escada = useMemo(() => escadaPosicional(rolasF, positions), [rolasF, positions]);
-  /* as técnicas do período escolhido, não do histórico inteiro */
-  const minhasDoPeriodo = useMemo(
-    () => minhasTecnicas(rolasF, partners, filtradas, techniques, settings.faixa, gradings, settings.graus || 0),
-    [rolasF, partners, filtradas, techniques, settings.faixa, gradings, settings.graus]
-  );
-  const radar = useMemo(
-    () => radarHabilidades(minhasDoPeriodo, categories, techniques),
-    [minhasDoPeriodo, categories, techniques]
-  );
   const alertas = useMemo(() => buracosNoJogo(rolasF, positions), [rolasF, positions]);
 
   const porTipo = useMemo(() => contar(filtradas.map((s) => s.tipo)), [filtradas]);
@@ -155,37 +145,26 @@ export default function Analise() {
         )}
       </Card>
 
-      <div className="split" style={{ marginBottom: 14 }}>
-        <Card>
-          <div className="card-head">
-            <div>
-              <RotuloPeriodo periodo={periodo}>sai dos pontos que você marca</RotuloPeriodo>
-              <h2 className="h-sec">Onde você fica por cima e onde fica por baixo</h2>
-              <p className="tiny muted" style={{ marginTop: 7, lineHeight: 1.7 }}>
-                As posições vêm dos pontos que você marca em cada rola. Passagem de guarda coloca você em cima dos 100kg,
-                montada coloca na montada. Só aparecem aqui as posições que já apareceram nos seus treinos.
-              </p>
-            </div>
+      <Card style={{ marginBottom: 14 }}>
+        <div className="card-head">
+          <div>
+            <RotuloPeriodo periodo={periodo}>sai dos pontos que você marca</RotuloPeriodo>
+            <h2 className="h-sec">Onde você fica por cima e onde fica por baixo</h2>
+            <p className="tiny muted" style={{ marginTop: 7, lineHeight: 1.7 }}>
+              As posições vêm dos pontos que você marca em cada rola. Passagem de guarda coloca você em cima dos 100kg,
+              montada coloca na montada. Só aparecem aqui as posições que já apareceram nos seus treinos.
+            </p>
           </div>
-          {semRolas ? nada : (
-            <>
-              <EscadaPosicional dados={escada} />
-              <Btn size="sm" variant="ghost" icon={Grid3x3} onClick={() => setMapaAberto(true)} style={{ marginTop: 12 }}>
-                Ver mapa de posições
-              </Btn>
-            </>
-          )}
-        </Card>
-
-        <div className="col">
-          <Card>
-            <div className="card-head"><div><RotuloPeriodo periodo={periodo} />
-            <h2 className="h-sec">Radar de habilidades</h2></div></div>
-            <p className="micro muted" style={{ marginBottom: 8 }}>Cada técnica que você aplicou nos rolas do período soma no eixo da categoria dela.</p>
-            {semRolas ? nada : <Radar eixos={radar} />}
-          </Card>
         </div>
-      </div>
+        {semRolas ? nada : (
+          <>
+            <EscadaPosicional dados={escada} />
+            <Btn size="sm" variant="ghost" icon={Grid3x3} onClick={() => setMapaAberto(true)} style={{ marginTop: 12 }}>
+              Ver mapa de posições
+            </Btn>
+          </>
+        )}
+      </Card>
 
       <Sheet
         aberto={mapaAberto} onClose={() => setMapaAberto(false)} wide

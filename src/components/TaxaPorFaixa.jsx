@@ -148,7 +148,7 @@ function Honestidade({ t }) {
         <div>
           <div className="tiny" style={{ fontWeight: 600 }}>Sua taxa está inflada</div>
           <p className="micro muted" style={{ marginTop: 3 }}>
-            Você não registrou nenhuma rola contra faixa acima da sua. {t.total.taxa}% assim não diz muita coisa ,
+            Você não registrou nenhum rola contra faixa acima da sua. {t.total.taxa}% assim não diz muita coisa ,
             procure os mais graduados e veja o número de verdade.
           </p>
         </div>

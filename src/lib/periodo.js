@@ -72,7 +72,7 @@ export const METRICAS = [
     nome: 'Como você venceu',
     pergunta: 'Dos rolas que você ganhou, o que decidiu',
     desc: 'Só as vitórias. Cada cor é a forma como o rola terminou a seu favor.',
-    eixoY: 'rolas vencidas',
+    eixoY: 'rolas vencidos',
     chaves: [
       { k: 'porFinalizacao', nome: 'Finalizei', cor: 'var(--jade)', explica: 'Você encaixou uma finalização e o parceiro bateu.' },
       { k: 'porPontos', nome: 'Venci nos pontos', cor: 'var(--roar)', explica: 'Ninguém finalizou, você terminou com mais pontos.' },
@@ -84,7 +84,7 @@ export const METRICAS = [
     nome: 'Como você perdeu',
     pergunta: 'Dos rolas que você perdeu, o que decidiu',
     desc: 'Só as derrotas, separadas do mesmo jeito. Serve pra ver se você está perdendo por tap ou por controle.',
-    eixoY: 'rolas perdidas',
+    eixoY: 'rolas perdidos',
     chaves: [
       { k: 'fuiFinalizado', nome: 'Fui finalizado', cor: 'var(--blood)', explica: 'Você bateu.' },
       { k: 'perdiPontos', nome: 'Perdi nos pontos', cor: 'var(--roar)', explica: 'Ninguém finalizou, ele terminou com mais pontos.' },

@@ -321,7 +321,7 @@ export function TagsInput({ valor = [], onChange, sugestoes = [], placeholder = 
 }
 
 /* ---------------- Finalizações de um rola ----------------
-   Aceita a MESMA finalização várias vezes na mesma rola.
+   Aceita a MESMA finalização várias vezes no mesmo rola.
    Guardado como lista simples (["Triângulo","Triângulo","Kimura"])
    e mostrado agrupado com contador. */
 export function SubsInput({ valor = [], onChange, sugestoes = [], rapidas = [], tone = 'jade', placeholder = 'Ex.: Triângulo' }) {
