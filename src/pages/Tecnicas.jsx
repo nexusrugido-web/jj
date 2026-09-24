@@ -54,8 +54,8 @@ export default function Tecnicas() {
   /* o grau de cada técnica sai dos rolas, não de um campo
      que ninguém preenche */
   const minhas = useMemo(
-    () => minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa, gradings),
-    [rolls, partners, sessions, techniques, settings.faixa, gradings]
+    () => minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa, gradings, settings.graus || 0),
+    [rolls, partners, sessions, techniques, settings.faixa, gradings, settings.graus]
   );
   const grauPorNome = useMemo(
     () => Object.fromEntries(minhas.map((t) => [String(t.nome).toLowerCase(), t.grau])),

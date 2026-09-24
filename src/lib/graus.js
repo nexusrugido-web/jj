@@ -76,9 +76,14 @@ export const grauPorN = (n) => GRAUS[Math.max(0, Math.min(4, n || 0))];
    Um faixa branca que raspa um azul fez algo notável.
    Um faixa marrom que raspa um azul fez o esperado.
    Por isso os requisitos mudam. */
-export function requisitosDaFaixa(faixa = 'branca', regra = 'v2') {
+export function requisitosDaFaixa(faixa = 'branca', regra = 'v2', graus = 0) {
   if (regra === 'v1') return requisitosV1(faixa);
-  const a = AJUSTE_DA_FAIXA[faixa] || AJUSTE_DA_FAIXA.branca;
+  const base = AJUSTE_DA_FAIXA[faixa] || AJUSTE_DA_FAIXA.branca;
+  /* cada grau da faixa sobe a régua um quarto do caminho até a da
+     faixa seguinte: um grau leva meses, e o que era notável no começo
+     da faixa vira rotina perto do fim dela */
+  const m = base.m + (base.proximo - base.m) * (Math.min(4, Math.max(0, graus || 0)) / 4);
+  const a = { ...base, m };
 
   /* Os dois primeiros graus vêm rápido: é quando mais se apanha, e
      vitória cedo segura quem está começando. Do 3º em diante o tempo
@@ -95,11 +100,11 @@ export function requisitosDaFaixa(faixa = 'branca', regra = 'v2') {
 }
 
 const AJUSTE_DA_FAIXA = {
-  branca: { m: 1.0, acima4: 2 },
-  azul: { m: 1.35, acima4: 4 },
-  roxa: { m: 1.8, acima4: 6 },
-  marrom: { m: 2.2, acima4: 8 },
-  preta: { m: 2.6, acima4: 10 },
+  branca: { m: 1.0, proximo: 1.35, acima4: 2 },
+  azul: { m: 1.35, proximo: 1.8, acima4: 4 },
+  roxa: { m: 1.8, proximo: 2.2, acima4: 6 },
+  marrom: { m: 2.2, proximo: 2.6, acima4: 8 },
+  preta: { m: 2.6, proximo: 3.0, acima4: 10 },
 };
 
 /* A régua até 24/09/2026. Fica só pra ninguém perder o grau que já
@@ -137,8 +142,8 @@ function requisitosV1(faixa = 'branca') {
 /* ============================================================
    ATAQUE: o que você aplicou
    ============================================================ */
-export function calcularAtaque(usos, faixaUsuario = 'branca', { regra = 'v2', grauMinimo = 0 } = {}) {
-  const req = requisitosDaFaixa(faixaUsuario, regra);
+export function calcularAtaque(usos, faixaUsuario = 'branca', { regra = 'v2', grauMinimo = 0, graus = 0 } = {}) {
+  const req = requisitosDaFaixa(faixaUsuario, regra, graus);
   const minhaOrdem = FAIXA_ORDEM[faixaUsuario] ?? 0;
 
   const comResistencia = usos.filter((u) => contextoPorId(u.contexto).evidencia === 'resistencia');
@@ -423,31 +428,48 @@ export function faixaNaData(data, gradings = [], faixaAtual = 'branca') {
   return primeira.tipo === 'faixa' ? ordem[Math.max(0, ordem.indexOf(primeira.faixa) - 1)] : primeira.faixa;
 }
 
-export function grauGuardado(usos, faixaAtual = 'branca', gradings = []) {
+/* os graus da faixa num dia. Antes da primeira graduação registrada
+   não dá pra saber: vale zero, que é a régua mais leve */
+export function grausNaData(data, gradings = [], grausAtuais = 0) {
+  const lista = gradings.filter((g) => g.data).sort((a, b) => a.data.localeCompare(b.data));
+  if (!lista.length) return grausAtuais;
+  const ate = lista.filter((g) => g.data <= data);
+  if (!ate.length) return 0;
+  const g = ate[ate.length - 1];
+  return g.tipo === 'grau' ? Number(g.graus) || 0 : 0;
+}
+
+export function grauGuardado(usos, faixaAtual = 'branca', gradings = [], grausAtuais = 0) {
   const antes = (d) => usos.filter((u) => u.data && u.data < d);
   let g = 0;
   const velhos = antes(REGRA_NOVA_DESDE);
   if (velhos.length) {
     g = calcularAtaque(velhos, faixaNaData(addDias(REGRA_NOVA_DESDE, -1), gradings, faixaAtual), { regra: 'v1' }).grau;
   }
-  for (const gr of gradings.filter((x) => x.tipo === 'faixa' && x.data)) {
+  /* toda graduação sobe a régua, de faixa ou de grau: o que a técnica
+     tinha no dia anterior fica */
+  for (const gr of gradings.filter((x) => x.data && (x.tipo === 'faixa' || x.tipo === 'grau'))) {
     const u = antes(gr.data);
     if (!u.length) continue;
-    const faixaAntes = faixaNaData(addDias(gr.data, -1), gradings, faixaAtual);
+    const vespera = addDias(gr.data, -1);
     const regra = gr.data <= REGRA_NOVA_DESDE ? 'v1' : 'v2';
-    g = Math.max(g, calcularAtaque(u, faixaAntes, { regra }).grau);
+    const opcoes = { regra, graus: grausNaData(vespera, gradings, grausAtuais) };
+    g = Math.max(g, calcularAtaque(u, faixaNaData(vespera, gradings, faixaAtual), opcoes).grau);
   }
   return g;
 }
 
 /* ---------- a lista completa das suas técnicas ---------- */
-export function minhasTecnicas(rolls, partners, sessions, techniques, faixaUsuario = 'branca', gradings = []) {
+export function minhasTecnicas(rolls, partners, sessions, techniques, faixaUsuario = 'branca', gradings = [], grausAtuais = 0) {
   const { ataque, defesa } = lerHistorico(rolls, partners, sessions);
   const porNome = new Map(techniques.map((t) => [t.nome.toLowerCase(), t]));
 
   const linhas = [];
   for (const [nome, usos] of ataque.entries()) {
-    const a = calcularAtaque(usos, faixaUsuario, { grauMinimo: grauGuardado(usos, faixaUsuario, gradings) });
+    const a = calcularAtaque(usos, faixaUsuario, {
+      graus: grausAtuais,
+      grauMinimo: grauGuardado(usos, faixaUsuario, gradings, grausAtuais),
+    });
     const tec = porNome.get(nome.toLowerCase());
     linhas.push({
       nome,

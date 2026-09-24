@@ -366,7 +366,7 @@ export function recomendacoesDoAluno({
    ============================================================ */
 export function faltaPara(t, faixa = 'branca') {
   if (!t || t.grau >= 4) return null;
-  const req = requisitosDaFaixa(faixa)[t.proximo];
+  const req = t.requisitos || requisitosDaFaixa(faixa)[t.proximo];
   if (!req) return null;
 
   const g = grauPorN(t.proximo);

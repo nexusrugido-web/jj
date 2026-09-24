@@ -73,6 +73,17 @@ ok('antes da graduação era faixa branca', faixaNaData(addDias(depois, 10), gra
 ok('régua da azul sozinha derrubaria pro 2º', grau(naBranca, 'azul'), 2);
 ok('com a graduação registrada, fica no 3º', grauGuardado(naBranca, 'azul', gradAzul), 3);
 
+/* ---------- o grau da faixa também sobe a régua ---------- */
+const { requisitosDaFaixa } = await import('../src/lib/graus.js');
+ok('branca sem grau: 2º grau pede 5', requisitosDaFaixa('branca', 'v2', 0)[2].usos, 5);
+ok('branca com 2 graus: pede um pouco mais', requisitosDaFaixa('branca', 'v2', 2)[2].usos, 6);
+ok('branca com 4 graus: já é a régua da azul', requisitosDaFaixa('branca', 'v2', 4)[3].usos, requisitosDaFaixa('azul', 'v2', 0)[3].usos);
+
+/* recebeu o 3º grau depois de chegar no 3º grau da técnica */
+const gradGrau = [{ data: addDias(depois, 60), tipo: 'grau', faixa: 'branca', graus: 3 }];
+ok('régua da branca com 3 graus sozinha derrubaria pro 2º', calcularAtaque(naBranca, 'branca', { graus: 3 }).grau, 2);
+ok('com o grau registrado, fica no 3º', grauGuardado(naBranca, 'branca', gradGrau, 3), 3);
+
 /* e as telas veem o mesmo número */
 const sessions = naBranca.map((u, i) => ({ id: i + 1, data: u.data }));
 const rolls = naBranca.map((u, i) => ({ sessionId: i + 1, partnerId: u.partnerId, contexto: 'rola', subsAplicadas: ['Kimura'] }));

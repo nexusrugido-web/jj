@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Trophy, Check, Eye, EyeOff, RefreshCw, Flame, Hourglass, LogOut, UserRound, Undo2, Dumbbell,
+  Trophy, Check, Eye, EyeOff, RefreshCw, Flame, Hourglass, LogOut, UserRound, Undo2, Dumbbell, Crown,
 } from 'lucide-react';
 import { useApp } from '../contexto';
 import { supabase } from '../lib/supabase';
@@ -30,6 +30,42 @@ import { fmtData } from '../lib/utils';
 
 const ACIMA = { branca: 'azul', azul: 'roxa', roxa: 'marrom', marrom: 'preta', preta: 'preta' };
 const acima = (d) => ACIMA[d] || 'azul';
+
+const iniciais = (nome) => String(nome || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase();
+
+/* ============================================================
+   O PÓDIO
+
+   Os três primeiros como num pódio de campeonato: o líder no meio
+   e mais alto, o segundo à esquerda, o terceiro à direita. Sem
+   foto, a inicial basta, e ninguém precisa subir foto pra aparecer.
+   ============================================================ */
+export function Podio({ tres, marca, onVer }) {
+  const ordem = [[tres[1], 2], [tres[0], 1], [tres[2], 3]];
+  return (
+    <div className="podio">
+      {ordem.map(([l, lugar]) => {
+        const m = marca(l);
+        return (
+          <button key={l.user_id} type="button" className={`podio-lugar p${lugar} ${l.sou_eu ? 'eu' : ''}`} onClick={() => onVer(l)}>
+            {lugar === 1 && <Crown size={18} className="podio-coroa" />}
+            <span className="podio-avatar">
+              {iniciais(l.nome)}
+              <span className="podio-n num">{l.posicao}</span>
+            </span>
+            <span className="podio-base">
+              {l.sou_eu && <span className="podio-voce">você</span>}
+              <span className="podio-nome">{l.nome}</span>
+              <span className="podio-pts num">{l.xp_semana}<small> pts</small></span>
+              {m.sobe && <Chip tone="jade">sobe</Chip>}
+              {m.desce && <Chip tone="blood">desce</Chip>}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 function DivisaoTag({ id, prefixo = '' }) {
   const d = DIVISOES_LIGA[id] || DIVISOES_LIGA.branca;
@@ -154,6 +190,15 @@ export default function Liga({ compacto = false }) {
   const { sobem, descem } = corteDoGrupo(total, ajusteDe('liga_corte', 3));
   const misturado = linhas.some((l) => (l.divisao_pessoa || divisao) !== divisao);
   const acimaDeMim = eu ? linhas.filter((l) => l.xp_semana > eu.xp_semana) : [];
+  /* quem está na zona de subir ou de descer, igual no pódio e na lista */
+  const marca = (l) => {
+    const div = l.divisao_pessoa || divisao;
+    return {
+      sobe: comecou && l.posicao <= sobem && l.xp_semana > 0 && div !== 'preta',
+      desce: comecou && descem > 0 && l.posicao > total - descem && div !== 'branca',
+    };
+  };
+  const podio = !compacto && comecou && linhas.length >= 3;
 
   return (
     <Card style={{ marginBottom: compacto ? 0 : 14 }}>
@@ -212,11 +257,12 @@ export default function Liga({ compacto = false }) {
         </div>
       )}
 
+      {podio && <Podio tres={linhas.slice(0, 3)} marca={marca} onVer={setVendo} />}
+
       <div className="col" style={{ gap: 6, marginTop: 12 }}>
-        {linhas.slice(0, compacto ? 5 : undefined).map((l) => {
+        {linhas.slice(podio ? 3 : 0, compacto ? 5 : undefined).map((l) => {
           const div = l.divisao_pessoa || divisao;
-          const sobe = comecou && l.posicao <= sobem && l.xp_semana > 0 && div !== 'preta';
-          const desce = comecou && descem > 0 && l.posicao > total - descem && div !== 'branca';
+          const { sobe, desce } = marca(l);
           return (
             <button key={l.user_id} type="button" className={`liga-linha ${l.sou_eu ? 'eu' : ''}`} onClick={() => setVendo(l)}>
               <span className="liga-pos num">{l.posicao}</span>

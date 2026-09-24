@@ -58,7 +58,7 @@ export default function Conquistas() {
   const pontos = useLiveQuery(() => db.pontos.toArray(), [], []) || [];
   const lesoes = useLiveQuery(() => db.injuries.toArray(), [], []) || [];
   const ofa = useMemo(() => ofensiva(pontos, undefined, lesoes), [pontos, lesoes]);
-  const esteira = useMemo(() => minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa, graduacoes), [rolls, partners, sessions, techniques, settings.faixa, graduacoes]);
+  const esteira = useMemo(() => minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa, graduacoes, settings.graus || 0), [rolls, partners, sessions, techniques, settings.faixa, graduacoes, settings.graus]);
   const dom = useMemo(() => resumoGraus(esteira), [esteira]);
 
   const ultimaGrad = graduacoes[0];
@@ -86,9 +86,9 @@ export default function Conquistas() {
     await salvarSettings({ faixa: g.faixa, graus: g.tipo === 'faixa' ? 0 : g.graus });
     setRegistrar(null);
     toast('Parabéns! Graduação registrada 🥋');
-    /* faixa nova sobe a régua: quem vê o próximo grau mais longe precisa
-       saber que não perdeu nada do que já tinha */
-    if (g.tipo === 'faixa') setFaixaNova({ faixa: g.faixa, antes: settings.faixa });
+    /* graduação sobe a régua das técnicas, de faixa ou de grau: quem vê
+       o próximo grau mais longe precisa saber que não perdeu nada */
+    setFaixaNova({ tipo: g.tipo, faixa: g.faixa, graus: g.tipo === 'faixa' ? 0 : Number(g.graus) || 0, antes: settings.faixa });
   }
 
   return (
@@ -343,15 +343,18 @@ export function Celebracao({ marco, onFechar }) {
 function FaixaNova({ aviso, tecnica, onClose }) {
   if (!aviso) return null;
   const nome = (id) => FAIXAS.find((f) => f.id === id)?.nome?.toLowerCase() || id;
+  const deFaixa = aviso.tipo !== 'grau';
   const g = tecnica ? grauPorN(tecnica.grau) : null;
-  const req = tecnica?.proximo ? requisitosDaFaixa(aviso.faixa)[tecnica.proximo] : null;
+  const req = tecnica?.proximo ? requisitosDaFaixa(aviso.faixa, 'v2', aviso.graus)[tecnica.proximo] : null;
+  const titulo = deFaixa ? `Faixa ${nome(aviso.faixa)}, parabéns` : `${aviso.graus}º grau na faixa ${nome(aviso.faixa)}, parabéns`;
   return (
     <Sheet
-      aberto onClose={onClose} titulo={`Faixa ${nome(aviso.faixa)}, parabéns`}
+      aberto onClose={onClose} titulo={titulo}
       footer={<Btn variant="primary" onClick={onClose} style={{ width: '100%' }}>Bora treinar</Btn>}
     >
       <p className="tiny" style={{ lineHeight: 1.7 }}>
-        Suas técnicas não perdem nada com a faixa nova. Cada uma continua no grau que você conquistou.
+        Suas técnicas não perdem nada com {deFaixa ? 'a faixa nova' : 'o grau novo'}. Cada uma continua no grau
+        que você conquistou.
       </p>
       {tecnica && g && (
         <div className="card" style={{ background: 'var(--void)', display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -362,8 +365,10 @@ function FaixaNova({ aviso, tecnica, onClose }) {
         </div>
       )}
       <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        O que muda é daqui pra frente. A faixa {nome(aviso.faixa)} pede um pouco mais pra subir o próximo grau,
-        porque o que era notável na {nome(aviso.antes)} vira rotina agora.
+        O que muda é daqui pra frente.{' '}
+        {deFaixa
+          ? `A faixa ${nome(aviso.faixa)} pede um pouco mais pra subir o próximo grau, porque o que era notável na ${nome(aviso.antes)} vira rotina agora.`
+          : 'Cada grau da faixa sobe um pouco a régua das suas técnicas, porque o que era notável no começo da faixa vira rotina perto do fim dela.'}
         {req && tecnica && ` Pro ${grauPorN(tecnica.proximo).nome} da ${tecnica.nome}, agora são ${req.usos} usos no rola.`}
       </p>
     </Sheet>

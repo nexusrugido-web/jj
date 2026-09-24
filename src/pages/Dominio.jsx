@@ -30,8 +30,8 @@ export default function Dominio() {
   const vistas = useLiveQuery(() => db.aulasVistas.toArray(), [], []) || [];
 
   const tecnicas = useMemo(
-    () => minhasTecnicas(rolls, partners, sessions, techniques, faixa, gradings),
-    [rolls, partners, sessions, techniques, faixa, gradings]
+    () => minhasTecnicas(rolls, partners, sessions, techniques, faixa, gradings, settings.graus || 0),
+    [rolls, partners, sessions, techniques, faixa, gradings, settings.graus]
   );
   const buracos = useMemo(() => meusBuracos(rolls, partners, sessions, faixa), [rolls, partners, sessions, faixa]);
   const resumo = useMemo(() => resumoGraus(tecnicas), [tecnicas]);
@@ -66,7 +66,7 @@ export default function Dominio() {
             acao={<Btn variant="primary" icon={Swords} onClick={() => irPara('treinos')}>Registrar treino</Btn>}
           />
         </Card>
-        <ComoFunciona aberto={comoFunciona} onClose={() => setComoFunciona(false)} faixa={faixa} />
+        <ComoFunciona aberto={comoFunciona} onClose={() => setComoFunciona(false)} faixa={faixa} graus={settings.graus || 0} />
       </div>
     );
   }
@@ -244,9 +244,9 @@ export default function Dominio() {
       <Detalhe
         t={detalhe} onClose={() => setDetalhe(null)}
         cat={detalhe ? catById[detalhe.categoriaId] : null}
-        faixa={faixa} partners={partners} sessions={sessions} goals={goals}
+        faixa={faixa} graus={settings.graus || 0} partners={partners} sessions={sessions} goals={goals}
       />
-      <ComoFunciona aberto={comoFunciona} onClose={() => setComoFunciona(false)} faixa={faixa} />
+      <ComoFunciona aberto={comoFunciona} onClose={() => setComoFunciona(false)} faixa={faixa} graus={settings.graus || 0} />
     </div>
   );
 }
@@ -264,11 +264,11 @@ function Cabecalho({ onComo }) {
 }
 
 /* ================= a ficha da técnica ================= */
-function Detalhe({ t, onClose, cat, faixa, partners, sessions, goals }) {
+function Detalhe({ t, onClose, cat, faixa, graus = 0, partners, sessions, goals }) {
   if (!t) return null;
   const g = grauPorN(t.grau);
   const falta = faltaPara(t, faixa);
-  const req = requisitosDaFaixa(faixa);
+  const req = requisitosDaFaixa(faixa, 'v2', graus);
   const tend = TENDENCIAS[t.tendencia];
   const nomeP = (id) => partners.find((p) => p.id === id)?.nome || 'esse parceiro';
 
@@ -414,8 +414,8 @@ function Detalhe({ t, onClose, cat, faixa, partners, sessions, goals }) {
 }
 
 /* ================= explicação ================= */
-function ComoFunciona({ aberto, onClose, faixa }) {
-  const req = requisitosDaFaixa(faixa);
+function ComoFunciona({ aberto, onClose, faixa, graus = 0 }) {
+  const req = requisitosDaFaixa(faixa, 'v2', graus);
   return (
     <Sheet aberto={aberto} onClose={onClose} titulo="Como os graus funcionam" wide>
       <p className="tiny muted" style={{ lineHeight: 1.7 }}>
@@ -498,10 +498,11 @@ function ComoFunciona({ aberto, onClose, faixa }) {
       </p>
 
       <div className="divider" />
-      <div className="eyebrow">a régua sobe com a sua faixa</div>
+      <div className="eyebrow">a régua sobe com a sua graduação</div>
       <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        Os números acima são pra faixa {faixa}. Quanto mais graduado, mais alta fica a exigência, porque o que é
-        notável na branca vira rotina na roxa.
+        Os números acima são pra faixa {faixa}{graus ? ` com ${graus} ${graus === 1 ? 'grau' : 'graus'}` : ''}. Cada
+        grau que o professor te dá sobe um pouco a exigência, e a faixa nova sobe de vez, porque o que é notável
+        na branca vira rotina na roxa. O que você já conquistou continua seu.
       </p>
     </Sheet>
   );

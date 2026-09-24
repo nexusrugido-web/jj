@@ -44,8 +44,8 @@ export default function Metas() {
 
   const faixa = settings.faixa || 'branca';
   const tecnicas = useMemo(
-    () => minhasTecnicas(rolls, partners, sessions, techniques, faixa, gradings),
-    [rolls, partners, sessions, techniques, faixa, gradings]
+    () => minhasTecnicas(rolls, partners, sessions, techniques, faixa, gradings, settings.graus || 0),
+    [rolls, partners, sessions, techniques, faixa, gradings, settings.graus]
   );
   const buracos = useMemo(() => meusBuracos(rolls, partners, sessions, faixa), [rolls, partners, sessions, faixa]);
 

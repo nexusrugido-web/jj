@@ -75,8 +75,8 @@ export default function Estudo() {
   const resumo = useMemo(() => resumoAcervo(vistas), [vistas, acervoVer]);
 
   const tecnicas = useMemo(
-    () => minhasTecnicas(rolls, partners, sessions, techniques, faixa, gradings),
-    [rolls, partners, sessions, techniques, faixa, gradings]
+    () => minhasTecnicas(rolls, partners, sessions, techniques, faixa, gradings, settings.graus || 0),
+    [rolls, partners, sessions, techniques, faixa, gradings, settings.graus]
   );
   const buracos = useMemo(() => meusBuracos(rolls, partners, sessions, faixa), [rolls, partners, sessions, faixa]);
   const todasRecs = useMemo(

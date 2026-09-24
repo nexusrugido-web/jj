@@ -71,7 +71,7 @@ export default function Painel() {
   const ofa = useMemo(() => ofensiva(pontos, undefined, lesoes), [pontos, lesoes]);
   const fraseSeq = useMemo(() => textoOfensiva(ofa), [ofa]);
 
-  const esteira = useMemo(() => minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa, gradings), [rolls, partners, sessions, techniques, settings.faixa, gradings]);
+  const esteira = useMemo(() => minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa, gradings, settings.graus || 0), [rolls, partners, sessions, techniques, settings.faixa, gradings, settings.graus]);
   const recap = useMemo(() => resumoSemana(sessions, rolls, esteira, { faixa: settings.faixa }), [sessions, rolls, esteira, settings.faixa]);
   const buracos = useMemo(() => meusBuracos(rolls, partners, sessions, settings.faixa), [rolls, partners, sessions, settings.faixa]);
 

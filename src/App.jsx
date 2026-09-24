@@ -397,7 +397,7 @@ export default function App() {
     if (!sessions.length) return;
     const t = setTimeout(async () => {
       const r = calcResumo(sessions, rolls);
-      const esteira = minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa, gradings || []);
+      const esteira = minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa, gradings || [], settings.graus || 0);
       const dom = resumoGraus(esteira);
       /* a primeira pela data do treino, não pela ordem em que foi digitada
          (treino atrasado existe), e só rola de verdade: o marco diz "rola viva" */
@@ -435,7 +435,7 @@ export default function App() {
       marcosChecados.current = true;
     }, 900);
     return () => clearTimeout(t);
-  }, [pronto, sessions, rolls, techniques, partners, gradings, settings.faixa, settings.celebrar]);
+  }, [pronto, sessions, rolls, techniques, partners, gradings, settings.faixa, settings.graus, settings.celebrar]);
 
   if (!pronto) {
     return (
