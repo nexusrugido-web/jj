@@ -1,4 +1,4 @@
-import { FAIXA_ORDEM } from './utils';
+import { FAIXA_ORDEM, hoje, diasEntre } from './utils';
 import { periodoDeDados, dentroDoPeriodo } from './periodo';
 
 /* ============================================================
@@ -221,14 +221,18 @@ function calcularProgresso(tem, req, grauAtual) {
   return Math.round(Math.min(media, pior * 0.4 + media * 0.6) * 100);
 }
 
-function tendenciaDoUso(usos) {
-  const datas = usos.map((u) => u.data).filter(Boolean).sort();
-  if (datas.length < 5) return 'novo';
-  const corte = datas[Math.floor(datas.length / 2)];
-  const antes = datas.filter((d) => d < corte).length;
-  const depois = datas.filter((d) => d >= corte).length;
-  if (depois > antes * 1.4) return 'melhorando';
-  if (depois * 1.4 < antes) return 'enferrujando';
+/* A tendência olha o calendário, não a lista. Antes ela cortava as
+   datas na mediana, e as duas metades davam sempre o mesmo tamanho:
+   ninguém nunca via "melhorando" nem "enferrujando".
+   Últimos 30 dias contra a média mensal dos 60 antes deles. */
+function tendenciaDoUso(usos, ref = hoje()) {
+  const idades = usos.map((u) => u.data).filter(Boolean).map((d) => diasEntre(d, ref));
+  if (idades.length < 5) return 'novo';
+  if (Math.min(...idades) > 45) return 'enferrujando';
+  const agora = idades.filter((x) => x <= 30).length;
+  const antes = idades.filter((x) => x > 30 && x <= 90).length / 2;
+  if (agora > Math.max(1, antes) * 1.4) return 'melhorando';
+  if (agora * 1.4 < antes) return 'enferrujando';
   return 'estavel';
 }
 
@@ -372,8 +376,12 @@ export function minhasTecnicas(rolls, partners, sessions, techniques, faixaUsuar
 export function meusBuracos(rolls, partners, sessions, faixaUsuario = 'branca', limite = 8) {
   const { defesa } = lerHistorico(rolls, partners, sessions);
   const linhas = [];
+  /* só o que te fez bater: "Onde você apanha", "o que mais te pega" e a
+     recomendação de defesa falam a mesma coisa. Passagem sofrida com
+     nome virava "você bateu 3 vezes de" uma passagem. */
   for (const [nome, sofridas] of defesa.entries()) {
-    linhas.push({ nome, ...calcularDefesa(sofridas, faixaUsuario) });
+    const taps = sofridas.filter((s) => s.tipo === 'finalizacao');
+    if (taps.length) linhas.push({ nome, ...calcularDefesa(taps, faixaUsuario) });
   }
   return linhas.sort((a, b) => b.recente - a.recente || b.vezes - a.vezes).slice(0, limite);
 }

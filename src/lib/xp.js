@@ -27,7 +27,7 @@ export const EVENTOS = {
     nome: 'Rola com dados completos',
     xp: 12,
     tetoDia: 8,
-    desc: 'Parceiro, pontos e contexto preenchidos.',
+    desc: 'Parceiro e o que aconteceu no rola preenchidos.',
   },
   aula: {
     id: 'aula',
@@ -91,13 +91,6 @@ export const EVENTOS = {
     xp: 25,
     tetoDia: 1,
     desc: 'Treinou pelo menos o que você costuma treinar. Quem treina 2x compete de igual com quem treina 5x.',
-  },
-  grau: {
-    id: 'grau',
-    nome: 'Técnica subiu de grau',
-    xp: 30,
-    tetoDia: 3,
-    desc: 'Evolução de verdade, comprovada pelos seus registros.',
   },
 };
 

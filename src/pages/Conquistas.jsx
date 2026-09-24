@@ -162,7 +162,7 @@ export default function Conquistas() {
               horas: r.matHoras,
               treinos: r.sessoes,
               rolas: r.rolas,
-              subiram: esteira.filter((t) => t.nivel === 'dominado').map((t) => t.nome).slice(0, 6),
+              subiram: esteira.filter((t) => t.grau >= 3).map((t) => t.nome).slice(0, 6),
             }}
             texto={`${r.matHoras}h no tatame, ${r.sessoes} treinos e ${r.rolas} rolas.`}
             variante="primary"

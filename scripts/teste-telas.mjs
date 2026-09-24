@@ -98,7 +98,8 @@ for (let dia = 3; dia < 150; dia += 4) {
     n++;
     await d.table('rolls').add({
       sessionId: sid, partnerId: n % 5 === 0 ? null : pids[n % 4], duracao: 5,
-      contexto: tipo === 'drill' ? 'drill' : tipo === 'competicao' ? 'competicao' : 'rola',
+      /* rola de drill gravado do jeito antigo, como luta: a migração tem que acertar */
+      contexto: tipo === 'competicao' ? 'competicao' : 'rola',
       ptsMeus: n % 2 ? [pts[n % 6]] : [], ptsDele: n % 3 ? [] : [pts[(n + 1) % 6]],
       tecMeus: n % 2 ? { [pts[n % 6]]: ['Raspagem de gancho (hip bump)'] } : {}, tecDele: {},
       vantMinhas: n % 7 === 0 ? 1 : 0, vantDele: 0,
@@ -181,6 +182,9 @@ const confere = (nome, bom) => { if (!bom) falhas++; console.log(`${bom ? 'ok   
 confere('painel mostra a melhor arma com dados', !/Registre uma finalização pra descobrir/.test(txt));
 w.history.pushState({}, '', '/?go=metas'); w.dispatchEvent(new w.PopStateEvent('popstate')); await esperar(1500);
 confere('meta de posição com nome, não código', raiz.textContent.includes('Trabalhar Guarda fechada (por baixo)'));
+
+w.history.pushState({}, '', '/?go=meujogo'); w.dispatchEvent(new w.PopStateEvent('popstate')); await esperar(1500);
+confere('drill antigo virou drill: Meu jogo conta 99 lutas, não 111', raiz.textContent.includes('calculado de 99 rolas'));
 
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

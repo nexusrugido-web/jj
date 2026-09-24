@@ -1,6 +1,7 @@
 import { hoje, addDias, diasEntre, mesLongo } from './utils';
 import { placarDaRola } from './game';
 import { semanaDe } from './xp';
+import { calcularAtaque } from './graus';
 
 /* ============================================================
    SEQUÊNCIA E RESUMO DA SEMANA
@@ -89,7 +90,7 @@ export function textoSequencia(seq, sessions = []) {
    RESUMO DA SEMANA
    O que você fez, em quatro linhas, sem gráfico.
    ============================================================ */
-export function resumoSemana(sessions, rolls, tecnicas = [], pontos = [], semana = null) {
+export function resumoSemana(sessions, rolls, tecnicas = [], { semana = null, faixa = 'branca' } = {}) {
   const alvo = semana || semanaDe();
   const fim = addDias(alvo, 6);
 
@@ -109,15 +110,17 @@ export function resumoSemana(sessions, rolls, tecnicas = [], pontos = [], semana
   }
 
   const minutos = doPeriodo.reduce((a, s) => a + (Number(s.duracao) || 0), 0);
-  const xp = pontos.filter((p) => p.semana === alvo).reduce((a, p) => a + p.xp, 0);
 
   /* comparação com a semana anterior */
   const ant = addDias(alvo, -7);
   const antSes = sessions.filter((s) => s.data >= ant && s.data < alvo);
   const variacao = antSes.length ? doPeriodo.length - antSes.length : null;
 
-  /* subiu alguma técnica de grau nesta semana */
-  const subiram = tecnicas.filter((t) => t.grau >= 2 && t.ultima >= alvo && t.ultima <= fim && t.progresso <= 20);
+  /* subiu de grau nesta semana: o grau com os usos até domingo passado
+     contra o de hoje. Antes era um palpite pelo progresso, que quase
+     nunca acertava e nunca via ninguém chegar no 4º grau. */
+  const subiram = tecnicas.filter((t) => t.grau >= 2 && t.ultima >= alvo
+    && calcularAtaque((t.historico || []).filter((u) => u.data && u.data < alvo), faixa).grau < t.grau);
 
   return {
     semana: alvo,
@@ -128,7 +131,6 @@ export function resumoSemana(sessions, rolls, tecnicas = [], pontos = [], semana
     rolas: rs.length,
     venceu, perdeu, fin, tap,
     tecnicas: tecUsadas.size,
-    xp,
     variacao,
     subiram,
     vazia: doPeriodo.length === 0,

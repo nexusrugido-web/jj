@@ -356,6 +356,23 @@ export async function renomearAntigos() {
   }
 }
 
+/* ---------- rola de treino Drill que nasceu como luta ----------
+   O contexto do rola não tinha como ser escolhido na tela, então
+   até o treino do tipo Drill gravava "rola", e o drill contava como
+   luta e como uso sob resistência. Roda uma vez. */
+export async function consertarContextoDoDrill() {
+  if (await getMeta('contexto_drill_v1', false)) return 0;
+  const drills = await db.sessions.where('tipo').equals('drill').primaryKeys();
+  let n = 0;
+  for (const id of drills) {
+    n += await db.rolls.where('sessionId').equals(id)
+      .filter((r) => (r.contexto || 'rola') !== 'drill')
+      .modify({ contexto: 'drill' });
+  }
+  await setMeta('contexto_drill_v1', true);
+  return n;
+}
+
 /* ---------- segundos assistidos que foram gravados errado ----------
    Concluir aula pela recomendação do Painel e do Domínio mandava a
    aula inteira no lugar dos segundos, e o registro guardava um

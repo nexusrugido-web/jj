@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef, Suspense, startTransition } from 'react';
 import { AppCtx, useApp } from './contexto';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, ensureSeed, getMeta, setMeta, DEFAULT_SETTINGS, registrarSync, limparDuplicados, migrarGameplans, migrarCompeticoes, renomearAntigos, consertarAulasVistas } from './db/db';
+import { db, ensureSeed, getMeta, setMeta, DEFAULT_SETTINGS, registrarSync, limparDuplicados, migrarGameplans, migrarCompeticoes, renomearAntigos, consertarAulasVistas, consertarContextoDoDrill } from './db/db';
 import { ToastProvider } from './components/UI';
 import Layout from './components/Layout';
 import InstallPrompt from './components/InstallPrompt';
@@ -205,6 +205,7 @@ export default function App() {
       await passo('migrar campeonatos', migrarCompeticoes);
       await passo('renomear posições', renomearAntigos);
       await passo('consertar aulas vistas', consertarAulasVistas);
+      await passo('contexto do drill', consertarContextoDoDrill);
 
       const s = (await passo('config', () => getMeta('settings', DEFAULT_SETTINGS))) || DEFAULT_SETTINGS;
       const completo = {

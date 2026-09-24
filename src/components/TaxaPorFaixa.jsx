@@ -60,8 +60,8 @@ export default function TaxaPorFaixa({
         </div>
         <div className="taxa-total-detalhe">
           <div className="row" style={{ gap: 12, flexWrap: 'wrap' }}>
-            <span className="tiny"><b className="num" style={{ color: 'var(--jade)' }}>{t.total.v}</b> <span className="muted">vitórias</span></span>
-            <span className="tiny"><b className="num" style={{ color: 'var(--blood)' }}>{t.total.d}</b> <span className="muted">derrotas</span></span>
+            <span className="tiny"><b className="num" style={{ color: 'var(--jade)' }}>{t.total.v}</b> <span className="muted">{t.total.v === 1 ? 'vitória' : 'vitórias'}</span></span>
+            <span className="tiny"><b className="num" style={{ color: 'var(--blood)' }}>{t.total.d}</b> <span className="muted">{t.total.d === 1 ? 'derrota' : 'derrotas'}</span></span>
             {t.total.e > 0 && <span className="tiny"><b className="num muted">{t.total.e}</b> <span className="muted">empates</span></span>}
           </div>
           <p className="micro muted" style={{ marginTop: 6 }}>
@@ -102,13 +102,13 @@ export default function TaxaPorFaixa({
 
       <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))', gap: 12 }}>
         {t.contraAcima.n > 0 && (
-          <Stat size="sm" valor={`${t.contraAcima.taxa}%`} label="contra faixa acima" sub={`${t.contraAcima.n} rolas`} tone="roar" />
+          <Stat size="sm" valor={`${t.contraAcima.taxa}%`} label="contra faixa acima" sub={`${t.contraAcima.n} ${t.contraAcima.n === 1 ? 'rola' : 'rolas'}`} tone="roar" />
         )}
         {t.contraIgual.n > 0 && (
-          <Stat size="sm" valor={`${t.contraIgual.taxa}%`} label="contra a sua faixa" sub={`${t.contraIgual.n} rolas`} />
+          <Stat size="sm" valor={`${t.contraIgual.taxa}%`} label="contra a sua faixa" sub={`${t.contraIgual.n} ${t.contraIgual.n === 1 ? 'rola' : 'rolas'}`} />
         )}
         {t.contraAbaixo.n > 0 && (
-          <Stat size="sm" valor={`${t.contraAbaixo.taxa}%`} label="contra faixa abaixo" sub={`${t.contraAbaixo.n} rolas`} />
+          <Stat size="sm" valor={`${t.contraAbaixo.taxa}%`} label="contra faixa abaixo" sub={`${t.contraAbaixo.n} ${t.contraAbaixo.n === 1 ? 'rola' : 'rolas'}`} />
         )}
       </div>
 
@@ -134,7 +134,7 @@ function Honestidade({ t }) {
         <div>
           <div className="tiny" style={{ fontWeight: 600 }}>Isso aqui é o número que vale</div>
           <p className="micro muted" style={{ marginTop: 3 }}>
-            {acima.taxa}% contra faixas acima da sua, em {acima.n} rolas. Ganhar de quem sabe mais é o único
+            {acima.taxa}% contra faixas acima da sua, em {acima.n} {acima.n === 1 ? 'rola' : 'rolas'}. Ganhar de quem sabe mais é o único
             indicador que não mente.
           </p>
         </div>

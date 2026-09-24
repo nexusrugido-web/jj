@@ -72,7 +72,7 @@ export default function Painel() {
   const fraseSeq = useMemo(() => textoOfensiva(ofa), [ofa]);
 
   const esteira = useMemo(() => minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa), [rolls, partners, sessions, techniques, settings.faixa]);
-  const recap = useMemo(() => resumoSemana(sessions, rolls, esteira, pontos), [sessions, rolls, esteira, pontos]);
+  const recap = useMemo(() => resumoSemana(sessions, rolls, esteira, { faixa: settings.faixa }), [sessions, rolls, esteira, settings.faixa]);
   const buracos = useMemo(() => meusBuracos(rolls, partners, sessions, settings.faixa), [rolls, partners, sessions, settings.faixa]);
 
   const metasAtivas = useMemo(() => {
@@ -118,7 +118,7 @@ export default function Painel() {
                 const resumoIa = {
                   faixa: settings.faixa, treinos: r.sessoes, horas: r.matHoras, rolas: r.rolas,
                   finalizacoesAplicadas: r.topAplicadas, finalizacoesSofridas: r.topSofridas,
-                  tecnicasDominadas: esteira.filter((e) => e.nivel === 'dominado').map((e) => e.nome),
+                  tecnicasDominadas: esteira.filter((e) => e.grau >= 3).map((e) => e.nome),
                   jogoA: meuJogo.map((e) => e.nome),
                   streak: ofa.dias,
                 };
@@ -303,9 +303,9 @@ export default function Painel() {
             <div style={{ borderTop: '1px solid var(--seam)', paddingTop: 14 }}>
               <div className="eyebrow" style={{ marginBottom: 8 }}>sua semana, {rotuloSemana(recap.semana)}</div>
               <p className="tiny" style={{ lineHeight: 1.7 }}>{lerSemana(recap, settings.faixa)}</p>
-              {recap.xp > 0 && (
+              {/* grau é habilidade, ponto é esforço: nunca na mesma linha */}
+              {recap.subiram.length > 0 && (
                 <div className="row wrap" style={{ gap: 6, marginTop: 11 }}>
-                  <Chip tone="accent">+{recap.xp} pontos</Chip>
                   {recap.subiram.map((t) => (
                     <Chip key={t.nome} tone="jade">{t.nome} subiu de grau</Chip>
                   ))}

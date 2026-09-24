@@ -331,6 +331,10 @@ export default function Treinos() {
       await db.rolls.add({
         ...rest, ...pos,
         resultado: resultadoDerivado(r),
+        /* o contexto sai do tipo do treino: rola de treino Drill nascia
+           "rola" e contava como luta e como uso sob resistência */
+        contexto: s.tipo === 'drill' ? 'drill' : ehCompeticao(s.tipo) ? 'competicao'
+          : (['drill', 'competicao'].includes(r.contexto) ? 'rola' : r.contexto || 'rola'),
         v2: 1,                      // marca que esse rola passou pelo placar
         sessionId: id, data: s.data,
       });

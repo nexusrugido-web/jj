@@ -9,7 +9,6 @@ import { aulasPara } from '../lib/motor';
 import { pedidoDaRec, descreverPedido } from '../lib/necessidades';
 import { medir, origem as origemDe } from '../lib/medir';
 import Player from './Player';
-import { darXp } from '../lib/xp';
 import { hoje } from '../lib/utils';
 import { useApp } from '../contexto';
 import { useLimite } from './Limite';
@@ -74,10 +73,6 @@ export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFei
       data: hoje(),
       criadoEm: Date.now(),
     });
-
-    if (resultado !== 'nao') {
-      await darXp('treino', { refId: `rec:${chaveDaRec(rec)}:${hoje()}`, detalhe: rec.titulo });
-    }
 
     setResposta(respostaAoMarcar(resultado, rec, faixa));
     setMarcando(false);
