@@ -1388,18 +1388,6 @@ body.player-cheio .sheet-overlay { backdrop-filter: none; -webkit-backdrop-filte
   border-top: 1px solid var(--seam);
 }
 
-/* ---------- prato visual ---------- */
-.prato {
-  display: flex; gap: 4px; height: 92px;
-  border-radius: var(--r-sm); overflow: hidden;
-  border: 1px solid var(--seam);
-}
-.prato-fatia {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 7px; background: var(--void);
-}
-.prato-ico { display: grid; place-items: center; }
-.prato-pct { font-family: var(--mono); font-size: 13px; font-weight: 700; }
 
 /* ---------- musculação ---------- */
 .msc-anterior {
@@ -3303,9 +3291,6 @@ body::after {
 .nutri-num-rot .lucide { color: var(--cor); }
 .nutri-num-val { font-family: var(--display); font-weight: 800; font-size: 28px; letter-spacing: -0.03em; line-height: 1.05; color: var(--cor); }
 .nutri-num-conta { font-size: var(--fs-meta); color: var(--dimmer); }
-.nutri-linha { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--e3); }
-.nutri-linha li { display: grid; grid-template-columns: 96px 1fr; gap: var(--e3); padding-left: var(--e3); border-left: 2px solid color-mix(in srgb, var(--accent) 45%, var(--seam)); }
-.nutri-quando { font-size: var(--fs-meta); font-weight: 700; color: var(--accent); }
 
 /* na folha, nenhum bloco encolhe pra caber: quem rola é a folha */
 .sheet-body > * { flex-shrink: 0; }
@@ -3321,3 +3306,19 @@ body::after {
 }
 .forca-dose-grande .num { font-family: var(--display); font-weight: 800; font-size: 32px; letter-spacing: -0.03em; line-height: 1.05; color: var(--accent); }
 .forca-dose-grande span:last-child { font-size: var(--fs-sec); color: var(--dim); font-weight: 600; }
+
+/* ---------- nutrição: contador, momentos e suplementos ---------- */
+.nutri-meta { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: var(--r-sm); background: var(--void); border: 1px solid var(--seam); margin-bottom: 12px; }
+.nutri-meta-num { font-family: var(--display); font-weight: 800; font-size: 34px; letter-spacing: -0.03em; line-height: 1; }
+.nutri-comidas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 420px) { .nutri-comidas { grid-template-columns: 1fr; } }
+.nutri-comida { display: flex; align-items: center; gap: 8px; padding: 10px 10px 10px 12px; border-radius: var(--r-sm); background: var(--void); border: 1px solid var(--seam); }
+.nutri-comida.on { border-color: color-mix(in srgb, var(--jade) 40%, var(--seam)); background: color-mix(in srgb, var(--jade) 6%, var(--void)); }
+.nutri-mais { flex: none; width: 34px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; background: var(--mat-top); border: 1px solid var(--seam-hi); color: var(--chalk); }
+.nutri-momento { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: var(--r-sm); background: var(--void); border: 1px solid var(--seam); }
+.nutri-supl { display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: var(--r-sm); background: var(--void); border: 1px solid color-mix(in srgb, var(--cor) 30%, var(--seam)); --cor: var(--dim); }
+.nutri-supl.vale { --cor: var(--jade); } .nutri-supl.depende { --cor: var(--roar); } .nutri-supl.nao { --cor: var(--blood); }
+.nutri-supl-selo { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 800; padding: 2px 8px; border-radius: 99px; color: var(--cor); background: color-mix(in srgb, var(--cor) 14%, transparent); }
+.nutri-supl-cab { display: flex; align-items: center; gap: 8px; width: 100%; color: inherit; font: inherit; }
+.nutri-ciencia { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--seam); }
+.nutri-ciencia ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 5px; line-height: 1.55; }

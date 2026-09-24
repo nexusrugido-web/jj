@@ -1,35 +1,41 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
-  Info, Droplet, Beef, Wheat, Salad, Calculator, Clock, Zap, Moon, FlaskConical, ShieldAlert, Flame,
+  Info, Droplet, Beef, Salad, Calculator, Clock, Zap, Moon, Flame, Search, Minus, Plus, ChevronDown,
+  Check, X, CircleHelp,
 } from 'lucide-react';
 import { useApp } from '../contexto';
 import { Card, Btn, Sheet, Field, NumeroInput, Stepper } from '../components/UI';
 import Guia from '../components/Guia';
 import { Vitrine } from '../components/Plano';
 import { podeVer } from '../lib/plano';
-import { contasDaNutricao } from '../lib/nutricao';
+import { contasDaNutricao, ALIMENTOS_PROTEINA, paraFechar } from '../lib/nutricao';
+import { hoje } from '../lib/utils';
 
 /* ============================================================
    COMBUSTÍVEL PRO JIU-JITSU
 
-   Quanto comer, pelo peso e pela semana de tatame de cada um, com
-   a conta à vista; o que comer em volta do treino; e o básico que
-   deixa o corpo aguentar a rotina (proteína, gás, água, intestino).
-   É do premium. As contas moram em src/lib/nutricao.js.
+   Três coisas com valor de verdade, todas pelo peso da pessoa:
+   quanto comer (a calculadora), se bateu a proteína hoje (o
+   contador de comida brasileira) e o que vale e o que não vale de
+   suplemento. Em volta do treino, comida de verdade com receita no
+   YouTube. As contas moram em src/lib/nutricao.js.
    ============================================================ */
 
-const PRATO = [
-  { icone: Salad, cor: 'jade', pct: 50, t: 'Metade de vegetais', d: 'Salada, legume, verdura, à vontade. É o que dá saciedade sem pesar.' },
-  { icone: Beef, cor: 'blood', pct: 25, t: 'Um quarto de proteína', d: 'Carne, frango, peixe, ovo, feijão. Do tamanho da palma da sua mão.' },
-  { icone: Wheat, cor: 'accent', pct: 25, t: 'Um quarto de carboidrato', d: 'Arroz, macarrão, batata, mandioca. Do tamanho do seu punho fechado.' },
-];
+const receita = (nome) => `https://www.youtube.com/results?search_query=${encodeURIComponent(`receita ${nome} fit`)}`;
 
-const DIA_DE_TREINO = [
-  ['3 horas antes', 'Uma refeição de verdade: prato com carboidrato, proteína e pouca gordura, que é a que demora pra sair do estômago.'],
-  ['30 minutos antes', 'Se bateu fome ou o treino é cedo: uma banana, um pão com mel. Leve, pra não subir no estômago na hora do rola.'],
-  ['Durante', 'Goles de água a cada intervalo. Treino longo e suado (mais de uma hora e meia) pede uma bebida com sal e açúcar.'],
-  ['Até 1 hora depois', 'Carboidrato e proteína juntos, que é quando o corpo mais aproveita pra repor o gás e reconstruir o músculo.'],
-  ['Antes de dormir', 'Uma fonte de proteína de digestão lenta, como iogurte, kefir ou ovo, ajuda a recuperar durante o sono.'],
+const EM_VOLTA_DO_TREINO = [
+  { quando: 'Almoço ou jantar', hora: '3 horas antes', icone: Clock,
+    diz: 'Prato de sempre, com pouca fritura: gordura demora pra sair do estômago.',
+    opcoes: ['Arroz, feijão e frango', 'Macarrão com carne moída', 'Batata-doce com ovo'] },
+  { quando: 'Lanche', hora: '30 a 60 min antes', icone: Zap,
+    diz: 'Leve e rápido de digerir, pra ter gás sem subir no estômago no rola.',
+    opcoes: ['Banana com mel', 'Tapioca com banana', 'Pão francês com geleia'] },
+  { quando: 'Pós-treino', hora: 'até 1 hora depois', icone: Flame,
+    diz: 'Carboidrato e proteína juntos: repõe o gás e começa a consertar o músculo.',
+    opcoes: ['Vitamina de banana com aveia', 'Sanduíche de frango', 'Iogurte com granola'] },
+  { quando: 'Antes de dormir', hora: 'se bater fome', icone: Moon,
+    diz: 'Proteína que digere devagar ajuda a recuperar enquanto você dorme.',
+    opcoes: ['Iogurte ou kefir', 'Omelete', 'Copo de leite'] },
 ];
 
 export default function Nutricao() {
@@ -52,8 +58,6 @@ export default function Nutricao() {
     return (
       <div className="page">
         <div className="page-head"><div><h1 className="h-page">Combustível pro jiu-jitsu</h1></div></div>
-        {/* sem peso, a vitrine borrava números vazios: primeiro o peso, e aí
-            quem vê o convite vê as contas dele mesmo atrás do vidro */}
         {!contas && (
           <Card style={{ marginBottom: 14 }}>
             <Field label="Qual o seu peso? (kg)" hint="O app faz a conta de proteína, carboidrato e água pra você.">
@@ -66,13 +70,13 @@ export default function Nutricao() {
           fundo={calculadora}
           titulo="Quanto comer pro seu corpo aguentar o tatame, calculado pelo seu peso"
           texto={contas
-            ? `Com os seus ${String(contas.peso).replace('.', ',')} kg, o app já fez a conta: quanto de proteína pra reconstruir o que o rola quebra, quanto de carboidrato pra ter gás até o último minuto e quanta água pra não apagar no terceiro round. Tudo com a conta à vista, do jeito que a ciência do esporte de combate recomenda.`
+            ? `Com os seus ${String(contas.peso).replace('.', ',')} kg, o app já fez a conta: quanto de proteína pra reconstruir o que o rola quebra, quanto de carboidrato pra ter gás até o último minuto e quanta água pra não apagar no terceiro round. E todo dia você confere se bateu a proteína, com a comida que já tem em casa.`
             : 'Coloque o seu peso e o app faz a conta: quanto de proteína pra reconstruir o que o rola quebra, quanto de carboidrato pra ter gás até o último minuto e quanta água pra não apagar no terceiro round.'}
           itens={[
-            'Proteína, carboidrato e água pelo seu peso e pela sua semana de tatame',
-            'O que comer 3 horas antes, 30 minutos antes e logo depois do treino',
-            'Intestino, kefir e creatina: o que tem ciência por trás e o que é só propaganda',
-            'Como montar o prato sem balança, na marmita ou no restaurante',
+            'Proteína, carboidrato, água e cafeína pelo seu peso e pela sua semana de tatame',
+            'Bateu a proteína hoje? Toca no que comeu e o app diz quanto falta e o que comer',
+            'O que comer antes e depois do treino, com receita pronta no YouTube',
+            'Suplementação com estudo: creatina, beta-alanina, cafeína pelo seu peso, e o que é só propaganda',
           ]}
           onAssinar={() => irPara('ajustes')}
         />
@@ -88,74 +92,9 @@ export default function Nutricao() {
       </div>
 
       {calculadora}
-
-      <Card style={{ marginBottom: 14 }}>
-        <div className="card-head">
-          <div>
-            <div className="eyebrow">Hora a hora</div>
-            <h2 className="h-sec">O seu dia de treino</h2>
-          </div>
-        </div>
-        <ol className="nutri-linha">
-          {DIA_DE_TREINO.map(([quando, oque]) => (
-            <li key={quando}>
-              <span className="nutri-quando">{quando}</span>
-              <span className="tiny" style={{ lineHeight: 1.6 }}>{oque}</span>
-            </li>
-          ))}
-        </ol>
-        {contas && (
-          <p className="micro muted" style={{ marginTop: 12, lineHeight: 1.6 }}>
-            Pro seu peso, depois do treino: uns {contas.posTreino.carbo[0]} a {contas.posTreino.carbo[1]} g de carboidrato
-            e {contas.posTreino.proteina[0]} a {contas.posTreino.proteina[1]} g de proteína.
-          </p>
-        )}
-      </Card>
-
-      <Card style={{ marginBottom: 14 }}>
-        <div className="card-head">
-          <div>
-            <div className="eyebrow">Sem planilha e sem balança</div>
-            <h2 className="h-sec">O prato em três partes</h2>
-          </div>
-        </div>
-        <div className="prato">
-          {PRATO.map((p) => {
-            const I = p.icone;
-            return (
-              <div key={p.t} className="prato-fatia" style={{ flex: p.pct }}>
-                <span className="prato-ico" style={{ color: `var(--${p.cor})` }}><I size={17} /></span>
-                <div className="prato-pct num" style={{ color: `var(--${p.cor})` }}>{p.pct}%</div>
-              </div>
-            );
-          })}
-        </div>
-        <div className="col" style={{ gap: 11, marginTop: 16 }}>
-          {PRATO.map((p) => (
-            <div key={p.t} className="row" style={{ gap: 11, alignItems: 'flex-start' }}>
-              <span style={{ width: 6, height: 6, borderRadius: 99, background: `var(--${p.cor})`, marginTop: 7, flex: 'none' }} />
-              <div>
-                <div className="tiny" style={{ fontWeight: 600 }}>{p.t}</div>
-                <p className="micro muted" style={{ marginTop: 3, lineHeight: 1.65 }}>{p.d}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <p className="micro muted" style={{ marginTop: 12, lineHeight: 1.65 }}>
-          A mão acompanha o tamanho do corpo, então a porção se ajusta sozinha: palma é proteína, punho é carboidrato,
-          mão em concha é vegetal e o polegar é gordura. Funciona no restaurante, na casa da sogra e no marmitex.
-        </p>
-      </Card>
-
-      <Card style={{ marginBottom: 14 }}>
-        <div className="card-head">
-          <div>
-            <div className="eyebrow">O que sustenta a rotina</div>
-            <h2 className="h-sec">Um organismo que aguenta o tatame</h2>
-          </div>
-        </div>
-        <OrganismoForte contas={contas} />
-      </Card>
+      {contas && <ProteinaDeHoje meta={contas.proteina.min} />}
+      <EmVoltaDoTreino contas={contas} />
+      <Suplementos contas={contas} />
 
       <p className="micro muted" style={{ lineHeight: 1.6 }}>
         As contas seguem as recomendações de nutrição esportiva pra esporte de combate e servem pra quem é saudável.
@@ -166,6 +105,202 @@ export default function Nutricao() {
         <Duvidas />
       </Sheet>
     </div>
+  );
+}
+
+/* ============================================================
+   BATEU A PROTEÍNA HOJE?
+
+   Toca no que comeu, vê quanto falta. Fica guardado neste
+   aparelho só até a meia-noite: é conta do dia, não histórico.
+   ============================================================ */
+function ProteinaDeHoje({ meta }) {
+  const chave = `proteina:${hoje()}`;
+  const [comi, setComi] = useState(() => { try { return JSON.parse(localStorage.getItem(chave) || '{}'); } catch { return {}; } });
+  useEffect(() => { try { localStorage.setItem(chave, JSON.stringify(comi)); } catch { /* sem armazenamento: vale até fechar */ } }, [chave, comi]);
+
+  const total = ALIMENTOS_PROTEINA.reduce((a, x) => a + (comi[x.id] || 0) * x.g, 0);
+  const pct = Math.min(100, Math.round((total / meta) * 100));
+  const mudar = (id, passo) => setComi((c) => ({ ...c, [id]: Math.max(0, (c[id] || 0) + passo) }));
+
+  return (
+    <Card style={{ marginBottom: 14 }}>
+      <div className="card-head">
+        <div>
+          <div className="eyebrow">Toca no que você comeu hoje</div>
+          <h2 className="h-sec">Bateu a proteína hoje?</h2>
+        </div>
+      </div>
+
+      <div className="nutri-meta">
+        <div className="row" style={{ alignItems: 'baseline', gap: 8 }}>
+          <span className="nutri-meta-num num" style={{ color: pct >= 100 ? 'var(--jade)' : 'var(--chalk)' }}>{total} g</span>
+          <span className="tiny muted">de {meta} g</span>
+        </div>
+        <div className="bar"><i style={{ width: `${pct}%`, background: pct >= 100 ? 'var(--jade)' : 'var(--blood)' }} /></div>
+        <p className="tiny" style={{ lineHeight: 1.55 }}>{paraFechar(meta - total)}</p>
+      </div>
+
+      <div className="nutri-comidas">
+        {ALIMENTOS_PROTEINA.map((a) => {
+          const n = comi[a.id] || 0;
+          return (
+            <div key={a.id} className={`nutri-comida${n ? ' on' : ''}`}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="tiny" style={{ fontWeight: 700 }}>{a.nome}</div>
+                <div className="micro muted">{a.porcao} · {a.g} g</div>
+              </div>
+              {n > 0 && (
+                <button type="button" className="nutri-mais" onClick={() => mudar(a.id, -1)} aria-label={`Tirar ${a.nome}`}><Minus size={15} /></button>
+              )}
+              {n > 0 && <span className="num tiny" style={{ minWidth: 18, textAlign: 'center', fontWeight: 700 }}>{n}</span>}
+              <button type="button" className="nutri-mais" onClick={() => mudar(a.id, 1)} aria-label={`Mais ${a.nome}`}><Plus size={15} /></button>
+            </div>
+          );
+        })}
+      </div>
+      <p className="micro muted" style={{ marginTop: 10 }}>Valores aproximados, pela tabela brasileira de alimentos. Zera à meia-noite.</p>
+    </Card>
+  );
+}
+
+/* ---------- em volta do treino: comida de verdade, receita no YouTube ---------- */
+function EmVoltaDoTreino({ contas }) {
+  return (
+    <Card style={{ marginBottom: 14 }}>
+      <div className="card-head">
+        <div>
+          <div className="eyebrow">Comida de verdade, sem mistério</div>
+          <h2 className="h-sec">O prato em volta do treino</h2>
+        </div>
+      </div>
+      <div className="col" style={{ gap: 10 }}>
+        {EM_VOLTA_DO_TREINO.map((m) => {
+          const I = m.icone;
+          return (
+            <div key={m.quando} className="nutri-momento">
+              <div className="row" style={{ gap: 10 }}>
+                <span className="stat-ico"><I size={15} /></span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="tiny" style={{ fontWeight: 700 }}>{m.quando}</div>
+                  <div className="micro" style={{ color: 'var(--accent)', fontWeight: 700 }}>{m.hora}</div>
+                </div>
+              </div>
+              <p className="micro muted" style={{ lineHeight: 1.55 }}>{m.diz}</p>
+              <div className="row wrap" style={{ gap: 6 }}>
+                {m.opcoes.map((o) => (
+                  <button key={o} type="button" className="chip" onClick={() => window.open(receita(o), '_blank', 'noopener')}>
+                    <Search size={12} /> {o}
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <p className="micro muted" style={{ marginTop: 10, lineHeight: 1.6 }}>
+        Toque numa opção pra ver a receita no YouTube.
+        {contas && ` Pro seu peso, o pós-treino ideal tem uns ${contas.posTreino.carbo[0]} a ${contas.posTreino.carbo[1]} g de carboidrato e ${contas.posTreino.proteina[0]} a ${contas.posTreino.proteina[1]} g de proteína.`}
+      </p>
+    </Card>
+  );
+}
+
+/* ============================================================
+   SUPLEMENTAÇÃO: O QUE VALE
+
+   Veredito na frente, e quem quiser abre o que a ciência diz, com
+   a fonte. Nada de "turbina", "explode" ou promessa: o que tem
+   estudo, a dose pelo peso e o que é só propaganda.
+   ============================================================ */
+function Suplementos({ contas }) {
+  const [aberto, setAberto] = useState('creatina');
+  const cafe = contas?.cafeina;
+  const lista = [
+    { id: 'creatina', nome: 'Creatina', nota: 'vale', dose: '3 a 5 g por dia, todo dia, sem fase de carga',
+      resumo: 'O suplemento mais estudado do esporte, e o que mais combina com jiu-jitsu.',
+      ciencia: [
+        'Mais força e mais potência, e ajuda a aguentar treino pesado com recuperação melhor entre um treino e outro.',
+        'Também é combustível pro cérebro: uma meta-análise de 2024 viu memória, atenção e rapidez de raciocínio melhores com creatina.',
+        'Protege o raciocínio depois de uma noite mal dormida, que é a noite antes de quase todo treino cedo.',
+        'Segura nas doses recomendadas e não precisa ciclar. Atenção pra quem compete: ela segura um pouco de água no músculo, e a balança sobe perto de 1 kg.',
+      ],
+      fonte: 'ISSN (posição sobre creatina) e meta-análise na Frontiers in Nutrition, 2024' },
+    { id: 'betaalanina', nome: 'Beta-alanina', nota: 'vale', dose: '4 a 6 g por dia, divididos em doses de 1,6 g, por pelo menos 4 semanas',
+      resumo: 'Pra quem rola forte ou compete: segura o braço queimando no fim do round.',
+      ciencia: [
+        'Aumenta a carnosina no músculo, que segura a acidez do esforço forte.',
+        'O efeito aparece mais em esforços de 1 a 4 minutos, que é o tamanho de um rola.',
+        'Leva de 2 a 4 semanas pra fazer efeito: não adianta tomar só no dia da luta.',
+        'O formigamento na pele é normal e sem perigo. Dividir a dose em 1,6 g diminui.',
+      ],
+      fonte: 'ISSN (posição sobre beta-alanina)' },
+    { id: 'cafeina', nome: 'Cafeína', nota: 'vale',
+      dose: cafe ? `uns ${cafe.mg} mg, 1 hora antes (${cafe.xicaras} ${cafe.xicaras === 1 ? 'xícara' : 'xícaras'} de café coado)` : '3 mg por kg, 1 hora antes',
+      resumo: 'Mais força e mais fôlego no treino pesado, com o café que você já toma.',
+      ciencia: [
+        'De 3 a 6 mg por kg melhora força, velocidade e resistência; começa pela menor dose.',
+        'Mais que 9 mg por kg só aumenta tremedeira e taquicardia, sem ganho nenhum.',
+        'Depois das 16h atrapalha o sono, e sono ruim cobra mais do que o café entrega.',
+      ],
+      fonte: 'ISSN (posição sobre cafeína)' },
+    { id: 'whey', nome: 'Whey', nota: 'depende', dose: '1 scoop quando não der pra bater a proteína com comida',
+      resumo: 'É só proteína em pó, prática. Não faz nada que um filé de frango não faça.',
+      ciencia: ['O que importa é a proteína do dia inteiro. O whey só é o jeito mais rápido de fechar a conta.'],
+      fonte: 'ISSN (posição sobre proteína)' },
+    { id: 'kefir', nome: 'Kefir e probióticos', nota: 'depende', dose: '1 copo de kefir por dia',
+      resumo: 'Bom hábito pro intestino, não milagre.',
+      ciencia: [
+        'Nos estudos com atletas: menos problema de estômago e menos gripe na época de treino pesado.',
+        'Em jogadoras de futebol, o kefir aumentou as bactérias boas do intestino.',
+      ],
+      fonte: 'ISSN (posição sobre probióticos) e ensaio com jogadoras de futebol, 2025' },
+    { id: 'bcaa', nome: 'BCAA', nota: 'nao', dose: 'não precisa',
+      resumo: 'Se você bate a proteína do dia, o BCAA já veio junto. É pagar duas vezes pela mesma coisa.',
+      ciencia: ['Os aminoácidos do BCAA já estão em qualquer proteína completa: carne, ovo, leite, whey.'],
+      fonte: 'ISSN (posição sobre proteína)' },
+    { id: 'termogenico', nome: 'Termogênico', nota: 'nao', dose: 'não vale',
+      resumo: 'O que emagrece é o prato. O termogênico acelera o coração e atrapalha o sono.',
+      ciencia: ['A maioria é cafeína cara com outros estimulantes. O café resolve a parte que funciona, pagando bem menos.'],
+      fonte: 'ISSN (posição sobre cafeína)' },
+  ];
+  const ICONE = { vale: Check, depende: CircleHelp, nao: X };
+  const ROTULO = { vale: 'Vale', depende: 'Depende', nao: 'Não vale' };
+  return (
+    <Card style={{ marginBottom: 14 }}>
+      <div className="card-head">
+        <div>
+          <div className="eyebrow">Sem propaganda, com estudo</div>
+          <h2 className="h-sec">Suplementação: o que vale</h2>
+        </div>
+      </div>
+      <div className="col" style={{ gap: 8 }}>
+        {lista.map((s) => {
+          const I = ICONE[s.nota];
+          const on = aberto === s.id;
+          return (
+            <div key={s.id} className={`nutri-supl ${s.nota}`}>
+              <button type="button" className="nutri-supl-cab" onClick={() => setAberto(on ? null : s.id)} aria-expanded={on}>
+                <span className="nutri-supl-selo"><I size={13} /> {ROTULO[s.nota]}</span>
+                <span className="tiny" style={{ fontWeight: 700, flex: 1, textAlign: 'left' }}>{s.nome}</span>
+                <ChevronDown size={17} className="muted" style={{ transform: on ? 'rotate(180deg)' : undefined, transition: 'transform .2s' }} />
+              </button>
+              <div className="micro" style={{ fontWeight: 600 }}>{s.dose}</div>
+              <p className="micro muted" style={{ lineHeight: 1.55 }}>{s.resumo}</p>
+              {on && (
+                <div className="nutri-ciencia">
+                  <div className="micro" style={{ fontWeight: 700, color: 'var(--cor)' }}>O que a ciência diz</div>
+                  <ul>
+                    {s.ciencia.map((c) => <li key={c} className="micro">{c}</li>)}
+                  </ul>
+                  <div className="micro muted">Fonte: {s.fonte}</div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Card>
   );
 }
 
@@ -195,8 +330,6 @@ function Calculadora({ contas, settings, treinosSemana, onPeso, onTreinos, podeE
           <Numero icone={Zap} tom="accent" rotulo="Carboidrato" valor={`${contas.carboidrato.min} a ${contas.carboidrato.max} g`} conta={contas.carboidrato.conta} texto={contas.carboidrato.porque} />
           <Numero icone={Droplet} tom="ice" rotulo="Água" valor={`${contas.agua.litros} L`} conta={`${String(contas.peso).replace('.', ',')} kg × 35 ml, fora o treino`}
             texto={`Mais uns ${contas.agua.antes[0]} a ${contas.agua.antes[1]} ml nas 4 horas antes do treino. Perder ${contas.agua.limite2} kg de suor (2% do seu peso) já derruba o gás.`} />
-          <Numero icone={FlaskConical} tom="jade" rotulo="Creatina" valor={contas.creatina} conta="por dia, todo dia, com qualquer refeição"
-            texto="É o suplemento com mais estudo por trás: mais força, mais potência e recuperação melhor entre um treino e outro." />
         </div>
       )}
     </Card>
@@ -211,46 +344,6 @@ function Numero({ icone: Icone, tom, rotulo, valor, conta, texto }) {
       <span className="nutri-num-conta">{conta}</span>
       <p className="micro muted" style={{ lineHeight: 1.55 }}>{texto}</p>
     </div>
-  );
-}
-
-function OrganismoForte({ contas }) {
-  return (
-    <Guia inicial="proteina" topicos={[
-      {
-        id: 'proteina', icone: Beef, titulo: 'Proteína reconstrói o que o rola quebra', resumo: 'O motivo número um de acordar quebrado é comer pouca',
-        conteudo: <p>Cada treino faz microlesões no músculo, e é a proteína que conserta. Quem luta precisa de bem mais que o sedentário{contas ? `: no seu caso, de ${contas.proteina.min} a ${contas.proteina.max} g por dia` : ''}. Espalhar em quatro refeições rende mais do que tudo de uma vez no jantar.</p>,
-      },
-      {
-        id: 'carbo', icone: Zap, titulo: 'Carboidrato é o gás do terceiro minuto', resumo: 'Cortar carboidrato e rolar forte não combinam',
-        conteudo: <p>O rola é esforço forte em rajadas, e o combustível dessas rajadas é o glicogênio, que vem do carboidrato. Dieta sem carboidrato deixa o treino pesado e a recuperação lenta. Arroz, batata, mandioca, pão e fruta estão do seu lado.</p>,
-      },
-      {
-        id: 'agua', icone: Droplet, titulo: 'Água antes de sentir sede', resumo: 'Sede já é desidratação começando',
-        conteudo: <p>Perder 2% do peso em suor já piora o fôlego e a cabeça, e num treino suado isso acontece em uma hora. Chega hidratado, bebe nos intervalos e repõe depois: uma forma simples de conferir é a cor do xixi, que deve estar clara.</p>,
-      },
-      {
-        id: 'intestino', icone: Salad, titulo: 'Intestino, kefir e imunidade', resumo: 'Ajuda, mas é complemento, não milagre',
-        conteudo: (
-          <>
-            <p>Treino pesado baixa a imunidade por um tempo, e é por isso que quem treina muito vive gripado. Probióticos, como os do kefir (de leite ou de água), mostram nos estudos com atletas menos problema de estômago e menos infecção respiratória, e o kefir aumentou bactérias boas do intestino em jogadoras de futebol.</p>
-            <p>Um copo por dia é um bom hábito. Mas nenhum probiótico compensa dormir mal ou comer pouco.</p>
-          </>
-        ),
-      },
-      {
-        id: 'creatina', icone: FlaskConical, titulo: 'Creatina: o suplemento que vale', resumo: '3 a 5 g por dia, sem precisar de fase de carga',
-        conteudo: <p>É o suplemento mais estudado do esporte: mais força e potência, e ajuda a aguentar treino pesado. Toma todo dia, com qualquer refeição, inclusive nos dias sem treino. Whey é só uma forma prática de bater a proteína; comida resolve igual.</p>,
-      },
-      {
-        id: 'sono', icone: Moon, titulo: 'Dormir também é nutrição', resumo: 'É dormindo que o que você comeu vira músculo',
-        conteudo: <p>Sete a nove horas por noite. Uma proteína antes de dormir (iogurte, kefir, ovo) ajuda a recuperar durante o sono.</p>,
-      },
-      {
-        id: 'corte', icone: ShieldAlert, titulo: 'Corte de peso pra competir', resumo: 'Nunca no improviso',
-        conteudo: <p>Desidratar pra bater a categoria derruba o desempenho e já mandou atleta pro hospital. Se você precisa perder peso pra competir, começa semanas antes e com um nutricionista que entenda de esporte de combate.</p>,
-      },
-    ]} />
   );
 }
 

@@ -37,5 +37,42 @@ export function contasDaNutricao(pesoKg, treinosSemana = 3) {
     agua: { litros: umaCasa(peso * 0.035), antes: [redondo(peso * 5, 50), redondo(peso * 7, 50)], limite2: umaCasa(peso * 0.02) },
     posTreino: { carbo: [redondo(peso * 0.6), redondo(peso * 1.0)], proteina: [redondo(peso * 0.25), redondo(peso * 0.4)] },
     creatina: '3 a 5 g',
+    /* ISSN: 3 a 6 mg/kg uns 60 min antes; começa pela menor. Uma xícara de
+       café coado tem perto de 90 mg */
+    cafeina: { mg: redondo(peso * 3, 10), xicaras: Math.max(1, Math.round((peso * 3) / 90)) },
   };
+}
+
+/* ============================================================
+   A PROTEÍNA DO DIA A DIA
+
+   Porções de casa, com o valor aproximado de proteína (tabela TACO
+   e rótulos comuns). É o que o contador "bateu a proteína hoje?" usa.
+   ============================================================ */
+export const ALIMENTOS_PROTEINA = [
+  { id: 'frango', nome: 'Filé de frango', porcao: '1 filé médio (120 g)', g: 36 },
+  { id: 'carne', nome: 'Bife ou carne moída', porcao: '100 g, um bife médio', g: 26 },
+  { id: 'atum', nome: 'Atum', porcao: '1 lata escorrida', g: 28 },
+  { id: 'peixe', nome: 'Peixe', porcao: '1 filé (120 g)', g: 25 },
+  { id: 'ovo', nome: 'Ovo', porcao: '1 unidade', g: 6 },
+  { id: 'whey', nome: 'Whey', porcao: '1 scoop (30 g)', g: 24 },
+  { id: 'feijao', nome: 'Feijão', porcao: '1 concha', g: 7 },
+  { id: 'leite', nome: 'Leite ou kefir', porcao: '1 copo (200 ml)', g: 7 },
+  { id: 'iogurte', nome: 'Iogurte natural', porcao: '1 pote', g: 7 },
+  { id: 'queijo', nome: 'Queijo minas', porcao: '2 fatias', g: 10 },
+];
+
+/* o que comer pra fechar o que falta, com comida de verdade */
+export function paraFechar(falta) {
+  if (falta <= 0) return 'Bateu a meta de hoje. O músculo agradece, e o próximo rola também.';
+  if (falta <= 8) return `Faltam ${falta} g: um ovo ou um copo de leite já fecham.`;
+  if (falta <= 30) return `Faltam ${falta} g: uma lata de atum ou um scoop de whey resolvem.`;
+  /* filé inteiro onde couber, e ovo pra fechar o resto: sem mandar comer a mais */
+  const files = Math.floor(falta / 36);
+  const ovos = Math.ceil((falta - files * 36) / 6);
+  const partes = [
+    files && `${files} ${files === 1 ? 'filé' : 'filés'} de frango`,
+    ovos && `${ovos} ${ovos === 1 ? 'ovo' : 'ovos'}`,
+  ].filter(Boolean);
+  return `Faltam ${falta} g: ${partes.join(' e ')} fecham a conta. Dá pra dividir entre as próximas refeições.`;
 }
