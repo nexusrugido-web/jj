@@ -14,8 +14,6 @@ import RankingOfensivas from '../components/RankingOfensivas';
 import ListaResumida from '../components/ListaResumida';
 import { EVENTOS, semanaDe } from '../lib/xp';
 import { DIVISOES_LIGA } from '../lib/liga';
-import FaixaVisual from '../components/FaixaVisual';
-import { FAIXAS } from '../db/seed';
 import { ofensiva, textoOfensiva, diasFechados, diasParadosPorLesao, MAX_ESCUDOS, DIAS_POR_ESCUDO } from '../lib/ofensiva';
 import { relativo, hoje, addDias, fmtData } from '../lib/utils';
 
@@ -28,7 +26,7 @@ import { relativo, hoje, addDias, fmtData } from '../lib/utils';
    e ninguém mais vê.
    ============================================================ */
 export default function LigaPagina() {
-  const { irPara, settings } = useApp();
+  const { irPara } = useApp();
   const pontos = useLiveQuery(() => db.pontos.toArray(), [], []) || [];
   const [comoFunciona, setComoFunciona] = useState(false);
 
@@ -98,9 +96,6 @@ export default function LigaPagina() {
         <ChevronRight size={18} className="muted" />
       </button>
 
-      {/* a faixa é do tatame, não da liga: fica depois da corrida */}
-      <MinhaFaixa settings={settings} irPara={irPara} />
-
       <RankingOfensivas />
 
       {/* histórico */}
@@ -142,36 +137,6 @@ export default function LigaPagina() {
 
       <ComoFunciona aberto={comoFunciona} onClose={() => setComoFunciona(false)} />
     </div>
-  );
-}
-
-/* ============================================================
-   A SUA FAIXA
-
-   É o que os outros veem de você na liga, junto com o nome. Quem
-   gradua é o professor: o aluno registra, e o app não tenta prever
-   quando vem o próximo grau.
-   ============================================================ */
-function MinhaFaixa({ settings, irPara }) {
-  const faixa = settings.faixa || 'branca';
-  const graus = Number(settings.graus) || 0;
-  const nome = FAIXAS.find((f) => f.id === faixa)?.nome || 'Branca';
-  return (
-    <Card style={{ marginBottom: 14 }}>
-      <div className="row" style={{ gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="eyebrow">sua faixa</div>
-          <div className="h-sec" style={{ marginTop: 3 }}>
-            Faixa {nome.toLowerCase()}{graus ? `, ${graus}º grau` : ''}
-          </div>
-        </div>
-        <button className="btn ghost xs" onClick={() => irPara('conquistas')}>Ganhei graduação</button>
-      </div>
-      <div style={{ marginTop: 12 }}><FaixaVisual faixa={faixa} graus={graus} /></div>
-      <p className="micro muted" style={{ marginTop: 9, lineHeight: 1.6 }}>
-        Quem gradua é o seu professor. Quando ele te der grau ou faixa, registre aqui: suas técnicas não perdem nada.
-      </p>
-    </Card>
   );
 }
 

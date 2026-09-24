@@ -164,7 +164,6 @@ export default function Painel() {
           <div className="placar-item">
             <span className="placar-num num"><Contador valor={r.rolas} /></span>
             <span className="placar-rot"><Swords size={14} /> {r.rolas === 1 ? 'luta' : 'lutas'}</span>
-            <span className="placar-sub">sem contar drill</span>
           </div>
         </div>
         <div className="placar-fin">
