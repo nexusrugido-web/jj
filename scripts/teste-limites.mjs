@@ -34,9 +34,9 @@ const ok = (nome, real, esperado) => {
 
 await db.open();
 
+/* registrar rola nunca tem limite, nem no grátis */
 await db.rolls.add({ data: hoje, sessionId: 1 });
-await db.rolls.add({ data: ontem, sessionId: 2 });
-ok('rola de hoje conta, o de ontem nao', await usadoHoje('rola'), 1);
+ok('rola nao entra em limite do dia', await usadoHoje('rola'), 0);
 
 await db.aulasVistas.add({ videoId: 'a1', tipo: 'aula', data: hoje, ultima: hoje });
 await db.aulasVistas.add({ videoId: 's1', tipo: 'short', data: hoje, ultima: hoje });
@@ -80,7 +80,7 @@ somado += trechoValido(1, aulaDe30min - 5, 1);  // arrastou pro fim
 ok('abrir e arrastar pro fim nao conclui', Math.round((somado / aulaDe30min) * 100), 0);
 
 console.log(
-  `\nlimites do gratuito: rola ${LIMITES.rolasPorDia}, aula ${LIMITES.aulasPorDia}, ` +
+  `\nlimites do gratuito: rola sem limite, aula ${LIMITES.aulasPorDia}, ` +
   `short ${LIMITES.shortsPorDia}, quiz ${LIMITES.perguntasPorDia}, recomendacao ${LIMITES.recomendacoesAbertas}`
 );
 /* ============================================================

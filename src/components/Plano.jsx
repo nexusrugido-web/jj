@@ -228,10 +228,6 @@ export function Travado({ recurso, acesso, onAssinar, children }) {
    semana. Sem essa frase parece bloqueio permanente.
    ============================================================ */
 const TEXTO_LIMITE = {
-  rola: {
-    feito: 'Você já registrou o rola de hoje.',
-    premium: 'No premium você registra quantos rolas quiser, e o app enxerga muito mais do seu jogo.',
-  },
   aula: {
     feito: 'Você já viu a aula de hoje.',
     premium: 'No premium a biblioteca abre inteira, com as aulas completas que puxam o seu assunto.',

@@ -20,8 +20,7 @@ import {
   Confirmar, useToast, TagsInput, SubsInput, Busca, PontosInput, EscolhaChips, ParceiroRapido,
 } from '../components/UI';
 import { hoje, fmtData, fmtDur, relativo, mmss, buscaMatch, mesPorExtenso } from '../lib/utils';
-import { useLimite } from '../components/Limite';
-import { LIMITES, recortarHistorico } from '../lib/plano';
+import { recortarHistorico } from '../lib/plano';
 import { HistoricoCortado } from '../components/Plano';
 import AntesDeCompetir from '../components/AntesDeCompetir';
 import {
@@ -120,7 +119,6 @@ const POR_VEZ = 20;
 export default function Treinos() {
   const { sessions, rolls, partners, positions, techniques, categories, settings , ligada, acesso, irPara } = useApp();
   const toast = useToast();
-  const { travar, aviso } = useLimite(acesso, irPara);
   const academias = useLiveQuery(() => db.academies.filter((a) => !a.arquivada).toArray(), [], []) || [];
   const professores = useLiveQuery(() => db.professors.filter((p) => !p.arquivada).toArray(), [], []) || [];
 
@@ -230,17 +228,6 @@ export default function Treinos() {
      Nada é salvo antes de você olhar. */
   /* o rola herda o tipo do treino: numa competição ela vale mais */
   const novaRolaDoTreino = (dur, ultima) => novaRola(dur, ultima, editando?.tipo);
-
-  /* Quantos rolas ainda cabem no plano grátis. O limite é do dia
-     e não do treino, então conta o que já está salvo naquela data
-     em outros treinos. Devolve null quando não há limite. */
-  const tetoRolas = useMemo(() => {
-    if (!ligada('cobranca') || acesso?.premium) return null;
-    const dia = editando?.data;
-    if (!dia) return null;
-    const jaSalvos = rolls.filter((r) => r.data === dia && r.sessionId !== editando?.id).length;
-    return Math.max(0, LIMITES.rolasPorDia - jaSalvos);
-  }, [acesso, rolls, editando]);
 
   async function montarDoFalado(d, falado) {
     const base = novaSessao(settings);
@@ -650,7 +637,6 @@ export default function Treinos() {
             faixa={settings.faixa}
             academias={academias} professores={professores}
             duracaoPadrao={settings.duracaoRolaPadrao || 5}
-            tetoRolas={tetoRolas} onTravar={travar}
           />
         )}
       </Sheet>
@@ -675,7 +661,6 @@ export default function Treinos() {
           setCronoAberto(false);
           if (editando) {
             /* já tem um treino aberto, então só adiciona o rola */
-            if (tetoRolas != null && rolasEdit.length >= tetoRolas) { travar('rola'); return; }
             setRolasEdit([...rolasEdit, novaRolaDoTreino(minutos, rolasEdit[rolasEdit.length - 1])]);
             toast('Rola adicionado. Preencha o que aconteceu.');
           } else {
@@ -692,7 +677,6 @@ export default function Treinos() {
         texto="O treino e todas os rolas dele somem. Não dá pra desfazer."
       />
 
-      {aviso}
     </div>
   );
 }
@@ -784,7 +768,7 @@ function BlocoCompeticao({ s, setS, onAbrirRegras }) {
   );
 }
 
-function EditorTreino({ s, setS, rolas, setRolas, partners, positions, techniques, categories, finalizacoes, maisUsadas, recentesPorPonto, recentesFoco, faixa, academias, professores, duracaoPadrao, tetoRolas, onTravar }) {
+function EditorTreino({ s, setS, rolas, setRolas, partners, positions, techniques, categories, finalizacoes, maisUsadas, recentesPorPonto, recentesFoco, faixa, academias, professores, duracaoPadrao }) {
   const set = (k, v) => setS({ ...s, [k]: v });
   const [rolaAberta, setRolaAberta] = useState(rolas.length ? 0 : null);
   const [seletor, setSeletor] = useState(null);
@@ -796,10 +780,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
     [professores, s.academiaId]
   );
 
-  const cheio = tetoRolas != null && rolas.length >= tetoRolas;
-
   const addRola = () => {
-    if (cheio) { onTravar?.('rola'); return; }
     setRolas([...rolas, novaRola(duracaoPadrao, rolas[rolas.length - 1])]);
     setRolaAberta(rolas.length);
   };
@@ -890,17 +871,8 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
           </p>
         </div>
         <span className="spacer" />
-        <Btn size="sm" variant={cheio ? 'ghost' : 'primary'} icon={Plus} onClick={addRola}>Rola</Btn>
+        <Btn size="sm" variant="primary" icon={Plus} onClick={addRola}>Rola</Btn>
       </div>
-
-      {cheio && (
-        <button className="valida atencao" onClick={() => onTravar?.('rola')} style={{ width: '100%', textAlign: 'left' }}>
-          <p className="micro muted" style={{ lineHeight: 1.65 }}>
-            No plano grátis é um rola por dia. O treino inteiro continua salvando normal, com duração, foco e
-            anotação. Toque aqui pra ver o que muda no premium.
-          </p>
-        </button>
-      )}
 
       <div className="col" style={{ gap: 9 }}>
         {rolas.map((r, i) => {

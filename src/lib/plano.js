@@ -12,26 +12,24 @@ import { ultimosDias, dentroDoPeriodo } from './periodo';
    funcionando offline sem precisar de internet toda vez.
 
    Duas regras que não se quebram:
-   1. Registrar o treino é grátis e ilimitado, sempre. O que tem
-      dose no plano grátis é o detalhe: um rola por dia, uma
-      aula, um short, uma rodada de quiz. Aparecer no tatame e
-      marcar que apareceu nunca custa.
+   1. Registrar o treino e os rolas é grátis e ilimitado, sempre,
+      e o grau das técnicas também. O que tem dose no plano grátis
+      é o estudo: uma aula, um short, uma rodada de quiz por dia.
+      Aparecer no tatame e marcar que apareceu nunca custa.
    2. Assinatura vencida não bloqueia os seus dados. Você
       continua vendo e exportando tudo que registrou.
    ============================================================ */
 
 export const LIMITES = {
   historicoDias: 30,
-  tecnicasAcompanhadas: 10,
   planosAtaque: 1,
   metasAtivas: 2,
 
-  /* Por dia, não por semana. No grátis o app funciona inteiro,
-     só que na dose de quem está conhecendo: dá pra registrar
-     um rola por dia, ver uma aula, ver um short e responder
-     uma rodada de quiz. Quem treina todo dia sente o limite,
-     e é esse o ponto. */
-  rolasPorDia: 1,
+  /* Por dia, não por semana. Registrar treino e rola nunca tem
+     limite: é o hábito que segura o aluno nos primeiros meses, quando
+     mais gente desiste, e é o registro que faz as técnicas subirem.
+     O limite fica no estudo: uma aula, um short e uma rodada de quiz
+     por dia. */
   aulasPorDia: 1,
   shortsPorDia: 1,
   perguntasPorDia: 5,
@@ -45,7 +43,9 @@ export const LIMITES = {
 export const RECOMENDACOES_NA_TELA = 10;
 
 export const RECURSOS = {
-  registro:      { premium: false, nome: 'Registrar treino', desc: 'Todo treino que você fizer, sempre grátis.' },
+  registro:      { premium: false, nome: 'Registrar treinos e rolas', desc: 'Todo treino e todo rola, sem limite, sempre grátis.' },
+  graus:         { premium: false, nome: 'Grau de todas as técnicas', desc: 'Cada técnica que sai nos seus rolas ganha grau, e você vê quando ela sobe.' },
+  liga:          { premium: false, nome: 'Liga e ofensiva', desc: 'O ranking da semana, a ofensiva e o card pra compartilhar.' },
   biblioteca:    { premium: false, nome: 'Biblioteca de técnicas', desc: 'As 626 técnicas, completa.' },
   offline:       { premium: false, nome: 'Funciona sem internet', desc: 'E sem conta, se você quiser.' },
   exportar:      { premium: false, nome: 'Exportar os seus dados', desc: 'Seus dados são seus, com ou sem assinatura.' },
@@ -55,10 +55,9 @@ export const RECURSOS = {
   meujogo:       { premium: true, nome: 'Estilo detectado', desc: 'O que os seus números dizem sobre o seu jogo.' },
   ia:            { premium: true, nome: 'Leitura da IA', desc: 'Insights e sugestões em cima do seu histórico.' },
   sync:          { premium: true, nome: 'Sincronizar aparelhos', desc: 'Celular, tablet e computador no mesmo lugar.' },
-  registroIlimitado:{ premium: true, nome: 'Rolas sem limite', desc: `No grátis é ${LIMITES.rolasPorDia} rola por dia.` },
   aulasIlimitadas:{ premium: true, nome: 'Aulas sem limite', desc: `No grátis é ${LIMITES.aulasPorDia} aula completa e ${LIMITES.shortsPorDia} aula rápida por dia.` },
   quizIlimitado: { premium: true, nome: 'Quiz sem limite', desc: `No grátis é uma rodada por dia.` },
-  tecnicas:      { premium: true, nome: 'Técnicas sem limite', desc: `No grátis o app acompanha ${LIMITES.tecnicasAcompanhadas}.` },
+  recomendacoes: { premium: true, nome: 'Tudo o que treinar agora', desc: `No grátis abre ${LIMITES.recomendacoesAbertas} recomendação por vez.` },
   planos:        { premium: true, nome: 'Planos de ataque', desc: `No grátis é ${LIMITES.planosAtaque}.` },
   musculacao:    { premium: true, nome: 'Musculação com histórico', desc: 'Recordes e progressão de carga.' },
 };
@@ -152,12 +151,9 @@ export function limitarLista(lista, acesso, limite) {
    a mesma: quantos disto você já fez hoje, e quantos você pode.
 
    Conta o que está no aparelho, e não o ponto que o servidor
-   concedeu. São coisas diferentes: rola sem parceiro preenchido
-   não ganha ponto, mas ocupa o lugar do rola do dia do mesmo
-   jeito, porque foi registrado.
+   concedeu.
    ============================================================ */
 const TETO_DO_DIA = {
-  rola:  LIMITES.rolasPorDia,
   aula:  LIMITES.aulasPorDia,
   short: LIMITES.shortsPorDia,
   quiz:  LIMITES.perguntasPorDia,
@@ -166,7 +162,6 @@ const TETO_DO_DIA = {
 export async function usadoHoje(tipo) {
   const d = hoje();
   try {
-    if (tipo === 'rola') return await db.rolls.where('data').equals(d).count();
     if (tipo === 'aula' || tipo === 'short') {
       /* conta vídeo ABERTO hoje. Antes contava só o que foi marcado
          como visto, e quem não apertava o botão assistia sem limite. */
