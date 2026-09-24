@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
-  Film, Check, X, TriangleAlert, Plus, Search, Lock, Unlock, Trash2, RefreshCw, Sparkles,
-  ListChecks, CloudDownload, SkipForward, Pause,
+  Film, Check, X, TriangleAlert, Plus, Lock, Unlock, Trash2, RefreshCw, Sparkles, ListChecks,
+  CloudDownload, SkipForward, Pause,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import {
   Card, Btn, Chip, Field, Input, Textarea, Busca, Empty, Stat, Sheet, Bar, EscolhaChips, useToast,
 } from './UI';
 import Capa from './Capa';
-import { lerLinha, categorizar, idDoYoutube, tipoPorDuracao } from '../lib/categorizar';
+import { lerLinha, idDoYoutube, tipoPorDuracao } from '../lib/categorizar';
 import { duracaoTexto, TEMAS_AULA } from '../db/aulas';
 import { buscarNoYoutube } from '../lib/youtube';
 import { semAcento, conflitoDeTecnica } from '../lib/classificar';

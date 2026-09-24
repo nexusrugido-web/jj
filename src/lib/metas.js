@@ -1,6 +1,6 @@
 import { hoje, diasEntre, pct, fmtData, addDias } from './utils';
 import { periodoDeDados, dentroDoPeriodo } from './periodo';
-import { grauPorN, requisitosDaFaixa } from './graus';
+import { grauPorN } from './graus';
 import { posInicialPorId } from '../db/scoring';
 
 /* ============================================================

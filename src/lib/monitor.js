@@ -83,15 +83,7 @@ export function marcarPasso(mensagem, dados = {}) {
   Sentry.addBreadcrumb({ message: mensagem, data: dados, level: 'info' });
 }
 
-/* migração do banco é o ponto mais crítico do app.
-   Se quebrar aqui, a pessoa perde o histórico. */
-export function erroDeMigracao(erro, de, para) {
-  registrarErro(erro, { tipo: 'migracao', versaoDe: de, versaoPara: para });
-}
 
-export function erroDeSync(erro, detalhe = {}) {
-  registrarErro(erro, { tipo: 'sync', ...detalhe });
-}
 
 export function erroDeAcesso(erro) {
   registrarErro(erro, { tipo: 'acesso' });

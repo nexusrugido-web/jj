@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Percent, TriangleAlert, Check, Trophy } from 'lucide-react';
-import { Chip, Stat } from './UI';
+import { TriangleAlert, Check } from 'lucide-react';
+import { Stat } from './UI';
 import { taxaPorFaixa, PRESETS, periodoDeDados, primeiroTreino } from '../lib/periodo';
 
 const COR_FAIXA = {

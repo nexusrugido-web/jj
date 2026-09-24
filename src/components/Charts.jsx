@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React from 'react';
 
 /* ============================================================
    ESCADA POSICIONAL, o elemento assinatura.

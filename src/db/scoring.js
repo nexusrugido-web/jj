@@ -16,11 +16,6 @@ export const PONTOS = [
 
 export const pontosPorId = Object.fromEntries(PONTOS.map((p) => [p.id, p]));
 
-/* vantagem não vale ponto, mas decide luta, e é o melhor
-   indicador de "quase lá" que existe */
-export const VANTAGEM = { id: 'vantagem', nome: 'Vantagem', pts: 0 };
-export const PUNICAO = { id: 'punicao', nome: 'Punição', pts: 0 };
-
 export function somarPontos(lista) {
   return (lista || []).reduce((a, id) => a + (pontosPorId[id]?.pts || 0), 0);
 }

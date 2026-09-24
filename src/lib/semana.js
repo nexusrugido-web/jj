@@ -1,4 +1,4 @@
-import { hoje, addDias, diasEntre, mesLongo } from './utils';
+import { hoje, addDias, diasEntre } from './utils';
 import { placarDaRola } from './game';
 import { semanaDe } from './xp';
 import { calcularAtaque } from './graus';
@@ -49,42 +49,6 @@ export function sequencia(sessions) {
   };
 }
 
-/* ---------- a frase da sequência, sem cobrança ---------- */
-export function textoSequencia(seq, sessions = []) {
-  if (!sessions.length) {
-    return { titulo: 'Comece pelo primeiro treino', texto: 'A partir dele o app começa a enxergar o seu jogo.', tom: '' };
-  }
-
-  if (seq.treinouEstaSemana) {
-    if (seq.semanas >= 12) {
-      return { titulo: `${seq.semanas} semanas seguidas`, texto: 'Três meses sem falhar uma semana. É esse tipo de constância que vira faixa.', tom: 'jade' };
-    }
-    if (seq.semanas >= 4) {
-      return { titulo: `${seq.semanas} semanas seguidas`, texto: 'Um mês inteiro de presença. A diferença entre quem evolui e quem some é exatamente isso.', tom: 'jade' };
-    }
-    if (seq.semanas >= 2) {
-      return { titulo: `${seq.semanas} semanas seguidas`, texto: 'Está criando o hábito. As primeiras semanas são as mais difíceis.', tom: 'accent' };
-    }
-    return { titulo: 'Treinou esta semana', texto: 'Bom. Semana que vem a sequência começa a contar.', tom: 'accent' };
-  }
-
-  if (seq.ativa && seq.semanas >= 1) {
-    return {
-      titulo: `${seq.semanas} ${seq.semanas === 1 ? 'semana' : 'semanas'} seguidas`,
-      texto: 'Ainda dá tempo de manter. Um treino nesta semana já conta.',
-      tom: 'accent',
-    };
-  }
-
-  const d = seq.diasParados;
-  if (d !== null && d >= 30) {
-    return { titulo: 'Faz um tempo', texto: `Seu último treino registrado foi há ${d} dias. Quando voltar, é só registrar que o resto continua de onde parou.`, tom: '' };
-  }
-  if (d !== null && d >= 14) {
-    return { titulo: 'Duas semanas sem registro', texto: 'Se você treinou e esqueceu de anotar, dá pra registrar com a data de trás. Se parou mesmo, sem problema, acontece com todo mundo.', tom: '' };
-  }
-  return { titulo: 'Nenhum treino nesta semana', texto: 'Um treino já reativa a contagem.', tom: '' };
-}
 
 /* ============================================================
    RESUMO DA SEMANA
@@ -171,19 +135,6 @@ export function lerSemana(r, faixa = 'branca') {
   return txt;
 }
 
-export function semanasComTreino(sessions, limite = 8) {
-  const set = [...new Set(sessions.map((s) => semanaDe(s.data)))].sort().reverse();
-  return set.slice(0, limite);
-}
-
-/* "de 14 a 20 de setembro": data escrita, que é como as pessoas falam */
-export const rotuloSemana = (w) => {
-  const fim = addDias(w, 6);
-  const dia = (iso) => Number(iso.slice(8, 10));
-  return mesLongo(w) === mesLongo(fim)
-    ? `de ${dia(w)} a ${dia(fim)} de ${mesLongo(fim)}`
-    : `de ${dia(w)} de ${mesLongo(w)} a ${dia(fim)} de ${mesLongo(fim)}`;
-};
 
 /* ============================================================
    ESCUDO DE CONSTÂNCIA
@@ -203,32 +154,6 @@ export const rotuloSemana = (w) => {
 export const SEMANAS_POR_ESCUDO = 4;
 export const MAX_ESCUDOS = 3;
 
-/* ============================================================
-   SEMANA COBERTA POR LESÃO
-
-   Quem está fora do tatame por lesão não pode ser punido pela
-   ausência. A semana conta como cumprida se a pessoa estudou,
-   porque estudar é o que dá pra fazer machucado.
-   ============================================================ */
-export function semanasProtegidas(lesoes = [], aulas = []) {
-  const cobertas = new Set();
-
-  for (const l of lesoes) {
-    if (l.impacto !== 'parado') continue;
-    const fim = l.dataCura || l.fechadaEm || hoje();
-    let w = semanaDe(l.data);
-    const wFim = semanaDe(fim);
-    let guarda = 0;
-    while (w <= wFim && guarda < 60) {
-      /* só protege a semana em que ela estudou alguma coisa */
-      const estudou = aulas.some((a) => semanaDe(a.data || a.ultima) === w);
-      if (estudou) cobertas.add(w);
-      w = addDias(w, 7);
-      guarda += 1;
-    }
-  }
-  return cobertas;
-}
 
 export function escudos(sessions, protegidas = new Set()) {
   /* semana com treino, mais semana em que a pessoa estava
@@ -280,23 +205,3 @@ export function escudos(sessions, protegidas = new Set()) {
   };
 }
 
-export function textoEscudo(e) {
-  if (!e.tem && !e.gastos) {
-    return {
-      titulo: 'Sem escudo ainda',
-      texto: `Quatro semanas seguidas de treino e você ganha o primeiro. Ele segura a sua sequência quando a vida atrapalhar.`,
-    };
-  }
-  if (!e.tem) {
-    return {
-      titulo: 'Escudo gasto',
-      texto: `Ele já salvou a sua sequência ${e.gastos === 1 ? 'uma vez' : `${e.gastos} vezes`}. Mais ${e.faltaPro} ${e.faltaPro === 1 ? 'semana' : 'semanas'} de treino e você ganha outro.`,
-    };
-  }
-  return {
-    titulo: e.tem === 1 ? '1 escudo guardado' : `${e.tem} escudos guardados`,
-    texto: e.tem >= MAX_ESCUDOS
-      ? 'Você está no máximo. Cada um segura uma semana que você precisar faltar.'
-      : `Cada um segura uma semana que você precisar faltar. Mais ${e.faltaPro} ${e.faltaPro === 1 ? 'semana' : 'semanas'} e você ganha outro.`,
-  };
-}

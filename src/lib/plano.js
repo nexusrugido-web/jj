@@ -187,12 +187,6 @@ export async function limiteDoDia(acesso, tipo) {
   };
 }
 
-/* ---------- o texto que aparece quando bate no limite ---------- */
-export function textoDoLimite(recurso) {
-  const r = RECURSOS[recurso];
-  if (!r) return '';
-  return r.desc;
-}
 
 export function diasParaVencer(acesso) {
   if (!acesso?.venceEm) return null;

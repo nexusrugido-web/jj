@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Plus, Library, Star, Pencil, Trash2, Repeat, ShieldAlert, Check,
-  ChevronRight, ListTree, List, Settings2, ArrowRight, Sparkles, Loader, Video, Filter, Gauge, SlidersHorizontal,
+  Plus, Library, Star, Pencil, Trash2, Repeat, ShieldAlert, Check, ListTree, Settings2,
+  ArrowRight, Sparkles, Loader, Filter, Gauge, SlidersHorizontal,
 } from 'lucide-react';
 import Guia from '../components/Guia';
 import { useApp } from '../contexto';
@@ -13,8 +13,7 @@ import {
   Card, Btn, Field, Input, NumeroInput, Textarea, Select, Modal, Sheet, Chip, Empty,
   Confirmar, useToast, Seg, Busca, TagsInput,
 } from '../components/UI';
-import { buscaMatch, podeUsar, FAIXA_ORDEM } from '../lib/utils';
-import { casaApelido } from '../db/sinonimos';
+import { buscaMatch, podeUsar } from '../lib/utils';
 import { novaRevisao } from '../lib/srs';
 import { autopreencherTecnica, validarTecnica } from '../lib/ai';
 import { Midia } from '../components/Midia';

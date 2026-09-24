@@ -1,21 +1,20 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import {
-  Flame, Clock, Swords, Percent, TriangleAlert, Target, Repeat, Wind,
-  ArrowRight, Plus, Award, Activity, Trophy, Sparkles, Loader,
-  ShieldCheck, HeartPulse, Check, BarChart3,
+  Flame, Clock, Swords, Target, ArrowRight, Plus, Award, Trophy, Sparkles, Loader, ShieldCheck,
+  HeartPulse, Check, BarChart3,
 } from 'lucide-react';
 import Guia from '../components/Guia';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { useApp } from '../contexto';
-import { Card, Btn, Contador, Bar, Empty, Chip, Field, Stepper } from '../components/UI';
+import { Card, Btn, Contador, Empty, Chip, Field, Stepper } from '../components/UI';
 import { EscadaPosicional, BarrasTop, Donut } from '../components/Charts';
 import Calendario from '../components/Calendario';
 import GraficoEvolucao from '../components/GraficoEvolucao';
 import { resumo, escadaPosicional, treinosNaSemana } from '../lib/stats';
-import { fmtDur, relativo, emQuanto } from '../lib/utils';
+import { relativo, emQuanto } from '../lib/utils';
 import { minhasTecnicas, meusBuracos, jogoPrincipal, grauPorN } from '../lib/graus';
-import { recomendacoesDoAluno, INTENCOES, faltaPara } from '../lib/recomendar';
+import { recomendacoesDoAluno, faltaPara } from '../lib/recomendar';
 import { progressoDaMeta, tituloDaMeta, metaDeHorasNoAno } from '../lib/metas';
 import LinhaDeMeta from '../components/LinhaDeMeta';
 import RotuloPeriodo from '../components/RotuloPeriodo';
@@ -25,7 +24,6 @@ import { resumoSemana, lerSemana } from '../lib/semana';
 import { ofensiva } from '../lib/ofensiva';
 import { situacao, guiaDeEstudo } from '../lib/lesao';
 import { analisarJogo } from '../lib/game';
-import { estiloPorId } from '../db/scoring';
 import { Ponteira } from '../components/Ponteira';
 import { PrimeirosPassos, AvisoDeVolta } from '../components/PrimeirosPassos';
 import Destaques from '../components/Destaques';

@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import {
-  Search, Plus, X, Check, Minus, CircleDot, Sparkles, Loader, ShieldAlert,
+  Plus, X, Check, Sparkles, Loader, ShieldAlert,
 } from 'lucide-react';
-import { Sheet, Chip, Btn, Busca, Field, Input, Select, useToast } from './UI';
+import { Sheet, Btn, Busca, Field, Input, Select, useToast } from './UI';
 import { db } from '../db/db';
 import { podeUsar, buscaMatch } from '../lib/utils';
 import { casaApelido } from '../db/sinonimos';

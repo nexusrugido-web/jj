@@ -1,6 +1,5 @@
 import {
-  pontosPorId, somarPontos, ESTILOS, estiloPorId,
-  posInicialPorId, pesoRelPorId, PESO_REL,
+  pontosPorId, somarPontos, estiloPorId, posInicialPorId, PESO_REL,
 } from '../db/scoring';
 import { FAIXA_ORDEM, pct } from './utils';
 

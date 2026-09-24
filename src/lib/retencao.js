@@ -1,6 +1,5 @@
-import { db, getMeta, setMeta } from '../db/db';
+import { getMeta, setMeta } from '../db/db';
 import { hoje, addDias, diasEntre } from './utils';
-import { semanaDe } from './xp';
 
 /* ============================================================
    ATIVAÇÃO E RECONQUISTA
@@ -158,25 +157,8 @@ export function ofertaDeSaida(motivo, resumo = {}) {
   };
 }
 
-/* ============================================================
-   O FUNIL, PRA VOCÊ SABER ONDE A GENTE PERDE GENTE
-
-   Fica só no aparelho e serve pra o app decidir o que mostrar.
-   ============================================================ */
-export async function marcarEvento(nome, dados = {}) {
-  const eventos = await getMeta('funil', {});
-  if (eventos[nome]) return eventos;
-  const novo = { ...eventos, [nome]: { data: hoje(), ...dados } };
-  await setMeta('funil', novo);
-  return novo;
-}
 
 export async function funil() {
   return getMeta('funil', {});
 }
 
-/* quantos dias entre criar a conta e o terceiro treino */
-export function tempoAteAtivar(eventos) {
-  if (!eventos?.conta || !eventos?.ativado) return null;
-  return diasEntre(eventos.conta.data, eventos.ativado.data);
-}

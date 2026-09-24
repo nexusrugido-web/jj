@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   NotebookPen, Trophy, Dna, Award, Target, Cloud, Sparkles, Layers, ChevronLeft, ChevronRight, Check,
 } from 'lucide-react';
-import { Sheet, Btn, Chip } from './UI';
+import { Sheet, Btn } from './UI';
 import { Ponteira } from './Ponteira';
 import { GRAUS } from '../lib/graus';
 

@@ -1,9 +1,8 @@
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import Capa from '../components/Capa';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
-  Play, Check, GraduationCap, Search, Filter,
-  BookOpen, ChevronRight, X, Layers, TriangleAlert, Lock,
+  Play, Check, BookOpen, ChevronRight, Layers, Lock,
 } from 'lucide-react';
 import { db } from '../db/db';
 import Player from '../components/Player';

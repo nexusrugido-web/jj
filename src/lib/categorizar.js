@@ -176,7 +176,3 @@ export function lerLinha(linha) {
   return { id, t: titulo, d, ...categorizar(titulo, d) };
 }
 
-export function lerColado(texto) {
-  const linhas = String(texto || '').split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
-  return linhas.map((l, i) => ({ linha: i + 1, original: l, ...lerLinha(l) }));
-}

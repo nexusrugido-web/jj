@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
-  Mic, MicOff, Check, X, Loader, TriangleAlert, RotateCcw, Pencil, Sparkles,
+  Mic, MicOff, Check, Loader, TriangleAlert, RotateCcw, Sparkles,
 } from 'lucide-react';
-import { Card, Btn, Chip, Sheet, useToast, Select, Field } from './UI';
+import { Btn, Chip, Sheet, useToast, Select, Field } from './UI';
 import { pontosPorId } from '../db/scoring';
 
 /* ============================================================

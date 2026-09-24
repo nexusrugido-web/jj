@@ -1,15 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
-  Trophy, Award, Plus, Clock, Swords, Flame, Sparkles, Check,
-  ChevronRight, Medal, Trash2, Share2,
+  Trophy, Award, Clock, Swords, Flame, Sparkles, Check, Medal, Trash2, Share2,
 } from 'lucide-react';
 import { useApp } from '../contexto';
 import { db } from '../db/db';
 import { FAIXAS } from '../db/seed';
 import {
-  Card, Btn, Field, Input, Textarea, Select, Sheet, Chip, Empty,
-  useToast, Stat, BeltTag, Stepper, Confirmar,
+  Card, Btn, Field, Input, Textarea, Select, Sheet, Empty, useToast, Stat, BeltTag, Stepper,
+  Confirmar,
 } from '../components/UI';
 import { resumo as resumoGeral } from '../lib/stats';
 import { ofensiva } from '../lib/ofensiva';

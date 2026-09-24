@@ -98,7 +98,6 @@ export function agrupar(arr, fn) {
   return m;
 }
 
-export const uniq = (a) => [...new Set(a)];
 
 export function contar(arr) {
   const m = new Map();

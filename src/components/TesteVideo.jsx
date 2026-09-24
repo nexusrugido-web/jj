@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Check, X, Loader, Wifi } from 'lucide-react';
-import { Card, Btn, Chip } from './UI';
+import { Card, Btn } from './UI';
 
 /* ============================================================
    TESTE DE VÍDEO

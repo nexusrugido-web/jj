@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, ExternalLink } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { Btn } from './UI';
 
 /* ============================================================

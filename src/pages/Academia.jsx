@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Dumbbell, Info, Search, ChevronRight, Check } from 'lucide-react';
 import { useApp } from '../contexto';
 import { Card, Btn, Chip, Sheet, Busca, Empty } from '../components/UI';
-import { GRUPOS, EXERCICIOS, exerciciosDoGrupo, orientacaoDeCarga } from '../db/exercicios';
+import { GRUPOS, EXERCICIOS, orientacaoDeCarga } from '../db/exercicios';
 import { buscaMatch } from '../lib/utils';
 import { semanaDe } from '../lib/xp';
 

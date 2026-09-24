@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Apple, Check, Info, Droplet, Beef, Wheat, Salad } from 'lucide-react';
+import { Info, Droplet, Beef, Wheat, Salad } from 'lucide-react';
 import { useApp } from '../contexto';
-import { Card, Btn, Chip, Sheet } from '../components/UI';
+import { Card, Btn, Sheet } from '../components/UI';
 
 /* ============================================================
    ALIMENTAÇÃO

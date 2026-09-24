@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef } from 'react';
-import { Medal, TrendingUp, TrendingDown, Minus, Sparkles } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Sparkles } from 'lucide-react';
 import {
   PRESETS, periodoDeDados, primeiroTreino, METRICAS, serieDoPeriodo, totaisComparados,
   contextoDaVitoria, marcadoresGraduacao, faixaDoNivel,

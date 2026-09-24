@@ -1,4 +1,4 @@
-import { grauPorN, contextoPorId, requisitosDaFaixa, posicoesSofridas, NOME_POSICAO_SOFRIDA, TITULO_POSICAO_SOFRIDA } from './graus';
+import { grauPorN, requisitosDaFaixa, posicoesSofridas, NOME_POSICAO_SOFRIDA, TITULO_POSICAO_SOFRIDA } from './graus';
 import { placarDaRola } from './game';
 import { ultimosDias } from './periodo';
 

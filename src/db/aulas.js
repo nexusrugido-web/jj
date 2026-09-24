@@ -715,7 +715,6 @@ export const capa = (id, tamanho = 'hq', servidor = 0) =>
 export const embed = (id, params = '') =>
   `https://www.youtube-nocookie.com/embed/${id}?rel=0&modestbranding=1&playsinline=1${params}`;
 
-export const linkAula = (id) => `https://www.youtube.com/watch?v=${id}`;
 
 export function duracaoTexto(seg) {
   const m = Math.floor(seg / 60);

@@ -1,15 +1,14 @@
 import React, { useMemo, useState } from 'react';
 import {
-  Plus, Target, Trash2, Pencil, Check, Trophy, Repeat, Sparkles,
-  ShieldAlert, Clock, X, Minus, Share2, Lock,
+  Plus, Target, Trash2, Pencil, Check, Trophy, Sparkles, Clock, X, Minus, Share2, Lock,
 } from 'lucide-react';
 import Figurinha from '../components/Figurinha';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { useApp } from '../contexto';
 import {
-  Card, Btn, Field, Input, NumeroInput, Textarea, Select, Sheet, Chip, Empty,
-  Confirmar, useToast, Bar, Seg, Stat,
+  Card, Btn, Field, Input, NumeroInput, Textarea, Select, Sheet, Chip, Empty, Confirmar, useToast,
+  Bar, Seg,
 } from '../components/UI';
 import { SeletorTecnica } from '../components/SeletorTecnica';
 import { Ponteira } from '../components/Ponteira';
@@ -21,7 +20,7 @@ import {
   historicoDaMeta,
 } from '../lib/metas';
 import { POSICOES_INICIAIS } from '../db/scoring';
-import { hoje, fmtData, relativo, diasEntre } from '../lib/utils';
+import { hoje, fmtData, relativo } from '../lib/utils';
 import { podeVer, LIMITES } from '../lib/plano';
 import { Convite } from '../components/Plano';
 

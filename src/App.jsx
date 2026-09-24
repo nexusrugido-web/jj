@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef, Suspense, startTransition } from 'react';
-import { AppCtx, useApp } from './contexto';
+import { AppCtx } from './contexto';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, ensureSeed, getMeta, setMeta, DEFAULT_SETTINGS, registrarSync, limparDuplicados, migrarGameplans, migrarCompeticoes, renomearAntigos, consertarAulasVistas, consertarContextoDoDrill } from './db/db';
 import { ToastProvider } from './components/UI';
@@ -19,12 +19,12 @@ import { enviarMedidas } from './lib/medir';
 import { carregarCompras } from './lib/pago';
 import { carregarAjustes, observarAjustes } from './lib/ajustes';
 import { carregarLinks, observarLinks } from './lib/links';
-import { registrarErro, marcarPasso, erroDeAcesso } from './lib/monitor';
+import { registrarErro, erroDeAcesso } from './lib/monitor';
 import { carregarChaves, carregarRecado, souAdmin, ligada, observarChaves, todasAsChaves } from './lib/chaves';
 import { sincronizarMarcos } from './lib/milestones';
 import { abriuOApp } from './lib/push';
 import { ofensiva } from './lib/ofensiva';
-import { analisarJogo, placarDaRola } from './lib/game';
+import { analisarJogo } from './lib/game';
 import { somarPontos } from './db/scoring';
 
 import Painel from './pages/Painel';

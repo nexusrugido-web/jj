@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { Check, ChevronRight, Circle, Heart } from 'lucide-react';
-import { Card, Btn, Bar, Chip } from './UI';
+import { Check, Circle, Heart } from 'lucide-react';
+import { Card, Btn, Bar } from './UI';
 import { estadoDeAtivacao, estadoDeAusencia } from '../lib/retencao';
 
 /* ============================================================

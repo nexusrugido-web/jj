@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Plus, HeartPulse, Trash2, Pencil, Check, TriangleAlert, Activity } from 'lucide-react';
+import { Plus, HeartPulse, Trash2, Pencil, Check, TriangleAlert } from 'lucide-react';
 import { db } from '../db/db';
 import { useApp } from '../contexto';
 import ParadoEstudando from '../components/ParadoEstudando';
@@ -8,8 +8,8 @@ import { REGIOES_CORPO } from '../db/seed';
 import {
   Card, Btn, Field, Input, Textarea, Select, Modal, Chip, Empty, Confirmar, useToast, Stat, Seg, Bar,
 } from '../components/UI';
-import { hoje, addDias, fmtData, relativo, diasEntre, contar } from '../lib/utils';
-import { IMPACTOS, impactoPorId, PRAZOS, situacao, guiaDeEstudo } from '../lib/lesao';
+import { hoje, addDias, relativo, diasEntre, contar } from '../lib/utils';
+import { IMPACTOS, impactoPorId, PRAZOS, guiaDeEstudo } from '../lib/lesao';
 
 const STATUS = [
   { id: 'ativa', nome: 'Ativa', tone: 'blood' },

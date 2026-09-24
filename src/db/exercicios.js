@@ -102,7 +102,6 @@ export const EXERCICIOS = [
     entrega: 'Quadril que abre. Guarda melhor e menos dor depois do treino.' },
 ];
 
-export const exercicioPorId = (id) => EXERCICIOS.find((e) => e.id === id);
 export const exerciciosDoGrupo = (g) => EXERCICIOS.filter((e) => e.g === g);
 
 /* ---------- quanto de musculação faz sentido ---------- */

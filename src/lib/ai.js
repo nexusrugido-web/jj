@@ -42,6 +42,3 @@ export async function iaDisponivel() {
 export const autopreencherTecnica = (nome, faixa) => chamarIA('autopreencher', { nome, faixa });
 export const validarTecnica = (nome, faixa, modo) => chamarIA('validar_tecnica', { nome, faixa, modo });
 export const analisarDiario = (resumo, faixa) => chamarIA('analisar', { resumo, faixa });
-export const gerarPlanoAtaque = (posicao, faixa, modo, contexto) => chamarIA('plano_ataque', { posicao, faixa, modo, contexto });
-export const revisarDieta = (dados) => chamarIA('revisar_dieta', { dados });
-export const revisarTreino = (dados) => chamarIA('revisar_treino', { dados });

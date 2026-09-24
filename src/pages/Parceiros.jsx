@@ -8,8 +8,8 @@ import { useApp } from '../contexto';
 import { db } from '../db/db';
 import { FAIXAS } from '../db/seed';
 import {
-  Card, Btn, Field, Input, NumeroInput, Textarea, Select, Sheet, Chip, Empty, Confirmar,
-  useToast, BeltTag, Busca, Bar, Seg, Stat,
+  Card, Btn, Field, Input, NumeroInput, Textarea, Select, Sheet, Chip, Empty, Confirmar, useToast,
+  BeltTag, Busca, Bar, Seg,
 } from '../components/UI';
 import { statsParceiro } from '../lib/stats';
 import { buscaMatch } from '../lib/utils';

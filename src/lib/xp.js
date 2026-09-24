@@ -136,26 +136,7 @@ export function semanaDe(data = hoje()) {
 export const mesDe = (data = hoje()) => data.slice(0, 7);
 export const anoDe = (data = hoje()) => data.slice(0, 4);
 
-/* ============================================================
-   AS QUATRO JANELAS
 
-   Semana e mês zeram, porque servem pra medir ritmo. Ano zera
-   também, e é o ciclo que faz a aula valer de novo. Jornada
-   nunca zera, porque é o total da sua vida no tatame.
-
-   Por que o ano importa: jiu-jitsu se revisita. A aula sobre
-   guarda fechada que você viu de faixa branca diz outra coisa
-   quando você é azul. Passado um ano, ela volta a valer ponto.
-   ============================================================ */
-export const JANELAS_XP = [
-  { id: 'semana', nome: 'Ritmo', zera: 'toda segunda' },
-  { id: 'mes', nome: 'Constância', zera: 'todo dia 1' },
-  { id: 'ano', nome: 'Temporada', zera: 'em 1º de janeiro' },
-  { id: 'total', nome: 'Jornada', zera: 'nunca' },
-];
-
-/* quantos dias até a aula poder valer ponto de novo */
-export const DIAS_PRA_REVER = 365;
 
 /* ============================================================
    CONCEDER XP
@@ -219,38 +200,6 @@ export async function darXp(evento, { refId = null, data = hoje(), detalhe = '' 
   return { ...linha, id };
 }
 
-/* ---------- somatórios ---------- */
-export async function meuXp() {
-  const linhas = await db.pontos.toArray();
-  const soma = (f) => linhas.filter(f).reduce((a, x) => a + (x.xp || 0), 0);
-
-  const sem = semanaDe();
-  const mes = mesDe();
-  const total = soma(() => true);
-
-  const porEvento = {};
-  for (const l of linhas) porEvento[l.evento] = (porEvento[l.evento] || 0) + l.xp;
-
-  const div = divisaoPorXp(total);
-  const prox = proximaDivisao(total);
-
-  const ano = anoDe();
-
-  return {
-    total,
-    semana: soma((x) => x.semana === sem),
-    mes: soma((x) => x.mes === mes),
-    ano: soma((x) => (x.ano || String(x.data).slice(0, 4)) === ano),
-    porEvento,
-    divisao: div,
-    proxima: prox,
-    faltaProxima: prox ? prox.min - total : 0,
-    pctDivisao: prox
-      ? Math.round(((total - div.min) / (prox.min - div.min)) * 100)
-      : 100,
-    eventos: linhas.length,
-  };
-}
 
 /* ---------- o bônus de consistência ---------- */
 export async function checarConsistencia(sessions) {
@@ -274,11 +223,3 @@ export async function checarConsistencia(sessions) {
   return darXp('consistencia', { refId: `consistencia:${sem}`, detalhe: `${desta} treinos, média ${media.toFixed(1)}` });
 }
 
-/* ---------- texto do progresso, sem jargão ---------- */
-export function textoDivisao(xp) {
-  const d = divisaoPorXp(xp);
-  const p = proximaDivisao(xp);
-  if (!p) return `${d.nome}. Você chegou no topo das divisões.`;
-  const falta = p.min - xp;
-  return `${d.nome}. Faltam ${falta} pontos pra ${p.nome}.`;
-}

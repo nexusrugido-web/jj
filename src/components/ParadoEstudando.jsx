@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { GraduationCap, ShieldCheck, ArrowRight } from 'lucide-react';
-import { Card, Btn, Chip, Sheet } from './UI';
+import { GraduationCap, ShieldCheck } from 'lucide-react';
+import { Btn, Sheet } from './UI';
 import Capa from './Capa';
 import { escolherAulas, duracaoTexto } from '../lib/aulas';
 import { guiaDeEstudo, situacao } from '../lib/lesao';

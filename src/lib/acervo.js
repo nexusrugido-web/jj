@@ -143,8 +143,3 @@ export async function sincronizarAcervo() {
   }
 }
 
-/* ---------- o que o app chama na abertura ---------- */
-export async function carregarAcervo() {
-  await acervoLocal();
-  return sincronizarAcervo();
-}

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Play, Pause, RotateCcw, Volume2, VolumeX, Plus, Minus, X, Check, Timer as Ico,
+  Play, Pause, RotateCcw, Volume2, VolumeX, Plus, Minus, Check,
 } from 'lucide-react';
-import { Card, Btn, Chip, Sheet, useToast } from './UI';
+import { Card, Btn, Sheet } from './UI';
 
 /* ============================================================
    CRONÔMETRO DE ROLA

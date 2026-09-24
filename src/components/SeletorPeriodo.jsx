@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Calendar, Check, ChevronDown } from 'lucide-react';
-import { Sheet, Chip } from './UI';
+import { Sheet } from './UI';
 import { PRESETS, periodoDeDados } from '../lib/periodo';
 
 /* ============================================================

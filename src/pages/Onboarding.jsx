@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Check, ChevronRight, ChevronLeft, Dna, Target, Sparkles, X } from 'lucide-react';
-import { Card, Btn, Field, Input, Chip, useToast } from '../components/UI';
+import { Check, ChevronRight, ChevronLeft, Dna, Sparkles } from 'lucide-react';
+import { Card, Btn, Field, Input, useToast } from '../components/UI';
 import { db } from '../db/db';
 import { FAIXAS } from '../db/seed';
-import { QUIZ, estiloDoQuiz, estiloPorId, ESTILOS } from '../db/scoring';
+import { QUIZ, estiloDoQuiz, estiloPorId } from '../db/scoring';
 import { hoje } from '../lib/utils';
 import { EscolherDificuldades } from '../components/Dificuldades';
 

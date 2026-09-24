@@ -1,6 +1,6 @@
 import React from 'react';
-import { Swords, TriangleAlert, Target, ShieldAlert } from 'lucide-react';
-import { Card, Chip } from './UI';
+import { Swords, ShieldAlert } from 'lucide-react';
+import { Card } from './UI';
 
 /* ============================================================
    OS DOIS NÚMEROS QUE IMPORTAM

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Capa from '../components/Capa';
-import { Check, X, Minus, Play, Sparkles } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { db } from '../db/db';
-import { Card, Btn, Chip, useToast } from './UI';
+import { Chip, useToast } from './UI';
 import { INTENCOES, RESULTADOS, chaveDaRec, respostaAoMarcar } from '../lib/recomendar';
 import { capa, duracaoTexto, registrarAulaVista } from '../lib/aulas';
 import { aulasPara } from '../lib/motor';

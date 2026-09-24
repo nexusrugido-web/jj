@@ -21,6 +21,5 @@ export const meuPar = async () => (supabase ? primeira(await rpc('meu_par')) || 
 
 export const pedirAmizade = async (id) => primeira(await rpc('pedir_amizade', { p_user: id })) || { ok: false, mensagem: 'Não deu agora.' };
 export const responderAmizade = (id, aceitar) => rpc('responder_amizade', { p_user: id, p_aceitar: aceitar });
-export const desfazerAmizade = (id) => rpc('desfazer_amizade', { p_user: id });
 export const chamarPraSala = async (id) => primeira(await rpc('chamar_pra_sala', { p_user: id })) || { ok: false, mensagem: 'Não deu agora.' };
 export const recusarConviteDeSala = (codigo) => rpc('recusar_convite_de_sala', { p_codigo: codigo });

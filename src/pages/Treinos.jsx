@@ -2,9 +2,8 @@ import React, { useMemo, useState, useEffect, Suspense } from 'react';
 import { lazy } from '../lib/lazy';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
-  Plus, Trash2, Pencil, Swords, NotebookPen, Timer, Play, Pause, RotateCcw,
-  ChevronDown, ChevronRight, Copy, Check, MessageSquare, Building2,
-  GraduationCap, Zap, Trophy, Weight, MapPin, Minus, Mic, Users,
+  Plus, Trash2, Pencil, Swords, NotebookPen, Timer, ChevronDown, ChevronRight, Copy, Check,
+  MessageSquare, Building2, GraduationCap, Trophy, Weight, Mic, Users,
 } from 'lucide-react';
 import { useApp } from '../contexto';
 import { db } from '../db/db';
@@ -16,10 +15,10 @@ import Voz, { temVoz } from '../components/Voz';
 import { darXp, checarConsistencia } from '../lib/xp';
 import { SeletorTecnica, ListaFoco, APRENDIZADO } from '../components/SeletorTecnica';
 import {
-  Card, Btn, Field, Input, NumeroInput, EscolherData, Textarea, Select, Sheet, Chip, Stepper, Empty, Stat,
-  Confirmar, useToast, TagsInput, SubsInput, Busca, PontosInput, EscolhaChips, ParceiroRapido,
+  Card, Btn, Field, Input, NumeroInput, EscolherData, Textarea, Select, Sheet, Chip, Stepper,
+  Empty, Stat, Confirmar, useToast, SubsInput, Busca, PontosInput, EscolhaChips, ParceiroRapido,
 } from '../components/UI';
-import { hoje, fmtData, fmtDur, relativo, mmss, buscaMatch, mesPorExtenso } from '../lib/utils';
+import { hoje, fmtDur, relativo, buscaMatch, mesPorExtenso } from '../lib/utils';
 import { recortarHistorico } from '../lib/plano';
 import { HistoricoCortado } from '../components/Plano';
 import AntesDeCompetir from '../components/AntesDeCompetir';
@@ -27,7 +26,6 @@ import {
   ORGANIZACOES, DIVISOES, CATEGORIAS_PESO, RESULTADOS, resultadoPorId, ehPodio,
   competicaoVazia, resumoDeCompeticoes,
 } from '../lib/competicao';
-import { useCronometro, useMarco, vibrar } from '../lib/timer';
 
 const TIPOS = [
   { id: 'gi', nome: 'Gi' },

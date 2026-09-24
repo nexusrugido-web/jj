@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
-  Award, TrendingUp, TrendingDown, Minus, Swords, Target, Info,
-  ChevronRight, ShieldAlert, Check, Dumbbell, ListChecks, Scale, Lock,
+  Award, TrendingUp, TrendingDown, Minus, Swords, Info, ChevronRight, ShieldAlert, Check,
+  Dumbbell, ListChecks, Scale, Lock,
 } from 'lucide-react';
 import Guia, { Linha } from '../components/Guia';
 import { db } from '../db/db';
@@ -13,7 +13,7 @@ import {
   GRAUS, grauPorN, TENDENCIAS, contextoPorId, requisitosDaFaixa,
 } from '../lib/graus';
 import { Ponteira } from '../components/Ponteira';
-import { faltaPara, recomendacoesDoAluno, INTENCOES, aderencia } from '../lib/recomendar';
+import { faltaPara, recomendacoesDoAluno, aderencia } from '../lib/recomendar';
 import Recomendacao, { VitrineRecomendacao } from '../components/Recomendacao';
 import { buscaMatch, relativo } from '../lib/utils';
 import { posInicialPorId } from '../db/scoring';

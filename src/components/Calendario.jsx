@@ -7,7 +7,7 @@ import { Sheet, Chip, Stat, Card, Btn, BeltTag } from './UI';
 import { janelaDoCalendario, mesDoCalendario, rotuloDoPeriodo } from '../lib/periodo';
 import { fmtDur, relativo, mesNome } from '../lib/utils';
 import { placarDaRola, ROTULO_RESULTADO, TOM_RESULTADO } from '../lib/game';
-import { agruparPontos, posInicialPorId, pesoRelPorId, somarPontos } from '../db/scoring';
+import { agruparPontos, posInicialPorId, pesoRelPorId } from '../db/scoring';
 import { APRENDIZADO } from './SeletorTecnica';
 
 const SEMANA = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Check, Lock, Sparkles, Download, CloudOff, Ticket, TriangleAlert, Crown,
+  Check, Lock, Sparkles, Ticket, Crown,
 } from 'lucide-react';
 import { Card, Btn, Chip, Input, Field, Sheet, useToast } from './UI';
 import { RECURSOS, LIMITES, ativarCodigo, diasParaVencer } from '../lib/plano';
@@ -194,25 +194,6 @@ export default function Plano({ acesso, recarregar, compacto = false }) {
         </p>
       </Sheet>
     </>
-  );
-}
-
-/* ---------- o bloqueio que aparece dentro das telas ---------- */
-export function Travado({ recurso, acesso, onAssinar, children }) {
-  const r = RECURSOS[recurso];
-  if (!r?.premium || acesso?.premium) return children;
-
-  return (
-    <Card style={{ borderStyle: 'dashed' }}>
-      <div className="col center" style={{ alignItems: 'center', gap: 12, padding: '10px 0' }}>
-        <span className="stat-ico" style={{ color: 'var(--accent)' }}><Lock size={17} /></span>
-        <div className="center">
-          <div className="tiny" style={{ fontWeight: 600 }}>{r.nome}</div>
-          <p className="micro muted" style={{ marginTop: 5, maxWidth: 300, lineHeight: 1.6 }}>{r.desc}</p>
-        </div>
-        <Btn size="sm" variant="primary" onClick={onAssinar}>Ver o premium</Btn>
-      </div>
-    </Card>
   );
 }
 

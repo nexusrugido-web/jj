@@ -1,8 +1,7 @@
 import React, { useRef, useState, useMemo } from 'react';
 import {
-  Download, Upload, Trash2, Check, Smartphone, Palette, User, Database,
-  RefreshCw, FileJson, TriangleAlert, ChevronRight, UserRound,
-  LogOut, LogIn, Sparkles, Loader, Info, Bell, BellOff,
+  Upload, Trash2, Check, Smartphone, Palette, User, Database, RefreshCw, FileJson, TriangleAlert,
+  ChevronRight, UserRound, LogOut, LogIn, Sparkles, Loader, Info, Bell, BellOff,
 } from 'lucide-react';
 import { useApp } from '../contexto';
 import Plano from '../components/Plano';
@@ -15,7 +14,7 @@ import {
 } from '../components/UI';
 import { baixarArquivo, hoje } from '../lib/utils';
 import { ehStandalone, detectarPlataforma } from '../lib/pwa';
-import { supabaseConfigurado, sair, traduzErro, apagarMinhaConta } from '../lib/supabase';
+import { supabaseConfigurado, sair, apagarMinhaConta } from '../lib/supabase';
 import { limparCursor } from '../lib/sync';
 import { minhasTecnicas } from '../lib/graus';
 import Guia from '../components/Guia';

@@ -40,7 +40,6 @@ export function linkDe(chave) {
   return (b && cache[b]) || null;
 }
 
-export const todosOsLinks = () => ({ ...cache });
 
 export async function carregarLinks() {
   try {

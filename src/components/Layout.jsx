@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import {
-  LayoutDashboard, NotebookPen, Library, Swords, Repeat, ChartNoAxesColumn,
-  Target, Wind, Dumbbell, HeartPulse, Trophy, Users, Settings as Cog,
-  MoreHorizontal, Download, Award, Apple, CloudOff, Cloud, RefreshCw, LogIn, Dna,
-  GraduationCap, Flame, Shield, Megaphone, CircleHelp, X, UsersRound,
+  LayoutDashboard, NotebookPen, Library, ChartNoAxesColumn, Target, Wind, Dumbbell, HeartPulse,
+  Trophy, Users, Settings as Cog, MoreHorizontal, Download, Award, Apple, CloudOff, Cloud,
+  RefreshCw, Dna, GraduationCap, Flame, Shield, Megaphone, CircleHelp, X, UsersRound,
 } from 'lucide-react';
 import { Modal } from './UI';
 

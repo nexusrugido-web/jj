@@ -42,9 +42,6 @@ export function ajusteDe(id, padrao = null) {
   return padrao !== null ? padrao : (PADRAO[id] ?? null);
 }
 
-export function todosOsAjustes() {
-  return cache ? { ...cache } : { ...PADRAO };
-}
 
 export async function carregarAjustes() {
   let base = cache;
@@ -73,4 +70,3 @@ export async function carregarAjustes() {
   }
 }
 
-export const recarregarAjustes = carregarAjustes;

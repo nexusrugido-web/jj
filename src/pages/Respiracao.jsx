@@ -1,7 +1,7 @@
 import React from 'react';
-import { Wind, Info, Check } from 'lucide-react';
+import { Wind, Check } from 'lucide-react';
 import { useApp } from '../contexto';
-import { Card, Btn, Chip } from '../components/UI';
+import { Card, Btn } from '../components/UI';
 
 /* ============================================================
    FÔLEGO
