@@ -99,6 +99,30 @@ export async function apagarArquivo(caminho) {
   await supabase.storage.from('tatame').remove([caminho]);
 }
 
+/* ============================================================
+   APAGAR A CONTA
+
+   Primeiro os arquivos (vídeos e foto), porque o Storage não deixa
+   apagar arquivo por SQL. Depois a função do servidor apaga o
+   usuário, e o banco leva junto, em cascata, tudo ligado a ele
+   (supabase/conta.sql). Se o servidor falhar, quem chamou não
+   limpa o aparelho: nada some pela metade.
+   ============================================================ */
+export async function apagarMinhaConta() {
+  const sess = await sessaoAtual();
+  if (!sess) throw new Error('Entre na sua conta pra apagar.');
+  const uid = sess.user.id;
+
+  const { data: midias } = await supabase.from('midias').select('caminho').eq('user_id', uid);
+  const caminhos = (midias || []).map((m) => m.caminho).filter(Boolean);
+  if (caminhos.length) await supabase.storage.from('tatame').remove(caminhos);
+  await supabase.storage.from('avatares').remove([`${uid}/foto.jpg`]);
+
+  const { error } = await supabase.rpc('apagar_minha_conta');
+  if (error) throw error;
+  await supabase.auth.signOut().catch(() => {});
+}
+
 /* mensagens de erro em português */
 export function traduzErro(e) {
   const m = String(e?.message || e || '');

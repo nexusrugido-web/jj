@@ -74,7 +74,9 @@ export async function sincronizar({ forcar = false } = {}) {
 
   emitir({ rodando: true, erro: null, ligado: true });
   try {
-    await subir(sess.user.id);
+    /* sobe em lotes até a fila esvaziar: antes subia 400 e esperava o
+       próximo ciclo, e a fila de quem reenviava tudo ficava horas em "pendentes" */
+    for (let lote = 0; lote < 50 && (await subir(sess.user.id)) > 0; lote++);
     await baixar(sess.user.id);
     const agora = Date.now();
     await db.meta.put({ key: 'ultimo_sync', value: agora });
@@ -90,7 +92,7 @@ export async function sincronizar({ forcar = false } = {}) {
 /* ---------- SUBIR (outbox -> nuvem) ---------- */
 async function subir(userId) {
   const itens = await db.outbox.orderBy('criadoEm').limit(400).toArray();
-  if (!itens.length) return;
+  if (!itens.length) return 0;
 
   // deduplica: só a última versão de cada uid importa
   const mapa = new Map();
@@ -128,6 +130,7 @@ async function subir(userId) {
 
   await db.outbox.bulkDelete(itens.map((i) => i.id));
   await contarPendentes();
+  return itens.length;
 }
 
 /* ---------- BAIXAR (nuvem -> local) ---------- */
