@@ -697,12 +697,15 @@ button.chip:not(.on):hover { color: var(--chalk); border-color: var(--dimmer); }
   .seg button { min-height: 38px; padding: 8px 14px; }
   .stepper button { width: 38px; height: 38px; }
 
-  /* grades de chip roláveis em vez de espremidas */
+  /* grades de chip roláveis em vez de espremidas. Só encostam na borda da
+     tela quando estão soltas na página: dentro de cartão, bloco ou folha,
+     a margem negativa empurrava as etiquetas pra fora da borda da caixa */
   .chips-scroll {
     display: flex; gap: 6px; overflow-x: auto;
-    padding-bottom: 6px; margin: 0 -14px; padding-left: 14px; padding-right: 14px;
+    padding-bottom: 6px;
     scroll-snap-type: x proximity;
   }
+  .page > .chips-scroll { margin: 0 -14px; padding-left: 14px; padding-right: 14px; }
   .chips-scroll .chip { flex: none; scroll-snap-align: start; }
 }
 
@@ -3252,3 +3255,10 @@ body::after {
 .placar-ofa .placar-rot { font-size: var(--fs-sec); }
 .placar-ofa-ver { flex: none; display: inline-flex; align-items: center; gap: 2px; font-size: var(--fs-meta); font-weight: 700; color: var(--roar); }
 .placar-dois { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* ---------- etiqueta com texto longo não passa da caixa ----------
+   Numa linha que quebra, a etiqueta cabe na largura dela e o texto
+   desce pra segunda linha. Na fileira que rola pro lado, continua
+   numa linha só: ali a rolagem é o caminho. */
+.chip { max-width: 100%; }
+.row.wrap > .chip { white-space: normal; text-align: left; line-height: 1.25; padding-top: 5px; padding-bottom: 5px; }
