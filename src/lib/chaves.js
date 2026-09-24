@@ -107,6 +107,24 @@ function dentroDaFatia(id, pct) {
   return (h % 100) < pct;
 }
 
+/* ============================================================
+   ANTES DA PRIMEIRA TELA
+
+   O app abria com o padrão (cobrança desligada) e só depois lia o
+   que estava guardado: por uns segundos tudo aparecia liberado e
+   depois travava na cara da pessoa. Agora a resposta guardada entra
+   antes da tela. Aparelho que nunca abriu espera o servidor um
+   pouco, porque o padrão pode estar errado.
+   ============================================================ */
+export async function chavesAntesDaTela(esperaMs = 3000) {
+  try {
+    const guardado = await getMeta('chaves', null);
+    if (guardado) { aplicar({ ...PADRAO, ...guardado }); return true; }
+  } catch { /* banco fechado: segue pro servidor */ }
+  await Promise.race([carregarChaves(), new Promise((ok) => setTimeout(ok, esperaMs))]);
+  return !!cache;
+}
+
 /* ---------- recado geral ---------- */
 export async function carregarRecado() {
   if (!supabase || !ligada('aviso_global')) return null;
@@ -135,6 +153,9 @@ export async function souAdmin() {
   try {
     const { data, error } = await supabase.rpc('sou_admin');
     if (error) return false;
+    /* guardado só pra abrir a tela certa na próxima vez; quem decide
+       o que o admin pode salvar continua sendo o servidor */
+    setMeta('sou_admin', !!data).catch(() => {});
     return !!data;
   } catch {
     return false;

@@ -20,7 +20,7 @@ import { carregarCompras } from './lib/pago';
 import { carregarAjustes, observarAjustes } from './lib/ajustes';
 import { carregarLinks, observarLinks } from './lib/links';
 import { registrarErro, erroDeAcesso } from './lib/monitor';
-import { carregarChaves, carregarRecado, souAdmin, ligada, observarChaves, todasAsChaves } from './lib/chaves';
+import { carregarChaves, carregarRecado, souAdmin, ligada, observarChaves, todasAsChaves, chavesAntesDaTela } from './lib/chaves';
 import { sincronizarMarcos } from './lib/milestones';
 import { abriuOApp } from './lib/push';
 import { ofensiva } from './lib/ofensiva';
@@ -227,21 +227,32 @@ export default function App() {
       settingsRef.current = completo;
       setSettings(completo);
 
+      let sessaoAberta = null;
       if (supabaseConfigurado) {
         const params = new URLSearchParams(location.search);
         const querRecuperar = params.get('recuperar') === '1' ||
           location.hash.includes('type=recovery');
         const sess = await passo('sessão', sessaoAtual, 8000);
         setSessao(sess);
+        sessaoAberta = sess;
         if (querRecuperar) { setModoLogin('nova_senha'); setTelaLogin(true); }
         const jaViu = await getMeta('viu_login', false);
         if (!sess && !jaViu) setTelaLogin(true);
         if (sess) {
           iniciarSync();
-          await passo('subir pra nuvem', garantirNuvem, 20000);
+          /* em segundo plano: a nuvem não segura a abertura do app */
+          garantirNuvem().catch(() => {});
           restaurarPontos().catch(() => {});
         }
       }
+
+      /* o que decide o que a tela mostra entra antes dela: as chaves, o
+         acesso e se é admin, do que está guardado no aparelho */
+      await passo('chaves', chavesAntesDaTela, 4000);
+      setChaves(todasAsChaves());
+      const acessoGuardado = await passo('acesso', acessoLocal, 3000);
+      if (acessoGuardado) setAcesso(acessoGuardado);
+      if (sessaoAberta) setEhAdmin(!!(await getMeta('sou_admin', false)));
 
       /* o app já pode abrir. O resto chega quando chegar. */
       if (!s?.aceite || s.aceite.versao !== VERSAO_DOCS) setPrecisaAceitar(true);
@@ -262,7 +273,6 @@ export default function App() {
       carregarCompras().catch(() => {});
       carregarAjustes().catch(() => {});
       carregarLinks().catch(() => {});
-      acessoLocal().then(setAcesso).catch(() => {});
       sincronizarAcesso().then(setAcesso).catch(erroDeAcesso);
       marcarEngajamento();
     })();
