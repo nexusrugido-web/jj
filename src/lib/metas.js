@@ -217,6 +217,9 @@ const periodoDaMeta = (meta, senao) => (meta.inicio
      periodo  o objeto de periodoDeDados que contou, quando tem
      quando   de quando é a conta, escrito ("Esta semana · 14/09 a 20/09")
    ============================================================ */
+/* quantos dias sem ser pego fecham a meta de defesa */
+export const DIAS_SEM_SER_PEGO = 30;
+
 export function progressoDaMeta(meta, dados) {
   return comAjuste(calcular(meta, dados), meta);
 }
@@ -324,22 +327,26 @@ function calcular(meta, dados = {}) {
         texto: 'Falta escolher qual técnica acompanhar.',
       };
     }
+    /* Dias sem ser pego, até 30. Antes a meta contava as vezes nos
+       últimos 30 dias e só enchia quando chegava a zero: a barra ficava
+       parada em 0% por semanas e parecia impossível. Contando dias, ela
+       anda todo dia que você treina sem bater, e volta ao zero se bater. */
     const b = buracos.find((x) => x.nome === meta.alvo);
-    const recente = b?.recente || 0;
-    const periodo = periodoDeDados('ultimos-30');
+    const dias = b?.ultima ? Math.max(0, diasEntre(b.ultima, hoje())) : DIAS_SEM_SER_PEGO;
+    const feito = Math.min(dias, DIAS_SEM_SER_PEGO);
+    const nome = String(meta.alvo).toLowerCase();
     return {
       conta: true,
       invertida: true,
       semBotao: true,
-      atual: recente,
-      alvo: 0,
-      pct: recente === 0 ? 100 : Math.max(0, 100 - recente * 25),
-      valor: `${recente} ${recente === 1 ? 'vez' : 'vezes'}`,
-      periodo,
-      quando: `${periodo.rotulo} · quanto menos, melhor`,
-      texto: recente === 0
-        ? `Nenhuma vez nos últimos 30 dias. ${meta.alvo || 'Isso'} parou de te pegar.`
-        : `${recente} ${recente === 1 ? 'vez' : 'vezes'} nos últimos 30 dias. Quanto menos, melhor.`,
+      atual: feito,
+      alvo: DIAS_SEM_SER_PEGO,
+      pct: pct(feito, DIAS_SEM_SER_PEGO),
+      valor: `${feito} de ${DIAS_SEM_SER_PEGO} dias`,
+      quando: b?.ultima ? `Sem bater pra ${nome} desde ${fmtData(b.ultima)}` : 'Nenhuma vez registrada',
+      texto: feito >= DIAS_SEM_SER_PEGO
+        ? `${DIAS_SEM_SER_PEGO} dias sem ${nome} te pegar. Meta batida.`
+        : `${feito} ${feito === 1 ? 'dia' : 'dias'} sem ${nome} te pegar. A meta é ${DIAS_SEM_SER_PEGO}; se pegar de novo, a contagem recomeça.`,
     };
   }
 

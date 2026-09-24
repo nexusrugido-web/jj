@@ -429,7 +429,16 @@ export default function Metas() {
 
       <Confirmar
         aberto={!!excluir} onClose={() => setExcluir(null)}
-        onConfirmar={async () => { await db.goals.delete(excluir.id); toast('Meta removida'); }}
+        onConfirmar={async () => {
+          await db.goals.delete(excluir.id);
+          /* meta que veio de sugestão e foi apagada não volta como sugestão */
+          if (excluir.origem === 'confirmada' && excluir.alvo !== undefined) {
+            const chave = `${excluir.tipo}:${excluir.alvo}`;
+            const ja = settings.sugestoesDispensadas || [];
+            if (!ja.includes(chave)) await salvarSettings({ sugestoesDispensadas: [...ja, chave] });
+          }
+          toast('Meta removida');
+        }}
         titulo="Remover meta" texto="Ela some da lista."
       />
     </div>

@@ -205,12 +205,13 @@ ok('frequência: conta a semana e escreve qual', [freq.atual, freq.valor, freq.q
   [P.dentroDoPeriodo(treinosM, semanaAgora).length, `${P.dentroDoPeriodo(treinosM, semanaAgora).length} de 3`, 'Esta semana']);
 ok('a meta diz o período pelo nome, sem o intervalo de datas', freq.quando.includes('/'), false);
 
-const buracosM = [{ nome: 'Americana', recente: 2 }];
+const buracosM = [{ nome: 'Americana', recente: 2, ultima: addDias(hoje(), -10) }];
 const defesa = prog({ tipo: 'defesa', alvo: 'Americana', ajuste: 3 }, { buracos: buracosM });
-ok('defesa: as vezes que te pegaram, sem conta invertida', [defesa.valor, defesa.pct, defesa.semBotao], ['2 vezes', 50, true]);
-ok('defesa: período e o que fazer, em português', defesa.quando, 'Últimos 30 dias · quanto menos, melhor');
-ok('defesa: ajuste antigo (da conta invertida) não entra', defesa.atual, 2);
-ok('defesa zerada é meta batida', prog({ tipo: 'defesa', alvo: 'Kimura' }, { buracos: buracosM }).pct, 100);
+ok('defesa: dias sem ser pego, a barra anda', [defesa.valor, defesa.pct, defesa.semBotao], ['10 de 30 dias', 33, true]);
+ok('defesa: diz desde quando, em português', defesa.quando.startsWith('Sem bater pra americana desde'), true);
+ok('defesa: ajuste antigo (da conta invertida) não entra', defesa.atual, 10);
+ok('defesa de quem nunca te pegou é meta batida', prog({ tipo: 'defesa', alvo: 'Kimura' }, { buracos: buracosM }).pct, 100);
+ok('pego hoje: a contagem recomeça', prog({ tipo: 'defesa', alvo: 'Americana' }, { buracos: [{ nome: 'Americana', ultima: hoje() }] }).atual, 0);
 
 const sofridas = [antes(29), antes(30), H].map((data) => ({ data }));
 ok('o "recente" da defesa são os mesmos 30 dias', calcularDefesa(sofridas).recente, 2);
