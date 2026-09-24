@@ -1,5 +1,6 @@
 import Dexie from 'dexie';
 import { db, TABELAS_SYNC } from '../db/db';
+import { uidEstavel, chaveNome } from './uid';
 import { supabase, supabaseConfigurado, sessaoAtual } from './supabase';
 
 /* ============================================================
@@ -57,6 +58,25 @@ export async function enfileirar(tabela, op, registro) {
   agendar();
 }
 
+/* ============================================================
+   A BIBLIOTECA NÃO SOBE
+
+   Posições, categorias e técnicas da biblioteca nascem iguais em
+   todo aparelho, com o mesmo uid. Enquanto o aluno não mexe, subir
+   não serve pra nada: só ocupa o banco grátis e, pior, uma cópia
+   zerada de um aparelho novo sobrescrevia na nuvem o que ele tinha
+   marcado no outro. Mexeu (status, favorita, nota), vira dado dele
+   e sobe como qualquer outro.
+   ============================================================ */
+const SEMENTES = ['positions', 'categories', 'techniques'];
+
+export function sementeIntacta(tabela, o) {
+  if (!SEMENTES.includes(tabela) || !o?.nome || !o.uid || o.arquivada) return false;
+  if ((o.updatedAt || 0) - (o.criadoEm || 0) > 5000) return false;
+  if (tabela === 'techniques' && ((o.status || 'nao_iniciada') !== 'nao_iniciada' || o.favorita || o.nivel || o.detalhes || o.video)) return false;
+  return o.uid === uidEstavel(chaveNome(tabela, o.nome));
+}
+
 let timer = null;
 function agendar(ms = 1200) {
   clearTimeout(timer);
@@ -94,9 +114,10 @@ async function subir(userId) {
   const itens = await db.outbox.orderBy('criadoEm').limit(400).toArray();
   if (!itens.length) return 0;
 
-  // deduplica: só a última versão de cada uid importa
+  // deduplica: só a última versão de cada uid importa. Biblioteca intocada
+  // que ficou na fila de antes sai da fila sem subir.
   const mapa = new Map();
-  for (const i of itens) mapa.set(i.uid, i);
+  for (const i of itens) if (!(i.op === 'upsert' && sementeIntacta(i.tabela, i.dados))) mapa.set(i.uid, i);
   const finais = [...mapa.values()];
 
   const upserts = finais
@@ -175,7 +196,9 @@ async function aplicarLocal(linhas) {
     const remotoEm = new Date(linha.updated_at).getTime();
     if (existente && (existente.updatedAt || 0) >= remotoEm) continue; // local é mais novo
 
-    const registro = { ...linha.dados, uid: linha.id, updatedAt: remotoEm, sincronizado: 1 };
+    /* __local: grava sem voltar pra fila de envio (db.js). Sem isso,
+       o que descia voltava a subir, e o ciclo não parava. */
+    const registro = { ...linha.dados, uid: linha.id, updatedAt: remotoEm, sincronizado: 1, __local: Math.random() };
     if (existente) {
       await db[tabela].update(existente.id, registro);
     } else {
@@ -186,7 +209,7 @@ async function aplicarLocal(linhas) {
 }
 
 function limpar(obj) {
-  const { id, sincronizado, ...resto } = obj || {};
+  const { id, sincronizado, __local, ...resto } = obj || {};
   return resto;
 }
 
@@ -197,6 +220,7 @@ export async function migrarParaNuvem() {
     if (!db[tabela]) continue;
     const linhas = await db[tabela].toArray();
     for (const l of linhas) {
+      if (sementeIntacta(tabela, l)) continue;
       const uid = l.uid || crypto.randomUUID();
       const updatedAt = l.updatedAt || l.criadoEm || Date.now();
       if (!l.uid || !l.updatedAt) await db[tabela].update(l.id, { uid, updatedAt });

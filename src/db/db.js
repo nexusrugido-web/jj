@@ -153,12 +153,17 @@ for (const nome of TABELAS_SYNC) {
   tabela.hook('creating', function (pk, obj) {
     if (!obj.uid) obj.uid = crypto.randomUUID();
     if (!obj.updatedAt) obj.updatedAt = Date.now();
+    /* __local: veio da nuvem, ou é a biblioteca que todo aparelho cria
+       igual. Grava sem voltar pra fila, e a marca não fica no registro. */
+    if (obj.__local) { delete obj.__local; return; }
     const snap = { ...obj };
     this.onsuccess = (chave) => enfileirarRef?.(nome, 'upsert', { ...snap, id: chave });
   });
 
   tabela.hook('updating', function (mods, pk, obj) {
-    if (mods.__local) return;
+    /* a marca muda a cada gravação que vem da nuvem: quem edita copiando o
+       registro inteiro leva a marca velha junto, e aí a edição sobe */
+    if (mods.__local && mods.__local !== obj.__local) return;
     const uid = obj.uid || crypto.randomUUID();
     const updatedAt = Date.now();
     const novo = { ...obj, ...mods, uid, updatedAt };
@@ -206,9 +211,9 @@ export async function ensureSeed() {
       [db.positions, db.categories, db.techniques, db.breathProtocols, db.exercises, db.meta],
       async () => {
         const posMap = {};
-        for (const p of SEED.positions) posMap[p.slug] = await db.positions.add({ ...p, uid: uidEstavel(chaveNome('positions', p.nome)), arquivada: 0, criadoEm: Date.now() });
+        for (const p of SEED.positions) posMap[p.slug] = await db.positions.add({ ...p, uid: uidEstavel(chaveNome('positions', p.nome)), arquivada: 0, criadoEm: Date.now(), __local: 1 });
         const catMap = {};
-        for (const c of SEED.categories) catMap[c.slug] = await db.categories.add({ ...c, uid: uidEstavel(chaveNome('categories', c.nome)), arquivada: 0, criadoEm: Date.now() });
+        for (const c of SEED.categories) catMap[c.slug] = await db.categories.add({ ...c, uid: uidEstavel(chaveNome('categories', c.nome)), arquivada: 0, criadoEm: Date.now(), __local: 1 });
         for (const t of SEED.techniques) {
           await db.techniques.add({
             uid: uidEstavel(chaveNome('techniques', t.pt)),
@@ -223,7 +228,7 @@ export async function ensureSeed() {
             nivelSugerido: t.nivel_sugerido || '',
             status: 'nao_iniciada', nivel: 0, favorita: 0,
             tags: t.tags || [], video: '', detalhes: '',
-            arquivada: 0, criadoEm: Date.now(),
+            arquivada: 0, criadoEm: Date.now(), __local: 1,
           });
         }
         for (const b of SEED.breathProtocols) await db.breathProtocols.add({ ...b, uid: uidEstavel(chaveNome('breathProtocols', b.nome)), arquivada: 0, criadoEm: Date.now() });
