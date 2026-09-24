@@ -247,6 +247,21 @@ export default function Lesoes() {
         titulo="Excluir registro"
         texto="Some do histórico."
       />
+
+      {/* depois de registrar lesão que tira do tatame: o que dá pra estudar parado.
+          Mora aqui, na tela, e não na aba Recuperação, que não tem esses dados */}
+      <ParadoEstudando
+        aberto={!!recemSalva}
+        lesao={recemSalva}
+        faixa={settings.faixa}
+        vistas={vistas}
+        onClose={() => setRecemSalva(null)}
+        onEstudar={() => {
+          const g = guiaDeEstudo(recemSalva?.regiao);
+          setRecemSalva(null);
+          irPara('estudo', { tema: g.busque[0] });
+        }}
+      />
     </div>
   );
 }
@@ -310,19 +325,6 @@ function Recuperacao() {
           ou perda de força merecem avaliação presencial.
         </p>
       </Card>
-      <ParadoEstudando
-        aberto={!!recemSalva}
-        lesao={recemSalva}
-        faixa={settings.faixa}
-        vistas={vistas}
-        onClose={() => setRecemSalva(null)}
-        onEstudar={() => {
-          const g = guiaDeEstudo(recemSalva?.regiao);
-          setRecemSalva(null);
-          irPara('estudo', { tema: g.busque[0] });
-        }}
-      />
-
     </div>
   );
 }

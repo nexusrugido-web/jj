@@ -182,6 +182,22 @@ for (const t of telas) {
   /* TELAS_HTML=<pasta> guarda o HTML de cada tela, pra tirar print */
   if (process.env.TELAS_HTML) fs.writeFileSync(path.join(process.env.TELAS_HTML, `${t}.html`), raiz.innerHTML);
   for (const e of novos.slice(0, 2)) console.log('      ', e.split('\n').slice(0, 3).join('\n       '));
+
+  /* cada aba da tela também: um erro só dentro de uma aba (Lesões >
+     Recuperação, 24/09/2026) passava batido porque a tela abria bem */
+  const abas = [...raiz.querySelectorAll('.page .seg button')].map((b) => b.textContent.trim());
+  for (const nome of abas) {
+    const b = [...raiz.querySelectorAll('.page .seg button')].find((x) => x.textContent.trim() === nome);
+    if (!b) continue;
+    const a0 = erros.length;
+    clicar(b); await esperar(700);
+    const quebrou = erros.length > a0 || /Carregando esta tela/.test(raiz.textContent);
+    if (quebrou) {
+      falhas++;
+      console.log(`FALHA ${t} > aba ${nome}`);
+      for (const e of erros.slice(a0, a0 + 2)) console.log('      ', e.split('\n').slice(0, 3).join('\n       '));
+    }
+  }
 }
 
 /* os números que a tela mostra batem com os dados de cima */
