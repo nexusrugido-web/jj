@@ -28,7 +28,7 @@ export function definirMarcos({ matHoras, rolas, sessoes, dominadas, primeiraFin
     if (rolas >= r) lista.push({
       chave: `rolas_${r}`,
       titulo: `${r} rolas registrados`,
-      texto: 'Cada uma dessas foi você escolhendo ir treinar.',
+      texto: 'Cada um desses foi você escolhendo ir treinar.',
       tipo: 'rolas', valor: r,
     });
   }
@@ -93,7 +93,7 @@ export async function sincronizarMarcos(dados) {
     const velho = jaTem.get(m.chave);
     if (velho) {
       /* texto corrigido chega também em quem já tinha a conquista */
-      if (velho.titulo !== m.titulo) await db.milestones.update(velho.id, { titulo: m.titulo });
+      if (velho.titulo !== m.titulo || velho.texto !== m.texto) await db.milestones.update(velho.id, { titulo: m.titulo, texto: m.texto });
       continue;
     }
     const registro = { ...m, data: hoje(), visto: 0, criadoEm: Date.now() };

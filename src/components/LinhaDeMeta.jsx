@@ -1,6 +1,6 @@
 import React from 'react';
 import { Check } from 'lucide-react';
-import { Bar, Chip } from './UI';
+import { Bar } from './UI';
 
 /* ============================================================
    A LINHA DE UMA META
@@ -19,10 +19,7 @@ export default function LinhaDeMeta({ titulo, p }) {
     <div className={`meta-linha ${feita ? 'feita' : perto ? 'perto' : ''}`}>
       <div className="meta-linha-topo">
         <span className="meta-linha-titulo tiny">{titulo}</span>
-        <span className="meta-linha-valor num micro">
-          {feita && <Chip tone="jade"><Check size={11} /> feita</Chip>}
-          {p.valor}
-        </span>
+        <span className="meta-linha-valor num micro">{p.valor}</span>
       </div>
       {p.quando && (
         <span className="micro muted">
@@ -32,6 +29,8 @@ export default function LinhaDeMeta({ titulo, p }) {
         </span>
       )}
       <Bar v={p.pct} max={100} tone={feita ? 'jade' : perto ? 'accent' : ''} />
+      {/* o "feita" embaixo da barra: em cima ele espremia o título */}
+      {feita && <span className="micro row" style={{ gap: 5, color: 'var(--jade)', fontWeight: 600 }}><Check size={13} /> feita</span>}
       {perto && !p.invertida && (
         <span className="micro" style={{ color: 'var(--accent)' }}>
           Falta pouco, {p.alvo - p.atual}{p.horas ? 'h' : ''} pra fechar.

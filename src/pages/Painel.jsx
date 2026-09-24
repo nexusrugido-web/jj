@@ -644,7 +644,7 @@ function SemanaDoRitmo({ semana, metaFreq, porSemana, ultimoTreino, salvarSettin
           sub="semana"
           size={104}
         />
-        <div style={{ flex: 1, minWidth: 200 }}>
+        <div style={{ flex: 1, minWidth: 170 }}>
           <div className="eyebrow">{metaFreq ? 'meta que você criou' : 'o ritmo que você marcou'}</div>
           <div className="h-sec" style={{ marginTop: 4 }}>
             {!alvo

@@ -77,23 +77,21 @@ export default function Dominio() {
       <Cabecalho onComo={() => setComoFunciona(true)} />
 
       {/* os graus */}
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', marginBottom: 14 }}>
+      {/* o arsenal num cartão só; cada grau filtra a lista ao ser tocado */}
+      <Card className="arsenal" style={{ marginBottom: 14 }}>
         {[4, 3, 2, 1].map((n) => {
           const g = grauPorN(n);
           const ativo = filtro === String(n);
           return (
-            <Card key={n} className="hover pointer"
-              onClick={() => setFiltro(ativo ? 'todas' : String(n))}
-              style={{ borderColor: ativo ? `color-mix(in srgb, var(--${g.cor}) 45%, var(--seam))` : undefined }}>
-              <div className="row" style={{ gap: 8, marginBottom: 7 }}>
-                <Ponteira n={n} />
-              </div>
-              <div className="stat-val num sm" style={{ color: `var(--${g.cor})` }}>{resumo[`g${n}`]}</div>
-              <div className="stat-lab">{g.curto}</div>
-            </Card>
+            <button key={n} type="button" className={`arsenal-cel ${ativo ? 'on' : ''}`} aria-pressed={ativo}
+              onClick={() => setFiltro(ativo ? 'todas' : String(n))}>
+              <Ponteira n={n} />
+              <span className="arsenal-num num" style={{ color: `var(--${g.cor})` }}>{resumo[`g${n}`]}</span>
+              <span className="arsenal-lab">{g.curto}</span>
+            </button>
           );
         })}
-      </div>
+      </Card>
 
       {/* o que fazer agora */}
       {recs.length > 0 && (

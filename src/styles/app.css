@@ -3117,3 +3117,28 @@ body::after {
 .meta-prog { display: flex; align-items: center; gap: 12px; }
 .meta-pct { font-family: var(--display); font-weight: 800; font-size: 24px; letter-spacing: -0.03em; min-width: 58px; }
 .meta-pct.feita { color: var(--jade); }
+
+/* ---------- marcos em linha do tempo ---------- */
+.marcos { display: flex; flex-direction: column; gap: 0; padding-top: var(--e2); padding-bottom: var(--e2); }
+.marco { position: relative; display: flex; gap: 14px; align-items: flex-start; padding: 12px 0; }
+.marco + .marco { border-top: 1px solid var(--seam); }
+.marco-ico {
+  width: 36px; height: 36px; border-radius: 99px; flex: none; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--accent) 14%, var(--void)); color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.marco-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.marco-tit { font-family: var(--display); font-weight: 700; font-size: 16px; letter-spacing: -0.02em; }
+
+/* ---------- o arsenal de Minhas técnicas ---------- */
+.arsenal { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 6px; }
+.arsenal-cel {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left;
+  padding: 12px; border-radius: 12px; border: 1px solid transparent; transition: background .16s var(--ease);
+}
+.arsenal-cel:hover { background: var(--mat-hi); }
+.arsenal-cel.on { background: var(--mat-top); border-color: var(--seam-hi); }
+.arsenal-num { font-family: var(--display); font-weight: 800; font-size: 28px; line-height: 1; letter-spacing: -0.04em; }
+.arsenal-lab { font-size: var(--fs-meta); font-weight: 600; color: var(--dim); line-height: 1.3; }
+@media (max-width: 520px) { .arsenal { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 780px) { .destaques { grid-template-columns: 1fr; } }

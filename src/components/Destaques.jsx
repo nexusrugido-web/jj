@@ -20,7 +20,7 @@ export default function Destaques({ resumo, onVerTudo }) {
   if (!arma && !buraco) return null;
 
   return (
-    <div className="grid g2" style={{ gap: 12, marginBottom: 14 }}>
+    <div className="grid g2 destaques" style={{ gap: 12, marginBottom: 14 }}>
       <Destaque
         tom="jade"
         icone={Swords}

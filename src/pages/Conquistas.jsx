@@ -21,11 +21,13 @@ import { hoje, fmtData, relativo, diasEntre, fmtDur } from '../lib/utils';
 
 /* Abre a figurinha pro story (a imagem, com o @ do app). O card
    em link continua lá dentro, pra quem prefere mandar no grupo. */
-function Compartilhar({ tipo, dados, texto, variante, figura }) {
+function Compartilhar({ tipo, dados, texto, variante, figura, soIcone = false }) {
   const [aberto, setAberto] = useState(false);
   return (
     <>
-      <Btn size="sm" variant={variante} icon={Share2} onClick={() => setAberto(true)}>Compartilhar</Btn>
+      {soIcone
+        ? <button type="button" className="btn ghost icon sm" aria-label="Compartilhar" onClick={() => setAberto(true)}><Share2 size={16} /></button>
+        : <Btn size="sm" variant={variante} icon={Share2} onClick={() => setAberto(true)}>Compartilhar</Btn>}
       <Figurinha aberto={aberto} onClose={() => setAberto(false)} dados={figura} link={{ tipo, dados, texto }} />
     </>
   );
@@ -200,29 +202,29 @@ export default function Conquistas() {
       {marcos.length === 0 ? (
         <Card><Empty icon={Trophy} titulo="Nenhum marco ainda" texto="Registre treinos e rolas. Os marcos aparecem sozinhos quando você bate horas de tatame, domina técnicas e mantém consistência." /></Card>
       ) : (
-        <div className="grid g-auto">
+        /* a jornada em linha do tempo: o mais recente em cima */
+        <Card className="marcos">
           {marcos.map((m) => {
             const Ico = ICONES[m.tipo] || Trophy;
             return (
-              <Card key={m.id} className="hover" style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                <span className="stat-ico" style={{ width: 38, height: 38, borderRadius: 12, flex: 'none' }}><Ico size={17} /></span>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontFamily: 'var(--display)', fontSize: 15, letterSpacing: '-0.02em' }}>{m.titulo}</div>
-                  <p className="micro muted" style={{ marginTop: 4 }}>{m.texto}</p>
-                  <div className="row" style={{ gap: 8, marginTop: 6 }}>
-                    <span className="micro" style={{ color: 'var(--dimmer)', flex: 1 }}>{relativo(m.data)}</span>
-                    <Compartilhar
-                      tipo="marco"
-                      dados={{ titulo: m.titulo, texto: m.texto }}
-                      texto={m.titulo}
-                      figura={{ selo: 'marco atingido', grande: m.titulo, sub: m.texto }}
-                    />
-                  </div>
+              <div key={m.id} className="marco">
+                <span className="marco-ico"><Ico size={16} /></span>
+                <div className="marco-txt">
+                  <div className="marco-tit">{m.titulo}</div>
+                  <p className="micro muted" style={{ marginTop: 2 }}>{m.texto}</p>
+                  <span className="micro" style={{ color: 'var(--dimmer)' }}>{relativo(m.data)}</span>
                 </div>
-              </Card>
+                <Compartilhar
+                  soIcone
+                  tipo="marco"
+                  dados={{ titulo: m.titulo, texto: m.texto }}
+                  texto={m.titulo}
+                  figura={{ selo: 'marco atingido', grande: m.titulo, sub: m.texto }}
+                />
+              </div>
             );
           })}
-        </div>
+        </Card>
       )}
 
       {/* ---- registrar graduação ---- */}
