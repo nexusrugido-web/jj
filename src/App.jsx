@@ -399,7 +399,9 @@ export default function App() {
     document.documentElement.dataset.belt = settings.faixa || 'branca';
     if (settings.acento && settings.acento !== 'belt') document.documentElement.dataset.accent = settings.acento;
     else delete document.documentElement.dataset.accent;
-  }, [settings.faixa, settings.acento]);
+    /* preto neutro é o padrão; 'cor' tinge o fundo com a cor de destaque */
+    document.documentElement.dataset.fundo = settings.fundo === 'cor' ? 'cor' : 'preto';
+  }, [settings.faixa, settings.acento, settings.fundo]);
 
   /* ---------- marcos (o lugar do XP) ---------- */
   useEffect(() => {

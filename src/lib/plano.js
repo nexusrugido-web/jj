@@ -53,6 +53,7 @@ export const RECURSOS = {
 
   historico:     { premium: true, nome: 'Histórico completo', desc: `No grátis você vê os últimos ${LIMITES.historicoDias} dias.` },
   analise:       { premium: true, nome: 'Análise e gráficos', desc: 'Evolução, presença no tatame, contra quem você luta e onde fica por cima.' },
+  ia:            { premium: true, nome: 'Análise da IA', desc: 'O botão Análise IA do Painel lê o seu histórico e diz o que os seus números mostram.' },
   meujogo:       { premium: true, nome: 'Meu jogo por situação', desc: 'Como você vai contra mais pesado, mais leve e em cada posição em que o rola começa.' },
   aulasIlimitadas:{ premium: true, nome: 'Aulas sem limite', desc: `No grátis é ${LIMITES.aulasPorDia} aula completa e ${LIMITES.shortsPorDia} aula rápida por dia.` },
   quizIlimitado: { premium: true, nome: 'Quiz sem limite', desc: `No grátis é uma rodada por dia.` },

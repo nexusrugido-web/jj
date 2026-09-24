@@ -2824,24 +2824,30 @@ button.liga-linha:hover { border-color: var(--seam-hi); }
    espaço e os componentes de base. As regras de tela, lá em
    cima, só cuidam de composição.
 
-   Cor: o preto do fundo leva um pouco da cor de destaque. Com
-   Brasa (o padrão) ele fica preto avermelhado; com Gelo, azulado.
+   Cor: preto neutro por padrão, e a cor de destaque aparece por
+   cima dele. Em Ajustes dá pra tingir o fundo com ela (Brasa fica
+   preto avermelhado; Gelo, azulado).
    Três camadas de superfície com diferença que se vê: fundo,
    cartão e o que fica dentro do cartão.
    ============================================================ */
 :root {
   --accent: #ef5a44; --accent-soft: #ff9b8a; --accent-ink: #1f0805;
 
-  --void:    color-mix(in oklab, var(--accent) 5%, #0a0909);
-  --mat:     color-mix(in oklab, var(--accent) 5%, #151314);
-  --mat-hi:  color-mix(in oklab, var(--accent) 6%, #1b1819);
-  --mat-top: color-mix(in oklab, var(--accent) 7%, #221e1f);
-  --seam:    color-mix(in oklab, var(--accent) 9%, #2b2627);
-  --seam-hi: color-mix(in oklab, var(--accent) 13%, #3b3435);
+  /* preto neutro, o padrão. Não é #000 puro: em tela OLED o preto
+     absoluto borra quando a lista rola, e o branco em cima dele cansa.
+     Cada camada acima do fundo fica um pouco mais clara, que é o que
+     dá profundidade no escuro (sombra quase não aparece). */
+  --void:    #0a0a0a;
+  --mat:     #141414;
+  --mat-hi:  #1a1a1b;
+  --mat-top: #222223;
+  --seam:    #262627;
+  --seam-hi: #363638;
 
-  --chalk: #f5f0ef;
-  --dim: #b3abaa;
-  --dimmer: #928a89;
+  /* texto: branco suave, não puro; cinzas sem tinta */
+  --chalk: #f0f0f1;
+  --dim: #acacb0;
+  --dimmer: #8c8c91;
 
   /* letra: cada nível com um papel só */
   --fs-display: 40px;
@@ -2868,10 +2874,27 @@ button.liga-linha:hover { border-color: var(--seam-hi); }
 [data-accent='ice']  { --accent: #55b6ff; --accent-soft: #a5daff; --accent-ink: #04121f; }
 [data-accent='blood']{ --accent: #ef5a44; --accent-soft: #ff9b8a; --accent-ink: #1f0805; }
 
+/* a opção de fundo tingido: o preto leva um pouco da cor de destaque */
+[data-fundo='cor'] {
+  --void:    color-mix(in oklab, var(--accent) 5%, #0a0909);
+  --mat:     color-mix(in oklab, var(--accent) 5%, #151314);
+  --mat-hi:  color-mix(in oklab, var(--accent) 6%, #1b1819);
+  --mat-top: color-mix(in oklab, var(--accent) 7%, #221e1f);
+  --seam:    color-mix(in oklab, var(--accent) 9%, #2b2627);
+  --seam-hi: color-mix(in oklab, var(--accent) 13%, #3b3435);
+  --chalk: #f5f0ef;
+  --dim: #b3abaa;
+  --dimmer: #928a89;
+}
+
 body { font-size: var(--fs-body); }
 /* o tatame ao fundo fica só como textura, sem disputar com o conteúdo */
 body::before { opacity: 0.14; }
+/* no preto, o brilho da cor no topo é só um sopro; no tingido, mais forte */
 body::after {
+  background: radial-gradient(900px 520px at 80% -12%, color-mix(in srgb, var(--accent) 6%, transparent), transparent 70%);
+}
+[data-fundo='cor'] body::after {
   background: radial-gradient(900px 520px at 80% -12%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%);
 }
 

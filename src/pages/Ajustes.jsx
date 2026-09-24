@@ -152,6 +152,20 @@ export default function Ajustes() {
           </div>
         </Field>
 
+        <Field label="Fundo" hint="O preto deixa a cor de destaque aparecer mais. O outro tinge o fundo com ela.">
+          <div className="row wrap" style={{ gap: 8 }}>
+            {[{ id: 'preto', nome: 'Preto' }, { id: 'cor', nome: 'Com a cor de destaque' }].map((f) => (
+              <button
+                key={f.id}
+                className={`chip ${(settings.fundo === 'cor' ? 'cor' : 'preto') === f.id ? 'on' : ''}`}
+                onClick={() => set('fundo', f.id)}
+              >
+                {f.nome}
+              </button>
+            ))}
+          </div>
+        </Field>
+
         <div className="divider" style={{ margin: '16px 0' }} />
         <div className="row" style={{ padding: '9px 11px', background: 'var(--void)', borderRadius: 10, marginBottom: 14 }}>
           <span className="tiny grow">Comemorar marcos em tela cheia</span>

@@ -31,14 +31,17 @@ import { PrimeirosPassos, AvisoDeVolta } from '../components/PrimeirosPassos';
 import Destaques from '../components/Destaques';
 import { analisarDiario } from '../lib/ai';
 import { Sheet, useToast } from '../components/UI';
+import { podeVer } from '../lib/plano';
+import { Travado } from '../components/Plano';
 import { supabase } from '../lib/supabase';
 
 export default function Painel() {
   const [ajudaTec, setAjudaTec] = useState(false);
-  const { sessions, rolls, positions, settings, salvarSettings, irPara, reviews, goals, techniques, partners, ligada, sessao } = useApp();
+  const { sessions, rolls, positions, settings, salvarSettings, irPara, reviews, goals, techniques, partners, ligada, sessao, acesso } = useApp();
   const toast = useToast();
   const [analise, setAnalise] = useState(null);
   const [carregandoIa, setCarregandoIa] = useState(false);
+  const [conviteIa, setConviteIa] = useState(false);
   /* todo mundo entra na liga sozinho; o convite é pra quem saiu,
      e é ligado no painel do administrador */
   const [jaNaLiga, setJaNaLiga] = useState(null);
@@ -113,6 +116,7 @@ export default function Painel() {
         <div className="row" style={{ gap: 8 }}>
           {sessions.length >= 3 && (
             <Btn icon={carregandoIa ? Loader : Sparkles} disabled={carregandoIa} onClick={async () => {
+              if (!podeVer(acesso, 'ia')) { setConviteIa(true); return; }
               setCarregandoIa(true);
               try {
                 const resumoIa = {
@@ -437,6 +441,11 @@ Toda vez que você marca um ponto, o app anota a posição que veio junto. Passa
           sessions={sessions} rolls={rolls} partners={partners} gradings={gradings}
         />
       </Card>
+
+      {/* a IA é do premium: no grátis o botão abre o convite */}
+      <Sheet aberto={conviteIa} onClose={() => setConviteIa(false)} titulo="">
+        <Travado recurso="ia" acesso={acesso} onAssinar={() => { setConviteIa(false); irPara('ajustes'); }} />
+      </Sheet>
 
       <Sheet aberto={!!analise} onClose={() => setAnalise(null)} titulo="O que os seus números dizem">
         {analise && (
