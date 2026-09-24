@@ -15,7 +15,7 @@ import {
 import { baixarArquivo, hoje } from '../lib/utils';
 import { ehStandalone, detectarPlataforma } from '../lib/pwa';
 import { supabaseConfigurado, sair, apagarMinhaConta } from '../lib/supabase';
-import { limparCursor } from '../lib/sync';
+import { limparCursor, sincronizar } from '../lib/sync';
 import { minhasTecnicas } from '../lib/graus';
 import Guia from '../components/Guia';
 import { iaDisponivel } from '../lib/ai';
@@ -332,6 +332,14 @@ export default function Ajustes() {
             </p>
             <div className="row wrap" style={{ gap: 8 }}>
               <Btn variant="contorno" icon={LogOut} onClick={async () => {
+                /* sair limpa a fila de envio: antes, manda o que falta. Se não
+                   der (sem internet), não sai, senão o que não subiu se perde */
+                await sincronizar({ forcar: true });
+                const pendentes = await db.outbox.count();
+                if (pendentes) {
+                  toast(`Ainda tem ${pendentes} ${pendentes === 1 ? 'registro' : 'registros'} sem ir pra nuvem. Conecte na internet e tente sair de novo.`, 'err');
+                  return;
+                }
                 await sair(); await limparCursor();
                 toast('Você saiu, os dados continuam no aparelho');
                 setTimeout(() => location.reload(), 600);

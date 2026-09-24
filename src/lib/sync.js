@@ -219,9 +219,9 @@ function limpar(obj) {
 }
 
 /* ---------- primeira migração: carimba tudo que já existe ---------- */
-export async function migrarParaNuvem() {
+export async function migrarParaNuvem(tabelas = TABELAS_SYNC) {
   let total = 0;
-  for (const tabela of TABELAS_SYNC) {
+  for (const tabela of tabelas) {
     if (!db[tabela]) continue;
     const linhas = await db[tabela].toArray();
     for (const l of linhas) {
@@ -235,6 +235,23 @@ export async function migrarParaNuvem() {
   }
   await sincronizar({ forcar: true });
   return total;
+}
+
+/* ============================================================
+   SUBIR TUDO, TABELA POR TABELA
+
+   A primeira subida corria uma vez por aparelho. Tabela que entrava
+   no sync depois (pontos, em 14/09) nunca subia o que já existia,
+   e quem reinstalava perdia. Agora o aparelho guarda quais tabelas
+   já subiu inteiras e sobe as que faltam. Quem já tinha subido
+   antes disto sobe tudo uma vez: é idempotente, o uid não duplica.
+   ============================================================ */
+export async function garantirNuvem() {
+  const feitas = new Set((await db.meta.get('nuvem_tabelas'))?.value || []);
+  const faltam = TABELAS_SYNC.filter((t) => !feitas.has(t));
+  if (!faltam.length) return sincronizar({ forcar: true });
+  await migrarParaNuvem(faltam);
+  await db.meta.put({ key: 'nuvem_tabelas', value: TABELAS_SYNC });
 }
 
 /* ---------- limpar vínculo local (logout) ---------- */

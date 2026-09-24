@@ -118,3 +118,44 @@ export function nomeCurto(nome) {
   if (partes.length === 1) return cap(partes[0]);
   return `${cap(partes[0])} ${partes[partes.length - 1].charAt(0).toUpperCase()}.`;
 }
+
+/* ============================================================
+   OS PONTOS QUE O APARELHO PERDEU
+
+   A liga guarda uma cópia de cada ponto no servidor (public.pontos,
+   que só o dono lê). Quem reinstala o app ou limpa o navegador volta
+   com os treinos da nuvem, mas sem os pontos que ainda estavam na
+   fila de envio, e a ofensiva zerava. Aqui o aparelho pega de volta
+   o que o servidor tem e ele não. Não apaga nada, só completa.
+   ============================================================ */
+export async function restaurarPontos() {
+  if (!supabase) return 0;
+  const { data, error } = await supabase
+    .from('pontos')
+    .select('evento, xp, ref_id, detalhe, data, semana, mes, criado_em')
+    .order('criado_em', { ascending: true })
+    .limit(5000);
+  if (error || !data?.length) return 0;
+
+  const locais = await db.pontos.toArray();
+  const tem = new Set(locais.map((p) => `${p.evento}|${p.refId}`));
+  /* o servidor guarda "local:<uid>" quando o ponto não tinha refId */
+  const temUid = new Set(locais.map((p) => `local:${p.uid || p.id}`));
+  let n = 0;
+  for (const p of data) {
+    if (tem.has(`${p.evento}|${p.ref_id}`) || temUid.has(p.ref_id)) continue;
+    await db.pontos.add({
+      evento: p.evento,
+      xp: p.xp,
+      refId: p.ref_id,
+      detalhe: p.detalhe || '',
+      data: p.data,
+      semana: p.semana,
+      mes: p.mes,
+      ano: String(p.data).slice(0, 4),
+      criadoEm: Date.parse(p.criado_em) || Date.now(),
+    });
+    n += 1;
+  }
+  return n;
+}

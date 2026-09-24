@@ -8,13 +8,13 @@ import InstallPrompt from './components/InstallPrompt';
 import Tour from './components/Tour';
 import { marcarEngajamento , vigiarAtualizacao } from './lib/pwa';
 import { supabase, supabaseConfigurado, sessaoAtual } from './lib/supabase';
-import { enfileirar, iniciarSync, onSync, sincronizar, migrarParaNuvem } from './lib/sync';
+import { enfileirar, iniciarSync, onSync, garantirNuvem } from './lib/sync';
 import { resumo as calcResumo } from './lib/stats';
 import { minhasTecnicas, resumoGraus } from './lib/graus';
 import { sincronizarAcesso, acessoLocal } from './lib/plano';
 import { subirPerfil, mexeuNoPerfil } from './lib/perfil';
 import { acervoLocal, sincronizarAcervo, observarAcervo } from './lib/acervo';
-import { subirPraLiga } from './lib/liga';
+import { subirPraLiga, restaurarPontos } from './lib/liga';
 import { enviarMedidas } from './lib/medir';
 import { carregarCompras } from './lib/pago';
 import { carregarAjustes, observarAjustes } from './lib/ajustes';
@@ -238,11 +238,8 @@ export default function App() {
         if (!sess && !jaViu) setTelaLogin(true);
         if (sess) {
           iniciarSync();
-          const migrou = await getMeta('migrou_nuvem', false);
-          if (!migrou) {
-            await passo('migrar nuvem', migrarParaNuvem, 20000);
-            await setMeta('migrou_nuvem', true);
-          }
+          await passo('subir pra nuvem', garantirNuvem, 20000);
+          restaurarPontos().catch(() => {});
         }
       }
 
@@ -315,9 +312,8 @@ export default function App() {
         if (new URLSearchParams(location.search).get('recuperar') !== '1') setTelaLogin(false);
         await setMeta('viu_login', true);
         iniciarSync();
-        const migrou = await getMeta('migrou_nuvem', false);
-        if (!migrou) { await migrarParaNuvem(); await setMeta('migrou_nuvem', true); }
-        else sincronizar({ forcar: true });
+        await garantirNuvem();
+        restaurarPontos().catch(() => {});
         subirPraLiga().catch(() => {});
       }
     });

@@ -88,5 +88,14 @@ ok('toque duplo: sai só o repetido em minutos', [apagados, (await db.sessions.t
 ok('os rolas e os pontos dos repetidos saem junto', [await db.rolls.count(), await db.pontos.count()], [3, 3]);
 ok('rodar de novo não apaga mais nada', await limparTreinosRepetidos(), 0);
 
+/* ---------- subir tudo, tabela por tabela ----------
+   (sem Supabase no teste, a fila fica vazia: o que se confere é o registro
+   de quais tabelas o aparelho já subiu inteiras) */
+const { garantirNuvem } = await import('../src/lib/sync.js');
+const { TABELAS_SYNC } = await import('../src/db/db.js');
+await db.meta.put({ key: 'nuvem_tabelas', value: ['sessions'] });
+await garantirNuvem();
+ok('aparelho que subiu só parte das tabelas passa a ter todas', (await db.meta.get('nuvem_tabelas')).value, TABELAS_SYNC);
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);
