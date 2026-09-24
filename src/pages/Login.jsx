@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { LogIn, Mail, KeyRound, UserPlus, ArrowLeft, CloudOff, Check } from 'lucide-react';
-import { Card, Btn, Field, Input, useToast, Chip } from '../components/UI';
+import { Mail, KeyRound, UserPlus, ArrowLeft, Check } from 'lucide-react';
+import { Btn, Field, Input, Seg, useToast } from '../components/UI';
+import { Ponteira } from '../components/Ponteira';
 import {
   supabaseConfigurado, entrarComSenha, cadastrar, entrarComGoogle,
   recuperarSenha, trocarSenha, traduzErro,
@@ -57,87 +58,79 @@ export default function Login({ onPular, onPronto, modoInicial }) {
     }
   }
 
+  const trocar = (m) => { setModo(m); setEnviado(false); };
+  const entrando = modo === 'entrar' || modo === 'criar';
+
   if (!supabaseConfigurado) {
     return (
       <div className="login-wrap">
-        <Card className="login-card">
+        <div className="login-card">
           <Marca />
-          <div className="row" style={{ gap: 10, alignItems: 'flex-start', marginTop: 18 }}>
-            <span className="stat-ico"><CloudOff size={16} /></span>
-            <div>
-              <div style={{ fontWeight: 600 }}>Nuvem não configurada</div>
-              <p className="tiny muted" style={{ marginTop: 4 }}>
-                O app funciona 100% assim mesmo, seus dados ficam salvos no aparelho.
-                Pra sincronizar entre celular e computador, adicione as variáveis
-                <b style={{ color: 'var(--chalk)' }}> VITE_SUPABASE_URL</b> e
-                <b style={{ color: 'var(--chalk)' }}> VITE_SUPABASE_ANON_KEY</b> na Vercel.
-              </p>
-            </div>
-          </div>
-          <Btn variant="primary" onClick={onPular} style={{ marginTop: 18, width: '100%' }}>
-            Usar offline
+          <h1 className="login-titulo">Seus treinos ficam neste aparelho</h1>
+          <p className="login-sub">Dá pra usar tudo sem conta. Os treinos ficam salvos aqui mesmo.</p>
+          <Btn variant="primary" onClick={onPular} className="login-cta">
+            Começar
           </Btn>
-        </Card>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="login-wrap">
-      <Card className="login-card">
+      <div className="login-card">
         <Marca />
 
         {enviado ? (
-          <div className="col center" style={{ alignItems: 'center', gap: 14, padding: '22px 0' }}>
-            <span className="stat-ico" style={{ width: 46, height: 46, color: 'var(--jade)', background: 'color-mix(in srgb, var(--jade) 14%, transparent)' }}>
-              <Check size={22} />
-            </span>
-            <div className="center">
-              <div style={{ fontWeight: 700, fontFamily: 'var(--display)', fontSize: 17 }}>Olha seu e-mail</div>
-              <p className="tiny muted" style={{ marginTop: 6 }}>
-                Mandamos um link para <b style={{ color: 'var(--chalk)' }}>{email}</b>. Clique nele e volte aqui.
-              </p>
-            </div>
-            <Btn onClick={() => { setEnviado(false); setModo('entrar'); }}>Voltar</Btn>
+          <div className="login-enviado">
+            <span className="login-enviado-ico"><Check size={22} /></span>
+            <h1 className="login-titulo" style={{ textAlign: 'center' }}>Olha o seu e-mail</h1>
+            <p className="login-sub" style={{ textAlign: 'center' }}>
+              Mandamos um link para <b style={{ color: 'var(--chalk)' }}>{email}</b>. Abre ele neste aparelho e você volta
+              direto pra cá.
+            </p>
+            <Btn onClick={() => trocar('entrar')} className="login-cta">Voltar</Btn>
           </div>
         ) : (
           <>
-            <div style={{ marginTop: 20, marginBottom: 16 }}>
-              <div className="eyebrow">
-                {modo === 'entrar' ? 'entrar na conta' : modo === 'criar' ? 'criar conta'
-                  : modo === 'nova_senha' ? 'senha nova' : 'recuperar senha'}
-              </div>
-              <h1 style={{ fontSize: 24, fontWeight: 800, marginTop: 5, letterSpacing: '-0.03em' }}>
-                {modo === 'entrar' ? 'Seus treinos, em qualquer aparelho'
-                  : modo === 'criar' ? 'Bora começar'
-                  : modo === 'nova_senha' ? 'Escolha a senha nova'
-                  : 'Sem problema'}
-              </h1>
-              <p className="tiny muted" style={{ marginTop: 6 }}>
-                {modo === 'recuperar'
-                  ? 'Digite seu e-mail que mandamos um link pra criar uma senha nova.'
-                  : modo === 'nova_senha'
-                  ? 'Você chegou aqui pelo link do e-mail. Defina a senha e pronto.'
-                  : 'Login sincroniza treinos, técnicas, vídeos e metas entre celular e computador.'}
-              </p>
-            </div>
-
-            {modo === 'entrar' || modo === 'criar' ? (
+            {entrando ? (
               <>
-                <Btn
-                  icon={LogIn}
-                  onClick={() => entrarComGoogle().catch((e) => toast(traduzErro(e), 'err'))}
-                  style={{ width: '100%', minHeight: 46 }}
-                >
-                  Continuar com Google
-                </Btn>
-                <div className="row" style={{ gap: 10, margin: '16px 0' }}>
-                  <span style={{ flex: 1, height: 1, background: 'var(--seam)' }} />
-                  <span className="micro muted">ou com e-mail</span>
-                  <span style={{ flex: 1, height: 1, background: 'var(--seam)' }} />
-                </div>
+                <h1 className="login-titulo">Cada rola vira o mapa do seu jogo</h1>
+                <p className="login-sub">
+                  Registre o treino e veja as suas técnicas subirem de grau, rola por rola.
+                </p>
+                <Amostra />
               </>
-            ) : null}
+            ) : (
+              <>
+                <h1 className="login-titulo">
+                  {modo === 'nova_senha' ? 'Escolha a senha nova' : 'Esqueceu a senha?'}
+                </h1>
+                <p className="login-sub">
+                  {modo === 'nova_senha'
+                    ? 'Você chegou aqui pelo link do e-mail. Define a senha nova e pronto.'
+                    : 'Digite o seu e-mail que a gente manda um link pra criar uma senha nova.'}
+                </p>
+              </>
+            )}
+
+            {entrando && (
+              <>
+                <Seg
+                  value={modo}
+                  onChange={trocar}
+                  options={[{ id: 'entrar', nome: 'Entrar' }, { id: 'criar', nome: 'Criar conta' }]}
+                />
+                <button
+                  type="button"
+                  className="btn login-google"
+                  onClick={() => entrarComGoogle().catch((e) => toast(traduzErro(e), 'err'))}
+                >
+                  <LogoGoogle /> Continuar com Google
+                </button>
+                <div className="login-ou"><span>ou com e-mail</span></div>
+              </>
+            )}
 
             <form onSubmit={enviar} className="col" style={{ gap: 12 }}>
               {modo === 'criar' && (
@@ -155,7 +148,7 @@ export default function Login({ onPular, onPronto, modoInicial }) {
                 </Field>
               )}
               {modo !== 'recuperar' && (
-                <Field label={modo === 'nova_senha' ? 'Nova senha' : 'Senha'} hint={modo !== 'entrar' ? 'Mínimo 6 caracteres.' : undefined}>
+                <Field label={modo === 'nova_senha' ? 'Senha nova' : 'Senha'} hint={modo !== 'entrar' ? 'Pelo menos 6 caracteres.' : undefined}>
                   <Input
                     type="password" required minLength={6}
                     autoComplete={modo === 'entrar' ? 'current-password' : 'new-password'}
@@ -164,61 +157,87 @@ export default function Login({ onPular, onPronto, modoInicial }) {
                   />
                 </Field>
               )}
+              {modo === 'entrar' && (
+                <button type="button" className="login-link" onClick={() => trocar('recuperar')}>Esqueci a senha</button>
+              )}
 
               <Btn
                 type="submit" variant="primary"
                 icon={modo === 'criar' ? UserPlus : modo === 'recuperar' ? Mail : KeyRound}
                 disabled={carregando}
-                style={{ width: '100%', minHeight: 46, marginTop: 4 }}
+                className="login-cta"
               >
                 {carregando ? 'Um instante…'
                   : modo === 'entrar' ? 'Entrar'
-                  : modo === 'criar' ? 'Criar conta'
+                  : modo === 'criar' ? 'Criar minha conta'
                   : modo === 'nova_senha' ? 'Salvar senha nova'
-                  : 'Enviar link'}
+                  : 'Mandar o link'}
               </Btn>
             </form>
 
-            <div className="row" style={{ gap: 8, marginTop: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
-              {modo === 'entrar' && (
-                <>
-                  <button className="btn ghost xs" onClick={() => setModo('criar')}>Criar conta</button>
-                  <button className="btn ghost xs" onClick={() => setModo('recuperar')}>Esqueci a senha</button>
-                </>
-              )}
-              {modo === 'nova_senha' && (
-                <button className="btn ghost xs" onClick={() => { history.replaceState({}, '', location.pathname); setModo('recuperar'); }}>
-                  O link não funcionou? Pedir outro
-                </button>
-              )}
-              {modo !== 'entrar' && modo !== 'nova_senha' && (
-                <button className="btn ghost xs" onClick={() => setModo('entrar')}><ArrowLeft size={12} /> Voltar pro login</button>
-              )}
-            </div>
+            {modo === 'recuperar' && (
+              <button type="button" className="login-link centro" onClick={() => trocar('entrar')}>
+                <ArrowLeft size={12} /> Voltar pro login
+              </button>
+            )}
+            {modo === 'nova_senha' && (
+              <button
+                type="button" className="login-link centro"
+                onClick={() => { history.replaceState({}, '', location.pathname); trocar('recuperar'); }}
+              >
+                O link não funcionou? Pedir outro
+              </button>
+            )}
 
-            {modo !== 'nova_senha' && (
-              <>
-                <div className="divider" style={{ margin: '18px 0 14px' }} />
-                <button className="btn ghost xs" onClick={onPular} style={{ width: '100%' }}>
-                  Continuar sem conta (só neste aparelho)
+            {entrando && (
+              <div className="login-sem-conta">
+                <button type="button" className="login-link centro" onClick={onPular}>
+                  Continuar sem conta
                 </button>
-              </>
+                <span className="micro muted">Os treinos ficam só neste aparelho. Dá pra criar a conta depois.</span>
+              </div>
             )}
           </>
         )}
-      </Card>
+      </div>
     </div>
   );
 }
 
 function Marca() {
   return (
-    <div className="row" style={{ gap: 12 }}>
-      <span className="brand-mark" style={{ width: 44, height: 44, borderRadius: 13 }} />
+    <div className="login-marca">
+      <span className="brand-mark" />
       <div>
-        <div className="brand-name" style={{ fontSize: 19 }}>NeuroJitsu</div>
+        <div className="brand-name">NeuroJitsu</div>
         <div className="brand-sub">jiu-jitsu</div>
       </div>
     </div>
+  );
+}
+
+/* O que o app faz, mostrado em vez de explicado: uma técnica
+   perto de subir de grau, igual ela aparece no Painel. */
+function Amostra() {
+  return (
+    <div className="login-amostra" aria-hidden="true">
+      <div className="row" style={{ justifyContent: 'space-between', gap: 10 }}>
+        <span className="login-amostra-nome">Chave de braço</span>
+        <span className="login-amostra-grau"><Ponteira n={2} mini /> Funciona no rola</span>
+      </div>
+      <div className="tec-home-barra"><i style={{ width: '80%', background: 'var(--roar)' }} /></div>
+      <div className="login-amostra-pe">Falta 1 vez no rola pra subir pro 3º grau</div>
+    </div>
+  );
+}
+
+function LogoGoogle() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+      <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z" />
+      <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
+      <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.3 0-9.7-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z" />
+      <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z" />
+    </svg>
   );
 }
