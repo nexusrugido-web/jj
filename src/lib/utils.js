@@ -36,16 +36,28 @@ export function addDias(iso, n) {
   return dataLocal(d);
 }
 
+/* quanto tempo faz, escrito por extenso: "há 2 dias", não "há 2d" */
 export function relativo(iso) {
   if (!iso) return ',';
   const d = diasEntre(iso, hoje());
+  if (d < 0) return emQuanto(iso);
   if (d === 0) return 'hoje';
   if (d === 1) return 'ontem';
-  if (d < 0) return `em ${Math.abs(d)}d`;
-  if (d < 7) return `há ${d}d`;
-  if (d < 30) return `há ${Math.floor(d / 7)}sem`;
-  if (d < 365) return `há ${Math.floor(d / 30)}m`;
-  return `há ${Math.floor(d / 365)}a`;
+  const n = (q, um, varios) => `há ${q} ${q === 1 ? um : varios}`;
+  if (d < 7) return n(d, 'dia', 'dias');
+  if (d < 30) return n(Math.floor(d / 7), 'semana', 'semanas');
+  if (d < 365) return n(Math.floor(d / 30), 'mês', 'meses');
+  return n(Math.floor(d / 365), 'ano', 'anos');
+}
+
+/* quanto falta, pra quem lê na hora: "hoje", "amanhã", "em 3 dias".
+   Data solta ("a partir de 28/09") obriga a pessoa a fazer a conta. */
+export function emQuanto(iso) {
+  if (!iso) return '';
+  const d = diasEntre(hoje(), iso);
+  if (d <= 0) return 'hoje';
+  if (d === 1) return 'amanhã';
+  return `em ${d} dias`;
 }
 
 export function fmtDur(min) {

@@ -5,7 +5,7 @@
    - fontes externas: cache-first
    Os DADOS ficam no IndexedDB, entao o app inteiro funciona sem internet. */
 
-const VERSION = 'neurojitsu-v12-8';
+const VERSION = 'neurojitsu-v12-9';
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
 
@@ -63,7 +63,9 @@ self.addEventListener('push', (event) => {
   const opcoes = {
     body: n.body || '',
     icon: '/icon-192.png',
-    badge: '/icon-192.png',
+    /* o ícone pequeno da barra de status: o Android só aceita silhueta
+       branca em fundo transparente, a logo colorida vira um quadrado */
+    badge: '/badge-96.png',
     lang: n.lang || 'pt-BR',
     tag: n.tag || 'neurojitsu',
     renotify: true,

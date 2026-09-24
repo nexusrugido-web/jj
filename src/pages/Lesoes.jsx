@@ -133,7 +133,7 @@ export default function Lesoes() {
                     </div>
                     <h3 className="h-sec" style={{ marginTop: 8 }}>{l.regiao} {l.lado && `(${l.lado})`}</h3>
                     <div className="micro muted" style={{ marginTop: 3 }}>
-                      desde {fmtData(l.data)} · {dias} {dias === 1 ? 'dia' : 'dias'} {l.status === 'curada' ? 'até curar' : 'até agora'}
+                      {l.status === 'curada' ? `durou ${dias} ${dias === 1 ? 'dia' : 'dias'}` : `começou ${relativo(l.data)}`}
                     </div>
                   </div>
                   <div className="row" style={{ gap: 2 }}>

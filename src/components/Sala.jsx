@@ -6,7 +6,7 @@ import Avatar from './Avatar';
 import {
   minhaSala, criarSala, entrarNaSala, sairDaSala, verSala, convidar, conviteDaURL, esquecerConvite,
 } from '../lib/sala';
-import { hoje, addDias, fmtData } from '../lib/utils';
+import { hoje, addDias, emQuanto } from '../lib/utils';
 import { inicioSemana } from '../lib/stats';
 
 /* ============================================================
@@ -96,7 +96,7 @@ export default function Sala({ onMudou }) {
             {convite.info.pessoas === 1 ? 'pessoa' : 'pessoas'} e cabe até {MAXIMO}.
           </p>
           <p className="micro muted" style={{ lineHeight: 1.65 }}>
-            Ela começa na segunda, {fmtData(proximaSegunda)}, e corre no lugar da liga automática: pontos de treino,
+            Ela começa {emQuanto(proximaSegunda)}, na segunda, e corre no lugar da liga automática: pontos de treino,
             aula e quiz, com pódio e sobe e desce de divisão. Tem sempre um grupo seu, toda semana, até alguém sair.
           </p>
         </>
@@ -131,7 +131,7 @@ export default function Sala({ onMudou }) {
   const estado = valendo
     ? { tom: 'jade', texto: 'valendo esta semana' }
     : proxima
-      ? { tom: 'warn', texto: `começa segunda, ${fmtData(proximaSegunda, { curto: true })}` }
+      ? { tom: 'warn', texto: `começa ${emQuanto(proximaSegunda)}` }
       : { tom: '', texto: `falta${MINIMO - n === 1 ? '' : 'm'} ${MINIMO - n} pra começar` };
 
   return (
@@ -152,7 +152,7 @@ export default function Sala({ onMudou }) {
               {m.nome}{m.sou_eu ? ' (você)' : ''}
             </span>
             {m.dono && <Chip><Crown size={11} /> criou</Chip>}
-            {m.vale_desde > hoje() && <span className="micro muted">a partir de {fmtData(m.vale_desde, { curto: true })}</span>}
+            {m.vale_desde > hoje() && <span className="micro muted">começa {emQuanto(m.vale_desde)}</span>}
           </div>
         ))}
         {Array.from({ length: Math.max(0, MINIMO - n) }).map((_, i) => (

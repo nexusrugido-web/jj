@@ -141,6 +141,11 @@ export function Privacidade({ onVoltar }) {
           quiser, valendo a partir da semana seguinte.
         </p>
         <p>
+          Os amigos. Amizade só existe quando os dois aceitam. Um amigo vê o seu nome público, a foto, a faixa, a
+          ofensiva e os pontos da semana, mesmo quando vocês não estão no mesmo grupo, e pode te chamar pra sala dele.
+          Dá pra desfazer a amizade quando quiser.
+        </p>
+        <p>
           Se você usar a leitura da IA, os números do seu treino são enviados para o serviço que processa
           o texto. Vão números e nomes de técnica, não o seu nome nem o seu e-mail.
         </p>

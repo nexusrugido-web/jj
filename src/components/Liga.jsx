@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Trophy, Check, Eye, EyeOff, RefreshCw, Flame, Hourglass, LogOut, UserRound, Undo2, Dumbbell, Crown, Camera, Trash2,
+  Trophy, Check, Eye, EyeOff, RefreshCw, Flame, Hourglass, LogOut, UserRound, Undo2, Dumbbell, Crown, Camera, Trash2, UserPlus,
 } from 'lucide-react';
 import { useApp } from '../contexto';
 import { supabase } from '../lib/supabase';
@@ -9,8 +9,10 @@ import {
 } from './UI';
 import { ajusteDe } from '../lib/ajustes';
 import { subirPraLiga, corteDoGrupo, nomeCurto, DIVISOES_LIGA, nomeDivisao } from '../lib/liga';
-import { fmtData } from '../lib/utils';
+import { fmtData, hoje, addDias, emQuanto } from '../lib/utils';
+import { inicioSemana } from '../lib/stats';
 import { enviarFoto, removerFoto } from '../lib/perfil';
+import { pedirAmizade } from '../lib/amigos';
 import Avatar from './Avatar';
 
 /* ============================================================
@@ -223,7 +225,7 @@ export default function Liga({ compacto = false }) {
         <Btn size="sm" variant="ghost" icon={RefreshCw} onClick={() => buscar({ subir: true })} disabled={carregando} aria-label="Atualizar" />
       </div>
       <p className="micro muted row" style={{ gap: 6, marginBottom: 12 }}>
-        <Hourglass size={12} /> {total} {total === 1 ? 'pessoa' : 'pessoas'} no grupo · fecha segunda ao meio-dia
+        <Hourglass size={12} /> {total} {total === 1 ? 'pessoa' : 'pessoas'} no grupo · termina {emQuanto(addDias(inicioSemana(hoje()), 6))}
       </p>
 
       {eu?.saindo && (
@@ -451,6 +453,17 @@ function ComoAparece({ aberto, onClose, perfil, nome, userId, onSalvo, onFoto })
    ============================================================ */
 function PerfilDoColega({ linha, onClose }) {
   const [p, setP] = useState(null);
+  const [pedindo, setPedindo] = useState(false);
+  const toast = useToast();
+
+  async function adicionar() {
+    setPedindo(true);
+    try {
+      const r = await pedirAmizade(linha.user_id);
+      toast(r.mensagem, r.ok ? '' : 'err');
+    } catch { toast('Não deu agora. Tenta de novo.', 'err'); }
+    setPedindo(false);
+  }
 
   useEffect(() => {
     setP(null);
@@ -484,6 +497,11 @@ function PerfilDoColega({ linha, onClose }) {
             <p className="micro muted">
               {p.semanas} {Number(p.semanas) === 1 ? 'semana' : 'semanas'} na liga, desde {fmtData(p.desde)}.
             </p>
+          )}
+          {!linha?.sou_eu && (
+            <Btn variant="primary" icon={UserPlus} onClick={adicionar} disabled={pedindo} style={{ alignSelf: 'flex-start' }}>
+              {pedindo ? 'Mandando…' : 'Adicionar amigo'}
+            </Btn>
           )}
           <p className="micro muted" style={{ lineHeight: 1.6 }}>
             Os treinos de cada um continuam privados. Aqui aparece só o que a liga mostra.

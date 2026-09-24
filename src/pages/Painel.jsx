@@ -12,7 +12,7 @@ import { EscadaPosicional, BarrasTop, Donut } from '../components/Charts';
 import Calendario from '../components/Calendario';
 import GraficoEvolucao from '../components/GraficoEvolucao';
 import { resumo, escadaPosicional, treinosNaSemana } from '../lib/stats';
-import { fmtDur, relativo, mesLongo } from '../lib/utils';
+import { fmtDur, relativo, emQuanto } from '../lib/utils';
 import { minhasTecnicas, meusBuracos, jogoPrincipal, grauPorN } from '../lib/graus';
 import { recomendacoesDoAluno, INTENCOES, faltaPara } from '../lib/recomendar';
 import { progressoDaMeta, tituloDaMeta, metaDeHorasNoAno } from '../lib/metas';
@@ -20,8 +20,8 @@ import LinhaDeMeta from '../components/LinhaDeMeta';
 import RotuloPeriodo from '../components/RotuloPeriodo';
 import { periodoDeDados } from '../lib/periodo';
 import Recomendacao from '../components/Recomendacao';
-import { resumoSemana, lerSemana, rotuloSemana } from '../lib/semana';
-import { ofensiva, textoOfensiva, MAX_ESCUDOS } from '../lib/ofensiva';
+import { resumoSemana, lerSemana } from '../lib/semana';
+import { ofensiva } from '../lib/ofensiva';
 import { situacao, guiaDeEstudo } from '../lib/lesao';
 import { analisarJogo } from '../lib/game';
 import { estiloPorId } from '../db/scoring';
@@ -69,7 +69,6 @@ export default function Painel() {
   /* a lesão que tira do tatame congela a ofensiva: sem isso,
      quem operou o joelho perde tudo enquanto está de molho */
   const ofa = useMemo(() => ofensiva(pontos, undefined, lesoes), [pontos, lesoes]);
-  const fraseSeq = useMemo(() => textoOfensiva(ofa), [ofa]);
 
   const esteira = useMemo(() => minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa, gradings, settings.graus || 0), [rolls, partners, sessions, techniques, settings.faixa, gradings, settings.graus]);
   const recap = useMemo(() => resumoSemana(sessions, rolls, esteira, { faixa: settings.faixa }), [sessions, rolls, esteira, settings.faixa]);
@@ -264,58 +263,6 @@ export default function Painel() {
       <PrimeirosPassos sessions={sessions} rolls={rolls} tecnicas={esteira} irPara={irPara} />
       <AvisoDeVolta sessions={sessions} irPara={irPara} />
 
-      {/* ---- ofensiva e resumo da semana ---- */}
-      {/* a ofensiva também existe pra quem só estudou, então o
-          card não pode depender de ter treino registrado */}
-      {(sessions.length > 0 || ofa.ultimoDia) && (
-        <Card className={fraseSeq.tom === 'jade' ? 'accent' : ''} style={{ marginBottom: 14 }}>
-          <div className="row" style={{ gap: 13, alignItems: 'flex-start', marginBottom: recap.vazia ? 0 : 14 }}>
-            <span className="stat-ico" style={{ color: `var(--${fraseSeq.tom || 'dim'})` }}>
-              <Flame size={17} />
-            </span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="h-sec">{fraseSeq.titulo}</div>
-              <p className="tiny muted" style={{ marginTop: 5, lineHeight: 1.65 }}>{fraseSeq.texto}</p>
-              {ofa.recorde > ofa.dias && ofa.recorde >= 3 && (
-                <p className="micro muted" style={{ marginTop: 6 }}>
-                  Seu recorde é de {ofa.recorde} dias seguidos.
-                </p>
-              )}
-
-              {(ofa.escudos > 0 || ofa.gastos > 0) && (
-                <div className="escudos">
-                  {Array.from({ length: MAX_ESCUDOS }).map((_, i) => (
-                    <span key={i} className={`escudo ${i < ofa.escudos ? 'cheio' : ''}`}>
-                      <ShieldCheck size={12} />
-                    </span>
-                  ))}
-                  <span className="micro muted" style={{ marginLeft: 4 }}>
-                    {ofa.escudos
-                      ? `${ofa.escudos} ${ofa.escudos === 1 ? 'escudo' : 'escudos'}`
-                      : 'escudo gasto'}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {!recap.vazia && (
-            <div style={{ borderTop: '1px solid var(--seam)', paddingTop: 14 }}>
-              <div className="eyebrow" style={{ marginBottom: 8 }}>sua semana, {rotuloSemana(recap.semana)}</div>
-              <p className="tiny" style={{ lineHeight: 1.7 }}>{lerSemana(recap, settings.faixa)}</p>
-              {/* grau é habilidade, ponto é esforço: nunca na mesma linha */}
-              {recap.subiram.length > 0 && (
-                <div className="row wrap" style={{ gap: 6, marginTop: 11 }}>
-                  {recap.subiram.map((t) => (
-                    <Chip key={t.nome} tone="jade">{t.nome} subiu de grau</Chip>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </Card>
-      )}
-
       {/* ---- o ritmo da semana ---- */}
       <SemanaDoRitmo
         semana={semana}
@@ -324,6 +271,19 @@ export default function Painel() {
         ultimoTreino={r.streak.ultimo}
         salvarSettings={salvarSettings}
         irPara={irPara}
+        resumo={!recap.vazia && (
+          <>
+            <p className="tiny" style={{ lineHeight: 1.7 }}>{lerSemana(recap, settings.faixa)}</p>
+            {/* grau é habilidade, ponto é esforço: nunca na mesma linha */}
+            {recap.subiram.length > 0 && (
+              <div className="row wrap" style={{ gap: 6, marginTop: 11 }}>
+                {recap.subiram.map((t) => (
+                  <Chip key={t.nome} tone="jade">{t.nome} subiu de grau</Chip>
+                ))}
+              </div>
+            )}
+          </>
+        )}
         chips={
           <>
             {naGame > 0 && <Chip tone="jade">{naGame} no jogo</Chip>}
@@ -672,17 +632,12 @@ function TecnicaNaHome({ t, faixa, onAbrir }) {
    tela diz isso com todas as letras, em vez de dois números
    soltos com barra.
    ============================================================ */
-function SemanaDoRitmo({ semana, metaFreq, porSemana, ultimoTreino, salvarSettings, irPara, chips }) {
+function SemanaDoRitmo({ semana, metaFreq, porSemana, ultimoTreino, salvarSettings, irPara, chips, resumo }) {
   const [mudando, setMudando] = useState(false);
   const [quanto, setQuanto] = useState(porSemana || 3);
   const alvo = metaFreq ? Number(metaFreq.alvo) : porSemana;
   const feito = semana.qtd;
 
-  const d1 = Number(semana.ini.slice(8, 10));
-  const d2 = Number(semana.fim.slice(8, 10));
-  const intervalo = mesLongo(semana.ini) === mesLongo(semana.fim)
-    ? `de segunda ${d1} a domingo ${d2} de ${mesLongo(semana.fim)}`
-    : `de segunda ${d1} de ${mesLongo(semana.ini)} a domingo ${d2} de ${mesLongo(semana.fim)}`;
 
   return (
     <Card style={{ marginBottom: 14 }}>
@@ -704,9 +659,8 @@ function SemanaDoRitmo({ semana, metaFreq, porSemana, ultimoTreino, salvarSettin
                 : `${feito} de ${alvo} treinos`}
           </div>
           <p className="tiny muted" style={{ marginTop: 6, lineHeight: 1.6 }}>
-            Esta semana, {intervalo}
-            {ultimoTreino && `. Último treino ${relativo(ultimoTreino)}`}
-            . Zera na segunda que vem.
+            A semana termina {emQuanto(semana.fim)}
+            {ultimoTreino && `. Último treino ${relativo(ultimoTreino)}`}.
           </p>
           {alvo > 0 && feito < alvo && (
             <p className="micro muted" style={{ marginTop: 6 }}>
@@ -724,6 +678,10 @@ function SemanaDoRitmo({ semana, metaFreq, porSemana, ultimoTreino, salvarSettin
           </div>
         </div>
       </div>
+
+      {resumo && (
+        <div style={{ borderTop: '1px solid var(--seam)', paddingTop: 14, marginTop: 16 }}>{resumo}</div>
+      )}
 
       <Sheet
         aberto={mudando} onClose={() => setMudando(false)}

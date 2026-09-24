@@ -9,7 +9,7 @@ import { Card, Btn, Empty, Sheet, useToast } from '../components/UI';
 import { compartilhar } from '../lib/card';
 import Liga from '../components/Liga';
 import Sala from '../components/Sala';
-import Par from '../components/Par';
+import Amigos from '../components/Amigos';
 import RankingOfensivas from '../components/RankingOfensivas';
 import ListaResumida from '../components/ListaResumida';
 import { EVENTOS, semanaDe } from '../lib/xp';
@@ -82,6 +82,11 @@ export default function LigaPagina() {
 
       <BlocoOfensiva o={ofa} pontos={pontos} lesoes={lesoes} irPara={irPara} />
 
+      {/* a corrida desta semana primeiro, depois quem corre com você */}
+      <Liga key={versaoDoGrupo} />
+      <Amigos key={`a${versaoDoGrupo}`} onMudou={() => setVersaoDoGrupo((v) => v + 1)} />
+      <Sala key={`s${versaoDoGrupo}`} onMudou={() => setVersaoDoGrupo((v) => v + 1)} />
+
       {/* ---- a arena da semana ---- */}
       <DueloDaSemana
         agora={dados.semana}
@@ -90,10 +95,7 @@ export default function LigaPagina() {
         irPara={irPara}
       />
 
-      <Sala onMudou={() => setVersaoDoGrupo((v) => v + 1)} />
-      <Liga key={versaoDoGrupo} />
       <RankingOfensivas />
-      <Par />
 
       {/* histórico */}
       <Card>
@@ -119,7 +121,7 @@ export default function LigaPagina() {
                     <div className="xp-evento">
                       <span className="tiny" style={{ flex: 1 }}>
                         {EVENTOS[l.evento]?.nome || l.evento}
-                        {l.detalhe && <span className="micro muted"> · {String(l.detalhe).slice(0, 34)}</span>}
+                        {l.detalhe && !/^\d{4}-\d{2}-\d{2}$/.test(l.detalhe) && <span className="micro muted"> · {String(l.detalhe).slice(0, 34)}</span>}
                       </span>
                       {!completa && <span className="micro muted">{relativo(l.data)}</span>}
                       <span className="xp-evento-xp">+{l.xp}</span>

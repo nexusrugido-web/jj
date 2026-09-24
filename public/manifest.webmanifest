@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "NeuroJitsu",
   "short_name": "NeuroJitsu",
   "description": "Registre treino e rola, entenda o porque das tecnicas e veja sua evolucao no jiu-jitsu.",
@@ -42,13 +43,13 @@
       "url": "/?go=treinos&novo=1"
     },
     {
-      "name": "Planos de ataque",
-      "short_name": "Ataques",
-      "url": "/?go=ataques"
+      "name": "Liga",
+      "short_name": "Liga",
+      "url": "/?go=liga"
     },
     {
-      "name": "Meu domínio",
-      "short_name": "Domínio",
+      "name": "Minhas técnicas",
+      "short_name": "Técnicas",
       "url": "/?go=dominio"
     }
   ]

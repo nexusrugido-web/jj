@@ -1551,6 +1551,12 @@ button.liga-linha:hover { border-color: var(--seam-hi); }
 .liga-nome { flex: 1; min-width: 0; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .perfil-avatar { width: 72px; height: 72px; font-size: 24px; box-shadow: 0 0 0 2px var(--seam-hi); }
 
+.amigo-aviso {
+  display: flex; align-items: center; gap: 10px; padding: 10px 11px; border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 9%, var(--void));
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--seam));
+}
+.amigo-aviso.sugestao { background: var(--void); border-color: var(--seam); }
 .sala-vaga { justify-content: center; border: 1px dashed var(--seam-hi); background: transparent; }
 
 /* ---------- pódio da liga ---------- */
