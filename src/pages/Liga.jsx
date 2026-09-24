@@ -8,6 +8,7 @@ import { useApp } from '../contexto';
 import { Card, Btn, Empty, Sheet, useToast } from '../components/UI';
 import { compartilhar } from '../lib/card';
 import Liga from '../components/Liga';
+import Sala from '../components/Sala';
 import Par from '../components/Par';
 import RankingOfensivas from '../components/RankingOfensivas';
 import ListaResumida from '../components/ListaResumida';
@@ -30,6 +31,8 @@ export default function LigaPagina() {
   const { irPara, settings } = useApp();
   const pontos = useLiveQuery(() => db.pontos.toArray(), [], []) || [];
   const [comoFunciona, setComoFunciona] = useState(false);
+  /* criar, entrar ou sair da sala muda o grupo: a liga busca de novo */
+  const [versaoDoGrupo, setVersaoDoGrupo] = useState(0);
 
   const dados = useMemo(() => {
     const soma = (f) => pontos.filter(f).reduce((a, x) => a + (x.xp || 0), 0);
@@ -87,7 +90,8 @@ export default function LigaPagina() {
         irPara={irPara}
       />
 
-      <Liga />
+      <Sala onMudou={() => setVersaoDoGrupo((v) => v + 1)} />
+      <Liga key={versaoDoGrupo} />
       <RankingOfensivas />
       <Par />
 

@@ -136,6 +136,11 @@ export function Privacidade({ onVoltar }) {
           semana seguinte.
         </p>
         <p>
+          A sala. Se você criar ou entrar numa sala com amigos, quem está nela vê o mesmo que o grupo da liga, e quem
+          recebe o seu link de convite vê o seu nome público e quantas pessoas estão na sala. Dá pra sair quando
+          quiser, valendo a partir da semana seguinte.
+        </p>
+        <p>
           Se você usar a leitura da IA, os números do seu treino são enviados para o serviço que processa
           o texto. Vão números e nomes de técnica, não o seu nome nem o seu e-mail.
         </p>

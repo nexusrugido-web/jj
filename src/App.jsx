@@ -30,6 +30,11 @@ import { somarPontos } from './db/scoring';
 import Painel from './pages/Painel';
 import Aceite, { VERSAO_DOCS } from './components/Aceite';
 import { lazy } from './lib/lazy';
+import { conviteDaURL } from './lib/sala';
+
+/* convite de sala guardado antes de qualquer tela: o login (inclusive
+   o do Google, que volta sem o código no endereço) não pode perder */
+const conviteInicial = conviteDaURL();
 
 /* Só o Painel e a tela de treinos vêm no primeiro carregamento.
    O resto chega quando você abre, o que deixa a abertura bem mais
@@ -73,7 +78,7 @@ registrarSync(enfileirar);
 function rotaDaURL() {
   const pedida = new URLSearchParams(location.search).get('go');
   /* a Jornada virou a Liga: notificação e link antigos ainda mandam ?go=jornada */
-  const p = pedida === 'jornada' ? 'liga' : pedida;
+  const p = pedida === 'jornada' || (!pedida && conviteInicial) ? 'liga' : pedida;
   return PAGINAS[p] ? p : 'painel';
 }
 

@@ -218,7 +218,7 @@ export default function Liga({ compacto = false }) {
     <Card style={{ marginBottom: compacto ? 0 : 14 }}>
       <div className="card-head" style={{ marginBottom: 4 }}>
         <h2 className="h-sec row" style={{ gap: 8, flexWrap: 'wrap' }}>
-          <Trophy size={16} /> Divisão <DivisaoTag id={minhaDiv} />
+          <Trophy size={16} /> {linhas[0]?.em_sala ? 'Sua sala' : 'Divisão'} <DivisaoTag id={minhaDiv} />
         </h2>
         <Btn size="sm" variant="ghost" icon={RefreshCw} onClick={() => buscar({ subir: true })} disabled={carregando} aria-label="Atualizar" />
       </div>
