@@ -15,18 +15,18 @@ Este arquivo é o **mapa vivo** do app: pra que serve cada parte, onde mora e qu
 | Tela | Propósito | Grátis | Premium |
 |---|---|---|---|
 | **Painel** | O resumo do dia: ofensiva (toque abre "Sua ofensiva"), tatame, lutas, finalizações, metas e técnicas | números | gráficos e "o que treinar agora" |
-| **Treinos e rolas** | O registro. Academia, professor e duração vêm do padrão; cada rola com parceiro, peso, posição inicial, pontos IBJJF e finalizações | tudo, sem limite | — |
+| **Treinos e rolas** | O registro. Academia, professor e duração vêm do padrão; cada rola com parceiro, peso, posição inicial, pontos IBJJF e finalizações | tudo, sem limite | igual ao grátis |
 | **Estudo** | Aulas e quiz. Por tema e Por dificuldade são livres; "Pra você" escolhe aula longa pelo jogo do aluno e tem as exclusivas de assinante | 1 aula completa + 1 rápida + 1 rodada de quiz por dia, quiz sorteado | Pra você, estudo sem limite, quiz que volta no que errou |
-| **Liga** | Só a liga: o grupo da semana, pódio, sobe e desce de divisão. O ranking global abre por um link ("Os faixas-pretas da ofensiva") | tudo | — |
-| **Amigos** | Pedidos de amizade e a sala (liga só de amigos, 3 a 5 pessoas) | tudo | — |
+| **Liga** | Só a liga: o grupo da semana, pódio, sobe e desce de divisão. O ranking global abre por um link ("Os faixas-pretas da ofensiva") | tudo | igual ao grátis |
+| **Amigos** | Pedidos de amizade e a sala (liga só de amigos, 3 a 5 pessoas) | tudo | igual ao grátis |
 | **Meu jogo** | A faixa no topo, o estilo (o que aparece em mais rolas), onde ganha e onde cede | resumo | por situação (peso e posição inicial) |
 | **Minhas técnicas** | O grau de cada técnica que apareceu nos rolas e o que falta pro próximo | tudo | o que treinar agora |
 | **Análise** | Evolução, presença, contra quem luta, onde fica por cima | vitrine | tudo |
 | **Metas** | Metas que o aluno assumiu; as que zeram (defesa, frequência) mostram quando e por quê | até 2, só as sugeridas | próprias e sem limite |
-| **Conquistas** | Marcos e registro de graduação | tudo | — |
-| **Parceiros, Academia (musculação), Nutrição, Gás, Lesões** | Apoio | tudo | — |
-| **Ajustes** | Lista que abre popups: Perfil, Aparência, Como usar, App no celular, Avisos, Seus dados, Conta (sair e apagar a conta) | tudo | — |
-| **Painel do admin** | Chaves de recurso, acervo de vídeos, medição, contas, links, vendas e recuperação. "Ver o app como" grátis ou premium | só admin | — |
+| **Conquistas** | Marcos e registro de graduação | tudo | igual ao grátis |
+| **Parceiros, Academia (musculação), Nutrição, Gás, Lesões** | Apoio | tudo | igual ao grátis |
+| **Ajustes** | Lista que abre popups: Perfil, Aparência, Como usar, App no celular, Avisos, Seus dados, Conta (sair e apagar a conta) | tudo | igual ao grátis |
+| **Painel do admin** | Chaves de recurso, acervo de vídeos, medição, contas, links, vendas e recuperação. "Ver o app como" grátis ou premium | só admin | igual ao grátis |
 
 O que é grátis e o que é pago mora em `RECURSOS` (`src/lib/plano.js`) e só vale com a chave `cobranca` ligada. Toda trava usa `podeVer` e mostra a `Vitrine` (a seção real borrada) ou o `Convite` (popup).
 
@@ -39,7 +39,7 @@ O que é grátis e o que é pago mora em `RECURSOS` (`src/lib/plano.js`) e só v
 - **Todo número com tempo** sai de `periodoDeDados` (`src/lib/periodo.js`) e mostra o rótulo do período.
 - **Drill não é luta** em conta nenhuma.
 - **"O rola"**, no masculino. `npm run lint:copy` barra o feminino e o travessão.
-- **Nada de número que o aluno não consegue conferir na tela** (sem nota 0–100, sem porcentagem de confiança).
+- **Nada de número que o aluno não consegue conferir na tela** (sem nota de 0 a 100, sem porcentagem de confiança).
 
 ---
 
