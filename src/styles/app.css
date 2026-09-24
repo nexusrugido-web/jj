@@ -312,7 +312,7 @@ h1, h2, h3, h4 { font-family: var(--display); font-weight: 700; letter-spacing: 
   font-size: 11.5px; font-weight: 600; color: var(--dim);
   transition: all 0.15s var(--ease); white-space: nowrap;
 }
-button.chip:hover { color: var(--chalk); border-color: var(--dimmer); }
+button.chip:not(.on):hover { color: var(--chalk); border-color: var(--dimmer); }
 .chip.on { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
 .chip.jade { color: var(--jade); border-color: color-mix(in srgb, var(--jade) 35%, var(--seam)); background: color-mix(in srgb, var(--jade) 10%, transparent); }
 .chip.blood { color: var(--blood); border-color: color-mix(in srgb, var(--blood) 35%, var(--seam)); background: color-mix(in srgb, var(--blood) 10%, transparent); }
@@ -3155,4 +3155,29 @@ body::after {
 @media (max-width: 480px) {
   /* formulário em uma coluna: campo de data e seletor não cabem em meia tela */
   .grid.g2:has(> .field), .grid.g3:has(> .field) { grid-template-columns: 1fr; }
+}
+
+/* ---------- novo treino: cada bloco com a sua cor ----------
+   Azul é a aula (academia, professor, técnicas), âmbar é o parceiro.
+   Verde e vermelho já são "eu" e "ele" no placar, por isso ficam de fora. */
+.bloco-cor {
+  display: flex; flex-direction: column; gap: var(--e3);
+  padding: var(--e3); border-radius: var(--r-sm);
+  border: 1px solid color-mix(in srgb, var(--cor) 32%, var(--seam));
+  background: color-mix(in srgb, var(--cor) 6%, var(--void));
+}
+.bloco-cor.aula { --cor: var(--ice); }
+.bloco-cor.parceiro { --cor: var(--roar); }
+.bloco-cor-titulo { display: flex; align-items: center; gap: 7px; font-size: var(--fs-sec); font-weight: 700; color: var(--cor); }
+.bloco-cor .chip.on {
+  background: color-mix(in srgb, var(--cor) 16%, var(--void));
+  border-color: color-mix(in srgb, var(--cor) 55%, transparent);
+  color: var(--cor);
+}
+.rola-n {
+  flex: none; align-self: flex-start;
+  width: 26px; height: 26px; border-radius: 99px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--mat-top); border: 1px solid var(--seam-hi);
+  font-size: var(--fs-meta); color: var(--dim);
 }

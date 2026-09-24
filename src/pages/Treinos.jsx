@@ -45,7 +45,7 @@ const ehCompeticao = (tipo) => tipo === 'competicao';
 const novaSessao = (settings) => ({
   data: hoje(),
   tipo: 'gi',
-  duracao: 90,
+  duracao: settings.duracaoTreinoPadrao || 90,
   academiaId: settings.academiaPadraoId || null,
   professorId: settings.professorPadraoId || null,
   foco: '',
@@ -117,7 +117,7 @@ const AbaParceiros = lazy(() => import('./Parceiros').then((m) => ({ default: m.
 const POR_VEZ = 20;
 
 export default function Treinos() {
-  const { sessions, rolls, partners, positions, techniques, categories, settings , ligada, acesso, irPara } = useApp();
+  const { sessions, rolls, partners, positions, techniques, categories, settings, salvarSettings, ligada, acesso, irPara } = useApp();
   const toast = useToast();
   const academias = useLiveQuery(() => db.academies.filter((a) => !a.arquivada).toArray(), [], []) || [];
   const professores = useLiveQuery(() => db.professors.filter((p) => !p.arquivada).toArray(), [], []) || [];
@@ -647,6 +647,8 @@ export default function Treinos() {
             faixa={settings.faixa}
             academias={academias} professores={professores}
             duracaoPadrao={settings.duracaoRolaPadrao || 5}
+            padrao={{ academiaId: settings.academiaPadraoId || null, professorId: settings.professorPadraoId || null }}
+            onSalvarPadrao={async (p) => { await salvarSettings(p); toast('Pronto: o próximo treino já vem assim'); }}
           />
         )}
       </Sheet>
@@ -778,8 +780,10 @@ function BlocoCompeticao({ s, setS, onAbrirRegras }) {
   );
 }
 
-function EditorTreino({ s, setS, rolas, setRolas, partners, positions, techniques, categories, finalizacoes, maisUsadas, recentesPorPonto, recentesFoco, faixa, academias, professores, duracaoPadrao }) {
+function EditorTreino({ s, setS, rolas, setRolas, partners, positions, techniques, categories, finalizacoes, maisUsadas, recentesPorPonto, recentesFoco, faixa, academias, professores, duracaoPadrao, padrao, onSalvarPadrao }) {
   const set = (k, v) => setS({ ...s, [k]: v });
+  const ehPadrao = !!padrao.academiaId && s.academiaId === padrao.academiaId && (s.professorId || null) === padrao.professorId;
+  const [trocando, setTrocando] = useState(false);
   const [rolaAberta, setRolaAberta] = useState(rolas.length ? 0 : null);
   const [seletor, setSeletor] = useState(null);
   const [parceirosAberto, setParceirosAberto] = useState(false);
@@ -811,8 +815,24 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
       {/* o campeonato: só aparece quando o treino é competição */}
       {ehCompeticao(s.tipo) && <BlocoCompeticao s={s} setS={setS} onAbrirRegras={() => setAntesDeCompetir(true)} />}
 
-      {/* academia e professor por clique */}
-      {academias.length > 0 ? (
+      {/* a aula: academia, professor, técnicas e anotação num bloco só.
+          Com o padrão salvo, academia e professor já vêm marcados e ficam
+          fechados numa linha; "Trocar" abre os chips. */}
+      <div className="bloco-cor aula">
+      <div className="bloco-cor-titulo"><GraduationCap size={15} /> A aula</div>
+      {academias.length > 0 && ehPadrao && !trocando ? (
+        <div className="row" style={{ gap: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="tiny" style={{ fontWeight: 600 }}>{academias.find((a) => a.id === s.academiaId)?.nome}</div>
+            <div className="micro muted" style={{ marginTop: 2 }}>
+              {professores.find((p) => p.id === s.professorId)?.nome
+                ? `Professor ${professores.find((p) => p.id === s.professorId).nome}`
+                : 'Sem professor'} · o seu padrão
+            </div>
+          </div>
+          <Btn size="sm" variant="contorno" onClick={() => setTrocando(true)}>Trocar</Btn>
+        </div>
+      ) : academias.length > 0 ? (
         <>
           <Field label="Academia">
             <div className="chips-scroll" style={{ margin: 0, padding: 0 }}>
@@ -849,6 +869,17 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
           {s.academiaId && profsDaAcademia.length === 0 && (
             <p className="micro muted">Nenhum professor cadastrado nessa academia ainda. Cadastre em Parceiros → Professores.</p>
           )}
+          {s.academiaId && !ehPadrao && (
+            <button
+              type="button" className="btn ghost xs" style={{ alignSelf: 'flex-start' }}
+              onClick={() => {
+                onSalvarPadrao({ academiaPadraoId: s.academiaId, professorPadraoId: s.professorId || null, duracaoTreinoPadrao: Number(s.duracao) || 90 });
+                setTrocando(false);
+              }}
+            >
+              <Check size={13} /> Usar sempre esta academia, professor e duração
+            </button>
+          )}
         </>
       ) : (
         <div className="valida atencao">
@@ -871,6 +902,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
       <Field label="Anotação da aula" hint="Detalhes, sacadas, o que focar da próxima, pergunta pro professor.">
         <Textarea value={s.nota || ''} onChange={(e) => set('nota', e.target.value)} placeholder="Escreve livre…" style={{ minHeight: 96 }} />
       </Field>
+      </div>
 
       <div className="divider" />
       <div className="row">
@@ -904,9 +936,10 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
                   onClick={() => setRolaAberta(open ? null : i)}
                   aria-expanded={open}
                 >
-                <span className="num micro muted">#{i + 1}</span>
-                <div className="grow row wrap" style={{ gap: 6 }}>
-                  <span className="tiny">{parceiro?.nome || 'Sem parceiro'}</span>
+                <span className="rola-n num">{i + 1}</span>
+                <div className="grow col" style={{ gap: 6, minWidth: 0 }}>
+                  <span className="tiny" style={{ fontWeight: 600, color: parceiro ? 'var(--roar)' : undefined }}>{parceiro?.nome || 'Sem parceiro'}</span>
+                <div className="row wrap" style={{ gap: 6 }}>
                   <Chip tone={TOM_RESULTADO[res] || ''}>{ROTULO_RESULTADO[res]}</Chip>
                   <span className="micro muted num">{r.duracao}min</span>
                   {(r.contexto || 'rola') !== 'rola' && <Chip>{CONTEXTOS.find((c) => c.id === r.contexto)?.nome}</Chip>}
@@ -914,6 +947,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
                   {(r.subsAplicadas || []).length > 0 && <Chip tone="jade">+{r.subsAplicadas.length}</Chip>}
                   {(r.subsSofridas || []).length > 0 && <Chip tone="blood">−{r.subsSofridas.length}</Chip>}
                   {r.notas?.trim() && <MessageSquare size={12} className="muted" />}
+                </div>
                 </div>
                 </button>
                 <button type="button" className="btn ghost icon sm" onClick={() => setRolas(rolas.filter((_, j) => j !== i))} aria-label="Remover rola">
@@ -934,15 +968,28 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
                       </div>
                     </button>
                   )}
-                  <div className="grid g2" style={{ gap: 10 }}>
-                    <Field label="Com quem foi" hint={partners.length ? '' : 'Escreva o nome e pronto. Academia e professor ficam pra depois.'}>
-                      <ParceiroRapido
-                        valor={r.partnerId}
-                        partners={partners}
-                        onEscolher={(id) => setRola(i, { partnerId: id })}
-                      />
+                  {/* o parceiro: com quem e o peso dele, num bloco com cor própria */}
+                  <div className="bloco-cor parceiro">
+                    <div className="bloco-cor-titulo"><Users size={15} /> Com quem foi</div>
+                    <ParceiroRapido
+                      valor={r.partnerId}
+                      partners={partners}
+                      onEscolher={(id) => setRola(i, { partnerId: id })}
+                    />
+                    {!partners.length && <p className="micro muted">Escreva o nome e pronto. Academia e professor ficam pra depois.</p>}
+                    <Field label="Peso dele em relação a você" hint="Encaixar em alguém mais pesado é mais difícil, e o app leva isso em conta.">
+                      <EscolhaChips valor={r.pesoRel} onChange={(v) => setRola(i, { pesoRel: v })} opcoes={PESO_REL} />
                     </Field>
+                  </div>
+
+                  <div className="grid g2" style={{ gap: 10 }}>
                     <Field label="Duração (min)"><NumeroInput valor={r.duracao} onChange={(v) => setRola(i, { duracao: v })} /></Field>
+                    <Field label="De onde começou" hint="Descobre de onde você ganha e de onde apanha.">
+                      <Select value={r.posInicial || ''} onChange={(e) => setRola(i, { posInicial: e.target.value || null })}>
+                        <option value="">Não anotei</option>
+                        {POSICOES_INICIAIS.map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}
+                      </Select>
+                    </Field>
                   </div>
 
                   <Field label="Anotação deste rola" hint="O que funcionou, onde travou, o detalhe que faltou.">
@@ -952,17 +999,6 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
                       placeholder="Ex.: fiquei sem ar no final; ele passou por cima toda vez que abri a guarda…"
                       style={{ minHeight: 92 }}
                     />
-                  </Field>
-
-                  <Field label="Peso dele em relação a você" hint="Encaixar em alguém mais pesado é mais difícil, e o app leva isso em conta.">
-                    <EscolhaChips valor={r.pesoRel} onChange={(v) => setRola(i, { pesoRel: v })} opcoes={PESO_REL} />
-                  </Field>
-
-                  <Field label="De onde começou" hint="Descobre de onde você ganha e de onde apanha.">
-                    <Select value={r.posInicial || ''} onChange={(e) => setRola(i, { posInicial: e.target.value || null })}>
-                      <option value="">Não anotei</option>
-                      {POSICOES_INICIAIS.map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}
-                    </Select>
                   </Field>
 
                   <Placar r={r} />

@@ -190,7 +190,7 @@ export const DEFAULT_SETTINGS = {
   pesoKg: '', alturaCm: '', idade: '', sexo: 'm',
   atividade: 1.725, objetivo: 'manter',
   inicioTreino: '', acento: 'blood',
-  metaSemanal: 4, metaAnualHoras: 200, duracaoRolaPadrao: 5,
+  metaSemanal: 4, metaAnualHoras: 200, duracaoRolaPadrao: 5, duracaoTreinoPadrao: 90,
   mostrarNoDash: {
     escada: true, heat: true, metas: true, revisao: true,
     finalizacoes: true, parceiros: true, dominio: true,
