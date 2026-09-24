@@ -744,6 +744,22 @@ button.chip:hover { color: var(--chalk); border-color: var(--dimmer); }
 .trilha-barra { height: 5px; border-radius: 99px; background: var(--seam); overflow: hidden; margin-top: 6px; }
 .trilha-barra > i { display: block; height: 100%; border-radius: 99px; transition: width .7s var(--ease); }
 
+/* ---------- as técnicas na home ---------- */
+.tec-home {
+  display: block; width: 100%; text-align: left;
+  padding: 13px 14px; border-radius: var(--r-sm);
+  background: var(--void); border: 1px solid var(--seam);
+  transition: border-color .2s var(--ease);
+}
+.tec-home:hover { border-color: var(--seam-hi); }
+.tec-home-topo { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+.tec-home-nome { font-weight: 600; font-size: 14px; min-width: 0; }
+.tec-home-grau { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; white-space: nowrap; }
+.tec-home-barra { height: 6px; border-radius: 99px; background: var(--seam); overflow: hidden; margin-top: 11px; }
+.tec-home-barra > i { display: block; height: 100%; border-radius: 99px; transition: width .7s var(--ease); }
+.tec-home-rodape { display: flex; justify-content: space-between; gap: 10px; margin-top: 7px; font-size: 12px; color: var(--dim); line-height: 1.45; }
+.tec-home-rodape .num { color: var(--chalk); flex: none; }
+
 /* ---------- celebração ---------- */
 .celebra {
   position: fixed; inset: 0; z-index: 130;

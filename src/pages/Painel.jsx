@@ -13,8 +13,8 @@ import Calendario from '../components/Calendario';
 import GraficoEvolucao from '../components/GraficoEvolucao';
 import { resumo, escadaPosicional, treinosNaSemana } from '../lib/stats';
 import { fmtDur, relativo, mesLongo } from '../lib/utils';
-import { minhasTecnicas, meusBuracos, resumoGraus, jogoPrincipal, grauPorN } from '../lib/graus';
-import { recomendacoesDoAluno, INTENCOES } from '../lib/recomendar';
+import { minhasTecnicas, meusBuracos, jogoPrincipal, grauPorN } from '../lib/graus';
+import { recomendacoesDoAluno, INTENCOES, faltaPara } from '../lib/recomendar';
 import { progressoDaMeta, tituloDaMeta, metaDeHorasNoAno } from '../lib/metas';
 import LinhaDeMeta from '../components/LinhaDeMeta';
 import RotuloPeriodo from '../components/RotuloPeriodo';
@@ -83,7 +83,6 @@ export default function Painel() {
       .filter((g) => g.p.conta)
       .slice(0, 5);
   }, [goals, sessions, rolls, esteira, buracos, vistasAulas, respostasQuiz]);
-  const dom = useMemo(() => resumoGraus(esteira), [esteira]);
   const meuJogo = useMemo(() => jogoPrincipal(esteira, 5), [esteira]);
   const recs = useMemo(
     () => recomendacoesDoAluno({ tecnicas: esteira, buracos, partners, sessions, rolls, faixa: settings.faixa, feitas, limite: 2 }),
@@ -370,28 +369,20 @@ export default function Painel() {
             <button className="btn ghost xs" onClick={() => irPara('dominio')}>ver todas <ArrowRight size={12} /></button>
           </div>
 
-          <div className="grid g4" style={{ gap: 12, marginBottom: 14 }}>
-            {[4, 3, 2, 1].map((n) => (
-              <div key={n} className="stat">
-                <div className="row" style={{ gap: 7, marginBottom: 5 }}><Ponteira n={n} mini /></div>
-                <span className="stat-val num sm" style={{ color: `var(--${grauPorN(n).cor})` }}>{dom[`g${n}`]}</span>
-                <span className="stat-lab">{grauPorN(n).curto}</span>
-              </div>
+          {/* as três que mais aparecem, cada uma dizendo o que falta
+              pro próximo grau. A lista inteira fica em "ver todas". */}
+          <p className="micro muted" style={{ marginBottom: 12, lineHeight: 1.6 }}>
+            {esteira.length > 3
+              ? `As 3 que mais aparecem nos seus rolas, de ${esteira.length} no total.`
+              : esteira.length === 1
+                ? 'A que apareceu nos seus rolas até agora.'
+                : `As ${esteira.length} que apareceram nos seus rolas até agora.`}
+          </p>
+          <div className="col" style={{ gap: 8 }}>
+            {esteira.slice(0, 3).map((t) => (
+              <TecnicaNaHome key={t.nome} t={t} faixa={settings.faixa} partners={partners} onAbrir={() => irPara('dominio')} />
             ))}
           </div>
-
-          {meuJogo.length > 0 && (
-            <div className="row wrap" style={{ gap: 7 }}>
-              {meuJogo.map((e) => {
-                const g = grauPorN(e.grau);
-                return (
-                  <span key={e.nome} className="chip" style={{ color: `var(--${g.cor})`, borderColor: `color-mix(in srgb, var(--${g.cor}) 40%, var(--seam))` }}>
-                    {e.nome} <Ponteira n={e.grau} mini />
-                  </span>
-                );
-              })}
-            </div>
-          )}
 
           {recs.length > 0 && (
             <div style={{ marginTop: 16, borderTop: '1px solid var(--seam)', paddingTop: 14 }}>
@@ -553,6 +544,11 @@ Toda vez que você marca um ponto, o app anota a posição que veio junto. Passa
           ))}
         </div>
 
+        <p className="tiny muted" style={{ lineHeight: 1.7 }}>
+          A barra de cada técnica mostra quanto do caminho até o próximo grau você já andou. Embaixo dela vem o
+          que falta fazer no tatame pra ela subir.
+        </p>
+
         <div className="valida bom">
           <Target size={15} className="valida-ico" style={{ color: 'var(--jade)' }} />
           <p className="micro muted" style={{ lineHeight: 1.65 }}>
@@ -624,6 +620,44 @@ function Finalizacoes({ dadas = 0, sofridas = 0 }) {
         </p>
       </Sheet>
     </>
+  );
+}
+
+/* ============================================================
+   UMA TÉCNICA NA HOME
+
+   O grau de hoje, a barra até o próximo e, embaixo, o que falta
+   fazer. No 2º grau a conta é só de vezes no rola, então dá pra
+   mostrar ela inteira ("1 de 5") e a barra bate com o número.
+   ============================================================ */
+function TecnicaNaHome({ t, faixa, partners, onAbrir }) {
+  const g = grauPorN(t.grau);
+  const prox = t.proximo ? grauPorN(t.proximo) : null;
+  const falta = faltaPara(t, faixa, partners);
+  const conta = t.proximo === 2 && !t.soDrill && t.requisitos ? `${t.usosResistencia} de ${t.requisitos.usos}` : null;
+
+  return (
+    <button className="tec-home" onClick={onAbrir}>
+      <div className="tec-home-topo">
+        <span className="tec-home-nome">{t.nome}</span>
+        <span className="tec-home-grau" style={{ color: `var(--${g.cor === 'dimmer' ? 'dim' : g.cor})` }}>
+          <Ponteira n={t.grau} mini /> {g.curto}
+        </span>
+      </div>
+      {prox ? (
+        <>
+          <div className="tec-home-barra">
+            <i style={{ width: `${Math.max(4, t.progresso)}%`, background: `var(--${prox.cor})` }} />
+          </div>
+          <div className="tec-home-rodape">
+            <span>{falta?.resumo}</span>
+            {conta && <span className="num">{conta}</span>}
+          </div>
+        </>
+      ) : (
+        <div className="tec-home-rodape"><span>Grau máximo. Daqui pra frente é refinar.</span></div>
+      )}
+    </button>
   );
 }
 

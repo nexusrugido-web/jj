@@ -421,7 +421,13 @@ export function faltaPara(t, faixa = 'branca', partners = []) {
       ? 'O 3º grau aceita dois caminhos, funcionar em gente diferente ou continuar funcionando em quem já conhece sua entrada.'
       : 'O 4º grau pede volume e uso contra quem está no seu nível ou acima.';
 
-  return { resumo: `${t.progresso}% para o ${g.nome}`, texto: `${texto} ${porque}`, alvo: g };
+  /* "20% para o 2º grau" parecia que faltava 20%. O resumo diz o
+     que falta fazer, que é o que dá pra levar pro tatame. */
+  const resumo = faltamUsos > 0
+    ? `${faltamUsos === 1 ? 'Falta 1 vez' : `Faltam ${faltamUsos} vezes`} no rola pra subir pro ${g.nome}`
+    : `Falta ${pecas[0]} pra subir pro ${g.nome}`;
+
+  return { resumo, texto: `${texto} ${porque}`, alvo: g };
 }
 
 /* ============================================================

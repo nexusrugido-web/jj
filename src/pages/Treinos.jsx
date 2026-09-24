@@ -1,4 +1,5 @@
-import React, { useMemo, useState, useEffect, lazy, Suspense } from 'react';
+import React, { useMemo, useState, useEffect, Suspense } from 'react';
+import { lazy } from '../lib/lazy';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Plus, Trash2, Pencil, Swords, NotebookPen, Timer, Play, Pause, RotateCcw,

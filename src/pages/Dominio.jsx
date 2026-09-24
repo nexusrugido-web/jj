@@ -301,7 +301,7 @@ function Detalhe({ t, onClose, cat, faixa, partners, sessions, goals }) {
           <div className="row" style={{ marginBottom: 8 }}>
             <span className="eyebrow">próximo grau</span>
             <span className="spacer" />
-            <span className="num micro" style={{ color: `var(--${falta.alvo.cor})` }}>{t.progresso}%</span>
+            <span className="num micro" style={{ color: `var(--${falta.alvo.cor})` }}>{t.progresso}% do caminho</span>
           </div>
           <Bar v={t.progresso} max={100} tone={falta.alvo.cor === 'dim' ? '' : falta.alvo.cor} />
           <p className="tiny" style={{ marginTop: 11, lineHeight: 1.65 }}>{falta.texto}</p>

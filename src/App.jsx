@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef, lazy, Suspense, startTransition } from 'react';
+import React, { useEffect, useState, useCallback, useRef, Suspense, startTransition } from 'react';
 import { AppCtx, useApp } from './contexto';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, ensureSeed, getMeta, setMeta, DEFAULT_SETTINGS, registrarSync, limparDuplicados, migrarGameplans, migrarCompeticoes, renomearAntigos, consertarAulasVistas } from './db/db';
@@ -29,10 +29,12 @@ import { somarPontos } from './db/scoring';
 
 import Painel from './pages/Painel';
 import Aceite, { VERSAO_DOCS } from './components/Aceite';
+import { lazy } from './lib/lazy';
 
 /* Só o Painel e a tela de treinos vêm no primeiro carregamento.
    O resto chega quando você abre, o que deixa a abertura bem mais
-   leve em celular mais simples. */
+   leve em celular mais simples. O lazy daqui recarrega sozinho
+   quando uma versão nova sumiu com o arquivo da tela. */
 const Estudo = lazy(() => import('./pages/Estudo'));
 const Analise = lazy(() => import('./pages/Analise'));
 const Tecnicas = lazy(() => import('./pages/Tecnicas'));
