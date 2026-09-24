@@ -64,13 +64,31 @@ const ROTA = {
   liga: '/?go=liga',
 };
 
+/* Com a cara do tatame: brinca, mas cobra. Cada tipo tem algumas
+   versões, e o dia escolhe qual sai, pra não virar papel de parede. */
+const doDia = (lista) => lista[Math.floor(Date.now() / 86400000) % lista.length];
+
 function aviso(n) {
   const dias = Number(String(n.title || '').match(/^\d+/)?.[0]) || 0;
   const tipo = n.tag || '';
   if (tipo === 'ofensiva') {
     return {
-      titulo: dias > 1 ? `🔥 ${dias} dias seguidos. Não deixa cair hoje` : '🔥 Sua ofensiva fecha hoje',
-      corpo: 'Uma aula rápida de um minuto já mantém ela de pé.',
+      titulo: dias > 1
+        ? doDia([
+          `🔥 ${dias} dias sem bater. Não vai dar os três tapinhas logo hoje`,
+          `🥋 ${dias} dias seguidos. Faixa preta é faixa branca que não faltou`,
+          `🔥 ${dias} dias de guarda fechada. Não deixa a ofensiva raspar`,
+          `💪 ${dias} dias seguidos. O tatame lembra de quem aparece`,
+        ])
+        : doDia([
+          '🔥 Sua ofensiva fecha hoje. Não deixa ela bater',
+          '🥋 O primeiro dia é o mais difícil de segurar. Segura',
+        ]),
+      corpo: doDia([
+        'Uma aula rápida de um minuto já segura a posição. Nem precisa aquecer.',
+        'Nem precisa rolar: uma aula rápida já fecha o dia.',
+        'Disciplina é aparecer quando o corpo pede pra bater. Um minuto resolve.',
+      ]),
       acoes: [
         { acao: 'estudar', titulo: 'Aula rápida', rota: ROTA.estudar },
         { acao: 'treino', titulo: 'Registrar treino', rota: ROTA.treino },
@@ -79,22 +97,28 @@ function aviso(n) {
   }
   if (tipo === 'liga') {
     return {
-      titulo: '🏆 A liga fecha hoje',
-      corpo: 'Ainda dá pra subir no seu grupo antes da meia-noite.',
+      ...doDia([
+        { titulo: '🏆 A liga fecha hoje. Ainda dá pra finalizar no último minuto', corpo: 'Uns pontos a mais e você sobe no grupo antes da meia-noite.' },
+        { titulo: '⏱️ Último round da liga. Hora de apertar o estrangulamento', corpo: 'A semana fecha à meia-noite: um treino ou uma aula mudam o placar.' },
+      ]),
       acoes: [{ acao: 'liga', titulo: 'Ver meu grupo', rota: ROTA.liga }],
     };
   }
   if (tipo === 'resultado') {
     return {
-      titulo: '📊 A liga fechou',
-      corpo: 'Veja onde você terminou e com quem você corre nesta semana.',
+      ...doDia([
+        { titulo: '📊 O árbitro levantou a mão. Saiu o resultado da liga', corpo: 'Veja onde você terminou e com quem você corre nesta semana.' },
+        { titulo: '📊 A liga fechou. Pódio ou repescagem?', corpo: 'Veja onde você terminou e quem está no seu grupo agora.' },
+      ]),
       acoes: [{ acao: 'liga', titulo: 'Ver resultado', rota: ROTA.liga }],
     };
   }
   if (tipo === 'volta') {
     return {
-      titulo: '🥋 O tatame continua aí',
-      corpo: 'Seu jogo está do jeito que você deixou. Dá pra voltar com uma aula rápida.',
+      ...doDia([
+        { titulo: '🥋 O kimono tá sentindo sua falta', corpo: 'Seu jogo está do jeito que você deixou. Volta com uma aula rápida, sem pressa.' },
+        { titulo: '🥋 O tatame continua aí. Ninguém pegou o seu lugar', corpo: 'Uma aula rápida hoje, e amanhã voltar já fica mais fácil.' },
+      ]),
       acoes: [{ acao: 'estudar', titulo: 'Aula rápida', rota: ROTA.estudar }],
     };
   }
