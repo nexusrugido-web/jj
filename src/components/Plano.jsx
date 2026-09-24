@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Check, Lock, Sparkles, Ticket, Crown,
+  Check, Lock, Sparkles, Gem, Ticket, Crown,
 } from 'lucide-react';
 import { Card, Btn, Chip, Input, Field, Sheet, useToast } from './UI';
 import { RECURSOS, LIMITES, ativarCodigo, diasParaVencer } from '../lib/plano';
@@ -215,7 +215,7 @@ export function Vitrine({ recurso, fundo, titulo, texto, itens, onAssinar }) {
     <div className="vitrine">
       <div className="vitrine-fundo" aria-hidden="true">{fundo}</div>
       <div className="vitrine-frente">
-        <span className="vitrine-selo"><Lock size={13} /> Premium</span>
+        <span className="vitrine-selo"><Gem size={13} /> Premium</span>
         <h3 className="h-sec" style={{ marginTop: 10 }}>{titulo}</h3>
         <p className="tiny muted" style={{ marginTop: 6, lineHeight: 1.6 }}>{texto}</p>
         <ul className="vitrine-lista">
@@ -236,7 +236,7 @@ export function Convite({ recurso, icone: Icone = Sparkles, marca = null, titulo
   return (
     <div className="convite">
       <span className="convite-ico"><Icone size={22} /></span>
-      <span className="vitrine-selo"><Lock size={13} /> Premium</span>
+      <span className="vitrine-selo"><Gem size={13} /> Premium</span>
       <div>
         {marca && <div className="convite-marca">{marca}</div>}
         <h2 className="convite-titulo">{titulo}</h2>

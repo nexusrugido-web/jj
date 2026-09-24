@@ -3290,3 +3290,7 @@ body::after {
 .placar-quadro.jade .placar-quadro-num, .placar-quadro.jade .placar-quadro-rot .lucide { color: var(--jade); }
 .placar-quadro.blood { border-color: color-mix(in srgb, var(--blood) 28%, var(--seam)); }
 .placar-quadro.blood .placar-quadro-num, .placar-quadro.blood .placar-quadro-rot .lucide { color: var(--blood); }
+
+/* ---------- o diamante do premium, na cor de destaque ---------- */
+.diamante { flex: none; color: var(--accent); vertical-align: -2px; filter: drop-shadow(0 0 5px color-mix(in srgb, var(--accent) 50%, transparent)); }
+.btn .diamante, .seg .diamante { margin-left: 2px; }

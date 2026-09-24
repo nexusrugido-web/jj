@@ -4,7 +4,7 @@ import {
   Trophy, Users, Settings as Cog, MoreHorizontal, Download, Award, Apple, CloudOff, Cloud,
   RefreshCw, Dna, GraduationCap, Flame, Shield, Megaphone, CircleHelp, X, UsersRound,
 } from 'lucide-react';
-import { Modal } from './UI';
+import { Modal, Diamante } from './UI';
 
 export const ROTAS_TODAS = [
   { id: 'painel', nome: 'Painel', icon: LayoutDashboard, grupo: 'No tatame' },
@@ -15,12 +15,12 @@ export const ROTAS_TODAS = [
 
   { id: 'meujogo', nome: 'Meu jogo', icon: Dna, grupo: 'Evolução' },
   { id: 'dominio', nome: 'Minhas técnicas', icon: Award, grupo: 'Evolução' },
-  { id: 'analise', nome: 'Análise', icon: ChartNoAxesColumn, grupo: 'Evolução' },
+  { id: 'analise', nome: 'Análise', icon: ChartNoAxesColumn, grupo: 'Evolução', premium: true },
   { id: 'conquistas', nome: 'Conquistas', icon: Trophy, grupo: 'Evolução' },
   { id: 'metas', nome: 'Metas', icon: Target, grupo: 'Evolução' },
   { id: 'parceiros', nome: 'Parceiros', icon: Users, grupo: 'Evolução' },
 
-  { id: 'academia', nome: 'Musculação', icon: Dumbbell, grupo: 'Corpo' },
+  { id: 'academia', nome: 'Musculação', icon: Dumbbell, grupo: 'Corpo', premium: true },
   { id: 'nutricao', nome: 'Nutrição', icon: Apple, grupo: 'Corpo' },
   { id: 'respiracao', nome: 'Gás', icon: Wind, grupo: 'Corpo' },
   { id: 'lesoes', nome: 'Lesões', icon: HeartPulse, grupo: 'Corpo' },
@@ -57,6 +57,7 @@ export default function Layout({ rota, irPara, settings, badges = {}, sync, onIn
     <button className={`navlink ${rota === r.id ? 'on' : ''}`} onClick={() => irPara(r.id)}>
       <r.icon size={17} />
       {r.nome}
+      {r.premium && <Diamante />}
       {badges[r.id] > 0 && <span className="navlink-badge num">{badges[r.id]}</span>}
     </button>
   );
@@ -155,7 +156,10 @@ export default function Layout({ rota, irPara, settings, badges = {}, sync, onIn
                   <button key={r.id} className="card hover"
                     style={{ padding: 13, display: 'flex', flexDirection: 'column', gap: 7, alignItems: 'flex-start', textAlign: 'left' }}
                     onClick={() => { irPara(r.id); setMais(false); }}>
-                    <span className="stat-ico"><r.icon size={16} /></span>
+                    <span className="row" style={{ width: '100%', justifyContent: 'space-between' }}>
+                      <span className="stat-ico"><r.icon size={16} /></span>
+                      {r.premium && <Diamante size={15} />}
+                    </span>
                     <span style={{ fontWeight: 600, fontSize: 13.5 }}>{r.nome}</span>
                     {badges[r.id] > 0 && <span className="chip on micro">{badges[r.id]}</span>}
                   </button>

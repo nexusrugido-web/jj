@@ -8,7 +8,7 @@ import { db } from '../db/db';
 import Player from '../components/Player';
 import { useApp } from '../contexto';
 import {
-  Card, Btn, Chip, Empty, Sheet, Busca, Seg, useToast,
+  Card, Btn, Chip, Empty, Sheet, Busca, Seg, useToast, Diamante,
 } from '../components/UI';
 import {
   aulasDoTema, resumoAcervo, capa, duracaoTexto, registrarAulaVista, aulasDeEntrada,
@@ -228,7 +228,7 @@ export default function Estudo() {
       <PontosDoEstudo aberto={ajudaPontos} onClose={() => setAjudaPontos(false)} cobrando={ligada('cobranca')} />
 
       <Seg value={aba} onChange={(v) => { setAba(v); setTema(null); setPagina(0); }} options={[
-        { id: 'pravoce', nome: 'Pra você' },
+        { id: 'pravoce', nome: <>Pra você <Diamante size={12} /></> },
         { id: 'temas', nome: 'Por tema' },
         { id: 'dores', nome: 'Por dificuldade' },
         ...(ligada('quiz') ? [{ id: 'quiz', nome: 'Quiz' }] : []),

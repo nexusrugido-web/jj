@@ -29,7 +29,7 @@ import { Ponteira } from '../components/Ponteira';
 import { PrimeirosPassos, AvisoDeVolta } from '../components/PrimeirosPassos';
 import Destaques from '../components/Destaques';
 import { analisarDiario } from '../lib/ai';
-import { Sheet, useToast } from '../components/UI';
+import { Sheet, useToast, Diamante } from '../components/UI';
 import { podeVer } from '../lib/plano';
 import { Convite, Vitrine } from '../components/Plano';
 import { supabase } from '../lib/supabase';
@@ -134,7 +134,7 @@ export default function Painel() {
               } catch (e) { toast(String(e.message || e), 'err'); }
               finally { setCarregandoIa(false); }
             }}>
-              {carregandoIa ? 'Lendo…' : 'Neuro-Análise IA'}
+              {carregandoIa ? 'Lendo…' : 'Neuro-Análise IA'} <Diamante />
             </Btn>
           )}
           <Btn variant="primary" icon={Plus} onClick={() => irPara('treinos')}>Registrar treino</Btn>

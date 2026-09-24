@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
-import { X, Check, AlertTriangle, Minus, Plus, Search, CalendarDays } from 'lucide-react';
+import { X, Check, AlertTriangle, Minus, Plus, Search, CalendarDays, Gem } from 'lucide-react';
+import { useApp } from '../contexto';
 import { hoje, addDias, fmtData } from '../lib/utils';
 import { FAIXAS } from '../db/seed';
 import Sheet from './Sheet';
@@ -202,6 +203,15 @@ export function Empty({ icon: Icon, titulo, texto, acao }) {
       {acao}
     </div>
   );
+}
+
+/* ---------------- o diamante do premium ----------------
+   Marca o que é do premium, na cor de destaque que a pessoa escolheu.
+   Só aparece com a cobrança ligada: sem cobrança, nada é premium. */
+export function Diamante({ size = 13 }) {
+  const app = useApp();
+  if (!app?.ligada?.('cobranca')) return null;
+  return <Gem size={size} className="diamante" aria-label="premium" />;
 }
 
 /* ---------------- Modal / Confirmar (agora vêm do Sheet) ---------------- */

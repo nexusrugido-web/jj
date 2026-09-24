@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
-  Plus, Target, Trash2, Pencil, Check, Trophy, Sparkles, Clock, X, Minus, Share2, Lock,
+  Plus, Target, Trash2, Pencil, Check, Trophy, Sparkles, Clock, X, Minus, Share2,
 } from 'lucide-react';
 import Figurinha from '../components/Figurinha';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -8,7 +8,7 @@ import { db } from '../db/db';
 import { useApp } from '../contexto';
 import {
   Card, Btn, Field, Input, NumeroInput, Textarea, Select, Sheet, Chip, Empty, Confirmar, useToast,
-  Bar, Seg,
+  Bar, Seg, Diamante,
 } from '../components/UI';
 import { SeletorTecnica } from '../components/SeletorTecnica';
 import { Ponteira } from '../components/Ponteira';
@@ -122,7 +122,7 @@ export default function Metas() {
         <div>
           <h1 className="h-page">Metas</h1>
         </div>
-        <Btn variant="primary" icon={livre ? Plus : Lock} onClick={novaMeta}>Nova meta</Btn>
+        <Btn variant="primary" icon={Plus} onClick={novaMeta}>Nova meta {!livre && <Diamante />}</Btn>
       </div>
 
       <Seg value={aba} onChange={setAba} options={[
