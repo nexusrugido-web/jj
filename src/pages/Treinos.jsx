@@ -293,7 +293,7 @@ export default function Treinos() {
 
     setEditando(s2);
     setRolasEdit(rs.length ? rs : [novaRola(settings.duracaoRolaPadrao || 5)]);
-    toast(rs.length ? `Montei ${rs.length} rola(s). Confira antes de salvar.` : 'Guardei o que você falou. Confira e complete.');
+    toast(rs.length ? `Montei ${rs.length} ${rs.length === 1 ? 'rola' : 'rolas'}. Confira antes de salvar.` : 'Guardei o que você falou. Confira e complete.');
   }
 
   function abrirNova(minutosDaRola) {

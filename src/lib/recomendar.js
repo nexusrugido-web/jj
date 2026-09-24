@@ -423,9 +423,13 @@ export function faltaPara(t, faixa = 'branca', partners = []) {
 
   /* "20% para o 2º grau" parecia que faltava 20%. O resumo diz o
      que falta fazer, que é o que dá pra levar pro tatame. */
+  /* quando falta mais de uma coisa, o resumo avisa: "faltam 3 vezes"
+     sozinho fazia a pessoa encaixar 3 e não subir */
+  const outras = pecas.length - 1;
+  const eMais = outras ? `, e mais ${outras === 1 ? 'uma coisa' : `${outras} coisas`},` : '';
   const resumo = faltamUsos > 0
-    ? `${faltamUsos === 1 ? 'Falta 1 vez' : `Faltam ${faltamUsos} vezes`} no rola pra subir pro ${g.nome}`
-    : `Falta ${pecas[0]} pra subir pro ${g.nome}`;
+    ? `${faltamUsos === 1 ? 'Falta 1 vez' : `Faltam ${faltamUsos} vezes`} no rola${eMais} pra subir pro ${g.nome}`
+    : `Falta ${pecas[0]}${eMais} pra subir pro ${g.nome}`;
 
   return { resumo, texto: `${texto} ${porque}`, alvo: g };
 }
@@ -469,7 +473,7 @@ export function respostaAoMarcar(resultado, rec, faixa = 'branca') {
     return {
       titulo: 'Boa',
       texto: rec.alvo
-        ? `Anotei. Quando ${rec.alvo} aparecer nas suas rolas, o app já conta como evolução.`
+        ? `Anotei. Quando ${rec.alvo} aparecer nos seus rolas, o app já conta como evolução.`
         : 'Anotei. Isso sai da lista por duas semanas.',
       tom: 'jade',
     };

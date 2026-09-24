@@ -143,7 +143,7 @@ export default function Conquistas() {
 
       <div className="grid g4" style={{ marginBottom: 14 }}>
         <Card><Stat icon={Clock} valor={`${r.matHoras}h`} label="tatame total" tone="roar" /></Card>
-        <Card><Stat icon={Award} valor={dom.g3 + dom.g4} label="técnicas dominadas" tone="jade" /></Card>
+        <Card><Stat icon={Award} valor={dom.g3 + dom.g4} label={dom.g3 + dom.g4 === 1 ? 'técnica dominada' : 'técnicas dominadas'} tone="jade" /></Card>
         <Card><Stat icon={Flame} valor={ofa.recorde} label="recorde de ofensiva" /></Card>
         <Card><Stat icon={Trophy} valor={marcos.length} label="marcos" /></Card>
       </div>

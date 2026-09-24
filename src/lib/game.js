@@ -59,13 +59,14 @@ export function analisarJogo(rolls, partners, sessions, faixaUsuario = 'branca')
   const minhaOrdem = FAIXA_ORDEM[faixaUsuario] ?? 0;
 
   /* Um rola 0x0 TAMBÉM é dado: significa que ninguém pontuou.
-     Só ficam de fora os rolas antigas, registradas antes do placar existir. */
-  const comDados = rolls.filter((r) =>
+     Só ficam de fora os rolas antigas, registradas antes do placar existir,
+     e o drill, que não é luta: a mesma regra do Painel e da Análise. */
+  const comDados = rolls.filter((r) => (r.contexto || 'rola') !== 'drill' && (
     r.v2 ||
     (r.ptsMeus || []).length || (r.ptsDele || []).length ||
     (r.subsAplicadas || []).length || (r.subsSofridas || []).length ||
     r.posInicial || r.pesoRel
-  );
+  ));
 
   let vitorias = 0, derrotas = 0, empates = 0;
   let ptsMeus = 0, ptsDele = 0, minutos = 0;
@@ -280,7 +281,7 @@ export function lerJogo(a) {
     notas.push({
       tom: 'blood',
       titulo: `Começando em "${pior.nome}" você quase não sai vivo`,
-      texto: `${pior.v} vitória(s) em ${pior.n} rolas. É exatamente aí que o sparring posicional resolve mais rápido.`,
+      texto: `${pior.v} ${pior.v === 1 ? 'vitória' : 'vitórias'} em ${pior.n} rolas. É exatamente aí que o sparring posicional resolve mais rápido.`,
     });
   }
 

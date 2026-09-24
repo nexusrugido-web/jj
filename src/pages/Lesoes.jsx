@@ -44,6 +44,7 @@ export default function Lesoes() {
 
   const lista = lesoes.filter((l) => (aba === 'abertas' ? l.status !== 'curada' : l.status === 'curada'));
   const ativas = lesoes.filter((l) => l.status === 'ativa').length;
+  const curadas = lesoes.filter((l) => l.status === 'curada').length;
   const porRegiao = useMemo(() => contar(lesoes.map((l) => l.regiao)).slice(0, 6), [lesoes]);
 
   async function salvar() {
@@ -77,16 +78,16 @@ export default function Lesoes() {
               <TriangleAlert size={16} />
             </span>
             <p className="tiny">
-              <b>{ativas} lesão(ões) ativa(s).</b> <span className="muted">Bate cedo, não rola exausto e não force o que está machucado. A maioria das lesões de joelho no BJJ acontece na fadiga. Isso aqui não substitui médico ou fisioterapeuta.</span>
+              <b>{ativas === 1 ? '1 lesão ativa.' : `${ativas} lesões ativas.`}</b> <span className="muted">Bate cedo, não rola exausto e não force o que está machucado. A maioria das lesões de joelho no BJJ acontece na fadiga. Isso aqui não substitui médico ou fisioterapeuta.</span>
             </p>
           </div>
         </Card>
       )}
 
       <div className="grid g3" style={{ marginBottom: 14 }}>
-        <Card><Stat icon={HeartPulse} valor={lesoes.length} label="registros" /></Card>
-        <Card><Stat icon={TriangleAlert} valor={ativas} label="ativas" tone={ativas ? 'blood' : 'jade'} /></Card>
-        <Card><Stat icon={Check} valor={lesoes.filter((l) => l.status === 'curada').length} label="curadas" tone="jade" /></Card>
+        <Card><Stat icon={HeartPulse} valor={lesoes.length} label={lesoes.length === 1 ? 'registro' : 'registros'} /></Card>
+        <Card><Stat icon={TriangleAlert} valor={ativas} label={ativas === 1 ? 'ativa' : 'ativas'} tone={ativas ? 'blood' : 'jade'} /></Card>
+        <Card><Stat icon={Check} valor={curadas} label={curadas === 1 ? 'curada' : 'curadas'} tone="jade" /></Card>
       </div>
 
       {porRegiao.length > 0 && (
@@ -132,7 +133,7 @@ export default function Lesoes() {
                     </div>
                     <h3 className="h-sec" style={{ marginTop: 8 }}>{l.regiao} {l.lado && `(${l.lado})`}</h3>
                     <div className="micro muted" style={{ marginTop: 3 }}>
-                      desde {fmtData(l.data)} · {dias} dia(s) {l.status === 'curada' ? 'até curar' : 'até agora'}
+                      desde {fmtData(l.data)} · {dias} {dias === 1 ? 'dia' : 'dias'} {l.status === 'curada' ? 'até curar' : 'até agora'}
                     </div>
                   </div>
                   <div className="row" style={{ gap: 2 }}>

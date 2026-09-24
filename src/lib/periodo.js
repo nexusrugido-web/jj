@@ -143,7 +143,7 @@ export const METRICAS = [
     desc: 'Jogo de duas técnicas trava quando alguém já sabe o que vem.',
     eixoY: 'técnicas diferentes',
     chaves: [
-      { k: 'tecnicasUnicas', nome: 'Técnicas diferentes', cor: 'var(--accent)', explica: 'Quantas técnicas distintas apareceram nas suas rolas.' },
+      { k: 'tecnicasUnicas', nome: 'Técnicas diferentes', cor: 'var(--accent)', explica: 'Quantas técnicas distintas apareceram nos seus rolas.' },
     ],
   },
 ];

@@ -169,7 +169,7 @@ export default function Dominio() {
         <Card style={{ marginBottom: 14 }}>
           <div className="card-head">
             <div>
-              <div className="eyebrow">o que mais aparece nas suas rolas</div>
+              <div className="eyebrow">o que mais aparece nos seus rolas</div>
               <h2 className="h-sec">Seu jogo</h2>
             </div>
           </div>

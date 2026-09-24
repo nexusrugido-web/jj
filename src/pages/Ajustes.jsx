@@ -227,7 +227,7 @@ export default function Ajustes() {
           <>
             <div className="row wrap" style={{ gap: 8, marginBottom: 12 }}>
               <Chip tone="jade"><Check size={11} /> {sessao.user?.email}</Chip>
-              {sync?.pendentes > 0 && <Chip tone="warn">{sync.pendentes} pendente(s)</Chip>}
+              {sync?.pendentes > 0 && <Chip tone="warn">{sync.pendentes} {sync.pendentes === 1 ? 'pendente' : 'pendentes'}</Chip>}
               {sync?.ultimo && <Chip>último sync {new Date(sync.ultimo).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</Chip>}
             </div>
             {sync?.erro && <p className="micro" style={{ color: 'var(--blood)', marginBottom: 10 }}>{sync.erro}</p>}
@@ -466,7 +466,7 @@ function Notificacoes({ sessao }) {
         <p className="micro muted">Entre com a sua conta pra ligar os avisos.</p>
       ) : motivo === 'instalar' ? (
         <p className="micro muted" style={{ lineHeight: 1.7 }}>
-          No iPhone, aviso só chega pra app instalado na tela de início — é regra do iOS, não ajuste do app.
+          No iPhone, aviso só chega pra app instalado na tela de início. É regra do iOS, não ajuste do app.
           Instale pelo Safari em Compartilhar → Adicionar à Tela de Início e volte aqui.
         </p>
       ) : motivo === 'negada' ? (

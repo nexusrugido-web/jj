@@ -16,6 +16,7 @@ const PROIBIDOS = [
   { re: /\b(a|da|na|uma|essa|nessa|primeira|última) rola\b/gi, nome: '"rola" no feminino' },
   { re: /\b(as|das|nas|essas|quantas|poucas|muitas|duas) rolas\b/gi, nome: '"rolas" no feminino' },
   { re: /\brolas? (registrada|completa)s?\b/gi, nome: '"rola" concordando no feminino' },
+  { re: /\b(suas|numa) rolas?\b|\brolas? suas?\b/gi, nome: '"rola" no feminino (suas rolas, numa rola)' },
 
   /* Texto que justifica decisão de produto em vez de ajudar o aluno.
      Ninguém abre o app querendo saber por que a equipe removeu algo. */

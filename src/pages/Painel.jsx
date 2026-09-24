@@ -517,7 +517,7 @@ Toda vez que você marca um ponto, o app anota a posição que veio junto. Passa
 
       <Sheet aberto={ajudaTec} onClose={() => setAjudaTec(false)} titulo="Minhas técnicas" wide>
         <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-          Toda técnica que aparece nas suas rolas entra aqui sozinha. Você não precisa cadastrar nada: basta
+          Toda técnica que aparece nos seus rolas entra aqui sozinha. Você não precisa cadastrar nada: basta
           registrar o que aconteceu no treino.
         </p>
         <p className="tiny muted" style={{ lineHeight: 1.7 }}>
@@ -529,7 +529,7 @@ Toda vez que você marca um ponto, o app anota a posição que veio junto. Passa
         <div className="eyebrow">os quatro graus</div>
         <div className="col" style={{ gap: 12 }}>
           {[
-            ['Conheço o movimento', 'Apareceu pelo menos uma vez numa rola sua.'],
+            ['Conheço o movimento', 'Apareceu pelo menos uma vez num rola seu.'],
             ['Funciona no rola', 'Saiu várias vezes com o outro resistindo de verdade.'],
             ['Faz parte do meu jogo', 'Sai em gente diferente, ou você já refinou bastante na mesma pessoa.'],
             ['Assinatura', 'É o seu golpe. Sai até contra quem é mais graduado que você.'],

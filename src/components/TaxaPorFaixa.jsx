@@ -40,7 +40,7 @@ export default function TaxaPorFaixa({
         {seletor}
         <p className="tiny muted">
           {t.semParceiro > 0
-            ? `Vincule parceiros às suas rolas pra ver contra quem você venceu. Sem isso, a taxa de vitória não significa nada. Você tem ${t.semParceiro} rola(s) sem parceiro marcado.`
+            ? `Vincule parceiros aos seus rolas pra ver contra quem você venceu. Sem isso, a taxa de vitória não significa nada. Você tem ${t.semParceiro} ${t.semParceiro === 1 ? 'rola' : 'rolas'} sem parceiro marcado.`
             : `Nenhum rola no período (${periodo.rotulo.toLowerCase()}).`}
         </p>
       </div>
@@ -65,7 +65,7 @@ export default function TaxaPorFaixa({
             {t.total.e > 0 && <span className="tiny"><b className="num muted">{t.total.e}</b> <span className="muted">empates</span></span>}
           </div>
           <p className="micro muted" style={{ marginTop: 6 }}>
-            {t.total.n} rolas contra {t.total.parceiros} parceiro(s) diferente(s)
+            {t.total.n} {t.total.n === 1 ? 'rola' : 'rolas'} contra {t.total.parceiros} {t.total.parceiros === 1 ? 'parceiro' : 'parceiros diferentes'}
           </p>
         </div>
       </div>
@@ -89,7 +89,7 @@ export default function TaxaPorFaixa({
               <i style={{ width: `${l.taxa}%`, background: l.taxa >= 50 ? 'var(--jade)' : 'var(--blood)' }} />
             </div>
             <div className="row" style={{ gap: 8, marginTop: 5, flexWrap: 'wrap' }}>
-              <span className="micro muted">{l.n} rolas · {l.parceiros} parceiro(s)</span>
+              <span className="micro muted">{l.n} {l.n === 1 ? 'rola' : 'rolas'} · {l.parceiros} {l.parceiros === 1 ? 'parceiro' : 'parceiros'}</span>
               {l.fin > 0 && <span className="micro" style={{ color: 'var(--jade)' }}>{l.fin} por finalização</span>}
               {l.pontos > 0 && <span className="micro" style={{ color: 'var(--roar)' }}>{l.pontos} nos pontos</span>}
               {l.tap > 0 && <span className="micro" style={{ color: 'var(--blood)' }}>{l.tap} finalizaç{l.tap > 1 ? 'ões' : 'ão'} sofrida{l.tap > 1 ? 's' : ''}</span>}
@@ -116,7 +116,7 @@ export default function TaxaPorFaixa({
 
       {t.semParceiro > 0 && (
         <p className="micro muted">
-          {t.semParceiro} rola(s) sem parceiro marcado ficaram de fora desta conta.
+          {t.semParceiro === 1 ? '1 rola sem parceiro marcado ficou' : `${t.semParceiro} rolas sem parceiro marcado ficaram`} de fora desta conta.
         </p>
       )}
     </div>

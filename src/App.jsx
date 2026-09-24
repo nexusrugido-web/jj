@@ -391,7 +391,12 @@ export default function App() {
       const r = calcResumo(sessions, rolls);
       const esteira = minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa);
       const dom = resumoGraus(esteira);
-      const primeira = rolls.find((x) => (x.subsAplicadas || []).length)?.subsAplicadas?.[0] || null;
+      /* a primeira pela data do treino, não pela ordem em que foi digitada
+         (treino atrasado existe), e só rola de verdade: o marco diz "rola viva" */
+      const dataDe = new Map(sessions.map((s) => [s.id, s.data || '']));
+      const primeira = rolls
+        .filter((x) => (x.contexto || 'rola') !== 'drill' && (x.subsAplicadas || []).length)
+        .sort((a, b) => (dataDe.get(a.sessionId) || '').localeCompare(dataDe.get(b.sessionId) || ''))[0]?.subsAplicadas[0] || null;
 
       const jogo = analisarJogo(rolls, partners, sessions, settings.faixa);
       const faixaDe = new Map(partners.map((p) => [p.id, p.faixa || 'branca']));

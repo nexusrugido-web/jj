@@ -1,6 +1,7 @@
 import { hoje, diasEntre, pct, fmtData } from './utils';
 import { periodoDeDados, dentroDoPeriodo } from './periodo';
 import { grauPorN, requisitosDaFaixa } from './graus';
+import { posInicialPorId } from '../db/scoring';
 
 /* ============================================================
    METAS COM ORIGEM EXPLÍCITA
@@ -255,7 +256,7 @@ export function tituloDaMeta(meta) {
     case 'volume': return `${alvo || '?'} horas de tatame`;
     case 'tecnica': return `Subir ${alvo || 'uma técnica'} de grau`;
     case 'defesa': return `Parar de ser pego em ${alvo || 'alguma coisa'}`;
-    case 'posicao': return `Trabalhar ${alvo || 'uma posição'}`;
+    case 'posicao': return `Trabalhar ${posInicialPorId[alvo]?.nome || alvo || 'uma posição'}`;
     case 'competicao': return alvo ? `Competir: ${alvo}` : 'Competir';
     case 'manual': return 'Contagem própria';
     default: return t?.nome || 'Meta';

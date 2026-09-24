@@ -69,7 +69,7 @@ export function Midia({ vinculoTipo, vinculoId, compacto = false }) {
         >
           {enviando ? 'Enviando…' : 'Foto ou vídeo'}
         </Btn>
-        {itens.length > 0 && <Chip>{itens.length} arquivo(s)</Chip>}
+        {itens.length > 0 && <Chip>{itens.length} {itens.length === 1 ? 'arquivo' : 'arquivos'}</Chip>}
         {!supabaseConfigurado && <Chip tone="blood"><CloudOff size={11} /> nuvem desligada</Chip>}
         {supabaseConfigurado && !logado && <Chip tone="warn">precisa entrar na conta</Chip>}
         <input

@@ -706,7 +706,7 @@ function ComoFunciona({ aberto, onClose }) {
       </p>
       <p className="tiny muted" style={{ lineHeight: 1.7 }}>
         A cada {DIAS_POR_ESCUDO} dias seguidos você ganha um escudo, até {MAX_ESCUDOS} guardados. Ele é gasto
-        sozinho, sem perguntar, no dia que você não conseguir aparecer — porque quem esqueceu o dia não abriu
+        sozinho, sem perguntar, no dia que você não conseguir aparecer, porque quem esqueceu o dia não abriu
         o app pra confirmar nada. Quem está em {DIAS_POR_ESCUDO - 1} dias e some perde tudo. Quem passou
         dos {DIAS_POR_ESCUDO} tem como voltar.
       </p>

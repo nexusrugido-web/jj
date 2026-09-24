@@ -215,8 +215,8 @@ function AbaAcademias() {
                 </div>
 
                 <div className="row wrap" style={{ gap: 6 }}>
-                  <Chip>{profs.length} professor(es)</Chip>
-                  <Chip tone="jade">{treinos} treino(s)</Chip>
+                  <Chip>{profs.length} {profs.length === 1 ? 'professor' : 'professores'}</Chip>
+                  <Chip tone="jade">{treinos} {treinos === 1 ? 'treino' : 'treinos'}</Chip>
                 </div>
 
                 {profs.length > 0 && (
@@ -333,7 +333,7 @@ function AbaProfessores() {
                           <div style={{ fontWeight: 700, fontFamily: 'var(--display)', fontSize: 15 }} className="truncate">{p.nome}</div>
                           <div className="row" style={{ gap: 6, marginTop: 5, flexWrap: 'wrap' }}>
                             <BeltTag faixa={p.faixa} graus={p.graus} />
-                            {treinos > 0 && <Chip tone="jade">{treinos} aula(s)</Chip>}
+                            {treinos > 0 && <Chip tone="jade">{treinos} {treinos === 1 ? 'aula' : 'aulas'}</Chip>}
                           </div>
                         </div>
                         <div className="row" style={{ gap: 2 }}>

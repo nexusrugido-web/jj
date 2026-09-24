@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../contexto';
 import { Ponteira } from '../components/Ponteira';
-import { minhasTecnicas } from '../lib/graus';
+import { minhasTecnicas, grauPorN } from '../lib/graus';
 import { db } from '../db/db';
 import { FAIXAS } from '../db/seed';
 import {
@@ -226,7 +226,7 @@ export default function Tecnicas() {
           {lista.map((t) => (
             <TecnicaCard
               key={t.id} t={t} cat={catById[t.categoriaId]} origem={posById[t.origemId]} destino={posById[t.destinoId]}
-              ilegal={ilegal(t)} emRevisao={emRevisao.has(t.id)}
+              ilegal={ilegal(t)} emRevisao={emRevisao.has(t.id)} grau={grauDe(t.nome)}
               onEdit={() => setEdit({ ...t })} onDel={() => setExcluir(t)}
               onFav={() => db.techniques.update(t.id, { favorita: t.favorita ? 0 : 1 })}
               onNivel={(n) => db.techniques.update(t.id, { nivel: n, status: n > 0 && t.status === 'nao_iniciada' ? 'aprendendo' : t.status })}
@@ -315,7 +315,7 @@ export default function Tecnicas() {
           pra aprender uma palavra.
         </p>
         <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-          Por padrão aparece só o que interessa agora: as que já saíram nas suas rolas e as permitidas na sua
+          Por padrão aparece só o que interessa agora: as que já saíram nos seus rolas e as permitidas na sua
           faixa. As outras continuam ali, é só buscar pelo nome.
         </p>
 
@@ -323,7 +323,7 @@ export default function Tecnicas() {
         <div className="eyebrow">a ponteira do lado de cada uma</div>
         <div className="col" style={{ gap: 10 }}>
           {[
-            [0, 'Nunca apareceu numa rola sua.'],
+            [0, 'Nunca apareceu num rola seu.'],
             [1, 'Conheço o movimento.'],
             [2, 'Funciona no rola.'],
             [3, 'Faz parte do meu jogo.'],
@@ -375,8 +375,12 @@ function NivelDots({ n = 0, onChange }) {
   );
 }
 
-function TecnicaCard({ t, cat, origem, destino, ilegal, emRevisao, onEdit, onDel, onFav, onNivel, onRevisao }) {
-  const st = STATUS.find((s) => s.id === t.status);
+function TecnicaCard({ t, cat, origem, destino, ilegal, emRevisao, grau = 0, onEdit, onDel, onFav, onNivel, onRevisao }) {
+  /* "Não iniciada" ao lado de uma técnica que já saiu no rola
+     desmentia Minhas técnicas: sem status marcado, vale o grau */
+  const st = t.status === 'nao_iniciada' && grau > 0
+    ? { nome: grauPorN(grau).curto, tone: '' }
+    : STATUS.find((s) => s.id === t.status);
   return (
     <Card className="hover" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div className="row" style={{ alignItems: 'flex-start', gap: 8 }}>
@@ -513,7 +517,7 @@ function EditorTecnica({ t, setT, categories, positions, techniques, faixa, toas
       <Field label="Tags"><TagsInput valor={t.tags || []} onChange={(v) => set('tags', v)} sugestoes={tags} /></Field>
       <Field label="Detalhes e pontos-chave"><Textarea value={t.detalhes} onChange={(e) => set('detalhes', e.target.value)} placeholder="Pegada, ângulo, timing, erro comum…" /></Field>
 
-      <Field label={`Domínio manual (${t.nivel}/5)`} hint="A aba Domínio calcula o real a partir das suas rolas.">
+      <Field label={`Domínio manual (${t.nivel}/5)`} hint="A aba Domínio calcula o real a partir dos seus rolas.">
         <input type="range" min="0" max="5" value={t.nivel} onChange={(e) => set('nivel', Number(e.target.value))} style={{ width: '100%', accentColor: 'var(--accent)' }} />
       </Field>
 
