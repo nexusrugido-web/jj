@@ -35,7 +35,6 @@ const CARDS_DASH = [
   ['dominio', 'Domínio e jogo A'],
   ['heat', 'Calendário de presença'],
   ['metas', 'Metas'],
-  ['revisao', 'Revisão de hoje'],
   ['finalizacoes', 'Finalizações'],
 ];
 
@@ -625,7 +624,22 @@ function Notificacoes({ sessao }) {
           {ligado && <Chip tone="jade"><Check size={11} /> ligados neste aparelho</Chip>}
         </div>
       )}
-      {falha && (
+      {falha && /push service/i.test(falha) ? (
+        /* o Chrome não fala com o serviço de avisos do Google: é ajuste do
+           celular, não do app. Comum em Xiaomi e em quem usa Brave. */
+        <div className="valida atencao">
+          <Bell size={15} className="valida-ico" style={{ color: 'var(--roar)' }} />
+          <div className="micro muted" style={{ lineHeight: 1.6 }}>
+            <b style={{ color: 'var(--chalk)' }}>O celular bloqueou o serviço de avisos do navegador.</b> Pra liberar:
+            <ol style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+              <li>Ajustes do celular → Apps → Chrome → Notificações: ligadas.</li>
+              <li>No mesmo lugar, Economia de bateria: sem restrições, e Início automático ligado (Xiaomi).</li>
+              <li>Se usa Brave, avisos não funcionam nele: use o Chrome.</li>
+            </ol>
+            Depois feche o app de vez e tente de novo.
+          </div>
+        </div>
+      ) : falha && (
         <p className="micro" style={{ color: 'var(--blood)', lineHeight: 1.6 }}>
           Parou aqui: {falha}. Tente de novo; se repetir, mande um print disso pro suporte.
         </p>

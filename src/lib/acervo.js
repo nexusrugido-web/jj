@@ -53,6 +53,10 @@ const ouvintes = new Set();
 
 export const acervo = () => lista;
 
+/* sem as aulas "só assinantes": essas aparecem só no Pra você, que é do
+   premium e escolhe pelo que o aluno precisa. O resto do Estudo navega aqui. */
+export const acervoAberto = () => lista.filter((a) => a.acesso !== 'assinantes');
+
 export function observarAcervo(fn) {
   ouvintes.add(fn);
   return () => ouvintes.delete(fn);

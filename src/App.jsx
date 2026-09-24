@@ -42,7 +42,6 @@ const conviteInicial = conviteDaURL();
    quando uma versão nova sumiu com o arquivo da tela. */
 const Estudo = lazy(() => import('./pages/Estudo'));
 const Analise = lazy(() => import('./pages/Analise'));
-const Tecnicas = lazy(() => import('./pages/Tecnicas'));
 const Academia = lazy(() => import('./pages/Academia'));
 const Nutricao = lazy(() => import('./pages/Nutricao'));
 const Respiracao = lazy(() => import('./pages/Respiracao'));
@@ -65,7 +64,7 @@ import Onboarding from './pages/Onboarding';
 /* o contexto vive em contexto.js pra não criar ciclo com as telas */
 
 const PAGINAS = {
-  painel: Painel, treinos: Treinos, tecnicas: Tecnicas,
+  painel: Painel, treinos: Treinos,
   estudo: Estudo, liga: LigaPagina, amigos: AmigosPagina, admin: Admin,
   termos: Termos, privacidade: Privacidade, dominio: Dominio, meujogo: MeuJogo, analise: Analise, conquistas: Conquistas,
   metas: Metas, parceiros: Parceiros,
@@ -81,7 +80,7 @@ function rotaDaURL(abrindo = false) {
   /* a Jornada virou a Liga: notificação e link antigos ainda mandam ?go=jornada.
      Convite de sala abre em Amigos (inclusive o link antigo com ?go=liga),
      só na abertura: voltar de tela depois não pode cair lá de novo */
-  const p = abrindo && conviteInicial ? 'amigos' : pedida === 'jornada' ? 'liga' : pedida;
+  const p = abrindo && conviteInicial ? 'amigos' : pedida === 'jornada' ? 'liga' : pedida === 'tecnicas' ? 'dominio' : pedida;
   return PAGINAS[p] ? p : 'painel';
 }
 
@@ -388,7 +387,6 @@ export default function App() {
   const partners = useLiveQuery(() => db.partners.filter((p) => !p.arquivada).toArray(), [], []);
   const sessions = useLiveQuery(() => db.sessions.orderBy('data').reverse().toArray(), [], []);
   const rolls = useLiveQuery(() => db.rolls.toArray(), [], []);
-  const reviews = useLiveQuery(() => db.reviews.toArray(), [], []);
   const goals = useLiveQuery(() => db.goals.toArray(), [], []);
   /* as graduações entram no grau das técnicas: o que foi conquistado
      com a régua da faixa anterior não volta (lib/graus, grauGuardado) */
@@ -524,7 +522,7 @@ export default function App() {
     settings, salvarSettings, irPara, rota,
     positions: positions || [], categories: categories || [], techniques: techniques || [],
     partners: partners || [], sessions: sessions || [], rolls: rolls || [],
-    reviews: reviews || [], goals: goals || [], gradings: gradings || [],
+    goals: goals || [], gradings: gradings || [],
     sessao, sync, erroBoot, acervoVer,
     abrirInstalar: () => setInstalarAberto(true),
     abrirLogin: () => setTelaLogin(true),

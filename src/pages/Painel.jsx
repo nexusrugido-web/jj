@@ -35,7 +35,7 @@ import { supabase } from '../lib/supabase';
 
 export default function Painel() {
   const [ajudaTec, setAjudaTec] = useState(false);
-  const { sessions, rolls, positions, settings, salvarSettings, irPara, reviews, goals, techniques, partners, ligada, sessao, acesso } = useApp();
+  const { sessions, rolls, positions, settings, salvarSettings, irPara, goals, techniques, partners, ligada, sessao, acesso } = useApp();
   const toast = useToast();
   const [analise, setAnalise] = useState(null);
   const [carregandoIa, setCarregandoIa] = useState(false);
@@ -132,7 +132,7 @@ export default function Painel() {
               } catch (e) { toast(String(e.message || e), 'err'); }
               finally { setCarregandoIa(false); }
             }}>
-              {carregandoIa ? 'Lendo…' : 'Análise IA'}
+              {carregandoIa ? 'Lendo…' : 'Neuro-Análise IA'}
             </Btn>
           )}
           <Btn variant="primary" icon={Plus} onClick={() => irPara('treinos')}>Registrar treino</Btn>

@@ -18,7 +18,7 @@ import { pedidoDaRec, DIFICULDADES, PEDIDO_DO_ESTILO, descreverPedido } from '..
 import { medir, origem as origemDe } from '../lib/medir';
 import { TEMAS_AULA } from '../db/aulas';
 import { EscolherDificuldades, MAX_DIFICULDADES } from '../components/Dificuldades';
-import { acervo } from '../lib/acervo';
+import { acervo, acervoAberto } from '../lib/acervo';
 import { minhasTecnicas, meusBuracos } from '../lib/graus';
 import { recomendacoesDoAluno, chaveDaRec } from '../lib/recomendar';
 import { estiloPorId } from '../db/scoring';
@@ -101,6 +101,8 @@ export default function Estudo() {
   const paraVoce = useMemo(() => {
     const blocos = [];
     const usados = new Set();
+    /* o Pra você é do premium: só aula longa (com as "só assinantes"), nada de aula rápida */
+    const longas = acervo().filter((a) => a.k === 'aula');
 
     /* Cada recomendação puxa aula do assunto dela, pelo que o
        vídeo ensina, e nenhum vídeo se repete entre os blocos. */
@@ -117,7 +119,7 @@ export default function Estudo() {
         vistas,
         excluir: [...usados],
         quantidade: 2,
-        soAula: true,
+        lista: longas,
       });
       for (const a of lista) usados.add(a.id);
       if (lista.length) bloco({ motivo: r.titulo, texto: r.texto, origem: origemDe('estudo', 'rec', chaveDaRec(r)) }, pedido, lista);
@@ -128,7 +130,7 @@ export default function Estudo() {
     for (const id of minhas) {
       const d = DIFICULDADES.find((x) => x.id === id);
       if (!d) continue;
-      const lista = aulasPara(d.pedido, { faixa, vistas, excluir: [...usados], quantidade: 3 });
+      const lista = aulasPara(d.pedido, { faixa, vistas, excluir: [...usados], quantidade: 3, lista: longas });
       for (const a of lista) usados.add(a.id);
       if (lista.length) {
         bloco({
@@ -142,7 +144,7 @@ export default function Estudo() {
     if (PEDIDO_DO_ESTILO[estilo]) {
       const pedido = PEDIDO_DO_ESTILO[estilo];
       const lista = aulasPara(pedido, {
-        faixa, vistas, excluir: [...usados], quantidade: 4,
+        faixa, vistas, excluir: [...usados], quantidade: 4, lista: longas,
       });
       if (lista.length) {
         bloco({
@@ -168,7 +170,7 @@ export default function Estudo() {
   const contagemTemas = useMemo(() => {
     const v = new Set(vistas);
     const c = {};
-    for (const a of acervo()) {
+    for (const a of acervoAberto()) {
       for (const t of a.tm) {
         c[t] = c[t] || { n: 0, vistos: 0 };
         c[t].n += 1;
@@ -185,7 +187,7 @@ export default function Estudo() {
 
   const aulasDaDor = useMemo(() => {
     const d = DIFICULDADES.find((x) => x.id === dorAberta);
-    return d ? aulasPara(d.pedido, { faixa, vistas, quantidade: 5 }) : [];
+    return d ? aulasPara(d.pedido, { faixa, vistas, quantidade: 5, lista: acervoAberto() }) : [];
   }, [dorAberta, faixa, vistas, acervoVer]);
 
   /* o que o app mostrou, pra o painel saber se a recomendação vira
@@ -289,17 +291,20 @@ export default function Estudo() {
                 <p className="tiny muted" style={{ marginTop: 8, lineHeight: 1.65 }}>{paraVoce[0].texto}</p>
               </Card>
             )}
-            titulo="Aulas escolhidas pelos seus rolas"
-            texto={`O app já separou ${paraVoce.length} ${paraVoce.length === 1 ? 'assunto' : 'assuntos'} pelo que aparece nos seus treinos. Por tema e por dificuldade continuam abertos.`}
+            titulo="Aulas completas, escolhidas pelo seu jogo"
+            texto={`Os seus rolas já apontaram ${paraVoce.length} ${paraVoce.length === 1 ? 'assunto' : 'assuntos'}, e cada um já tem a aula completa separada. Parte delas é exclusiva: não aparece em nenhum outro lugar do app.`}
             itens={[
-              'A aula que ataca o que mais te pega',
-              'O que estudar pra repetir o que já está saindo',
-              'Aulas do seu estilo de jogo',
+              'Só aula completa, com o passo a passo inteiro',
+              'Aulas exclusivas de assinante, que só existem aqui',
+              'Escolhidas pelo que te pega, e mudam conforme você evolui',
             ]}
             onAssinar={() => irPara('ajustes')}
           />
         ) : (
           <div className="col" style={{ gap: 16 }}>
+            <p className="micro muted" style={{ lineHeight: 1.6 }}>
+              Só aula completa, escolhida pelo seu jogo. As marcadas como exclusiva só existem aqui dentro.
+            </p>
             {paraVoce.map((b, i) => (
               <Card key={i}>
                 <div className="card-head">
@@ -318,6 +323,16 @@ export default function Estudo() {
       )}
 
       {/* ---------- por tema ---------- */}
+      {/* no grátis, as outras abas lembram do que o Pra você tem */}
+      {!praVoceLivre && ['temas', 'dores'].includes(aba) && (
+        <button type="button" className="valida atencao" onClick={() => setAba('pravoce')} style={{ width: '100%', textAlign: 'left', marginBottom: 14 }}>
+          <Lock size={14} className="valida-ico" style={{ color: 'var(--roar)' }} />
+          <p className="micro muted" style={{ lineHeight: 1.6 }}>
+            <b style={{ color: 'var(--chalk)' }}>As aulas completas escolhidas pelo seu jogo ficam no Pra você.</b> Tem conteúdo lá que não está em nenhuma outra aba.
+          </p>
+        </button>
+      )}
+
       {aba === 'temas' && (
         !tema ? (
           <div className="grid g-cards">
@@ -515,7 +530,7 @@ function ListaAulas({ aulas, vistas, onTocar, rodape = null }) {
               {a.k === 'short' ? <Chip>aula rápida</Chip> : <Chip tone="warn">aula</Chip>}
               {!ehLivre(a) && (
                 <Chip tone="roar">
-                  {jaComprou(a.id) ? 'sua' : a.acesso === 'assinantes' ? 'premium' : 'à parte'}
+                  {jaComprou(a.id) ? 'sua' : a.acesso === 'assinantes' ? 'exclusiva' : 'à parte'}
                 </Chip>
               )}
               {a.tm?.includes('logica') && <Chip tone="ice">lógica</Chip>}

@@ -70,34 +70,8 @@ export async function sessaoAtual() {
   return data?.session || null;
 }
 
-/* ---------- storage ---------- */
-export async function enviarArquivo(file, { pasta = 'geral', onProgresso } = {}) {
-  const sess = await sessaoAtual();
-  if (!sess) throw new Error('Você precisa estar logado para enviar arquivos.');
-  const uid = sess.user.id;
-  const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
-  const nome = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const caminho = `${uid}/${pasta}/${nome}`;
 
-  const { error } = await supabase.storage.from('tatame').upload(caminho, file, {
-    cacheControl: '3600',
-    upsert: false,
-    contentType: file.type || undefined,
-  });
-  if (error) throw error;
-  onProgresso?.(100);
-  return { caminho, bucket: 'tatame' };
-}
 
-export async function urlAssinada(caminho, segundos = 3600) {
-  const { data, error } = await supabase.storage.from('tatame').createSignedUrl(caminho, segundos);
-  if (error) throw error;
-  return data.signedUrl;
-}
-
-export async function apagarArquivo(caminho) {
-  await supabase.storage.from('tatame').remove([caminho]);
-}
 
 /* ============================================================
    APAGAR A CONTA

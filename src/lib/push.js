@@ -84,16 +84,22 @@ export async function ligarNotificacao(uid) {
     const reg = await comPrazo(navigator.serviceWorker.ready, 15000, 'service worker');
 
     passo = 'assinatura';
+    /* "push service error" é o Chrome sem conseguir falar com o serviço
+       de avisos do Google. Às vezes passa sozinho: tenta mais uma vez. */
+    const assinar = () => comPrazo(
+      reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: chaveBinaria(VAPID),
+      }),
+      30000,
+      'assinatura'
+    );
     const sub =
       (await reg.pushManager.getSubscription()) ||
-      (await comPrazo(
-        reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: chaveBinaria(VAPID),
-        }),
-        30000,
-        'assinatura'
-      ));
+      (await assinar().catch(async () => {
+        await new Promise((ok) => setTimeout(ok, 1500));
+        return assinar();
+      }));
 
     passo = 'servidor';
     const j = sub.toJSON();

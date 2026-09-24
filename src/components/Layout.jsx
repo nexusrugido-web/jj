@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  LayoutDashboard, NotebookPen, Library, ChartNoAxesColumn, Target, Wind, Dumbbell, HeartPulse,
+  LayoutDashboard, NotebookPen, ChartNoAxesColumn, Target, Wind, Dumbbell, HeartPulse,
   Trophy, Users, Settings as Cog, MoreHorizontal, Download, Award, Apple, CloudOff, Cloud,
   RefreshCw, Dna, GraduationCap, Flame, Shield, Megaphone, CircleHelp, X, UsersRound,
 } from 'lucide-react';
@@ -9,7 +9,6 @@ import { Modal } from './UI';
 export const ROTAS_TODAS = [
   { id: 'painel', nome: 'Painel', icon: LayoutDashboard, grupo: 'No tatame' },
   { id: 'treinos', nome: 'Treinos e rolas', icon: NotebookPen, grupo: 'No tatame' },
-  { id: 'tecnicas', nome: 'Técnicas', icon: Library, grupo: 'No tatame' },
   { id: 'estudo', nome: 'Estudo', icon: GraduationCap, grupo: 'No tatame' },
   { id: 'liga', nome: 'Liga', icon: Flame, grupo: 'No tatame' },
   { id: 'amigos', nome: 'Amigos', icon: UsersRound, grupo: 'No tatame' },

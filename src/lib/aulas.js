@@ -1,6 +1,6 @@
 import { capa, embed, duracaoTexto, SERVIDORES_CAPA } from '../db/aulas';
 import { hoje, hoje as diaDeHoje } from './utils';
-import { acervo } from './acervo';
+import { acervo, acervoAberto } from './acervo';
 
 /* ============================================================
    ESCOLHA DE AULAS
@@ -81,7 +81,7 @@ export function escolherAulas({
   const fora = new Set(excluir);
 
   /* pontua cada aula pela aderência ao que a pessoa precisa agora */
-  const candidatas = acervo()
+  const candidatas = acervoAberto()
     .filter((a) => !fora.has(a.id))
     .map((a) => {
       /* Primeiro: a aula tem alguma coisa a ver com o que foi
@@ -156,7 +156,7 @@ export function escolherAulas({
 /* ---------- navegação por tema ---------- */
 export function aulasDoTema(tema, { faixa, vistas = [], busca = '', tipo = 'todos', pagina = 0, porPagina = 24 } = {}) {
   const vistasSet = new Set(vistas);
-  let lista = acervo().filter((a) => a.tm.includes(tema));
+  let lista = acervoAberto().filter((a) => a.tm.includes(tema));
 
   if (tipo !== 'todos') lista = lista.filter((a) => a.k === tipo);
   if (busca) {
@@ -366,7 +366,7 @@ export async function abertosHoje(tipo) {
    primeiro dia não é convite, é muro.
    ============================================================ */
 export function aulasDeEntrada({ faixa = 'branca', vistas = [], quantidade = 10 } = {}) {
-  const escolhidas = acervo().filter((a) => a.destaque);
+  const escolhidas = acervoAberto().filter((a) => a.destaque);
 
   if (escolhidas.length) {
     const vistasSet = new Set(vistas);

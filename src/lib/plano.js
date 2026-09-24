@@ -45,7 +45,7 @@ export const RECURSOS = {
   graus:         { premium: false, nome: 'Grau de todas as técnicas', desc: 'Cada técnica que sai nos seus rolas ganha grau, e você vê quando ela sobe.' },
   estilo:        { premium: false, nome: 'Seu estilo de jogo', desc: 'O Meu jogo mostra o seu estilo, onde você ganha e onde você cede.' },
   liga:          { premium: false, nome: 'Liga e ofensiva', desc: 'O ranking da semana, a ofensiva e o card pra compartilhar.' },
-  biblioteca:    { premium: false, nome: 'Biblioteca de técnicas', desc: 'As 626 técnicas, completa.' },
+  biblioteca:    { premium: false, nome: 'Biblioteca de técnicas', desc: 'As 626 técnicas, na hora de registrar o treino.' },
   offline:       { premium: false, nome: 'Funciona sem internet', desc: 'E sem conta, se você quiser.' },
   sync:          { premium: false, nome: 'Sincronizar aparelhos', desc: 'Celular, tablet e computador no mesmo lugar, e os seus dados guardados na conta.' },
   exportar:      { premium: false, nome: 'Exportar os seus dados', desc: 'Seus dados são seus, com ou sem assinatura.' },
