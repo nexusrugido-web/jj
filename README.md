@@ -24,8 +24,9 @@ Este arquivo é o **mapa vivo** do app: pra que serve cada parte, onde mora e qu
 | **Análise** | Evolução, presença, contra quem luta, onde fica por cima | vitrine | tudo |
 | **Metas** | Metas que o aluno assumiu; as que zeram (defesa, frequência) mostram quando e por quê | até 2, só as sugeridas | próprias e sem limite |
 | **Conquistas** | Marcos e registro de graduação | tudo | igual ao grátis |
-| **Musculação (Força pro jiu-jitsu)** | Os 33 exercícios que mais ajudam no tatame, cada um com o plano pra encaixar no treino de academia que o aluno já faz (onde entra, séries, descanso, carga, como fazer, erro comum, 4 semanas). Não registra academia | vitrine | tudo |
-| **Parceiros, Nutrição, Gás, Lesões** | Apoio | tudo | igual ao grátis |
+| **Musculação (Força pro jiu-jitsu)** | Os exercícios de força, resistência e prevenção de lesão (40 hoje; os que entram ganham a etiqueta "novo" por 30 dias) que mais ajudam no tatame, cada um com o plano pra encaixar no treino de academia que o aluno já faz (onde entra, séries, descanso, carga, como fazer, erro comum, 4 semanas). Não registra academia | vitrine | tudo |
+| **Nutrição (Combustível pro jiu-jitsu)** | Proteína, carboidrato, água e creatina calculados pelo peso e pela semana de tatame, com a conta à vista (`src/lib/nutricao.js`, base ISSN 2025 pra esporte de combate); o dia de treino hora a hora; o prato em três partes; intestino, kefir, sono e corte de peso | pede o peso e mostra as contas dele na vitrine | tudo |
+| **Parceiros, Gás, Lesões** | Apoio | tudo | igual ao grátis |
 | **Ajustes** | Lista que abre popups: Perfil, Aparência, Como usar, App no celular, Avisos, Seus dados, Conta (sair e apagar a conta) | tudo | igual ao grátis |
 | **Painel do admin** | Chaves de recurso, acervo de vídeos, medição, contas, links, vendas e recuperação. "Ver o app como" grátis ou premium | só admin | igual ao grátis |
 
@@ -105,7 +106,8 @@ Só as últimas, pra saber o estado atual. O detalhe de cada dia fica em `Downlo
   - Ajustes em lista de popups; apagar a própria conta.
   - Visual: fundo preto neutro de padrão; etiquetas não passam mais da borda das caixas.
   - App abre já com as regras certas (antes mostrava tudo liberado por uns segundos).
-  - Musculação virou "Força pro jiu-jitsu", premium, com plano por exercício.
+  - Musculação virou "Força pro jiu-jitsu", premium, com plano por exercício; Nutrição virou "Combustível pro jiu-jitsu", premium, com calculadora pelo peso.
+  - Placar do Painel em quatro quadros; diamante (na cor de destaque) em tudo que é premium.
   - Copy: voz de gente de tatame; `lint:copy` barra palavras de IA (mergulhar, jornada, alavancar...).
 
 ---

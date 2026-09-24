@@ -58,6 +58,7 @@ export const RECURSOS = {
   quizIlimitado: { premium: true, nome: 'Quiz sem limite', desc: 'E ele volta nas perguntas que você errou. No grátis é uma rodada por dia, com perguntas sorteadas.' },
   recomendacoes: { premium: true, nome: 'O que treinar agora', desc: 'Escolhido pelos seus rolas, no Painel, em Minhas técnicas e no Estudo (Pra você).' },
   musculacao:    { premium: true, nome: 'Força pro jiu-jitsu', desc: 'Os exercícios que mais ajudam no tatame, cada um com o plano pra encaixar no treino de academia que você já faz.' },
+  nutricao:      { premium: true, nome: 'Combustível pro jiu-jitsu', desc: 'Proteína, carboidrato e água calculados pelo seu peso, e o que comer em volta do treino.' },
   metas:         { premium: true, nome: 'Metas sem limite', desc: `No grátis você assume até ${LIMITES.metasAtivas} metas que o app sugere pra você. Criar as suas e ter mais ativas é do premium.` },
 };
 

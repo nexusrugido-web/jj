@@ -21,7 +21,7 @@ export const ROTAS_TODAS = [
   { id: 'parceiros', nome: 'Parceiros', icon: Users, grupo: 'Evolução' },
 
   { id: 'academia', nome: 'Musculação', icon: Dumbbell, grupo: 'Corpo', premium: true },
-  { id: 'nutricao', nome: 'Nutrição', icon: Apple, grupo: 'Corpo' },
+  { id: 'nutricao', nome: 'Nutrição', icon: Apple, grupo: 'Corpo', premium: true },
   { id: 'respiracao', nome: 'Gás', icon: Wind, grupo: 'Corpo' },
   { id: 'lesoes', nome: 'Lesões', icon: HeartPulse, grupo: 'Corpo' },
 
