@@ -494,7 +494,7 @@ function ListaAulas({ aulas, vistas, onTocar, rodape = null }) {
       {aulas.map((a) => (
         <button key={a.id} className="aula-card" onClick={() => onTocar(a)}>
           <div className="aula-capa">
-            <Capa id={a.id} propria={a.capa} tamanho="mq" />
+            <Capa id={a.id} propria={a.capa} tamanho="sd" />
             <span className="aula-dur">{duracaoTexto(a.d)}</span>
             {v.has(a.id) && <span className="aula-visto"><Check size={11} /></span>}
             <span className="aula-play">{!ehLivre(a) && !jaComprou(a.id) ? <Lock size={15} /> : <Play size={16} />}</span>

@@ -107,7 +107,7 @@ export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFei
       {aulas.length > 0 && (
         <button className="rec-aula" onClick={() => tocar(aulas[0])}>
           <div className="rec-aula-capa">
-            <Capa id={aulas[0].id} propria={aulas[0].capa} tamanho="mq" />
+            <Capa id={aulas[0].id} propria={aulas[0].capa} tamanho="sd" />
             <span className="aula-dur">{duracaoTexto(aulas[0].d)}</span>
           </div>
           <div style={{ minWidth: 0, textAlign: 'left' }}>

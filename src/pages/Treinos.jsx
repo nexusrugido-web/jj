@@ -434,6 +434,7 @@ export default function Treinos() {
             const comNotas = rs.filter((r) => r.notas?.trim()).length;
             const acad = acadById[s.academiaId]?.nome || s.academia;
             const prof = profById[s.professorId]?.nome || s.professor;
+            const nomeTipo = TIPOS.find((t) => t.id === s.tipo)?.nome || s.tipo;
 
             const mes = (s.data || '').slice(0, 7);
             const novoMes = mes && (i === 0 || mes !== (visiveis[i - 1].data || '').slice(0, 7));
@@ -447,36 +448,45 @@ export default function Treinos() {
                   style={{ borderBottom: abertaAqui ? '1px solid var(--seam)' : 0, padding: 15, alignItems: 'flex-start' }}
                   onClick={() => setAberta(abertaAqui ? null : s.id)}
                 >
-                  <span style={{ marginTop: 3 }}>
-                    {abertaAqui ? <ChevronDown size={16} className="muted" /> : <ChevronRight size={16} className="muted" />}
+                  {/* registro de treino: a data num bloco, o que foi em cima,
+                      e os números do dia em destaque, sem virar tabela */}
+                  <span className="treino-data">
+                    <span className="treino-dia num">{String(s.data || '').slice(8, 10)}</span>
+                    <span className="treino-mes">{s.data ? new Date(`${s.data}T12:00:00`).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '') : ''}</span>
                   </span>
                   <div className="grow">
-                    <div style={{ fontWeight: 600, fontSize: 15, lineHeight: 1.3 }}>
-                      {s.competicao?.evento || s.foco || TIPOS.find((t) => t.id === s.tipo)?.nome || 'Treino'}
+                    <div className="row" style={{ gap: 8, alignItems: 'baseline' }}>
+                      <span className="treino-titulo">{s.competicao?.evento || s.foco || nomeTipo || 'Treino'}</span>
+                      {s.rpe != null && <span className="treino-rpe num" title="esforço percebido, de 0 a 10">RPE {s.rpe}</span>}
                     </div>
-                    <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginTop: 7 }}>
-                      <Chip>{TIPOS.find((t) => t.id === s.tipo)?.nome || s.tipo}</Chip>
-                      {s.competicao?.resultado && (
-                        <Chip tone={resultadoPorId(s.competicao.resultado)?.tone || ''}>
-                          {ehPodio(s.competicao.resultado) && <Trophy size={11} />} {resultadoPorId(s.competicao.resultado)?.nome}
-                        </Chip>
-                      )}
-                      {s.competicao?.categoria && (
-                        <Chip>{s.competicao.categoria}{s.competicao.absoluto ? ' + absoluto' : ''}</Chip>
-                      )}
-                      {rs.length > 0 && <Chip tone="warn">{rs.length} {ehCompeticao(s.tipo) ? (rs.length > 1 ? 'lutas' : 'luta') : `rola${rs.length > 1 ? 's' : ''}`}</Chip>}
-                      {(ptsM > 0 || ptsD > 0) && <Chip><Trophy size={11} /> {ptsM}×{ptsD}</Chip>}
-                      {fin > 0 && <Chip tone="jade">+{fin} fin</Chip>}
-                      {taps > 0 && <Chip tone="blood">−{taps} fin</Chip>}
-                      {comNotas > 0 && <Chip><MessageSquare size={11} /> {comNotas}</Chip>}
+                    <div className="micro muted" style={{ marginTop: 3 }}>
+                      {[(s.competicao?.evento || s.foco) && nomeTipo, s.duracao ? fmtDur(s.duracao) : null, relativo(s.data), prof, acad].filter(Boolean).join(' · ')}
                     </div>
-                    <div className="micro muted" style={{ marginTop: 6 }}>
-                      {fmtData(s.data)} · {relativo(s.data)}
-                      {s.duracao ? ` · ${fmtDur(s.duracao)}` : ''}
-                      {prof && ` · ${prof}`}{acad && ` · ${acad}`}
-                    </div>
+                    {(rs.length > 0 || ptsM > 0 || ptsD > 0 || fin > 0 || taps > 0 || comNotas > 0) && (
+                      <div className="treino-numeros">
+                        {rs.length > 0 && <span><b className="num">{rs.length}</b> {ehCompeticao(s.tipo) ? (rs.length > 1 ? 'lutas' : 'luta') : (rs.length > 1 ? 'rolas' : 'rola')}</span>}
+                        {(ptsM > 0 || ptsD > 0) && <span><b className="num">{ptsM}×{ptsD}</b> pontos</span>}
+                        {fin > 0 && <span className="bom"><b className="num">{fin}</b> {fin > 1 ? 'finalizações' : 'finalização'}</span>}
+                        {taps > 0 && <span className="ruim"><b className="num">{taps}</b> {taps > 1 ? 'taps' : 'tap'}</span>}
+                        {comNotas > 0 && <span><MessageSquare size={13} /> {comNotas}</span>}
+                      </div>
+                    )}
+                    {(s.competicao?.resultado || s.competicao?.categoria) && (
+                      <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+                        {s.competicao?.resultado && (
+                          <Chip tone={resultadoPorId(s.competicao.resultado)?.tone || ''}>
+                            {ehPodio(s.competicao.resultado) && <Trophy size={11} />} {resultadoPorId(s.competicao.resultado)?.nome}
+                          </Chip>
+                        )}
+                        {s.competicao?.categoria && (
+                          <Chip>{s.competicao.categoria}{s.competicao.absoluto ? ' + absoluto' : ''}</Chip>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  {s.rpe != null && <span className="num micro muted nowrap" style={{ marginTop: 3 }}>RPE {s.rpe}</span>}
+                  <span style={{ marginTop: 4 }}>
+                    {abertaAqui ? <ChevronDown size={17} className="muted" /> : <ChevronRight size={17} className="muted" />}
+                  </span>
                 </button>
 
                 {abertaAqui && (

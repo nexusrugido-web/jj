@@ -76,12 +76,19 @@ export default function LigaPagina() {
     <div className="page">
       <Cabecalho onComo={() => setComoFunciona(true)} />
 
-      <MinhaFaixa settings={settings} irPara={irPara} />
+      {/* a corrida desta semana primeiro; amigos e sala moram na aba deles */}
+      <Liga />
 
       <BlocoOfensiva o={ofa} pontos={pontos} lesoes={lesoes} irPara={irPara} />
 
-      {/* a corrida desta semana primeiro; amigos e sala moram na aba deles */}
-      <Liga />
+      {/* ---- a arena da semana ---- */}
+      <DueloDaSemana
+        agora={dados.semana}
+        passada={dados.semanaPassada}
+        recorde={dados.recordeSemana}
+        irPara={irPara}
+      />
+
       <button type="button" className="card atalho" onClick={() => irPara('amigos')} style={{ marginBottom: 14 }}>
         <span className="stat-ico" style={{ color: 'var(--accent)' }}><UsersRound size={17} /></span>
         <span style={{ flex: 1, textAlign: 'left' }}>
@@ -91,13 +98,8 @@ export default function LigaPagina() {
         <ChevronRight size={18} className="muted" />
       </button>
 
-      {/* ---- a arena da semana ---- */}
-      <DueloDaSemana
-        agora={dados.semana}
-        passada={dados.semanaPassada}
-        recorde={dados.recordeSemana}
-        irPara={irPara}
-      />
+      {/* a faixa é do tatame, não da liga: fica depois da corrida */}
+      <MinhaFaixa settings={settings} irPara={irPara} />
 
       <RankingOfensivas />
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Plus, Library, Star, Pencil, Trash2, Repeat, ShieldAlert, Check,
-  ChevronRight, ListTree, List, Settings2, ArrowRight, Sparkles, Loader, Video, Filter, Gauge,
+  ChevronRight, ListTree, List, Settings2, ArrowRight, Sparkles, Loader, Video, Filter, Gauge, SlidersHorizontal,
 } from 'lucide-react';
 import Guia from '../components/Guia';
 import { useApp } from '../contexto';
@@ -46,6 +46,7 @@ export default function Tecnicas() {
   const [modo, setModo] = useState('todos');
   const [status, setStatus] = useState('todos');
   const [soLegais, setSoLegais] = useState(false);
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [vista, setVista] = useState('lista');
   const [edit, setEdit] = useState(null);
   const [excluir, setExcluir] = useState(null);
@@ -198,26 +199,43 @@ export default function Tecnicas() {
         )}
       </div>
 
+      {/* busca e categoria sempre à vista; o resto dos filtros abre
+          num botão, que mostra quantos estão ligados */}
       <Card style={{ marginBottom: 14 }}>
-        <div className="row wrap" style={{ gap: 8, marginBottom: 10 }}>
-          <Busca value={busca} onChange={setBusca} placeholder="Buscar qualquer técnica, em português ou inglês…" />
-          <Seg value={vista} onChange={setVista} options={[{ id: 'lista', nome: 'Lista' }, { id: 'arvore', nome: 'Árvore' }]} />
-        </div>
-        <div className="row wrap" style={{ gap: 6, marginBottom: 8 }}>
+        <Busca value={busca} onChange={setBusca} placeholder="Buscar técnica, em português ou inglês" />
+        <div className="chips-scroll tec-cats">
           <Chip on={cat === 'todas'} onClick={() => setCat('todas')}>Todas</Chip>
           {categories.map((c) => (
             <Chip key={c.id} on={cat === String(c.id)} onClick={() => setCat(String(c.id))}>{c.nome}</Chip>
           ))}
         </div>
-        <div className="row wrap" style={{ gap: 6 }}>
-          {MODOS.map((m) => <Chip key={m.id} on={modo === m.id} onClick={() => setModo(modo === m.id ? 'todos' : m.id)}>{m.nome}</Chip>)}
-          <span style={{ width: 8 }} />
-          {STATUS.map((s) => <Chip key={s.id} on={status === s.id} onClick={() => setStatus(status === s.id ? 'todos' : s.id)}>{s.nome}</Chip>)}
-          <span className="spacer" />
-          <Chip on={soLegais} onClick={() => setSoLegais(!soLegais)} tone={soLegais ? '' : ''}>
-            <ShieldAlert size={12} /> Só legais pra faixa {settings.faixa}
-          </Chip>
-        </div>
+        {(() => {
+          const ligados = (modo !== 'todos') + (status !== 'todos') + (soLegais ? 1 : 0);
+          return (
+            <div className="row" style={{ gap: 8, marginTop: 12 }}>
+              <Btn size="sm" variant={ligados ? 'contorno' : ''} icon={SlidersHorizontal} onClick={() => setFiltrosAbertos(!filtrosAbertos)}>
+                Filtros{ligados ? ` · ${ligados}` : ''}
+              </Btn>
+              <span className="spacer" />
+              <Seg value={vista} onChange={setVista} options={[{ id: 'lista', nome: 'Lista' }, { id: 'arvore', nome: 'Árvore' }]} />
+            </div>
+          );
+        })()}
+        {filtrosAbertos && (
+          <div className="tec-filtros">
+            <div className="label">Kimono</div>
+            <div className="row wrap" style={{ gap: 6 }}>
+              {MODOS.map((m) => <Chip key={m.id} on={modo === m.id} onClick={() => setModo(modo === m.id ? 'todos' : m.id)}>{m.nome}</Chip>)}
+            </div>
+            <div className="label">Onde você está com ela</div>
+            <div className="row wrap" style={{ gap: 6 }}>
+              {STATUS.map((x) => <Chip key={x.id} on={status === x.id} onClick={() => setStatus(status === x.id ? 'todos' : x.id)}>{x.nome}</Chip>)}
+            </div>
+            <Chip on={soLegais} onClick={() => setSoLegais(!soLegais)}>
+              <ShieldAlert size={12} /> Só as legais pra faixa {settings.faixa}
+            </Chip>
+          </div>
+        )}
       </Card>
 
       {lista.length === 0 ? (

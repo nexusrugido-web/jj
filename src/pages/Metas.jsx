@@ -476,7 +476,6 @@ function CartaoMeta({ g, dados, faixa, onEdit, onDel, onConcluir, onContar, onCo
       <div className="row" style={{ alignItems: 'flex-start' }}>
         <div className="row wrap" style={{ gap: 6, flex: 1, minWidth: 0 }}>
           <Chip tone={tipo.processo ? 'jade' : 'warn'}>{tipo.nome}</Chip>
-          <Chip>{ORIGENS[g.origem]?.nome || 'Você criou'}</Chip>
           {p.concluida && <Chip tone="jade"><Check size={11} /> feita</Chip>}
         </div>
         <div className="row" style={{ gap: 2 }}>
@@ -494,10 +493,16 @@ function CartaoMeta({ g, dados, faixa, onEdit, onDel, onConcluir, onContar, onCo
         </div>
       )}
 
-      <div className="col" style={{ gap: 6 }}>
-        <Bar v={p.pct} max={100} tone={p.pct >= 100 ? 'jade' : ''} />
-        <span className="tiny muted">{p.texto}</span>
-        {p.quando && <span className="micro muted">{p.quando}</span>}
+      {/* o quanto já andou, em número e em barra; embaixo, a conta e de onde veio a meta */}
+      <div className="col" style={{ gap: 8 }}>
+        {p.valor !== 'sem técnica' && (
+          <div className="meta-prog">
+            <span className={`meta-pct num ${p.pct >= 100 ? 'feita' : ''}`}>{Math.min(100, Math.round(p.pct || 0))}%</span>
+            <div style={{ flex: 1 }}><Bar v={p.pct} max={100} tone={p.pct >= 100 ? 'jade' : ''} /></div>
+          </div>
+        )}
+        <span className="tiny">{p.texto}</span>
+        <span className="micro muted">{[p.quando, ORIGENS[g.origem]?.nome || 'Você criou'].filter(Boolean).join(' · ')}</span>
       </div>
 
       {p.conta && !p.semBotao && typeof p.atual === 'number' && (

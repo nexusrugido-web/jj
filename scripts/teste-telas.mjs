@@ -117,6 +117,14 @@ for (const g of [
   { tipo: 'aulas', alvo: 10 }, { tipo: 'quiz', alvo: 20 }, { tipo: 'manual', alvo: 10, contador: 3 },
   { tipo: 'posicao', alvo: 'guarda_fechada_baixo', quantidade: 5 },
 ]) await d.table('goals').add({ ...g, origem: 'usuario', status: 'ativa', inicio: iso(60), criadoEm: Date.now() });
+/* pontos da liga: sem eles a tela da Liga só mostra o convite */
+const local = (x) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+const segundaDe = (dia) => { const x = new Date(`${dia}T00:00:00`); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return local(x); };
+for (let k = 0; k <= 40; k += 2) {
+  const dia = iso(k);
+  const ev = k % 4 ? { evento: 'rola', xp: 12 } : { evento: 'treino', xp: 20 };
+  await d.table('pontos').add({ ...ev, refId: null, detalhe: null, data: dia, semana: segundaDe(dia), mes: dia.slice(0, 7), ano: dia.slice(0, 4), criadoEm: Date.now() - k * 864e5 });
+}
 await d.table('injuries').add({ data: iso(5), regiao: 'joelho', status: 'ativa', impacto: 'parado', prazo: '2s' });
 console.log(`banco: ${n} rolas em ${pids.length} parceiros`);
 d.close();

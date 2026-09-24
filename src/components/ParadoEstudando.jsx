@@ -66,7 +66,7 @@ export default function ParadoEstudando({ lesao, faixa = 'branca', vistas = [], 
             {aulas.map((a) => (
               <div key={a.id} className="rec-aula" style={{ marginTop: 0 }}>
                 <div className="rec-aula-capa">
-                  <Capa id={a.id} propria={a.capa} tamanho="mq" />
+                  <Capa id={a.id} propria={a.capa} tamanho="sd" />
                   <span className="aula-dur">{duracaoTexto(a.d)}</span>
                 </div>
                 <div style={{ minWidth: 0 }}>

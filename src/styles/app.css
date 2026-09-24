@@ -3082,3 +3082,38 @@ body::after {
 .vitrine-lista { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
 .vitrine-lista li { display: flex; gap: 9px; align-items: flex-start; font-size: var(--fs-sec); line-height: 1.45; }
 .vitrine-lista li .lucide { flex: none; margin-top: 2px; color: var(--accent); }
+
+/* ---------- a linha de um treino ---------- */
+.treino-data {
+  flex: none; width: 48px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 7px 0; border-radius: 12px; background: var(--void); border: 1px solid var(--seam);
+}
+.treino-dia { font-family: var(--display); font-weight: 800; font-size: 20px; line-height: 1; letter-spacing: -0.03em; }
+.treino-mes { font-size: 11.5px; font-weight: 600; color: var(--dimmer); text-transform: lowercase; margin-top: 3px; }
+.treino-titulo { flex: 1; min-width: 0; font-weight: 650; font-size: 16px; line-height: 1.3; }
+.treino-rpe {
+  flex: none; font-size: 12px; font-weight: 700; color: var(--dim);
+  padding: 2px 8px; border-radius: 99px; background: var(--void); border: 1px solid var(--seam);
+}
+.treino-numeros { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font-size: var(--fs-meta); color: var(--dim); }
+.treino-numeros span { display: inline-flex; align-items: center; gap: 4px; }
+.treino-numeros b { color: var(--chalk); font-size: 14px; }
+.treino-numeros .bom b { color: var(--jade); }
+.treino-numeros .ruim b { color: var(--blood); }
+
+/* ---------- filtros de técnicas ---------- */
+.tec-cats { margin-top: 12px; }
+.tec-filtros { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--seam); }
+.tec-filtros .label { margin-top: 4px; }
+.tec-cats { margin: 12px calc(-1 * var(--e4)) 0; padding: 0 var(--e4) 4px; }
+
+/* rótulos pequenos das telas: mesma voz do sistema, legível, sem caixa-alta espaçada */
+.waterline span, .subs-titulo, .placar-lab, .cal-mes-nome, .graf-tip-titulo, .graf-total-lab,
+.podio-pts small, .fin-rot, .entrada-sub, .ou-separador, .duelo-rot, .ofa-legenda, .rank-corte {
+  font-family: var(--body); text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 12px;
+}
+
+/* ---------- progresso da meta ---------- */
+.meta-prog { display: flex; align-items: center; gap: 12px; }
+.meta-pct { font-family: var(--display); font-weight: 800; font-size: 24px; letter-spacing: -0.03em; min-width: 58px; }
+.meta-pct.feita { color: var(--jade); }
