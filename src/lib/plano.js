@@ -22,7 +22,6 @@ import { ultimosDias, dentroDoPeriodo } from './periodo';
 
 export const LIMITES = {
   historicoDias: 30,
-  planosAtaque: 1,
   metasAtivas: 2,
 
   /* Por dia, não por semana. Registrar treino e rola nunca tem
@@ -49,18 +48,16 @@ export const RECURSOS = {
   liga:          { premium: false, nome: 'Liga e ofensiva', desc: 'O ranking da semana, a ofensiva e o card pra compartilhar.' },
   biblioteca:    { premium: false, nome: 'Biblioteca de técnicas', desc: 'As 626 técnicas, completa.' },
   offline:       { premium: false, nome: 'Funciona sem internet', desc: 'E sem conta, se você quiser.' },
+  sync:          { premium: false, nome: 'Sincronizar aparelhos', desc: 'Celular, tablet e computador no mesmo lugar, e os seus dados guardados na conta.' },
   exportar:      { premium: false, nome: 'Exportar os seus dados', desc: 'Seus dados são seus, com ou sem assinatura.' },
 
   historico:     { premium: true, nome: 'Histórico completo', desc: `No grátis você vê os últimos ${LIMITES.historicoDias} dias.` },
-  analise:       { premium: true, nome: 'Análise e gráficos', desc: 'Evolução, escada posicional, taxa por faixa.' },
+  analise:       { premium: true, nome: 'Análise e gráficos', desc: 'Evolução, presença no tatame, contra quem você luta e onde fica por cima.' },
   meujogo:       { premium: true, nome: 'Meu jogo por situação', desc: 'Como você vai contra mais pesado, mais leve e em cada posição em que o rola começa.' },
-  ia:            { premium: true, nome: 'Leitura da IA', desc: 'Insights e sugestões em cima do seu histórico.' },
-  sync:          { premium: true, nome: 'Sincronizar aparelhos', desc: 'Celular, tablet e computador no mesmo lugar.' },
   aulasIlimitadas:{ premium: true, nome: 'Aulas sem limite', desc: `No grátis é ${LIMITES.aulasPorDia} aula completa e ${LIMITES.shortsPorDia} aula rápida por dia.` },
   quizIlimitado: { premium: true, nome: 'Quiz sem limite', desc: `No grátis é uma rodada por dia.` },
   recomendacoes: { premium: true, nome: 'Tudo o que treinar agora', desc: `No grátis abre ${LIMITES.recomendacoesAbertas} recomendação por vez.` },
-  planos:        { premium: true, nome: 'Planos de ataque', desc: `No grátis é ${LIMITES.planosAtaque}.` },
-  musculacao:    { premium: true, nome: 'Musculação com histórico', desc: 'Recordes e progressão de carga.' },
+  metas:         { premium: true, nome: 'Metas sem limite', desc: `No grátis você assume até ${LIMITES.metasAtivas} metas que o app sugere pra você. Criar as suas e ter mais ativas é do premium.` },
 };
 
 const CHAVE = 'acesso';

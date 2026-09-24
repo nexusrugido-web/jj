@@ -36,7 +36,7 @@ const GRUPOS = [
 ];
 
 export default function Admin() {
-  const { sessao, irPara } = useApp();
+  const { sessao, irPara, verComo, mudarVerComo, ligada } = useApp();
   const toast = useToast();
 
   const [carregando, setCarregando] = useState(true);
@@ -246,6 +246,19 @@ export default function Admin() {
       acoes={<Btn icon={RefreshCw} onClick={buscar} disabled={carregando}>Atualizar</Btn>}
     >
       {aba === 'visao' && (<>
+      {/* ver o app do jeito que o aluno vê, sem precisar de outra conta */}
+      <Card style={{ marginBottom: 14 }}>
+        <div className="card-head"><h2 className="h-sec">Ver o app como</h2></div>
+        <div className="row wrap" style={{ gap: 8 }}>
+          {[{ id: null, nome: 'A minha conta' }, { id: 'gratis', nome: 'Grátis' }, { id: 'premium', nome: 'Premium' }].map((o) => (
+            <button key={o.nome} type="button" className={`chip ${verComo === o.id ? 'on' : ''}`} onClick={() => mudarVerComo(o.id)}>{o.nome}</button>
+          ))}
+        </div>
+        <p className="micro muted" style={{ marginTop: 10, lineHeight: 1.6 }}>
+          Vale só neste aparelho.{ligada('cobranca') ? '' : ' A cobrança está desligada, então por enquanto todo mundo vê tudo.'}
+        </p>
+      </Card>
+
       {/* números */}
       {numeros && (
         <Card style={{ marginBottom: 14 }}>

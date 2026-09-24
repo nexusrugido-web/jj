@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   Plus, Target, Trash2, Pencil, Check, Trophy, Repeat, Sparkles,
-  ShieldAlert, Clock, X, Minus, Share2,
+  ShieldAlert, Clock, X, Minus, Share2, Lock,
 } from 'lucide-react';
 import Figurinha from '../components/Figurinha';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -21,6 +21,8 @@ import {
 } from '../lib/metas';
 import { POSICOES_INICIAIS } from '../db/scoring';
 import { hoje, fmtData, relativo, diasEntre } from '../lib/utils';
+import { podeVer, LIMITES } from '../lib/plano';
+import { Travado } from '../components/Plano';
 
 const vazia = () => ({
   tipo: 'frequencia',
@@ -36,13 +38,18 @@ const vazia = () => ({
 });
 
 export default function Metas() {
-  const { goals, sessions, rolls, partners, techniques, gradings, categories, positions, settings, salvarSettings, irPara } = useApp();
+  const { goals, sessions, rolls, partners, techniques, gradings, categories, positions, settings, salvarSettings, irPara, acesso } = useApp();
   const toast = useToast();
   const [edit, setEdit] = useState(null);
   const [excluir, setExcluir] = useState(null);
   const [seletorAberto, setSeletorAberto] = useState(false);
   const [aba, setAba] = useState('minhas');
   const [story, setStory] = useState(null);
+  const [convite, setConvite] = useState(false);
+  /* no grátis: as metas que o app sugere, até o limite de ativas.
+     Criar a sua própria e passar do limite é do premium. */
+  const livre = podeVer(acesso, 'metas');
+  const novaMeta = () => (livre ? setEdit(vazia()) : setConvite(true));
 
   const faixa = settings.faixa || 'branca';
   const tecnicas = useMemo(
@@ -85,6 +92,7 @@ export default function Metas() {
   }
 
   async function confirmarSugestao(s) {
+    if (!livre && ativas.length >= LIMITES.metasAtivas) return setConvite(true);
     await db.goals.add({
       ...vazia(),
       tipo: s.tipo,
@@ -114,7 +122,7 @@ export default function Metas() {
         <div>
           <h1 className="h-page">Metas</h1>
         </div>
-        <Btn variant="primary" icon={Plus} onClick={() => setEdit(vazia())}>Nova meta</Btn>
+        <Btn variant="primary" icon={livre ? Plus : Lock} onClick={novaMeta}>Nova meta</Btn>
       </div>
 
       <Seg value={aba} onChange={setAba} options={[
@@ -141,8 +149,8 @@ export default function Metas() {
               texto={semMeta.texto}
               acao={
                 <Btn variant="primary" icon={Plus}
-                  onClick={() => (sessions.length ? setEdit(vazia()) : irPara('treinos'))}>
-                  {semMeta.acao}
+                  onClick={() => (!sessions.length ? irPara('treinos') : livre ? setEdit(vazia()) : setAba('sugestoes'))}>
+                  {sessions.length && !livre ? 'Ver as sugestões' : semMeta.acao}
                 </Btn>
               }
             />
@@ -248,6 +256,11 @@ export default function Metas() {
       )}
 
       <Figurinha aberto={!!story} onClose={() => setStory(null)} dados={story} />
+
+      {/* criar a própria meta, ou passar do limite, no grátis */}
+      <Sheet aberto={convite} onClose={() => setConvite(false)} titulo="">
+        <Travado recurso="metas" acesso={acesso} onAssinar={() => { setConvite(false); irPara('ajustes'); }} />
+      </Sheet>
 
       {/* editor */}
       <Sheet

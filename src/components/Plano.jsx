@@ -217,6 +217,36 @@ export function Travado({ recurso, acesso, onAssinar, children }) {
 }
 
 /* ============================================================
+   A VITRINE
+
+   A seção de verdade, com os números da própria pessoa, borrada
+   atrás do convite. Ela vê que a resposta existe e é dela. Embaixo,
+   o resto do que o premium abre: ninguém assina por uma tela só.
+   ============================================================ */
+export function Vitrine({ recurso, fundo, titulo, texto, itens, onAssinar }) {
+  const tambem = Object.entries(RECURSOS)
+    .filter(([id, r]) => r.premium && id !== recurso)
+    .map(([, r]) => r.nome.toLowerCase());
+  return (
+    <div className="vitrine">
+      <div className="vitrine-fundo" aria-hidden="true">{fundo}</div>
+      <div className="vitrine-frente">
+        <span className="vitrine-selo"><Lock size={13} /> Premium</span>
+        <h3 className="h-sec" style={{ marginTop: 10 }}>{titulo}</h3>
+        <p className="tiny muted" style={{ marginTop: 6, lineHeight: 1.6 }}>{texto}</p>
+        <ul className="vitrine-lista">
+          {itens.map((x) => <li key={x}><Check size={15} /> {x}</li>)}
+        </ul>
+        <p className="micro muted" style={{ marginTop: 14, lineHeight: 1.6 }}>
+          O premium também abre: {tambem.join(', ')}.
+        </p>
+        <Btn variant="primary" onClick={onAssinar} style={{ marginTop: 14, width: '100%' }}>Liberar no premium</Btn>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
    O LIMITE DO DIA BATEU
 
    O texto fala do que a pessoa acabou de fazer, não do que ela

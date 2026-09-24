@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   Dna, Trophy, Info, Check, TriangleAlert, Swords, Weight, MapPin, RefreshCw, ArrowRight,
-  ListChecks, Award, Calculator, Lock,
+  ListChecks, Award, Calculator,
 } from 'lucide-react';
 import Guia from '../components/Guia';
 import { useApp } from '../contexto';
@@ -13,6 +13,7 @@ import {
 } from '../lib/game';
 import { minhasTecnicas } from '../lib/graus';
 import { podeVer } from '../lib/plano';
+import { Vitrine } from '../components/Plano';
 import FaixaVisual from '../components/FaixaVisual';
 import { FAIXAS } from '../db/seed';
 import { ESTILOS, estiloPorId, QUIZ, estiloDoQuiz } from '../db/scoring';
@@ -349,26 +350,20 @@ function PorSituacao({ a, notas }) {
 function VitrineSituacao({ a, notas, onAssinar }) {
   const temDado = a.porPeso.length > 0 || a.porPosicao.length > 0;
   return (
-    <div className="vitrine">
-      <div className="vitrine-fundo" aria-hidden="true">
-        <PorSituacao a={a} notas={notas} />
-      </div>
-      <div className="vitrine-frente">
-        <span className="vitrine-selo"><Lock size={13} /> Premium</span>
-        <h3 className="h-sec" style={{ marginTop: 10 }}>Onde você perde as lutas que dava pra ganhar</h3>
-        <p className="tiny muted" style={{ marginTop: 6, lineHeight: 1.6 }}>
-          {temDado
-            ? `Os seus ${a.rolas} rolas já mostram em que situação você vence menos. A resposta já está pronta, com os seus números.`
-            : 'Marque o peso do parceiro e onde o rola começou, e o app mostra em que situação você vence menos.'}
-        </p>
-        <ul className="vitrine-lista">
-          <li><Check size={15} /> Contra mais pesado, parecido e mais leve: quantas você vence</li>
-          <li><Check size={15} /> A posição de começo em que você mais apanha</li>
-          <li><Check size={15} /> O que treinar pra virar isso, com aula pronta no Estudo</li>
-        </ul>
-        <Btn variant="primary" onClick={onAssinar} style={{ marginTop: 14, width: '100%' }}>Liberar no premium</Btn>
-      </div>
-    </div>
+    <Vitrine
+      recurso="meujogo"
+      fundo={<PorSituacao a={a} notas={notas} />}
+      titulo="Onde você perde as lutas que dava pra ganhar"
+      texto={temDado
+        ? `Os seus ${a.rolas} rolas já mostram em que situação você vence menos. A resposta já está pronta, com os seus números.`
+        : 'Marque o peso do parceiro e onde o rola começou, e o app mostra em que situação você vence menos.'}
+      itens={[
+        'Contra mais pesado, parecido e mais leve: quantas você vence',
+        'A posição de começo em que você mais apanha',
+        'O que treinar pra virar isso, com aula pronta no Estudo',
+      ]}
+      onAssinar={onAssinar}
+    />
   );
 }
 

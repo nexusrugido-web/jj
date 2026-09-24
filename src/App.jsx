@@ -153,6 +153,8 @@ export default function App() {
   const [acesso, setAcesso] = useState({ premium: false, status: 'checando' });
   const [chaves, setChaves] = useState(todasAsChaves);
   const [ehAdmin, setEhAdmin] = useState(false);
+  /* o admin escolhe ver o app como grátis ou como premium, só neste aparelho */
+  const [verComo, setVerComo] = useState(() => { try { return localStorage.getItem('verComo'); } catch { return null; } });
   const [recado, setRecado] = useState(null);
   const [sync, setSync] = useState({ ligado: false, rodando: false, pendentes: 0 });
   const [celebrar, setCelebrar] = useState(null);
@@ -525,7 +527,9 @@ export default function App() {
     abrirLogin: () => setTelaLogin(true),
     refazerOnboarding: () => setOnboarding(true),
     abrirTour: () => setTourAberto(true),
-    acesso,
+    acesso: ehAdmin && verComo ? { ...acesso, premium: verComo === 'premium' } : acesso,
+    verComo,
+    mudarVerComo: (v) => { try { v ? localStorage.setItem('verComo', v) : localStorage.removeItem('verComo'); } catch { /* sem armazenamento, vale até fechar */ } setVerComo(v); },
     chaves,
     ehAdmin,
     ligada: ligadaAgora,

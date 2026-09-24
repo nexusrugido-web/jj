@@ -16,9 +16,11 @@ import { resumo, escadaPosicional, buracosNoJogo } from '../lib/stats';
 import { placarDaRola } from '../lib/game';
 import { toCSV } from '../db/db';
 import { baixarArquivo, fmtDur, contar, hoje } from '../lib/utils';
+import { podeVer } from '../lib/plano';
+import { Vitrine } from '../components/Plano';
 
 export default function Analise() {
-  const { sessions, rolls, positions, partners, settings, irPara } = useApp();
+  const { sessions, rolls, positions, partners, settings, irPara, acesso } = useApp();
   const gradings = useLiveQuery(() => db.gradings.toArray(), [], []) || [];
   const toast = useToast();
   const [periodoId, setPeriodoId] = useState('ultimos-30');
@@ -80,6 +82,42 @@ export default function Analise() {
     );
   }
 
+  const resumoDoPeriodo = (
+    <div className="grid g4" style={{ marginBottom: 10 }}>
+      <Card><Stat icon={Clock} valor={fmtDur(r.matMin)} label="tempo de tatame" sub={`${r.sessoes} ${r.sessoes === 1 ? 'treino' : 'treinos'}`} /></Card>
+      <Card><Stat icon={Swords} valor={r.rolas} label="rolas" sub={`${(r.rolas / Math.max(1, r.sessoes)).toFixed(1)} por treino`} /></Card>
+      <Card><Stat icon={Trophy} valor={`${r.taxaVitoria}%`} label="taxa de vitória" tone={r.rolas && r.taxaVitoria >= 50 ? 'jade' : undefined} sub={`${r.vitorias} vitórias · ${r.derrotas} derrotas`} /></Card>
+      <Card><Stat icon={Percent} valor={`${r.subPct}%`} label="rolas com finalização" tone="jade" sub={`${r.tapPct}% com tap sofrido`} /></Card>
+    </div>
+  );
+
+  /* no grátis a Análise mostra o resumo real, borrado, atrás do convite.
+     Exportar continua liberado: os dados são da pessoa. */
+  if (!podeVer(acesso, 'analise')) {
+    return (
+      <div className="page">
+        <div className="page-head">
+          <div>
+            <h1 className="h-page">Análise</h1>
+          </div>
+          <Btn icon={Download} onClick={exportarCSV}>Exportar CSV</Btn>
+        </div>
+        <Vitrine
+          recurso="analise"
+          fundo={resumoDoPeriodo}
+          titulo="O raio-x do seu jogo, com o tempo"
+          texto={`Os seus ${sessions.length} treinos já mostram como você está evoluindo, contra quem você vence e onde fica por baixo.`}
+          itens={[
+            'Presença no tatame, dia a dia e mês a mês',
+            'Contra quem você luta: quantas vence contra cada faixa',
+            'Onde você fica por cima e onde fica por baixo',
+          ]}
+          onAssinar={() => irPara('ajustes')}
+        />
+      </div>
+    );
+  }
+
   const semRolas = rolasF.length === 0;
   const nada = <NadaNoPeriodo periodo={periodo} aoVerTudo={() => setPeriodoId('desde-inicio')} />;
 
@@ -107,12 +145,7 @@ export default function Analise() {
 
       {/* resumo do período */}
       <div style={{ marginBottom: 8 }}><RotuloPeriodo periodo={periodo}>resumo</RotuloPeriodo></div>
-      <div className="grid g4" style={{ marginBottom: 10 }}>
-        <Card><Stat icon={Clock} valor={fmtDur(r.matMin)} label="tempo de tatame" sub={`${r.sessoes} ${r.sessoes === 1 ? 'treino' : 'treinos'}`} /></Card>
-        <Card><Stat icon={Swords} valor={r.rolas} label="rolas" sub={`${(r.rolas / Math.max(1, r.sessoes)).toFixed(1)} por treino`} /></Card>
-        <Card><Stat icon={Trophy} valor={`${r.taxaVitoria}%`} label="taxa de vitória" tone={r.rolas && r.taxaVitoria >= 50 ? 'jade' : undefined} sub={`${r.vitorias} vitórias · ${r.derrotas} derrotas`} /></Card>
-        <Card><Stat icon={Percent} valor={`${r.subPct}%`} label="rolas com finalização" tone="jade" sub={`${r.tapPct}% com tap sofrido`} /></Card>
-      </div>
+      {resumoDoPeriodo}
       {filtradas.length > 0 && (
         <div className="row wrap" style={{ gap: 6, marginBottom: 14 }}>
           <Chip>RPE médio {rpeMedio} de 10</Chip>
