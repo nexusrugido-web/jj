@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Trophy, Check, Eye, EyeOff, RefreshCw, Flame, Hourglass, LogOut, UserRound, Undo2, Dumbbell, Crown,
+  Trophy, Check, Eye, EyeOff, RefreshCw, Flame, Hourglass, LogOut, UserRound, Undo2, Dumbbell, Crown, Camera, Trash2,
 } from 'lucide-react';
 import { useApp } from '../contexto';
 import { supabase } from '../lib/supabase';
@@ -10,6 +10,8 @@ import {
 import { ajusteDe } from '../lib/ajustes';
 import { subirPraLiga, corteDoGrupo, nomeCurto, DIVISOES_LIGA, nomeDivisao } from '../lib/liga';
 import { fmtData } from '../lib/utils';
+import { enviarFoto, removerFoto } from '../lib/perfil';
+import Avatar from './Avatar';
 
 /* ============================================================
    LIGA
@@ -31,8 +33,6 @@ import { fmtData } from '../lib/utils';
 const ACIMA = { branca: 'azul', azul: 'roxa', roxa: 'marrom', marrom: 'preta', preta: 'preta' };
 const acima = (d) => ACIMA[d] || 'azul';
 
-const iniciais = (nome) => String(nome || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase();
-
 /* ============================================================
    O PÓDIO
 
@@ -49,10 +49,9 @@ export function Podio({ tres, marca, onVer }) {
         return (
           <button key={l.user_id} type="button" className={`podio-lugar p${lugar} ${l.sou_eu ? 'eu' : ''}`} onClick={() => onVer(l)}>
             {lugar === 1 && <Crown size={18} className="podio-coroa" />}
-            <span className="podio-avatar">
-              {iniciais(l.nome)}
+            <Avatar nome={l.nome} foto={l.foto} className="podio-avatar">
               <span className="podio-n num">{l.posicao}</span>
-            </span>
+            </Avatar>
             <span className="podio-base">
               {l.sou_eu && <span className="podio-voce">você</span>}
               <span className="podio-nome">{l.nome}</span>
@@ -93,7 +92,7 @@ export default function Liga({ compacto = false }) {
       if (subir) await subirPraLiga().catch(() => {});
       const [r, p] = await Promise.all([
         supabase.rpc('minha_liga'),
-        supabase.from('perfil').select('participa_liga, anonimo, apelido').eq('user_id', sessao.user.id).single(),
+        supabase.from('perfil').select('participa_liga, anonimo, apelido, avatar_url').eq('user_id', sessao.user.id).single(),
       ]);
       setLinhas(r.data || []);
       setPerfil(p.data || null);
@@ -105,6 +104,17 @@ export default function Liga({ compacto = false }) {
   }
 
   useEffect(() => { if (ativa) buscar({ subir: true }); else setCarregando(false); }, [ativa, sessao]);
+
+  /* a corrida anda enquanto a tela está aberta: busca de novo a cada
+     minuto e quando o app volta pra frente, sem precisar de Atualizar */
+  useEffect(() => {
+    if (!ativa || !sessao) return undefined;
+    const aberta = () => document.visibilityState === 'visible';
+    const t = setInterval(() => { if (aberta()) buscar(); }, 60000);
+    const voltou = () => { if (aberta()) buscar(); };
+    document.addEventListener('visibilitychange', voltou);
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', voltou); };
+  }, [ativa, sessao]);
 
   async function voltar() {
     const { data } = await supabase.rpc('entrar_na_liga');
@@ -136,6 +146,7 @@ export default function Liga({ compacto = false }) {
       nome={settings?.nome}
       userId={sessao.user.id}
       onSalvo={() => { setAparencia(false); buscar(); }}
+      onFoto={() => buscar()}
     />
   );
 
@@ -188,7 +199,10 @@ export default function Liga({ compacto = false }) {
   const total = Number(linhas[0]?.total) || linhas.length;
   const comecou = total >= 2 && linhas[0]?.comecou !== false;
   const { sobem, descem } = corteDoGrupo(total, ajusteDe('liga_corte', 3));
-  const misturado = linhas.some((l) => (l.divisao_pessoa || divisao) !== divisao);
+  /* o grupo pode juntar divisões vizinhas quando falta gente: o
+     cabeçalho mostra a sua, e a etiqueta só aparece em quem é de outra */
+  const minhaDiv = eu?.divisao_pessoa || divisao;
+  const misturado = linhas.some((l) => (l.divisao_pessoa || divisao) !== minhaDiv);
   const acimaDeMim = eu ? linhas.filter((l) => l.xp_semana > eu.xp_semana) : [];
   /* quem está na zona de subir ou de descer, igual no pódio e na lista */
   const marca = (l) => {
@@ -202,19 +216,15 @@ export default function Liga({ compacto = false }) {
 
   return (
     <Card style={{ marginBottom: compacto ? 0 : 14 }}>
-      <div className="card-head">
-        <div>
-          <Chip tone="warn">
-            <Hourglass size={11} /> {total} {total === 1 ? 'pessoa' : 'pessoas'} · fecha segunda ao meio-dia
-          </Chip>
-          <h2 className="h-sec row" style={{ gap: 8 }}>
-            <Trophy size={16} /> Divisão <DivisaoTag id={divisao} />
-          </h2>
-        </div>
-        <Btn size="sm" variant="ghost" icon={RefreshCw} onClick={() => buscar({ subir: true })} disabled={carregando}>
-          Atualizar
-        </Btn>
+      <div className="card-head" style={{ marginBottom: 4 }}>
+        <h2 className="h-sec row" style={{ gap: 8, flexWrap: 'wrap' }}>
+          <Trophy size={16} /> Divisão <DivisaoTag id={minhaDiv} />
+        </h2>
+        <Btn size="sm" variant="ghost" icon={RefreshCw} onClick={() => buscar({ subir: true })} disabled={carregando} aria-label="Atualizar" />
       </div>
+      <p className="micro muted row" style={{ gap: 6, marginBottom: 12 }}>
+        <Hourglass size={12} /> {total} {total === 1 ? 'pessoa' : 'pessoas'} no grupo · fecha segunda ao meio-dia
+      </p>
 
       {eu?.saindo && (
         <div className="valida atencao" style={{ marginBottom: 12, alignItems: 'center' }}>
@@ -266,10 +276,11 @@ export default function Liga({ compacto = false }) {
           return (
             <button key={l.user_id} type="button" className={`liga-linha ${l.sou_eu ? 'eu' : ''}`} onClick={() => setVendo(l)}>
               <span className="liga-pos num">{l.posicao}</span>
-              <span className="tiny" style={{ flex: 1, fontWeight: l.sou_eu ? 600 : 400, textAlign: 'left' }}>
+              <Avatar nome={l.nome} foto={l.foto} className="liga-avatar" />
+              <span className="tiny liga-nome" style={{ fontWeight: l.sou_eu ? 600 : 400 }}>
                 {l.nome}{l.sou_eu ? ' (você)' : ''}
               </span>
-              {misturado && <DivisaoTag id={div} />}
+              {div !== minhaDiv && <DivisaoTag id={div} />}
               {l.sequencia > 0 && (
                 <span className="micro num row" style={{ gap: 3, color: 'var(--roar)' }} title="dias de ofensiva">
                   <Flame size={12} /> {l.sequencia}
@@ -290,7 +301,7 @@ export default function Liga({ compacto = false }) {
             : <>
                 A semana fecha segunda ao meio-dia, e o treino de domingo registrado até lá ainda conta.{' '}
                 {sobem === 1 ? 'O primeiro que pontuou sobe' : `Os ${sobem} primeiros que pontuaram sobem`} de divisão
-                {divisao === 'preta' || misturado ? '' : `, pra ${nomeDivisao(acima(divisao))}`}
+                {minhaDiv === 'preta' || misturado ? '' : `, pra ${nomeDivisao(acima(minhaDiv))}`}
                 {descem
                   ? (descem === 1 ? ', e o último desce.' : `, e os ${descem} últimos descem.`)
                   : '. Com o grupo deste tamanho, ninguém desce.'}
@@ -315,18 +326,45 @@ export default function Liga({ compacto = false }) {
 /* ============================================================
    COMO VOCÊ APARECE PROS OUTROS
    ============================================================ */
-function ComoAparece({ aberto, onClose, perfil, nome, userId, onSalvo }) {
+function ComoAparece({ aberto, onClose, perfil, nome, userId, onSalvo, onFoto }) {
   const toast = useToast();
   const modoAtual = perfil?.anonimo ? (perfil?.apelido ? 'apelido' : 'anonimo') : 'nome';
   const [modo, setModo] = useState(modoAtual);
   const [apelido, setApelido] = useState(perfil?.apelido || '');
   const [salvando, setSalvando] = useState(false);
+  const [foto, setFoto] = useState(perfil?.avatar_url || null);
+  const [mandando, setMandando] = useState(false);
 
   useEffect(() => {
     if (!aberto) return;
     setModo(modoAtual);
     setApelido(perfil?.apelido || '');
+    setFoto(perfil?.avatar_url || null);
   }, [aberto]);
+
+  async function escolherFoto(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setMandando(true);
+    try {
+      setFoto(await enviarFoto(file));
+      toast('Foto atualizada');
+      onFoto?.();
+    } catch (err) {
+      toast(err?.message?.includes('conta') ? err.message : 'Não consegui mandar a foto agora', 'err');
+    } finally {
+      setMandando(false);
+    }
+  }
+
+  async function tirarFoto() {
+    setMandando(true);
+    await removerFoto().catch(() => {});
+    setFoto(null);
+    setMandando(false);
+    onFoto?.();
+  }
 
   const opcoes = [
     { id: 'nome', icone: Eye, titulo: 'Com o meu nome', texto: `Aparece como ${nomeCurto(nome)}: o primeiro nome e a inicial do sobrenome.` },
@@ -360,6 +398,26 @@ function ComoAparece({ aberto, onClose, perfil, nome, userId, onSalvo }) {
         </>
       }
     >
+      <div className="row" style={{ gap: 14, alignItems: 'center' }}>
+        <Avatar nome={modo === 'apelido' && apelido.trim() ? apelido : nomeCurto(nome)} foto={modo === 'anonimo' ? null : foto} className="perfil-avatar" />
+        <div className="col" style={{ gap: 8, flex: 1 }}>
+          <label className={`btn sm ${mandando ? 'disabled' : ''}`} style={{ alignSelf: 'flex-start' }}>
+            <Camera size={14} /> {mandando ? 'Mandando…' : foto ? 'Trocar foto' : 'Colocar foto'}
+            <input type="file" accept="image/*" hidden disabled={mandando} onChange={escolherFoto} />
+          </label>
+          {foto && !mandando && (
+            <button type="button" className="btn ghost xs" style={{ alignSelf: 'flex-start' }} onClick={tirarFoto}>
+              <Trash2 size={12} /> Tirar a foto
+            </button>
+          )}
+          <p className="micro muted" style={{ lineHeight: 1.55 }}>
+            {modo === 'anonimo'
+              ? 'No modo Anônimo a foto não aparece pra ninguém.'
+              : 'Sem foto, aparecem as iniciais. A foto aparece pro seu grupo da liga.'}
+          </p>
+        </div>
+      </div>
+
       <div className="col" style={{ gap: 10 }}>
         {opcoes.map((o) => (
           <button key={o.id} type="button" className={`opcao-meta ${modo === o.id ? 'on' : ''}`} onClick={() => setModo(o.id)}>
@@ -412,6 +470,7 @@ function PerfilDoColega({ linha, onClose }) {
         <p className="tiny muted">Não deu pra abrir este perfil agora.</p>
       ) : (
         <div className="col" style={{ gap: 16 }}>
+          <Avatar nome={linha?.nome} foto={p.foto} className="perfil-avatar" />
           <div className="row wrap" style={{ gap: 8 }}>
             <BeltTag faixa={p.faixa} graus={p.graus || 0}>Faixa {p.faixa}</BeltTag>
             <DivisaoTag id={p.divisao} prefixo="Divisão " />
