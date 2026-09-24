@@ -32,7 +32,17 @@ const fila = [];
 registrarSync((tabela, op, reg) => fila.push({ tabela, op, uid: reg.uid }));
 
 await ensureSeed();
-ok('a biblioteca criada no aparelho não entra na fila', fila.filter((x) => ['positions', 'categories', 'techniques'].includes(x.tabela)).length, 0);
+ok('a biblioteca criada no aparelho não entra na fila', fila.filter((x) => ['positions', 'categories', 'techniques', 'attackPlans'].includes(x.tabela)).length, 0);
+
+/* a atualização que completa a biblioteca (seeded_v5) também não sobe */
+const umaTecnica = await db.techniques.orderBy('id').last();
+await db.techniques.delete(umaTecnica.id);
+await db.meta.put({ key: 'seeded_v5', value: false });
+fila.length = 0;
+await ensureSeed();
+ok('técnica que a atualização repõe não entra na fila', fila.filter((x) => x.op === 'upsert').length, 0);
+const plano = await db.attackPlans.orderBy('id').first();
+ok('plano de ataque que vem pronto é semente', sementeIntacta('attackPlans', plano), true);
 
 const tec = await db.techniques.orderBy('id').first();
 ok('técnica da biblioteca, intocada, é reconhecida como semente', sementeIntacta('techniques', tec), true);

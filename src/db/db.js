@@ -252,7 +252,7 @@ export async function ensureSeed() {
     for (const c of SEED.categories) {
       if (catPorSlug[c.slug]) continue;
       catPorSlug[c.slug] = await db.categories.add({
-        ...c, uid: uidEstavel(chaveNome('categories', c.nome)), arquivada: 0, criadoEm: Date.now(),
+        ...c, uid: uidEstavel(chaveNome('categories', c.nome)), arquivada: 0, criadoEm: Date.now(), __local: 1,
       });
     }
 
@@ -261,7 +261,7 @@ export async function ensureSeed() {
     for (const p of SEED.positions) {
       if (posPorSlug[p.slug]) continue;
       posPorSlug[p.slug] = await db.positions.add({
-        ...p, uid: uidEstavel(chaveNome('positions', p.nome)), arquivada: 0, criadoEm: Date.now(),
+        ...p, uid: uidEstavel(chaveNome('positions', p.nome)), arquivada: 0, criadoEm: Date.now(), __local: 1,
       });
     }
 
@@ -282,7 +282,7 @@ export async function ensureSeed() {
         nivelSugerido: t.nivel_sugerido || '',
         status: 'nao_iniciada', nivel: 0, favorita: 0,
         tags: t.tags || [], video: '', detalhes: '',
-        arquivada: 0, criadoEm: Date.now(),
+        arquivada: 0, criadoEm: Date.now(), __local: 1,
       });
       novas++;
     }
@@ -292,7 +292,7 @@ export async function ensureSeed() {
 
   const v2 = await getMeta('seeded_v2', false);
   if (!v2) {
-    for (const p of PLANOS_ATAQUE) await db.attackPlans.add({ ...p, uid: uidEstavel(chaveNome('attackPlans', p.slug)), favorito: 0, arquivada: 0, pronto: 1, criadoEm: Date.now() });
+    for (const p of PLANOS_ATAQUE) await db.attackPlans.add({ ...p, uid: uidEstavel(chaveNome('attackPlans', p.slug)), favorito: 0, arquivada: 0, pronto: 1, criadoEm: Date.now(), __local: 1 });
     await db.meta.put({ key: 'seeded_v2', value: true });
   }
 }

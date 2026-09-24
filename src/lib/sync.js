@@ -68,10 +68,15 @@ export async function enfileirar(tabela, op, registro) {
    marcado no outro. Mexeu (status, favorita, nota), vira dado dele
    e sobe como qualquer outro.
    ============================================================ */
-const SEMENTES = ['positions', 'categories', 'techniques'];
+/* os planos de ataque que vêm prontos também: a chave deles é o slug */
+const SEMENTES = ['positions', 'categories', 'techniques', 'attackPlans'];
 
 export function sementeIntacta(tabela, o) {
   if (!SEMENTES.includes(tabela) || !o?.nome || !o.uid || o.arquivada) return false;
+  if (tabela === 'attackPlans') {
+    if (!o.pronto || o.favorito || !o.slug || (o.updatedAt || 0) - (o.criadoEm || 0) > 5000) return false;
+    return o.uid === uidEstavel(chaveNome(tabela, o.slug));
+  }
   if ((o.updatedAt || 0) - (o.criadoEm || 0) > 5000) return false;
   if (tabela === 'techniques' && ((o.status || 'nao_iniciada') !== 'nao_iniciada' || o.favorita || o.nivel || o.detalhes || o.video)) return false;
   return o.uid === uidEstavel(chaveNome(tabela, o.nome));
