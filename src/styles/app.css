@@ -3262,3 +3262,17 @@ body::after {
    numa linha só: ali a rolagem é o caminho. */
 .chip { max-width: 100%; }
 .row.wrap > .chip { white-space: normal; text-align: left; line-height: 1.25; padding-top: 5px; padding-bottom: 5px; }
+
+/* ---------- força pro jiu-jitsu ---------- */
+.forca-dose {
+  font-size: var(--fs-meta); font-weight: 700; color: var(--accent);
+  padding: 2px 8px; border-radius: 99px; white-space: nowrap;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.forca-plano { display: flex; flex-direction: column; border: 1px solid var(--seam); border-radius: var(--r-sm); overflow: hidden; }
+.forca-linha { display: flex; gap: var(--e3); align-items: flex-start; padding: var(--e3); border-bottom: 1px solid var(--seam); background: var(--void); }
+.forca-linha:last-child { border-bottom: 0; }
+.forca-linha > .lucide { flex: none; margin-top: 2px; color: var(--accent); }
+.forca-linha > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.forca-linha b { font-size: var(--fs-meta); color: var(--dim); font-weight: 600; }
+.forca-linha span { font-size: var(--fs-sec); line-height: 1.5; }

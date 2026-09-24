@@ -206,7 +206,8 @@ export default function Plano({ acesso, recarregar, compacto = false }) {
    ============================================================ */
 const tambemAbre = (recurso) => Object.entries(RECURSOS)
   .filter(([id, r]) => r.premium && id !== recurso)
-  .map(([, r]) => r.nome.toLowerCase())
+  /* só a primeira letra desce: IA continua IA */
+  .map(([, r]) => r.nome.charAt(0).toLowerCase() + r.nome.slice(1))
   .join(', ');
 
 export function Vitrine({ recurso, fundo, titulo, texto, itens, onAssinar }) {
