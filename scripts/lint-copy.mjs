@@ -28,6 +28,17 @@ const PROIBIDOS = [
   { re: /Esta tela tinha|Tinha aqui|antes existia|antes havia/gi, nome: 'justifica decisão: conta o que tinha antes', soTela: true },
   { re: /n[ãa]o [ée] aplicativo de|n[ãa]o [ée] um app de/gi, nome: 'comparação que o aluno não faria', soTela: true },
   { re: /o app n[ãa]o vai competir|o app n[ãa]o tem como/gi, nome: 'fala do app em vez do aluno', soTela: true },
+
+  /* Vocabulário de IA e de corporação. O app fala como gente de tatame.
+     "Alavanca" do armlock pode; o verbo corporativo "alavancar", não. */
+  { re: /\bmergulh(ar|e|ando|amos)\b/gi, nome: 'voz de IA: mergulhar', soTela: true },
+  { re: /\bjornada\b/gi, nome: 'voz de IA: jornada', soTela: true },
+  { re: /\balavanc(ar|ando|amos|ou)\b/gi, nome: 'voz corporativa: alavancar', soTela: true },
+  { re: /\bademais\b/gi, nome: 'voz professoral: ademais', soTela: true },
+  { re: /\bcontudo\b/gi, nome: 'voz professoral: contudo', soTela: true },
+  { re: /\bexplor(ar|e|ando|amos)\b/gi, nome: 'voz de IA: explorar', soTela: true },
+  { re: /\bpotencializ/gi, nome: 'voz corporativa: potencializar', soTela: true },
+  { re: /\bdesbloque(ar|ie) (todo o )?(seu )?potencial/gi, nome: 'voz de IA: desbloquear potencial', soTela: true },
 ];
 
 const arquivos = [];

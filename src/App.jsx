@@ -77,10 +77,10 @@ registrarSync(enfileirar);
 
 function rotaDaURL(abrindo = false) {
   const pedida = new URLSearchParams(location.search).get('go');
-  /* a Jornada virou a Liga: notificação e link antigos ainda mandam ?go=jornada.
+  /* a Jornada virou a Liga: notificação e link antigos ainda mandam ?go=jornada. (lint-copy-ok)
      Convite de sala abre em Amigos (inclusive o link antigo com ?go=liga),
      só na abertura: voltar de tela depois não pode cair lá de novo */
-  const p = abrindo && conviteInicial ? 'amigos' : pedida === 'jornada' ? 'liga' : pedida === 'tecnicas' ? 'dominio' : pedida;
+  const p = abrindo && conviteInicial ? 'amigos' : pedida === 'jornada' ? 'liga' : pedida === 'tecnicas' ? 'dominio' : pedida; // lint-copy-ok
   return PAGINAS[p] ? p : 'painel';
 }
 

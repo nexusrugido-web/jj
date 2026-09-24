@@ -75,19 +75,19 @@ function aviso(n) {
     return {
       titulo: dias > 1
         ? doDia([
-          `🔥 ${dias} dias sem bater. Não vai dar os três tapinhas logo hoje`,
-          `🥋 ${dias} dias seguidos. Faixa preta é faixa branca que não faltou`,
-          `🔥 ${dias} dias de guarda fechada. Não deixa a ofensiva raspar`,
-          `💪 ${dias} dias seguidos. O tatame lembra de quem aparece`,
+          `🔥 ${dias} dias sem bater. Não vai dar os três tapinhas justo hoje, né?`,
+          `🥋 ${dias} dias seguidos. Faixa preta é só uma faixa branca que não faltou, lembra?`,
+          `🔥 ${dias} dias de ofensiva. Não deixa ela te raspar logo agora.`,
+          `💪 ${dias} dias seguidos. O tatame lembra de quem aparece, e ele tem boa memória.`,
         ])
         : doDia([
-          '🔥 Sua ofensiva fecha hoje. Não deixa ela bater',
-          '🥋 O primeiro dia é o mais difícil de segurar. Segura',
+          '🔥 Sua ofensiva fecha hoje. Não deixa ela te bater, hein?',
+          '🥋 O primeiro dia é o mais fácil de largar. Segura esse, que o segundo já fica leve.',
         ]),
       corpo: doDia([
-        'Uma aula rápida de um minuto já segura a posição. Nem precisa aquecer.',
-        'Nem precisa rolar: uma aula rápida já fecha o dia.',
-        'Disciplina é aparecer quando o corpo pede pra bater. Um minuto resolve.',
+        'Uma aula rápida de um minuto já segura a posição. Dá pra ver até na fila do mercado.',
+        'Nem precisa rolar hoje: uma aula rápida já fecha o dia e mantém a sequência de pé.',
+        'Disciplina é aparecer justo no dia em que o corpo pede pra bater. Um minuto resolve.',
       ]),
       acoes: [
         { acao: 'estudar', titulo: 'Aula rápida', rota: ROTA.estudar },
@@ -98,8 +98,8 @@ function aviso(n) {
   if (tipo === 'liga') {
     return {
       ...doDia([
-        { titulo: '🏆 A liga fecha hoje. Ainda dá pra finalizar no último minuto', corpo: 'Uns pontos a mais e você sobe no grupo antes da meia-noite.' },
-        { titulo: '⏱️ Último round da liga. Hora de apertar o estrangulamento', corpo: 'A semana fecha à meia-noite: um treino ou uma aula mudam o placar.' },
+        { titulo: '🏆 A liga fecha hoje. Ainda dá pra finalizar no último minuto.', corpo: 'Uns pontos a mais e você sobe no grupo antes da meia-noite. Um treino ou uma aula já mexem no placar.' },
+        { titulo: '⏱️ Último round da liga. Hora de apertar o estrangulamento.', corpo: 'A semana fecha à meia-noite, e quem aparece hoje passa na frente de quem deixou pra amanhã.' },
       ]),
       acoes: [{ acao: 'liga', titulo: 'Ver meu grupo', rota: ROTA.liga }],
     };
@@ -107,8 +107,8 @@ function aviso(n) {
   if (tipo === 'resultado') {
     return {
       ...doDia([
-        { titulo: '📊 O árbitro levantou a mão. Saiu o resultado da liga', corpo: 'Veja onde você terminou e com quem você corre nesta semana.' },
-        { titulo: '📊 A liga fechou. Pódio ou repescagem?', corpo: 'Veja onde você terminou e quem está no seu grupo agora.' },
+        { titulo: '📊 O árbitro levantou a mão. Saiu o resultado da liga.', corpo: 'Vem ver onde você terminou e com quem você vai correr nesta semana.' },
+        { titulo: '📊 A liga fechou. Foi pódio ou repescagem?', corpo: 'Entra pra ver onde você terminou e quem caiu no seu grupo agora.' },
       ]),
       acoes: [{ acao: 'liga', titulo: 'Ver resultado', rota: ROTA.liga }],
     };
@@ -116,8 +116,8 @@ function aviso(n) {
   if (tipo === 'volta') {
     return {
       ...doDia([
-        { titulo: '🥋 O kimono tá sentindo sua falta', corpo: 'Seu jogo está do jeito que você deixou. Volta com uma aula rápida, sem pressa.' },
-        { titulo: '🥋 O tatame continua aí. Ninguém pegou o seu lugar', corpo: 'Uma aula rápida hoje, e amanhã voltar já fica mais fácil.' },
+        { titulo: '🥋 Seu kimono tá sentindo sua falta (e ele já até secou).', corpo: 'Seu jogo está do jeito que você deixou. Volta com uma aula rápida, sem pressa e sem culpa.' },
+        { titulo: '🥋 O tatame continua aí. Ninguém pegou o seu lugar, mas também ninguém guardou.', corpo: 'Uma aula rápida hoje, e amanhã voltar já fica bem mais fácil.' },
       ]),
       acoes: [{ acao: 'estudar', titulo: 'Aula rápida', rota: ROTA.estudar }],
     };

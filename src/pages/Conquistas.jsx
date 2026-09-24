@@ -201,7 +201,7 @@ export default function Conquistas() {
       {marcos.length === 0 ? (
         <Card><Empty icon={Trophy} titulo="Nenhum marco ainda" texto="Registre treinos e rolas. Os marcos aparecem sozinhos quando você bate horas de tatame, domina técnicas e mantém consistência." /></Card>
       ) : (
-        /* a jornada em linha do tempo: o mais recente em cima */
+        /* as conquistas em linha do tempo: o mais recente em cima */
         <Card className="marcos">
           {marcos.map((m) => {
             const Ico = ICONES[m.tipo] || Trophy;

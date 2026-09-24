@@ -15,7 +15,7 @@ import { carregarAjustes } from '../lib/ajustes';
    silêncio. Texto vira campo com botão de salvar, porque link
    você cola e confere antes.
 
-   O corte da jornada fica fora desta lista. Ele é uma data que
+   O corte da Liga fica fora desta lista. Ele é uma data que
    o sistema escreveu uma vez, e mudar ela na mão mudaria o total
    de todo mundo sem ninguém entender por quê.
    ============================================================ */

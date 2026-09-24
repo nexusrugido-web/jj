@@ -292,18 +292,18 @@ export default function Estudo() {
               </Card>
             )}
             titulo="Aulas completas, escolhidas pelo seu jogo"
-            texto={`Os seus rolas já apontaram ${paraVoce.length} ${paraVoce.length === 1 ? 'assunto' : 'assuntos'}, e cada um já tem a aula completa separada. Parte delas é exclusiva: não aparece em nenhum outro lugar do app.`}
+            texto={`Seus rolas apontaram ${paraVoce.length} ${paraVoce.length === 1 ? 'assunto' : 'assuntos'}, cada um com a sua própria aula completa. E parte desse material é exclusiva: não está em nenhum outro lugar além do app.`}
             itens={[
               'Só aula completa, com o passo a passo inteiro',
-              'Aulas exclusivas de assinante, que só existem aqui',
-              'Escolhidas pelo que te pega, e mudam conforme você evolui',
+              'Aulas exclusivas de assinante, que você não acha no YouTube nem em lugar nenhum além do app',
+              'Escolhidas pelo que mais te pega, e trocadas conforme você evolui no tatame',
             ]}
             onAssinar={() => irPara('ajustes')}
           />
         ) : (
           <div className="col" style={{ gap: 16 }}>
             <p className="micro muted" style={{ lineHeight: 1.6 }}>
-              Só aula completa, escolhida pelo seu jogo. As marcadas como exclusiva só existem aqui dentro.
+              Aqui é só aula completa, escolhida pelo seu jogo. As marcadas como exclusiva você não acha em nenhum outro lugar além do app.
             </p>
             {paraVoce.map((b, i) => (
               <Card key={i}>
@@ -328,7 +328,7 @@ export default function Estudo() {
         <button type="button" className="valida atencao" onClick={() => setAba('pravoce')} style={{ width: '100%', textAlign: 'left', marginBottom: 14 }}>
           <Lock size={14} className="valida-ico" style={{ color: 'var(--roar)' }} />
           <p className="micro muted" style={{ lineHeight: 1.6 }}>
-            <b style={{ color: 'var(--chalk)' }}>As aulas completas escolhidas pelo seu jogo ficam no Pra você.</b> Tem conteúdo lá que não está em nenhuma outra aba.
+            <b style={{ color: 'var(--chalk)' }}>As aulas completas escolhidas pelo seu jogo ficam no Pra você.</b> E tem aula lá que você não acha em nenhum outro lugar além do app.
           </p>
         </button>
       )}
