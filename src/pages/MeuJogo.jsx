@@ -1,12 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import {
   Dna, Trophy, Info, Check, TriangleAlert, Swords, Weight, MapPin, RefreshCw, ArrowRight,
+  ListChecks, Award, Calculator, Lock,
 } from 'lucide-react';
+import Guia from '../components/Guia';
 import { useApp } from '../contexto';
 import {
   Card, Btn, Empty, Stat, Sheet, Bar, useToast,
 } from '../components/UI';
-import { Travado } from '../components/Plano';
 import {
   analisarJogo, lerJogo, compararEstilo, porqueDoEstilo, oQueMaisCede, MIN_ROLAS_ESTILO,
 } from '../lib/game';
@@ -253,7 +254,7 @@ export default function MeuJogo() {
           {/* ---- por situação: é o que o plano pago abre ---- */}
           {podeVer(acesso, 'meujogo')
             ? <PorSituacao a={a} notas={notas} />
-            : <Travado recurso="meujogo" acesso={acesso} onAssinar={() => irPara('ajustes')} />}
+            : <VitrineSituacao a={a} notas={notas} onAssinar={() => irPara('ajustes')} />}
         </>
       )}
 
@@ -331,6 +332,39 @@ function PorSituacao({ a, notas }) {
         </div>
       )}
     </Card>
+  );
+}
+
+/* ============================================================
+   O QUE O PREMIUM ABRE AQUI
+
+   A seção de verdade, com os números da própria pessoa, borrada
+   atrás do convite. Ela vê que a resposta existe e é dela: não é
+   promessa, é o jogo dela esperando.
+   ============================================================ */
+function VitrineSituacao({ a, notas, onAssinar }) {
+  const temDado = a.porPeso.length > 0 || a.porPosicao.length > 0;
+  return (
+    <div className="vitrine">
+      <div className="vitrine-fundo" aria-hidden="true">
+        <PorSituacao a={a} notas={notas} />
+      </div>
+      <div className="vitrine-frente">
+        <span className="vitrine-selo"><Lock size={13} /> Premium</span>
+        <h3 className="h-sec" style={{ marginTop: 10 }}>Onde você perde as lutas que dava pra ganhar</h3>
+        <p className="tiny muted" style={{ marginTop: 6, lineHeight: 1.6 }}>
+          {temDado
+            ? `Os seus ${a.rolas} rolas já mostram em que situação você vence menos. A resposta já está pronta, com os seus números.`
+            : 'Marque o peso do parceiro e onde o rola começou, e o app mostra em que situação você vence menos.'}
+        </p>
+        <ul className="vitrine-lista">
+          <li><Check size={15} /> Contra mais pesado, parecido e mais leve: quantas você vence</li>
+          <li><Check size={15} /> A posição de começo em que você mais apanha</li>
+          <li><Check size={15} /> O que treinar pra virar isso, com aula pronta no Estudo</li>
+        </ul>
+        <Btn variant="primary" onClick={onAssinar} style={{ marginTop: 14, width: '100%' }}>Liberar no premium</Btn>
+      </div>
+    </div>
   );
 }
 
@@ -459,47 +493,49 @@ function QuizEstilo({ aberto, onClose, onPronto }) {
 function ComoFunciona({ aberto, onClose }) {
   return (
     <Sheet aberto={aberto} onClose={onClose} titulo="Como o Meu jogo funciona" wide>
-      <div className="eyebrow">o que entra na conta</div>
-      <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        Todo rola em que você marcou pontos ou finalização, desde o primeiro treino. Drill fica de fora, porque não
-        tem ninguém resistindo. Cada número conta em quantos rolas aquilo aconteceu: um rola com três raspagens conta uma vez.
-      </p>
-
-      <div className="divider" />
-      <div className="eyebrow">o seu estilo</div>
-      <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        É o que aparece em mais rolas seus. Se você passou a guarda em 11 de 18 e isso é a linha mais alta de "Onde
-        você ganha", você é passador. Quando duas coisas bem diferentes aparecem quase o mesmo tanto, o estilo é jogo completo.
-      </p>
-      <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        Antes de {MIN_ROLAS_ESTILO} rolas com pontos marcados, vale o teste de {QUIZ.length} perguntas do começo. Depois,
-        vale o que acontece nos treinos.
-      </p>
-
-      <div className="divider" />
-      <div className="eyebrow">estilo e grau das técnicas</div>
-      <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        São duas contas do mesmo registro. O estilo olha o tipo de ponto: queda, passagem, raspagem. O grau olha cada
-        técnica: qual queda, qual passagem, e sobe quando ela funciona em gente diferente, em semanas diferentes. Por isso
-        cada linha de "Onde você ganha" mostra a técnica que você mais usa ali e o grau dela.
-      </p>
-
-      <div className="divider" />
-      <div>
-        <div className="eyebrow" style={{ marginBottom: 10 }}>quanto vale cada ponto</div>
-        <div className="grid g2" style={{ gap: 8 }}>
-          {[['Queda', 2], ['Raspagem', 2], ['Joelho na barriga', 2], ['Passagem de guarda', 3], ['Montada', 4], ['Pegada nas costas', 4]].map(([nome, p]) => (
-            <div key={nome} className="row" style={{ padding: '9px 11px', background: 'var(--void)', borderRadius: 10 }}>
-              <span className="tiny" style={{ flex: 1 }}>{nome}</span>
-              <span className="num" style={{ fontWeight: 700, color: 'var(--accent)' }}>{p}</span>
-            </div>
-          ))}
-        </div>
-        <p className="micro muted" style={{ marginTop: 10, lineHeight: 1.6 }}>
-          A posição precisa ficar parada 3 segundos. Não ficou? É vantagem, e o app mostra separado, porque é ponto que quase entrou.
-        </p>
-      </div>
-
+      <Guia
+        inicial="conta"
+        topicos={[
+          {
+            id: 'conta', icone: ListChecks, titulo: 'O que entra na conta', resumo: 'Todo rola com pontos marcados, sem o drill',
+            conteudo: (
+              <>
+                <p>Todo rola em que você marcou pontos ou finalização, desde o primeiro treino. Drill fica de fora, porque não tem ninguém resistindo.</p>
+                <p>Cada número conta em quantos rolas aquilo aconteceu: um rola com três raspagens conta uma vez.</p>
+              </>
+            ),
+          },
+          {
+            id: 'estilo', icone: Dna, titulo: 'Como sai o seu estilo', resumo: 'É o que aparece em mais rolas seus',
+            conteudo: (
+              <>
+                <p>Se você passou a guarda em 11 de 18 e essa é a linha mais alta de "Onde você ganha", você é passador. Quando duas coisas bem diferentes aparecem quase o mesmo tanto, o estilo é jogo completo.</p>
+                <p>Antes de {MIN_ROLAS_ESTILO} rolas com pontos marcados, vale o teste de {QUIZ.length} perguntas do começo. Depois, vale o que acontece nos treinos.</p>
+              </>
+            ),
+          },
+          {
+            id: 'grau', icone: Award, titulo: 'Estilo e grau das técnicas', resumo: 'Duas contas do mesmo registro',
+            conteudo: <p>O estilo olha o tipo de ponto: queda, passagem, raspagem. O grau olha cada técnica: qual queda, qual passagem, e sobe quando ela funciona em gente diferente, em semanas diferentes. Por isso cada linha de "Onde você ganha" mostra a técnica que você mais usa ali e o grau dela.</p>,
+          },
+          {
+            id: 'pontos', icone: Calculator, titulo: 'Quanto vale cada ponto', resumo: 'A tabela da IBJJF, e o que é vantagem',
+            conteudo: (
+              <>
+                <div className="grid g2" style={{ gap: 8 }}>
+                  {[['Queda', 2], ['Raspagem', 2], ['Joelho na barriga', 2], ['Passagem de guarda', 3], ['Montada', 4], ['Pegada nas costas', 4]].map(([nome, p]) => (
+                    <div key={nome} className="guia-linha row">
+                      <span className="tiny" style={{ flex: 1 }}>{nome}</span>
+                      <span className="num" style={{ fontWeight: 700, color: 'var(--accent)' }}>{p}</span>
+                    </div>
+                  ))}
+                </div>
+                <p>A posição precisa ficar parada 3 segundos. Não ficou? É vantagem, e o app mostra separado, porque é ponto que quase entrou.</p>
+              </>
+            ),
+          },
+        ]}
+      />
       <div className="valida bom">
         <Check size={15} className="valida-ico" style={{ color: 'var(--jade)' }} />
         <p className="micro muted">

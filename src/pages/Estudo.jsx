@@ -26,6 +26,7 @@ import { estiloPorId } from '../db/scoring';
 import { analisarJogo } from '../lib/game';
 import { relativo } from '../lib/utils';
 import Quiz from '../components/Quiz';
+import { Linha } from '../components/Guia';
 import { PERGUNTAS } from '../db/quiz';
 import { useLimite } from '../components/Limite';
 import { limitarLista, LIMITES, RECOMENDACOES_NA_TELA } from '../lib/plano';
@@ -465,16 +466,12 @@ function PontosDoEstudo({ aberto, onClose, cobrando }) {
     >
       <div className="col" style={{ gap: 8 }}>
         {itens.map((e) => (
-          <div key={e.id} className="card" style={{ background: 'var(--void)', padding: 12 }}>
-            <div className="row" style={{ gap: 8, alignItems: 'center' }}>
-              <span className="tiny" style={{ fontWeight: 600, flex: 1 }}>{e.nome}</span>
-              {e.premium && <Chip tone="roar">premium</Chip>}
-              <span className="num" style={{ fontWeight: 700, color: 'var(--accent)' }}>+{e.xp}</span>
-            </div>
-            <p className="micro muted" style={{ marginTop: 5, lineHeight: 1.6 }}>
-              {e.desc} Até {e.tetoDia} {e.tetoDia === 1 ? 'vez' : 'vezes'} por dia.
-            </p>
-          </div>
+          <Linha
+            key={e.id}
+            nome={e.premium ? `${e.nome} · premium` : e.nome}
+            valor={`+${e.xp}`}
+            detalhe={`${e.desc} Até ${e.tetoDia} ${e.tetoDia === 1 ? 'vez' : 'vezes'} por dia.`}
+          />
         ))}
       </div>
       <p className="micro muted" style={{ lineHeight: 1.7 }}>

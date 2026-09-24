@@ -2,11 +2,13 @@ import React, { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Flame, Info, Swords, ChevronRight, Crown, ShieldCheck, Share2, UsersRound,
+  Trophy, LogIn, Flag, Layers, Zap, CalendarCheck, Timer, Eye,
 } from 'lucide-react';
 import { db } from '../db/db';
 import { useApp } from '../contexto';
 import { Card, Btn, Empty, Sheet } from '../components/UI';
 import Figurinha from '../components/Figurinha';
+import Guia, { Passos, Linha } from '../components/Guia';
 import Liga from '../components/Liga';
 import RankingOfensivas from '../components/RankingOfensivas';
 import ListaResumida from '../components/ListaResumida';
@@ -357,122 +359,124 @@ function Cabecalho({ onComo }) {
 }
 
 function ComoFunciona({ aberto, onClose }) {
+  const { irPara } = useApp();
+  const eventos = Object.values(EVENTOS).sort((a, b) => b.xp - a.xp);
+  const divisoes = Object.values(DIVISOES_LIGA);
+
   return (
     <Sheet aberto={aberto} onClose={onClose} titulo="Como a liga funciona" wide>
-      <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        Cada coisa que você registra vale um tanto de pontos. Treinar vale mais que assistir aula, porque é o
-        tatame que faz você melhorar. Assistir vale mais que nada, porque entender o porquê também conta.
-      </p>
-      <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        Toda semana você corre num grupo pequeno, com gente que treina num ritmo parecido com o seu. Quem faz
-        mais pontos sobe de divisão, quem faz menos desce. Na segunda ao meio-dia a semana fecha e tudo começa
-        de novo.
+      <p className="tiny muted" style={{ lineHeight: 1.65 }}>
+        Uma corrida de esforço que recomeça toda segunda. Toque numa pergunta pra ver a resposta.
       </p>
 
-      <div className="divider" />
-      <div className="eyebrow">as divisões</div>
-      <div className="row wrap" style={{ gap: 6 }}>
-        {Object.values(DIVISOES_LIGA).map((d, i, lista) => (
-          <span key={d.nome} className="tiny" style={{ fontWeight: 600 }}>
-            {d.nome}{i < lista.length - 1 ? ' →' : ''}
-          </span>
-        ))}
-      </div>
-      <p className="micro muted" style={{ lineHeight: 1.65 }}>
-        A divisão é só da liga e muda toda semana. A sua faixa continua sendo a do tatame, e quem gradua é o seu
-        professor.
-      </p>
-
-      <div className="divider" />
-      <div className="eyebrow">o que os outros veem</div>
-      <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        O seu nome ou apelido, a sua faixa, a divisão, os pontos da semana, a ofensiva e quantas vezes por
-        semana você disse que treina. As suas técnicas, os graus e o que acontece nos seus rolas ficam só com você.
-      </p>
-
-      <div className="divider" />
-      <div className="eyebrow">a arena da semana</div>
-      <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        Além do grupo, você tem sempre um adversário: a sua semana passada. Ela já jogou e já tem placar,
-        então dá pra ganhar dela mesmo na semana em que o grupo está parado.
-      </p>
-
-      <div className="divider" />
-      <div className="eyebrow">quanto vale cada coisa</div>
-      <div className="col" style={{ gap: 9 }}>
-        {Object.values(EVENTOS).sort((a, b) => b.xp - a.xp).map((e) => (
-          <div key={e.id} className="card" style={{ background: 'var(--void)', padding: 13 }}>
-            <div className="row" style={{ gap: 9, marginBottom: 5 }}>
-              <span className="tiny" style={{ fontWeight: 600, flex: 1 }}>{e.nome}</span>
-              <span className="num tiny" style={{ color: 'var(--accent)', fontWeight: 700 }}>+{e.xp}</span>
-            </div>
-            <p className="micro muted" style={{ lineHeight: 1.6 }}>{e.desc}</p>
-            <p className="micro" style={{ color: 'var(--dimmer)', marginTop: 5 }}>
-              no máximo {e.tetoDia}x por dia
-            </p>
-          </div>
-        ))}
-      </div>
-
-      <div className="divider" />
-      <div className="eyebrow">o que uma semana cheia rende</div>
-      <div className="col" style={{ gap: 7 }}>
-        {[
-          ['3 treinos com reflexão', '60'],
-          ['9 rolas com dados completos', '108'],
-          ['2 aulas completas', '30'],
-          ['6 aulas rápidas', '6'],
-          ['3 perguntas do quiz', '30'],
-          ['bônus de ritmo', '25'],
-        ].map(([o, q]) => (
-          <div key={o} className="row" style={{ gap: 10, padding: '7px 11px', background: 'var(--void)', borderRadius: 9 }}>
-            <span className="tiny" style={{ flex: 1 }}>{o}</span>
-            <span className="num micro" style={{ color: 'var(--accent)' }}>+{q}</span>
-          </div>
-        ))}
-        <div className="row" style={{ gap: 10, padding: '9px 11px' }}>
-          <span className="tiny" style={{ flex: 1, fontWeight: 700 }}>a semana toda</span>
-          <span className="num tiny" style={{ color: 'var(--jade)', fontWeight: 700 }}>259</span>
-        </div>
-      </div>
-      <p className="micro muted" style={{ lineHeight: 1.65 }}>
-        Quem treina duas vezes por semana não fica pra trás: o bônus de ritmo compara você com a sua própria
-        média, não com a de quem tem mais tempo livre, e o grupo junta gente de ritmo parecido.
-      </p>
-
-      <p className="micro muted" style={{ lineHeight: 1.65 }}>
-        Estudar rende até 140 pontos por semana, e só. Assistir vídeo a semana inteira nunca vai valer mais
-        que ir treinar, porque é o tatame que faz você melhorar.
-      </p>
-
-      <div className="divider" />
-      <div className="eyebrow">por que tem um limite por dia</div>
-      <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        Cada coisa tem um teto diário. Assistir vinte vídeos numa tarde não vale mais que ir treinar, porque o
-        que faz você melhorar é o tatame.
-      </p>
-      <div className="divider" />
-      <div className="eyebrow">a ofensiva</div>
-      <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        São dias seguidos aparecendo, e não dias seguidos de tatame. Ninguém treina jiu-jitsu sete dias por
-        semana, e uma ofensiva que cobra isso quebra na primeira semana.
-      </p>
-      <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        Qualquer coisa que dê ponto fecha o dia: uma aula rápida de trinta segundos, uma pergunta do quiz, uma
-        revisão, ou o treino registrado.
-      </p>
-      <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        E treino paga os <b style={{ color: 'var(--chalk)' }}>dois dias seguintes</b>, porque recuperação é
-        parte do treino. Quem treina três vezes por semana nunca perde a ofensiva sem estudar nada. Quem treina
-        duas precisa aparecer uma vez no fim de semana, e são trinta segundos.
-      </p>
-      <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        A cada {DIAS_POR_ESCUDO} dias seguidos você ganha um escudo, até {MAX_ESCUDOS} guardados. Ele é gasto
-        sozinho, sem perguntar, no dia que você não conseguir aparecer, porque quem esqueceu o dia não abriu
-        o app pra confirmar nada. Quem está em {DIAS_POR_ESCUDO - 1} dias e some perde tudo. Quem passou
-        dos {DIAS_POR_ESCUDO} tem como voltar.
-      </p>
-
+      <Guia
+        inicial="oque"
+        topicos={[
+          {
+            id: 'oque', icone: Trophy, titulo: 'O que é a liga', resumo: 'Quem aparece mais na semana sobe',
+            conteudo: (
+              <>
+                <p>Cada coisa que você registra vale pontos: treino, rola, aula, quiz. Toda semana você corre num grupo pequeno, com gente de ritmo parecido com o seu.</p>
+                <p>Quem faz mais pontos sobe de divisão, quem faz menos desce. Treinar vale mais que assistir aula, porque é o tatame que faz você melhorar.</p>
+              </>
+            ),
+          },
+          {
+            id: 'entrar', icone: LogIn, titulo: 'Como eu entro', resumo: 'Sozinho, no primeiro ponto da semana',
+            conteudo: (
+              <Passos itens={[
+                'Registre qualquer coisa que dê ponto: um treino, uma aula, uma pergunta do quiz.',
+                'O app te coloca num grupo com quem treina no mesmo ritmo que você marcou no cadastro.',
+                'Sozinho no grupo, ninguém sobe nem desce. A disputa começa quando chega a segunda pessoa.',
+              ]} />
+            ),
+          },
+          {
+            id: 'fim', icone: Flag, titulo: 'Como a semana termina', resumo: 'Segunda ao meio-dia, com sobe e desce',
+            conteudo: (
+              <Passos itens={[
+                'A semana vai de segunda a domingo e fecha na segunda ao meio-dia, no horário de Brasília.',
+                'Quem termina em cima sobe de divisão. Quem termina embaixo desce.',
+                'Na mesma hora começa a semana nova, com os pontos zerados e um grupo novo.',
+                'Quem entrou fica até domingo: dá pra sair, mas só vale na semana seguinte.',
+              ]} />
+            ),
+          },
+          {
+            id: 'divisoes', icone: Layers, titulo: 'As divisões', resumo: `${divisoes[0].nome} até ${divisoes[divisoes.length - 1].nome}`,
+            conteudo: (
+              <>
+                <div className="guia-degraus">
+                  {divisoes.map((d, i) => (
+                    <span key={d.nome} className="guia-degrau"><span className="num micro muted">{i + 1}</span> {d.nome}</span>
+                  ))}
+                </div>
+                <p>A divisão é só da liga e muda toda semana. A sua faixa continua sendo a do tatame, e quem gradua é o seu professor.</p>
+              </>
+            ),
+          },
+          {
+            id: 'pontos', icone: Zap, titulo: 'Quanto vale cada coisa', resumo: `De +${eventos[eventos.length - 1].xp} a +${eventos[0].xp}, com teto por dia`,
+            conteudo: (
+              <div className="col" style={{ gap: 6 }}>
+                {eventos.map((e) => (
+                  <Linha key={e.id} nome={e.nome} valor={`+${e.xp}`} detalhe={`${e.desc} Até ${e.tetoDia}x por dia.`} />
+                ))}
+              </div>
+            ),
+          },
+          {
+            id: 'semana', icone: CalendarCheck, titulo: 'O que uma semana cheia rende', resumo: 'Uns 260 pontos, e o treino pesa mais',
+            conteudo: (
+              <>
+                <div className="col" style={{ gap: 6 }}>
+                  {[
+                    ['3 treinos com reflexão', 60], ['9 rolas com dados completos', 108], ['2 aulas completas', 30],
+                    ['6 aulas rápidas', 6], ['3 perguntas do quiz', 30], ['Bônus de ritmo', 25],
+                  ].map(([o, q]) => <Linha key={o} nome={o} valor={`+${q}`} />)}
+                  <Linha nome="A semana toda" valor="259" tom="jade" />
+                </div>
+                <p>Quem treina duas vezes por semana não fica pra trás: o bônus de ritmo compara você com a sua própria média, e o grupo junta gente de ritmo parecido.</p>
+                <p>Estudar rende no máximo 140 pontos por semana. Assistir vídeo a semana inteira nunca vale mais que ir treinar.</p>
+              </>
+            ),
+          },
+          {
+            id: 'limite', icone: Timer, titulo: 'Por que tem limite por dia', resumo: 'Vinte vídeos numa tarde não valem um treino',
+            conteudo: <p>Cada coisa tem um teto diário. Maratonar vídeo não vale mais que ir treinar, porque o que faz você melhorar é o tatame.</p>,
+          },
+          {
+            id: 'ofensiva', icone: Flame, titulo: 'A ofensiva', resumo: 'Dias seguidos aparecendo, não de tatame',
+            conteudo: (
+              <>
+                <Passos itens={[
+                  'Qualquer coisa que dê ponto fecha o dia: uma aula rápida de trinta segundos, uma pergunta do quiz, o treino registrado.',
+                  'Treino paga os dois dias seguintes, porque recuperação faz parte. Quem treina 3x por semana não perde a ofensiva sem estudar.',
+                  `A cada ${DIAS_POR_ESCUDO} dias seguidos você ganha um escudo, até ${MAX_ESCUDOS}. Ele é gasto sozinho no dia em que você não aparecer.`,
+                ]} />
+                <p>Quem está em {DIAS_POR_ESCUDO - 1} dias e some perde tudo. Quem passou dos {DIAS_POR_ESCUDO} tem um escudo pra voltar.</p>
+              </>
+            ),
+          },
+          {
+            id: 'arena', icone: Swords, titulo: 'A arena da semana', resumo: 'Você contra a sua semana passada',
+            conteudo: <p>Além do grupo, você sempre tem um adversário: a sua semana passada. Ela já tem placar, então dá pra ganhar dela mesmo quando o grupo está parado.</p>,
+          },
+          {
+            id: 'sala', icone: UsersRound, titulo: 'Correr com os amigos', resumo: 'Uma sala só de vocês, de 3 a 5',
+            conteudo: (
+              <>
+                <p>Na aba Amigos você cria uma sala e chama quem já é seu amigo com um toque, ou manda o link pelo WhatsApp. Com 3 pessoas ela começa na segunda seguinte e corre no lugar da liga automática, com o mesmo sobe e desce.</p>
+                <Btn size="sm" variant="contorno" icon={UsersRound} onClick={() => { onClose(); irPara('amigos'); }}>Abrir Amigos</Btn>
+              </>
+            ),
+          },
+          {
+            id: 'privado', icone: Eye, titulo: 'O que os outros veem', resumo: 'Pontos sim; técnicas e graus nunca',
+            conteudo: <p>O seu nome ou apelido, a foto, a faixa, a divisão, os pontos da semana, a ofensiva e quantas vezes por semana você disse que treina. As suas técnicas, os graus e o que acontece nos seus rolas ficam só com você.</p>,
+          },
+        ]}
+      />
     </Sheet>
   );
 }

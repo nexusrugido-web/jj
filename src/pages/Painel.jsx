@@ -2,8 +2,9 @@ import React, { useMemo, useState, useEffect } from 'react';
 import {
   Flame, Clock, Swords, Percent, TriangleAlert, Target, Repeat, Wind,
   ArrowRight, Plus, Award, Activity, Trophy, Sparkles, Loader,
-  ShieldCheck, HeartPulse, Check,
+  ShieldCheck, HeartPulse, Check, BarChart3,
 } from 'lucide-react';
+import Guia from '../components/Guia';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { useApp } from '../contexto';
@@ -473,46 +474,44 @@ Toda vez que você marca um ponto, o app anota a posição que veio junto. Passa
       </Sheet>
 
       <Sheet aberto={ajudaTec} onClose={() => setAjudaTec(false)} titulo="Minhas técnicas" wide>
-        <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-          Toda técnica que aparece nos seus rolas entra aqui sozinha. Você não precisa cadastrar nada: basta
-          registrar o que aconteceu no treino.
-        </p>
-        <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-          Cada uma ganha graus conforme você usa, igual à ponteira da sua faixa. E o grau não sobe só com
-          quantidade: encaixar cinco vezes no mesmo colega vale menos que encaixar em cinco pessoas diferentes.
-        </p>
-
-        <div className="divider" />
-        <div className="eyebrow">os quatro graus</div>
-        <div className="col" style={{ gap: 12 }}>
-          {[
-            ['Conheço o movimento', 'Apareceu pelo menos uma vez num rola seu.'],
-            ['Funciona no rola', 'Saiu várias vezes com o outro resistindo de verdade.'],
-            ['Faz parte do meu jogo', 'Sai em gente diferente e em semanas diferentes. Não foi uma fase boa.'],
-            ['Assinatura', 'É o seu golpe. Sai até contra quem é mais graduado que você.'],
-          ].map(([n, d], i) => (
-            <div key={n} className="row" style={{ gap: 11, alignItems: 'flex-start' }}>
-              <span style={{ marginTop: 3 }}><Ponteira n={i + 1} mini /></span>
-              <div style={{ flex: 1 }}>
-                <div className="tiny" style={{ fontWeight: 600 }}>{n}</div>
-                <p className="micro muted" style={{ marginTop: 3, lineHeight: 1.6 }}>{d}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-          A barra de cada técnica mostra quanto do caminho até o próximo grau você já andou. Embaixo dela vem o
-          que falta fazer no tatame pra ela subir.
-        </p>
-
-        <div className="valida bom">
-          <Target size={15} className="valida-ico" style={{ color: 'var(--jade)' }} />
-          <p className="micro muted" style={{ lineHeight: 1.65 }}>
-            Levar uma técnica nunca baixa o grau da sua. Se você tem uma boa americana e toma uma de vez em
-            quando, a sua americana continua boa. O que aquilo mostra é outra coisa: falta trabalhar a saída.
-          </p>
-        </div>
+        <Guia
+          inicial="entra"
+          topicos={[
+            {
+              id: 'entra', icone: Sparkles, titulo: 'Como a técnica entra aqui', resumo: 'Sozinha, pelo que você registra no rola',
+              conteudo: <p>Toda técnica que aparece nos seus rolas entra sozinha. Você não cadastra nada: basta registrar o que aconteceu no treino.</p>,
+            },
+            {
+              id: 'graus', icone: Award, titulo: 'Os quatro graus', resumo: 'Igual à ponteira da sua faixa',
+              conteudo: (
+                <div className="col" style={{ gap: 10 }}>
+                  {[
+                    ['Conheço o movimento', 'Apareceu pelo menos uma vez num rola seu.'],
+                    ['Funciona no rola', 'Saiu várias vezes com o outro resistindo de verdade.'],
+                    ['Faz parte do meu jogo', 'Sai em gente diferente e em semanas diferentes. Não foi uma fase boa.'],
+                    ['Assinatura', 'É o seu golpe. Sai até contra quem é mais graduado que você.'],
+                  ].map(([n, d], i) => (
+                    <div key={n} className="row" style={{ gap: 11, alignItems: 'flex-start' }}>
+                      <span style={{ marginTop: 3 }}><Ponteira n={i + 1} mini /></span>
+                      <div style={{ flex: 1 }}>
+                        <div className="tiny" style={{ fontWeight: 600 }}>{n}</div>
+                        <p className="micro muted" style={{ marginTop: 3, lineHeight: 1.6 }}>{d}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ),
+            },
+            {
+              id: 'barra', icone: BarChart3, titulo: 'A barra e o que falta', resumo: 'Quanto do caminho até o próximo grau',
+              conteudo: <p>A barra mostra quanto você já andou até o próximo grau. Embaixo dela vem o que falta fazer no tatame pra ela subir. Encaixar cinco vezes no mesmo colega vale menos que em cinco pessoas diferentes.</p>,
+            },
+            {
+              id: 'levar', icone: ShieldCheck, titulo: 'Levar a técnica baixa o grau?', resumo: 'Não. Mostra outra coisa',
+              conteudo: <p>Se você tem uma boa americana e toma uma de vez em quando, a sua americana continua boa. O que aquilo mostra é que falta trabalhar a saída.</p>,
+            },
+          ]}
+        />
       </Sheet>
     </div>
   );

@@ -2,8 +2,9 @@ import React, { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Award, TrendingUp, TrendingDown, Minus, Swords, Target, Info,
-  ChevronRight, ShieldAlert, Check, Dumbbell,
+  ChevronRight, ShieldAlert, Check, Dumbbell, ListChecks, Scale, Lock,
 } from 'lucide-react';
+import Guia, { Linha } from '../components/Guia';
 import { db } from '../db/db';
 import { useApp } from '../contexto';
 import { Card, Btn, Chip, Empty, Stat, Sheet, Busca, Bar } from '../components/UI';
@@ -418,92 +419,76 @@ function ComoFunciona({ aberto, onClose, faixa, graus = 0 }) {
   const req = requisitosDaFaixa(faixa, 'v2', graus);
   return (
     <Sheet aberto={aberto} onClose={onClose} titulo="Como os graus funcionam" wide>
-      <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        Cada técnica tem uma ponteira de quatro graus, igual à da faixa. Ela não sobe porque você marcou que sabe,
-        sobe porque apareceu nos seus treinos.
+      <p className="tiny muted" style={{ lineHeight: 1.65 }}>
+        Cada técnica tem uma ponteira de quatro graus, igual à da faixa. Ela sobe porque apareceu nos seus treinos,
+        não porque você marcou que sabe.
       </p>
 
-      <div className="col" style={{ gap: 10 }}>
-        {GRAUS.slice(1).map((g) => (
-          <div key={g.n} className="card" style={{ background: 'var(--void)', padding: 13 }}>
-            <div className="row" style={{ gap: 10, marginBottom: 7 }}>
-              <Ponteira n={g.n} />
-              <span className="tiny" style={{ fontWeight: 700, color: `var(--${g.cor})` }}>{g.nome}</span>
-              <span className="spacer" />
-              <span className="micro muted">{g.curto}</span>
-            </div>
-            <p className="micro muted" style={{ lineHeight: 1.6 }}>{g.frase}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="divider" />
-      <div className="eyebrow">o que o app olha em cada uso</div>
-      <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        Encaixar cinco vezes no mesmo colega de sempre não é a mesma coisa que encaixar cinco vezes em pessoas
-        diferentes, e nenhuma das duas é igual a encaixar num faixa roxa. Por isso cada uso vale um tanto,
-        dependendo de cinco coisas.
-      </p>
-
-      <div className="col" style={{ gap: 9 }}>
-        {[
-          ['Onde aconteceu', 'Treinar com o parceiro colaborando constrói o movimento e coloca a técnica no 1º grau. Encaixar no rola, com ele tentando impedir, é o que faz subir. Competição vale ainda mais.', 'ice'],
-          ['A faixa do parceiro', 'Encaixar num azul não é o mesmo que encaixar num branca. Quanto mais graduado, mais aquele uso pesa. Pra chegar na Assinatura, uma parte dos encaixes tem que ser em quem tem mais tempo que você.', 'roar'],
-          ['O peso dele', 'Raspar alguém bem mais pesado exige alavanca e timing que não são necessários contra alguém do seu tamanho. Isso conta a favor.', 'roar'],
-          ['Em quantas pessoas saiu', 'Cada parceiro tem um jogo. Funcionar em gente diferente mostra que a técnica não depende de um corpo específico.', 'jade'],
-          ['Quando saiu', 'Uma semana inspirada não faz uma técnica. Do 3º grau em diante, ela precisa sair em semanas diferentes, e a Assinatura pede meses.', 'jade'],
-        ].map(([t, d, cor]) => (
-          <div key={t} className="card" style={{ background: 'var(--void)', padding: 13, borderLeft: `2px solid var(--${cor})` }}>
-            <div className="tiny" style={{ fontWeight: 600, marginBottom: 5 }}>{t}</div>
-            <p className="micro muted" style={{ lineHeight: 1.65 }}>{d}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="divider" />
-      <div className="eyebrow">o que não entra na conta</div>
-      <div className="valida ruim">
-        <ShieldAlert size={14} className="valida-ico" style={{ color: 'var(--blood)' }} />
-        <p className="micro muted" style={{ lineHeight: 1.65 }}>
-          Ter levado a técnica. Isso vai pra "Onde você apanha" e mostra onde vale trabalhar a defesa,
-          sem mexer no grau do seu ataque.
-        </p>
-      </div>
-
-      <div className="divider" />
-      <div className="eyebrow">o que cada grau pede</div>
-      <div className="col" style={{ gap: 9 }}>
-        {[
-          ['1º grau', 'Apareceu uma vez, até no treino técnico.'],
-          ['2º grau', `Saiu ${req[2].usos} vezes no rola, com alguém tentando impedir.`],
-          ['3º grau', `Saiu ${req[3].usos} vezes, em pelo menos ${req[3].transferencia} pessoas e em ${req[3].semanas} semanas diferentes${req[3].acima ? ', com uma delas em faixa acima da sua' : ''}.`],
-          ['4º grau', `Saiu ${req[4].usos} vezes, em pelo menos ${req[4].transferencia} pessoas, em ${req[4].meses} meses diferentes e ${req[4].acima} vezes em faixa acima da sua.`],
-        ].map(([n, d]) => (
-          <div key={n} className="row" style={{ gap: 10, alignItems: 'baseline' }}>
-            <span className="tiny" style={{ fontWeight: 700, minWidth: 58 }}>{n}</span>
-            <p className="micro muted" style={{ lineHeight: 1.6 }}>{d}</p>
-          </div>
-        ))}
-      </div>
-      <p className="micro muted" style={{ lineHeight: 1.65 }}>
-        Treinar sempre com o mesmo grupo não trava ninguém: duas pessoas já bastam pro 3º grau. E encaixar muitas
-        vezes no mesmo parceiro, que já conhece a sua entrada, aparece na ficha da técnica como sinal de refinamento.
-      </p>
-
-      <div className="divider" />
-      <div className="eyebrow">o grau que você conquistou fica</div>
-      <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        Uma técnica nunca desce de grau. Quando você pega faixa nova, a régua sobe pro próximo grau, mas o que você
-        já conquistou com a faixa anterior continua seu.
-      </p>
-
-      <div className="divider" />
-      <div className="eyebrow">a régua sobe com a sua graduação</div>
-      <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        Os números acima são pra faixa {faixa}{graus ? ` com ${graus} ${graus === 1 ? 'grau' : 'graus'}` : ''}. Cada
-        grau que o professor te dá sobe um pouco a exigência, e a faixa nova sobe de vez, porque o que é notável
-        na branca vira rotina na roxa. O que você já conquistou continua seu.
-      </p>
+      <Guia
+        inicial="graus"
+        topicos={[
+          {
+            id: 'graus', icone: Award, titulo: 'Os quatro graus', resumo: 'Da primeira vez até a Assinatura',
+            conteudo: (
+              <div className="col" style={{ gap: 8 }}>
+                {GRAUS.slice(1).map((g) => (
+                  <div key={g.n} className="guia-linha">
+                    <div className="row" style={{ gap: 10, marginBottom: 5 }}>
+                      <Ponteira n={g.n} />
+                      <span className="tiny" style={{ fontWeight: 700, color: `var(--${g.cor})` }}>{g.nome}</span>
+                      <span className="spacer" />
+                      <span className="micro muted">{g.curto}</span>
+                    </div>
+                    <p className="micro muted" style={{ lineHeight: 1.6 }}>{g.frase}</p>
+                  </div>
+                ))}
+              </div>
+            ),
+          },
+          {
+            id: 'pede', icone: ListChecks, titulo: 'O que cada grau pede',
+            resumo: `Os números da faixa ${faixa}${graus ? ` com ${graus} ${graus === 1 ? 'grau' : 'graus'}` : ''}`,
+            conteudo: (
+              <>
+                <div className="col" style={{ gap: 6 }}>
+                  <Linha nome="1º grau" detalhe="Apareceu uma vez, até no treino técnico." />
+                  <Linha nome="2º grau" detalhe={`Saiu ${req[2].usos} vezes no rola, com alguém tentando impedir.`} />
+                  <Linha nome="3º grau" detalhe={`Saiu ${req[3].usos} vezes, em pelo menos ${req[3].transferencia} pessoas e em ${req[3].semanas} semanas diferentes${req[3].acima ? ', com uma delas em faixa acima da sua' : ''}.`} />
+                  <Linha nome="4º grau" detalhe={`Saiu ${req[4].usos} vezes, em pelo menos ${req[4].transferencia} pessoas, em ${req[4].meses} meses diferentes e ${req[4].acima} vezes em faixa acima da sua.`} />
+                </div>
+                <p>Treinar sempre com o mesmo grupo não trava ninguém: duas pessoas já bastam pro 3º grau.</p>
+              </>
+            ),
+          },
+          {
+            id: 'uso', icone: Scale, titulo: 'Quanto vale cada uso', resumo: 'Onde, contra quem e quando saiu',
+            conteudo: (
+              <>
+                <p>Encaixar cinco vezes no mesmo colega não é igual a encaixar em cinco pessoas, e nenhuma das duas é igual a encaixar num faixa roxa. Cada uso pesa por cinco coisas:</p>
+                <div className="col" style={{ gap: 6 }}>
+                  <Linha nome="Onde aconteceu" detalhe="No treino técnico a técnica chega no 1º grau. É no rola, com o parceiro tentando impedir, que ela sobe. Competição vale mais." />
+                  <Linha nome="A faixa do parceiro" detalhe="Quanto mais graduado, mais o uso pesa. A Assinatura pede encaixes em quem tem mais tempo que você." />
+                  <Linha nome="O peso dele" detalhe="Raspar alguém bem mais pesado pede alavanca e tempo. Conta a favor." />
+                  <Linha nome="Em quantas pessoas" detalhe="Funcionar em gente diferente mostra que a técnica não depende de um corpo só." />
+                  <Linha nome="Quando saiu" detalhe="Do 3º grau em diante ela precisa sair em semanas diferentes, e a Assinatura pede meses." />
+                </div>
+              </>
+            ),
+          },
+          {
+            id: 'nao', icone: ShieldAlert, titulo: 'O que não entra na conta', resumo: 'Levar a técnica não mexe no grau',
+            conteudo: <p>Ter levado a técnica vai pra "Onde você apanha" e mostra onde trabalhar a defesa, sem mexer no grau do seu ataque.</p>,
+          },
+          {
+            id: 'fica', icone: Lock, titulo: 'O grau conquistado fica', resumo: 'Uma técnica nunca desce de grau',
+            conteudo: <p>Quando você pega faixa nova, a régua do próximo grau sobe, mas o que você já conquistou continua seu.</p>,
+          },
+          {
+            id: 'regua', icone: TrendingUp, titulo: 'A régua sobe com a graduação', resumo: 'O que é notável na branca é rotina na roxa',
+            conteudo: <p>Cada grau que o professor te dá sobe um pouco a exigência, e a faixa nova sobe de vez. Registre a graduação na tela de Conquistas pra régua acompanhar.</p>,
+          },
+        ]}
+      />
     </Sheet>
   );
 }

@@ -3028,3 +3028,57 @@ body::after {
   .placar-item { padding: 0 10px; }
   .placar-num { font-size: 30px; }
 }
+
+/* ---------- guia em tópicos ---------- */
+.guia { display: flex; flex-direction: column; gap: var(--e2); }
+.guia-item { border: 1px solid var(--seam); border-radius: 14px; background: var(--void); overflow: hidden; transition: border-color .2s var(--ease); }
+.guia-item.on { border-color: color-mix(in srgb, var(--accent) 35%, var(--seam)); }
+.guia-cab { display: flex; align-items: center; gap: var(--e3); width: 100%; padding: 14px; text-align: left; min-height: 60px; }
+.guia-ico {
+  width: 36px; height: 36px; border-radius: 11px; flex: none; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent);
+}
+.guia-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.guia-tit { font-weight: 650; font-size: 15px; color: var(--chalk); }
+.guia-res { font-size: var(--fs-meta); color: var(--dimmer); line-height: 1.4; }
+.guia-seta { flex: none; color: var(--dimmer); transition: transform .22s var(--ease); }
+.guia-item.on .guia-seta { transform: rotate(180deg); color: var(--accent); }
+.guia-corpo { padding: 0 14px 16px 62px; display: flex; flex-direction: column; gap: var(--e3); animation: guiaAbre .22s var(--ease); }
+.guia-corpo > p { font-size: var(--fs-sec); line-height: 1.65; color: var(--dim); }
+@keyframes guiaAbre { from { opacity: 0; transform: translateY(-4px); } }
+.guia-passos { display: flex; flex-direction: column; gap: 10px; }
+.guia-passos li { display: flex; gap: 10px; font-size: var(--fs-sec); line-height: 1.55; color: var(--dim); }
+.guia-n {
+  width: 22px; height: 22px; border-radius: 99px; flex: none; display: grid; place-items: center; margin-top: 1px;
+  background: var(--mat-top); border: 1px solid var(--seam-hi); color: var(--chalk); font-size: 11.5px; font-weight: 700;
+}
+.guia-linha { padding: 10px 12px; border-radius: 10px; background: var(--mat); border: 1px solid var(--seam); }
+.guia-degraus { display: flex; flex-wrap: wrap; gap: 6px; }
+.guia-degrau { display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 99px; background: var(--mat); border: 1px solid var(--seam); font-weight: 600; font-size: var(--fs-sec); }
+@media (max-width: 420px) {
+  /* no celular estreito o texto aberto usa a largura toda */
+  .guia-corpo { padding-left: 14px; }
+}
+
+/* ---------- vitrine do premium: o conteúdo real, borrado ---------- */
+.vitrine {
+  position: relative; overflow: hidden; border-radius: var(--r);
+  border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--seam));
+  background: var(--mat);
+}
+/* os números da pessoa, visíveis mas ilegíveis: dá pra ver que a resposta existe */
+.vitrine-fundo {
+  filter: blur(4px) saturate(.8); opacity: .75; pointer-events: none; user-select: none;
+  max-height: 230px; overflow: hidden;
+  -webkit-mask-image: linear-gradient(#000 45%, transparent); mask-image: linear-gradient(#000 45%, transparent);
+}
+.vitrine-fundo > .card { border: 0; background: transparent; box-shadow: none; }
+.vitrine-frente { position: relative; margin-top: -64px; padding: 0 var(--e5) var(--e5); }
+.vitrine-selo {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 11px; border-radius: 99px; font-size: var(--fs-meta); font-weight: 700;
+  background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent);
+}
+.vitrine-lista { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.vitrine-lista li { display: flex; gap: 9px; align-items: flex-start; font-size: var(--fs-sec); line-height: 1.45; }
+.vitrine-lista li .lucide { flex: none; margin-top: 2px; color: var(--accent); }

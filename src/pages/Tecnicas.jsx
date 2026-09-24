@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Plus, Library, Star, Pencil, Trash2, Repeat, ShieldAlert, Check,
-  ChevronRight, ListTree, List, Settings2, ArrowRight, Sparkles, Loader, Video,
+  ChevronRight, ListTree, List, Settings2, ArrowRight, Sparkles, Loader, Video, Filter, Gauge,
 } from 'lucide-react';
+import Guia from '../components/Guia';
 import { useApp } from '../contexto';
 import { Ponteira } from '../components/Ponteira';
 import { minhasTecnicas, grauPorN } from '../lib/graus';
@@ -310,47 +311,51 @@ export default function Tecnicas() {
         texto={`"${excluir?.nome}" some da biblioteca. Os registros antigos de rola continuam intactos.`}
       />
       <Sheet aberto={ajuda} onClose={() => setAjuda(false)} titulo="O que aparece aqui" wide>
-        <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-          A biblioteca tem {techniques.length} técnicas. Mostrar todas de uma vez é como abrir um dicionário
-          pra aprender uma palavra.
-        </p>
-        <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-          Por padrão aparece só o que interessa agora: as que já saíram nos seus rolas e as permitidas na sua
-          faixa. As outras continuam ali, é só buscar pelo nome.
-        </p>
-
-        <div className="divider" />
-        <div className="eyebrow">a ponteira do lado de cada uma</div>
-        <div className="col" style={{ gap: 10 }}>
-          {[
-            [0, 'Nunca apareceu num rola seu.'],
-            [1, 'Conheço o movimento.'],
-            [2, 'Funciona no rola.'],
-            [3, 'Faz parte do meu jogo.'],
-            [4, 'Assinatura. É o seu golpe.'],
-          ].map(([n, d]) => (
-            <div key={n} className="row" style={{ gap: 11, alignItems: 'center' }}>
-              <Ponteira n={n} mini />
-              <span className="tiny muted" style={{ flex: 1 }}>{d}</span>
-            </div>
-          ))}
-        </div>
-        <p className="micro muted" style={{ lineHeight: 1.65 }}>
-          Ela enche sozinha conforme você registra os treinos. Não precisa marcar nada.
-        </p>
-
-        <div className="divider" />
-        <div className="eyebrow">o aviso vermelho</div>
-        <div className="row" style={{ gap: 11, alignItems: 'flex-start' }}>
-          <span className="tec-aviso"><ShieldAlert size={13} /></span>
-          <p className="tiny muted" style={{ flex: 1, lineHeight: 1.65 }}>
-            Essa técnica não é permitida na sua faixa em competição de kimono. Pode aparecer no treino, e
-            saber que ela existe ajuda a se defender, mas usar numa luta oficial dá desclassificação.
-          </p>
-        </div>
-        <p className="micro muted" style={{ lineHeight: 1.65 }}>
-          A regra muda de federação pra federação. O app segue a tabela da IBJJF, que é a mais usada.
-        </p>
+        <Guia
+          inicial="filtro"
+          topicos={[
+            {
+              id: 'filtro', icone: Filter, titulo: 'Por que não aparecem todas', resumo: `A biblioteca tem ${techniques.length}, e a tela mostra as da sua faixa`,
+              conteudo: (
+                <>
+                  <p>Mostrar todas de uma vez é como abrir um dicionário pra aprender uma palavra.</p>
+                  <p>Por padrão aparecem as que já saíram nos seus rolas e as permitidas na sua faixa. As outras continuam ali: é só buscar pelo nome.</p>
+                </>
+              ),
+            },
+            {
+              id: 'ponteira', icone: Gauge, titulo: 'A ponteira ao lado de cada uma', resumo: 'Enche sozinha conforme você treina',
+              conteudo: (
+                <>
+                  <div className="col" style={{ gap: 8 }}>
+                    {[
+                      [0, 'Nunca apareceu num rola seu.'],
+                      [1, 'Conheço o movimento.'],
+                      [2, 'Funciona no rola.'],
+                      [3, 'Faz parte do meu jogo.'],
+                      [4, 'Assinatura. É o seu golpe.'],
+                    ].map(([n, d]) => (
+                      <div key={n} className="row" style={{ gap: 11 }}>
+                        <Ponteira n={n} mini />
+                        <span className="tiny muted" style={{ flex: 1 }}>{d}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p>Não precisa marcar nada: ela sobe com os treinos que você registra.</p>
+                </>
+              ),
+            },
+            {
+              id: 'aviso', icone: ShieldAlert, titulo: 'O aviso vermelho', resumo: 'Proibida na sua faixa em competição',
+              conteudo: (
+                <>
+                  <p>A técnica não é permitida na sua faixa em competição de kimono. Pode aparecer no treino, e conhecer ajuda a se defender, mas numa luta oficial dá desclassificação.</p>
+                  <p>A regra muda de federação pra federação. O app segue a tabela da IBJJF, que é a mais usada.</p>
+                </>
+              ),
+            },
+          ]}
+        />
       </Sheet>
 
     </div>
