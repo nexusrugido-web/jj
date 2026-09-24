@@ -161,7 +161,7 @@ export default function Painel() {
           />
         </Card>
         <Card className="hover">
-          <Stat icon={Clock} valor={<Contador valor={r.matHoras} suffix="h" />} label="no tatame" sub={`${r.sessoes} treinos`} />
+          <Stat icon={Clock} valor={<Contador valor={r.matHoras} suffix="h" />} label="no tatame" sub={`${r.sessoes} ${r.sessoes === 1 ? 'treino' : 'treinos'}`} />
         </Card>
         <Card className="hover">
           <Stat

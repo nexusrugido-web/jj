@@ -117,7 +117,7 @@ export default function Analise() {
       {/* resumo do período */}
       <div style={{ marginBottom: 8 }}><RotuloPeriodo periodo={periodo}>resumo</RotuloPeriodo></div>
       <div className="grid g4" style={{ marginBottom: 10 }}>
-        <Card><Stat icon={Clock} valor={fmtDur(r.matMin)} label="tempo de tatame" sub={`${r.sessoes} treinos`} /></Card>
+        <Card><Stat icon={Clock} valor={fmtDur(r.matMin)} label="tempo de tatame" sub={`${r.sessoes} ${r.sessoes === 1 ? 'treino' : 'treinos'}`} /></Card>
         <Card><Stat icon={Swords} valor={r.rolas} label="rolas" sub={`${(r.rolas / Math.max(1, r.sessoes)).toFixed(1)} por treino`} /></Card>
         <Card><Stat icon={Trophy} valor={`${r.taxaVitoria}%`} label="taxa de vitória" tone={r.rolas && r.taxaVitoria >= 50 ? 'jade' : undefined} sub={`${r.vitorias} vitórias · ${r.derrotas} derrotas`} /></Card>
         <Card><Stat icon={Percent} valor={`${r.subPct}%`} label="rolas com finalização" tone="jade" sub={`${r.tapPct}% com tap sofrido`} /></Card>

@@ -314,6 +314,15 @@ function calcular(meta, dados = {}) {
        o objetivo é nenhuma, e a barra enche quando o número cai.
        Antes a tela mostrava "1/4", um teto menos as vezes, que
        ninguém entendia. A conta vem dos rolas, sem botão. */
+    /* a do onboarding nasce sem técnica: sem alvo não há o que
+       contar, e zero vezes de nada virava "meta feita" */
+    if (!meta.alvo) {
+      return {
+        conta: true, invertida: true, semBotao: true, atual: 0, alvo: 0, pct: 0,
+        valor: 'sem técnica', quando: 'Edite a meta e escolha a técnica que mais te pega',
+        texto: 'Falta escolher qual técnica acompanhar.',
+      };
+    }
     const b = buracos.find((x) => x.nome === meta.alvo);
     const recente = b?.recente || 0;
     const periodo = periodoDeDados('ultimos-30');

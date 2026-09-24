@@ -24,7 +24,13 @@ export default function LinhaDeMeta({ titulo, p }) {
           {p.valor}
         </span>
       </div>
-      {p.quando && <span className="micro muted">{p.quando}</span>}
+      {p.quando && (
+        <span className="micro muted">
+          {p.quando}
+          {/* sem isso, "3 de 100" ao lado de "1 treino" parece erro */}
+          {p.ajuste ? ` · ${p.ajuste > 0 ? '+' : ''}${p.ajuste} somado na mão` : ''}
+        </span>
+      )}
       <Bar v={p.pct} max={100} tone={feita ? 'jade' : perto ? 'accent' : ''} />
       {perto && !p.invertida && (
         <span className="micro" style={{ color: 'var(--accent)' }}>

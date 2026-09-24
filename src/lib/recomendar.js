@@ -284,7 +284,7 @@ export function gerarRecomendacoes({
       alvo: paraRepetir.nome,
       titulo: `Insistir em ${paraRepetir.nome}`,
       texto: falar('repetir', faixa, { nome: paraRepetir.nome, usos: paraRepetir.usosResistencia }),
-      evidencia: `${paraRepetir.usosResistencia} usos no rola`,
+      evidencia: `${paraRepetir.usosResistencia} ${paraRepetir.usosResistencia === 1 ? 'uso' : 'usos'} no rola`,
     });
   }
 

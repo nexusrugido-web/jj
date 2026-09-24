@@ -14,8 +14,11 @@ import { Card, Chip } from './UI';
    ============================================================ */
 
 export default function Destaques({ resumo, onVerTudo }) {
-  const arma = resumo.topAplicadas?.[0];
-  const buraco = resumo.topSofridas?.[0];
+  /* topAplicadas e topSofridas vêm de contar(): pares [nome, vezes] */
+  const [armaNome, armaN] = resumo.topAplicadas?.[0] || [];
+  const [buracoNome, buracoN] = resumo.topSofridas?.[0] || [];
+  const arma = armaNome && { nome: armaNome, n: armaN };
+  const buraco = buracoNome && { nome: buracoNome, n: buracoN };
 
   if (!arma && !buraco) return null;
 
