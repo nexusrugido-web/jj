@@ -3,7 +3,7 @@ import {
   LayoutDashboard, NotebookPen, Library, Swords, Repeat, ChartNoAxesColumn,
   Target, Wind, Dumbbell, HeartPulse, Trophy, Users, Settings as Cog,
   MoreHorizontal, Download, Award, Apple, CloudOff, Cloud, RefreshCw, LogIn, Dna,
-  GraduationCap, Flame, Shield, Megaphone, CircleHelp,
+  GraduationCap, Flame, Shield, Megaphone, CircleHelp, X,
 } from 'lucide-react';
 import { Modal } from './UI';
 
@@ -43,6 +43,14 @@ const MOBILE = ['painel', 'treinos', 'metas', 'estudo'];
 
 export default function Layout({ rota, irPara, settings, badges = {}, sync, onInstalar, ehAdmin = false, recado = null, ligada, onComoUsar, children }) {
   const [mais, setMais] = useState(false);
+  /* o recado some depois de fechado e só volta quando o admin publicar
+     outro: a marca é a hora em que ele foi salvo no painel */
+  const marcaDoRecado = recado ? String(recado.atualizado || `${recado.titulo}|${recado.texto}`) : '';
+  const [fechado, setFechado] = useState(() => { try { return localStorage.getItem('recado:fechado') || ''; } catch { return ''; } });
+  const fecharRecado = () => {
+    setFechado(marcaDoRecado);
+    try { localStorage.setItem('recado:fechado', marcaDoRecado); } catch { /* sem armazenamento, some só até recarregar */ }
+  };
   const grupos = [...new Set(visiveis(ehAdmin, ligada).map((r) => r.grupo))];
   const atual = ROTAS_TODAS.find((r) => r.id === rota);
 
@@ -100,7 +108,7 @@ export default function Layout({ rota, irPara, settings, badges = {}, sync, onIn
           )}
           <SyncPonto sync={sync} />
         </div>
-        {recado?.texto && (
+        {recado?.texto && fechado !== marcaDoRecado && (
           <div className={`recado ${recado.tom || 'info'}`}>
             <Megaphone size={15} style={{ flex: 'none', marginTop: 2, color: `var(--${recado.tom === 'bom' ? 'jade' : recado.tom === 'atencao' ? 'roar' : 'ice'})` }} />
             <div>
@@ -112,6 +120,9 @@ export default function Layout({ rota, irPara, settings, badges = {}, sync, onIn
                 </a>
               )}
             </div>
+            <button className="btn ghost icon sm recado-fechar" onClick={fecharRecado} aria-label="Fechar recado">
+              <X size={15} />
+            </button>
           </div>
         )}
         {children}
