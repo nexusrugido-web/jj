@@ -3044,9 +3044,7 @@ body::after {
 .placar-fin .fin-rot { font-family: var(--body); font-size: var(--fs-meta); letter-spacing: 0; text-transform: none; color: var(--dim); }
 @media (min-width: 781px) {
   /* no computador cabe tudo numa linha: os três e as finalizações ao lado */
-  .painel-placar { display: flex; align-items: stretch; gap: var(--e6); }
-  .painel-placar .placar-principal { flex: 3; }
-  .painel-placar .placar-fin { flex: 2; margin: 0; padding: 0 0 0 var(--e6); border-top: 0; border-left: 1px solid var(--seam); }
+  .painel-placar .placar-grade { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 @media (max-width: 780px) { .placar-item .placar-rot .lucide { display: none; } }
 @media (max-width: 380px) {
@@ -3276,3 +3274,19 @@ body::after {
 .forca-linha > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .forca-linha b { font-size: var(--fs-meta); color: var(--dim); font-weight: 600; }
 .forca-linha span { font-size: var(--fs-sec); line-height: 1.5; }
+
+/* ---------- placar: quatro quadros iguais ---------- */
+.placar-grade { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.placar-quadro {
+  display: flex; flex-direction: column; gap: 6px; min-width: 0;
+  padding: 14px; border-radius: var(--r-sm);
+  background: var(--void); border: 1px solid var(--seam);
+}
+.placar-quadro-rot { display: flex; align-items: center; gap: 6px; font-size: var(--fs-sec); font-weight: 600; color: var(--dim); }
+.placar-quadro-rot .lucide { flex: none; color: var(--dimmer); }
+.placar-quadro-num { font-family: var(--display); font-weight: 800; font-size: 38px; letter-spacing: -0.045em; line-height: 1; }
+.placar-quadro-sub { font-size: var(--fs-meta); color: var(--dimmer); line-height: 1.35; }
+.placar-quadro.jade { border-color: color-mix(in srgb, var(--jade) 28%, var(--seam)); }
+.placar-quadro.jade .placar-quadro-num, .placar-quadro.jade .placar-quadro-rot .lucide { color: var(--jade); }
+.placar-quadro.blood { border-color: color-mix(in srgb, var(--blood) 28%, var(--seam)); }
+.placar-quadro.blood .placar-quadro-num, .placar-quadro.blood .placar-quadro-rot .lucide { color: var(--blood); }

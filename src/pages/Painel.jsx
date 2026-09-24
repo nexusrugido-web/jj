@@ -175,16 +175,17 @@ export default function Painel() {
           </span>
           <span className="placar-ofa-ver">Ver <ChevronRight size={15} /></span>
         </button>
-        <div className="placar-dois">
-          <div className="placar-item">
-            <span className="placar-num num"><Contador valor={r.matHoras} suffix="h" /></span>
-            <span className="placar-rot"><Clock size={14} /> no tatame</span>
-            <span className="placar-sub">{r.sessoes} {r.sessoes === 1 ? 'treino' : 'treinos'}</span>
-          </div>
-          <div className="placar-item">
-            <span className="placar-num num"><Contador valor={r.rolas} /></span>
-            <span className="placar-rot"><Swords size={14} /> {r.rolas === 1 ? 'luta' : 'lutas'}</span>
-          </div>
+        {/* quatro quadros do mesmo tamanho: cada número com o seu nome e o
+            que ele quer dizer, sem espaço sobrando do lado */}
+        <div className="placar-grade">
+          <QuadroDoPlacar icone={Clock} rotulo="No tatame" valor={<Contador valor={r.matHoras} suffix="h" />}
+            sub={`em ${r.sessoes} ${r.sessoes === 1 ? 'treino' : 'treinos'}`} />
+          <QuadroDoPlacar icone={Swords} rotulo={r.rolas === 1 ? 'Luta' : 'Lutas'} valor={<Contador valor={r.rolas} />}
+            sub={r.sessoes ? `${String((r.rolas / r.sessoes).toFixed(1)).replace('.', ',')} por treino` : 'nenhum treino ainda'} />
+          <QuadroDoPlacar icone={Trophy} tom="jade" rotulo="Finalizei" valor={<Contador valor={r.finalizacoes} />}
+            sub={r.finalizacoes === 1 ? 'vez que fiz bater' : 'vezes que fiz bater'} />
+          <QuadroDoPlacar icone={ShieldCheck} tom="blood" rotulo="Fui finalizado" valor={<Contador valor={r.taps} />}
+            sub={r.taps === 1 ? 'vez que bati' : 'vezes que bati'} />
         </div>
         </div>
         <div className="placar-fin">
@@ -602,20 +603,8 @@ function Finalizacoes({ dadas = 0, sofridas = 0 }) {
   return (
     <>
       <div className="row" style={{ gap: 8 }}>
-        <span className="placar-rot" style={{ flex: 1 }}>Finalizações</span>
+        <span className="placar-rot" style={{ flex: 1 }}>Quem fez mais bater</span>
         <button className="ajuda" onClick={() => setAjuda(true)} aria-label="O que é isso">?</button>
-      </div>
-
-      <div className="fin-par">
-        <div className="fin-lado">
-          <span className="fin-num num" style={{ color: dif >= 0 ? 'var(--jade)' : 'var(--dim)' }}>{dadas}</span>
-          <span className="fin-rot">apliquei</span>
-        </div>
-        <span className="fin-sep" />
-        <div className="fin-lado">
-          <span className="fin-num num" style={{ color: dif < 0 ? 'var(--blood)' : 'var(--dim)' }}>{sofridas}</span>
-          <span className="fin-rot">sofri</span>
-        </div>
       </div>
 
       <div className="fin-barra">
@@ -635,6 +624,17 @@ function Finalizacoes({ dadas = 0, sofridas = 0 }) {
         </p>
       </Sheet>
     </>
+  );
+}
+
+/* um quadro do placar: o nome, o número grande e o que ele quer dizer */
+function QuadroDoPlacar({ icone: Icone, rotulo, valor, sub, tom }) {
+  return (
+    <div className={`placar-quadro${tom ? ` ${tom}` : ''}`}>
+      <span className="placar-quadro-rot"><Icone size={15} /> {rotulo}</span>
+      <span className="placar-quadro-num num">{valor}</span>
+      <span className="placar-quadro-sub">{sub}</span>
+    </div>
   );
 }
 
