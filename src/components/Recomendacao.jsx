@@ -12,6 +12,7 @@ import Player from './Player';
 import { hoje } from '../lib/utils';
 import { useApp } from '../contexto';
 import { useLimite } from './Limite';
+import { Vitrine } from './Plano';
 
 /* ============================================================
    A RECOMENDAÇÃO QUE FECHA O LAÇO
@@ -152,5 +153,29 @@ export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFei
       )}
       {aviso}
     </div>
+  );
+}
+
+/* ============================================================
+   NO GRÁTIS
+
+   "O que treinar agora" sai dos rolas da pessoa, então é do
+   premium. A primeira recomendação real aparece borrada atrás do
+   convite, sem aula, pra não contar como vídeo exibido.
+   ============================================================ */
+export function VitrineRecomendacao({ recs, faixa, vistas, onAssinar }) {
+  return (
+    <Vitrine
+      recurso="recomendacoes"
+      fundo={<Recomendacao rec={recs[0]} faixa={faixa} vistas={vistas} comAula={false} />}
+      titulo="O que treinar, escolhido pelos seus rolas"
+      texto={`O app já separou ${recs.length} ${recs.length === 1 ? 'coisa' : 'coisas'} pra você treinar, tiradas dos seus rolas.`}
+      itens={[
+        'O que corrigir primeiro, pelo que mais te pega',
+        'O que repetir, pelo que já começou a sair',
+        'A aula certa pra cada uma, pronta no Estudo',
+      ]}
+      onAssinar={onAssinar}
+    />
   );
 }

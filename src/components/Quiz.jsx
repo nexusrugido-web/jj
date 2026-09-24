@@ -7,7 +7,7 @@ import { PERGUNTAS, perguntasPara, proximaRevisao } from '../db/quiz';
 import { darXp } from '../lib/xp';
 import { hoje } from '../lib/utils';
 import { useApp } from '../contexto';
-import { limiteDoDia } from '../lib/plano';
+import { limiteDoDia, podeVer } from '../lib/plano';
 import { LimiteDoDia } from './Plano';
 
 /* ============================================================
@@ -29,14 +29,17 @@ export default function Quiz({ faixa = 'branca', dor = null, tema = null, onSair
   }, [acesso]);
 
   const [fila, setFila] = useState(null);
+  /* no grátis a rodada é sorteada; a revisão do que você errou é do premium */
+  const revisa = podeVer(acesso, 'quizIlimitado');
+  const [sorteio] = useState(() => Math.random());
   const [i, setI] = useState(0);
   const [escolha, setEscolha] = useState(null);
   const [acertos, setAcertos] = useState(0);
   const [ganho, setGanho] = useState(0);
 
   const lista = useMemo(
-    () => fila || perguntasPara({ faixa, dor, tema, limite: 5, respondidas }),
-    [fila, faixa, dor, tema, respondidas]
+    () => fila || perguntasPara({ faixa, dor, tema, limite: 5, respondidas, sorteio: revisa ? null : sorteio }),
+    [fila, faixa, dor, tema, respondidas, revisa, sorteio]
   );
 
   const p = lista[i];
@@ -77,7 +80,7 @@ export default function Quiz({ faixa = 'branca', dor = null, tema = null, onSair
   async function recomecar() {
     const l = await limiteDoDia(acesso, 'quiz');
     if (!l.pode) { setTravado(true); return; }
-    setFila(perguntasPara({ faixa, dor, tema, limite: 5, respondidas }));
+    setFila(perguntasPara({ faixa, dor, tema, limite: 5, respondidas, sorteio: revisa ? null : Math.random() }));
     setI(0); setEscolha(null); setAcertos(0); setGanho(0);
   }
 

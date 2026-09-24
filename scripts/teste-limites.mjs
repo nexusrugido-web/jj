@@ -81,7 +81,7 @@ ok('abrir e arrastar pro fim nao conclui', Math.round((somado / aulaDe30min) * 1
 
 console.log(
   `\nlimites do gratuito: rola sem limite, aula ${LIMITES.aulasPorDia}, ` +
-  `short ${LIMITES.shortsPorDia}, quiz ${LIMITES.perguntasPorDia}, recomendacao ${LIMITES.recomendacoesAbertas}`
+  `short ${LIMITES.shortsPorDia}, quiz ${LIMITES.perguntasPorDia}`
 );
 /* ============================================================
    VOLTAR SIM, ADIANTAR NAO

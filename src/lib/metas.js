@@ -1,4 +1,4 @@
-import { hoje, diasEntre, pct, fmtData } from './utils';
+import { hoje, diasEntre, pct, fmtData, addDias } from './utils';
 import { periodoDeDados, dentroDoPeriodo } from './periodo';
 import { grauPorN, requisitosDaFaixa } from './graus';
 import { posInicialPorId } from '../db/scoring';
@@ -222,6 +222,68 @@ export const DIAS_SEM_SER_PEGO = 30;
 
 export function progressoDaMeta(meta, dados) {
   return comAjuste(calcular(meta, dados), meta);
+}
+
+/* ============================================================
+   QUANDO A META ZEROU, E POR QUÊ
+
+   Duas metas voltam pro zero: a de defesa, toda vez que a técnica
+   te pega, e a de frequência, toda segunda. Sem dizer quando e por
+   quê, o zero parece defeito.
+
+   A lista sai dos próprios registros, não fica guardada à parte:
+   apagar o rola apaga a linha junto, e nada fica desencontrado.
+   Vem da mais recente pra mais antiga.
+   ============================================================ */
+export const SEMANAS_NO_HISTORICO = 8;
+
+export function historicoDaMeta(meta, { sessions = [], rolls = [], partners = [] } = {}) {
+  if (meta?.tipo === 'defesa' && meta.alvo) {
+    const alvo = String(meta.alvo).trim();
+    const dataDe = new Map(sessions.map((s) => [s.id, s.data]));
+    const nomeDe = new Map(partners.map((p) => [p.id, p.nome]));
+    /* a mesma conta de "onde você apanha": o nome da finalização sofrida */
+    const vezes = rolls
+      .filter((r) => (r.subsSofridas || []).some((s) => String(s).trim() === alvo))
+      .map((r) => ({ data: dataDe.get(r.sessionId) || r.data || null, parceiro: nomeDe.get(r.partnerId) || null }))
+      .filter((v) => v.data)
+      .sort((a, b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : 0));
+    return vezes.map((v, i) => {
+      const antes = vezes[i - 1];
+      const dias = antes ? Math.min(DIAS_SEM_SER_PEGO, diasEntre(antes.data, v.data)) : null;
+      return {
+        data: v.data,
+        zerou: true,
+        texto: `${alvo} te pegou${v.parceiro ? ` no rola com ${v.parceiro}` : ''}.`,
+        detalhe: dias === null ? 'A primeira vez registrada.'
+          : dias === 0 ? 'De novo no mesmo dia.'
+            : `A contagem estava em ${dias} ${dias === 1 ? 'dia' : 'dias'} e voltou pro zero.`,
+      };
+    }).reverse();
+  }
+
+  if (meta?.tipo === 'frequencia') {
+    /* as semanas que já fecharam, desde a semana em que a meta nasceu */
+    const alvo = Number(meta.alvo) || 1;
+    const linhas = [];
+    let dia = addDias(periodoDeDados('semana-atual').ini, -7);
+    const desde = meta.inicio ? periodoDeDados('semana-atual', { hoje: meta.inicio }).ini : null;
+    while (linhas.length < SEMANAS_NO_HISTORICO && (!desde || dia >= desde)) {
+      const semana = periodoDeDados('semana-atual', { hoje: dia });
+      const n = dentroDoPeriodo(sessions, semana).length;
+      linhas.push({
+        data: semana.ini,
+        zerou: true,
+        batida: n >= alvo,
+        texto: `Semana de ${fmtData(semana.ini, { curto: true })} a ${fmtData(semana.fim, { curto: true })}: ${n} de ${alvo}.`,
+        detalhe: n >= alvo ? 'Meta batida. Na segunda a contagem recomeçou.' : 'Na segunda a contagem recomeçou.',
+      });
+      dia = addDias(semana.ini, -7);
+    }
+    return linhas;
+  }
+
+  return [];
 }
 
 /* "Horas no ano" vem dos Ajustes, não de db.goals, mas é desenhada

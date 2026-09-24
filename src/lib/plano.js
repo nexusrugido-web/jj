@@ -32,13 +32,12 @@ export const LIMITES = {
   aulasPorDia: 1,
   shortsPorDia: 1,
   perguntasPorDia: 5,
-  recomendacoesAbertas: 1,
 };
 
 /* Quantas recomendações o app monta pra mostrar na tela. Não é
    limite de plano, é tamanho de lista: quanto mais a pessoa
-   registra, mais o app tem o que apontar. Quem está no grátis vê
-   quantas existem e abre uma. */
+   registra, mais o app tem o que apontar. No grátis elas ficam na
+   vitrine: é o premium que abre. */
 export const RECOMENDACOES_NA_TELA = 10;
 
 export const RECURSOS = {
@@ -52,12 +51,12 @@ export const RECURSOS = {
   exportar:      { premium: false, nome: 'Exportar os seus dados', desc: 'Seus dados são seus, com ou sem assinatura.' },
 
   historico:     { premium: true, nome: 'Histórico completo', desc: `No grátis você vê os últimos ${LIMITES.historicoDias} dias.` },
-  analise:       { premium: true, nome: 'Análise e gráficos', desc: 'Evolução, presença no tatame, contra quem você luta e onde fica por cima.' },
+  analise:       { premium: true, nome: 'Análise e gráficos', desc: 'Evolução, presença no tatame, contra quem você luta e onde fica por cima, aqui e no Painel.' },
   ia:            { premium: true, nome: 'Análise da IA', desc: 'O botão Análise IA do Painel lê o seu histórico e diz o que os seus números mostram.' },
   meujogo:       { premium: true, nome: 'Meu jogo por situação', desc: 'Como você vai contra mais pesado, mais leve e em cada posição em que o rola começa.' },
   aulasIlimitadas:{ premium: true, nome: 'Aulas sem limite', desc: `No grátis é ${LIMITES.aulasPorDia} aula completa e ${LIMITES.shortsPorDia} aula rápida por dia.` },
-  quizIlimitado: { premium: true, nome: 'Quiz sem limite', desc: `No grátis é uma rodada por dia.` },
-  recomendacoes: { premium: true, nome: 'Tudo o que treinar agora', desc: `No grátis abre ${LIMITES.recomendacoesAbertas} recomendação por vez.` },
+  quizIlimitado: { premium: true, nome: 'Quiz sem limite', desc: 'E ele volta nas perguntas que você errou. No grátis é uma rodada por dia, com perguntas sorteadas.' },
+  recomendacoes: { premium: true, nome: 'O que treinar agora', desc: 'Escolhido pelos seus rolas, no Painel, em Minhas técnicas e no Estudo (Pra você).' },
   metas:         { premium: true, nome: 'Metas sem limite', desc: `No grátis você assume até ${LIMITES.metasAtivas} metas que o app sugere pra você. Criar as suas e ter mais ativas é do premium.` },
 };
 
@@ -136,11 +135,6 @@ export function recortarHistorico(lista, acesso, campoData = 'data') {
   if (!ligada('cobranca') || acesso?.premium) return { itens: lista, cortados: 0 };
   const dentro = dentroDoPeriodo(lista, ultimosDias(LIMITES.historicoDias), campoData);
   return { itens: dentro, cortados: lista.length - dentro.length };
-}
-
-export function limitarLista(lista, acesso, limite) {
-  if (!ligada('cobranca') || acesso?.premium) return { itens: lista, cortados: 0 };
-  return { itens: lista.slice(0, limite), cortados: Math.max(0, lista.length - limite) };
 }
 
 /* ============================================================

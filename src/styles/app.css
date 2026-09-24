@@ -3204,3 +3204,19 @@ body::after {
   background: var(--mat-top); border: 1px solid var(--seam-hi);
   font-size: var(--fs-meta); color: var(--dim);
 }
+
+/* ---------- meta: quando zerou ---------- */
+.meta-zerou { display: flex; flex-direction: column; gap: var(--e2); padding-top: var(--e3); border-top: 1px solid var(--seam); }
+.meta-zerou-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--e3); }
+.meta-zerou-lista li { display: grid; grid-template-columns: 44px 1fr; gap: var(--e2); padding-left: var(--e2); border-left: 2px solid color-mix(in srgb, var(--blood) 55%, var(--seam)); }
+.meta-zerou-lista li.batida { border-left-color: color-mix(in srgb, var(--jade) 55%, var(--seam)); }
+
+/* ---------- convite do premium, em popup ---------- */
+.convite { display: flex; flex-direction: column; align-items: flex-start; gap: var(--e3); padding: var(--e1) 0 var(--e2); }
+.convite-ico {
+  width: 52px; height: 52px; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center;
+  color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--void));
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--seam));
+}
+.convite-marca { font-size: var(--fs-meta); font-weight: 700; color: var(--accent); letter-spacing: .02em; }
+.convite-titulo { font-size: var(--fs-h1); font-weight: 800; letter-spacing: -0.035em; line-height: 1.05; margin-top: 2px; }

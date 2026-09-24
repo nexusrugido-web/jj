@@ -201,13 +201,22 @@ export const PERGUNTAS = [
 /* intervalos do Leitner, em dias */
 export const CAIXAS = [1, 3, 7, 14, 28];
 
-export function perguntasPara({ faixa = 'branca', dor = null, tema = null, limite = 5, respondidas = [] }) {
+/* sorteio: um número de 0 a 1. No grátis as perguntas vêm sorteadas da
+   faixa, sem a revisão do que você errou, que é do premium. A mesma
+   semente dá a mesma ordem, então a rodada não se embaralha no meio. */
+export function perguntasPara({ faixa = 'branca', dor = null, tema = null, limite = 5, respondidas = [], sorteio = null }) {
   const agora = hoje();
   const porId = new Map(respondidas.map((r) => [r.perguntaId, r]));
 
   let lista = PERGUNTAS.filter((p) => !p.faixa || p.faixa.includes(faixa));
   if (dor) lista = lista.filter((p) => p.dor === dor);
   if (tema) lista = lista.filter((p) => p.tema === tema);
+
+  if (sorteio !== null) {
+    let s = Math.floor(sorteio * 2 ** 32) || 1;
+    const proximo = () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return (s >>> 0) / 2 ** 32; };
+    return lista.map((p) => [proximo(), p]).sort((a, b) => a[0] - b[0]).map(([, p]) => p).slice(0, limite);
+  }
 
   /* quem nunca viu vem primeiro, depois o que está vencido na revisão */
   const novas = lista.filter((p) => !porId.has(p.id));

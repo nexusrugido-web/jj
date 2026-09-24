@@ -77,8 +77,8 @@ export default function TaxaPorFaixa({
               <span className="taxa-faixa-cor" style={{ background: COR_FAIXA[l.faixa], border: l.faixa === 'preta' ? '1px solid #4a5250' : 'none' }} />
               <span className="tiny" style={{ fontWeight: 600, flex: 1 }}>
                 <span style={{ textTransform: 'capitalize' }}>{l.faixa}</span>
-                {l.acima && <span className="micro" style={{ color: 'var(--roar)', marginLeft: 6 }}>acima de você</span>}
-                {l.igual && <span className="micro muted" style={{ marginLeft: 6 }}>sua faixa</span>}
+                {l.acima && <span className="micro" style={{ color: 'var(--roar)', marginLeft: 6, whiteSpace: 'nowrap' }}>acima de você</span>}
+                {l.igual && <span className="micro muted" style={{ marginLeft: 6, whiteSpace: 'nowrap' }}>sua faixa</span>}
               </span>
               <span className="num micro muted">{l.v}V {l.d}D</span>
               <span className="num tiny" style={{ minWidth: 40, textAlign: 'right', fontWeight: 700, color: l.taxa >= 50 ? 'var(--jade)' : 'var(--blood)' }}>

@@ -223,10 +223,12 @@ export function Travado({ recurso, acesso, onAssinar, children }) {
    atrás do convite. Ela vê que a resposta existe e é dela. Embaixo,
    o resto do que o premium abre: ninguém assina por uma tela só.
    ============================================================ */
+const tambemAbre = (recurso) => Object.entries(RECURSOS)
+  .filter(([id, r]) => r.premium && id !== recurso)
+  .map(([, r]) => r.nome.toLowerCase())
+  .join(', ');
+
 export function Vitrine({ recurso, fundo, titulo, texto, itens, onAssinar }) {
-  const tambem = Object.entries(RECURSOS)
-    .filter(([id, r]) => r.premium && id !== recurso)
-    .map(([, r]) => r.nome.toLowerCase());
   return (
     <div className="vitrine">
       <div className="vitrine-fundo" aria-hidden="true">{fundo}</div>
@@ -238,10 +240,31 @@ export function Vitrine({ recurso, fundo, titulo, texto, itens, onAssinar }) {
           {itens.map((x) => <li key={x}><Check size={15} /> {x}</li>)}
         </ul>
         <p className="micro muted" style={{ marginTop: 14, lineHeight: 1.6 }}>
-          O premium também abre: {tambem.join(', ')}.
+          O premium também abre: {tambemAbre(recurso)}.
         </p>
         <Btn variant="primary" onClick={onAssinar} style={{ marginTop: 14, width: '100%' }}>Liberar no premium</Btn>
       </div>
+    </div>
+  );
+}
+
+/* o mesmo convite, em popup: pra quando a pessoa toca num botão do
+   premium (a Análise IA, criar a própria meta) e não tem o que borrar */
+export function Convite({ recurso, icone: Icone = Sparkles, marca = null, titulo, texto, itens, onAssinar }) {
+  return (
+    <div className="convite">
+      <span className="convite-ico"><Icone size={22} /></span>
+      <span className="vitrine-selo"><Lock size={13} /> Premium</span>
+      <div>
+        {marca && <div className="convite-marca">{marca}</div>}
+        <h2 className="convite-titulo">{titulo}</h2>
+      </div>
+      <p className="tiny muted" style={{ lineHeight: 1.6 }}>{texto}</p>
+      <ul className="vitrine-lista" style={{ marginTop: 0 }}>
+        {itens.map((x) => <li key={x}><Check size={15} /> {x}</li>)}
+      </ul>
+      <p className="micro muted" style={{ lineHeight: 1.6 }}>O premium também abre: {tambemAbre(recurso)}.</p>
+      <Btn variant="primary" onClick={onAssinar} style={{ width: '100%' }}>Liberar no premium</Btn>
     </div>
   );
 }

@@ -20,7 +20,7 @@ import { progressoDaMeta, tituloDaMeta, metaDeHorasNoAno } from '../lib/metas';
 import LinhaDeMeta from '../components/LinhaDeMeta';
 import RotuloPeriodo from '../components/RotuloPeriodo';
 import { periodoDeDados } from '../lib/periodo';
-import Recomendacao from '../components/Recomendacao';
+import Recomendacao, { VitrineRecomendacao } from '../components/Recomendacao';
 import { resumoSemana, lerSemana } from '../lib/semana';
 import { ofensiva } from '../lib/ofensiva';
 import { situacao, guiaDeEstudo } from '../lib/lesao';
@@ -32,7 +32,7 @@ import Destaques from '../components/Destaques';
 import { analisarDiario } from '../lib/ai';
 import { Sheet, useToast } from '../components/UI';
 import { podeVer } from '../lib/plano';
-import { Travado } from '../components/Plano';
+import { Convite, Vitrine } from '../components/Plano';
 import { supabase } from '../lib/supabase';
 
 export default function Painel() {
@@ -42,6 +42,9 @@ export default function Painel() {
   const [analise, setAnalise] = useState(null);
   const [carregandoIa, setCarregandoIa] = useState(false);
   const [conviteIa, setConviteIa] = useState(false);
+  /* no grátis ficam os números; os gráficos e o "o que treinar" são do premium */
+  const graficosLivres = podeVer(acesso, 'analise');
+  const recsLivres = podeVer(acesso, 'recomendacoes');
   /* todo mundo entra na liga sozinho; o convite é pra quem saiu,
      e é ligado no painel do administrador */
   const [jaNaLiga, setJaNaLiga] = useState(null);
@@ -345,7 +348,12 @@ export default function Painel() {
             ))}
           </div>
 
-          {recs.length > 0 && (
+          {recs.length > 0 && !recsLivres && (
+            <div style={{ marginTop: 16 }}>
+              <VitrineRecomendacao recs={recs} faixa={settings.faixa} vistas={vistasAulas.map((v) => v.videoId)} onAssinar={() => irPara('ajustes')} />
+            </div>
+          )}
+          {recs.length > 0 && recsLivres && (
             <div style={{ marginTop: 16, borderTop: '1px solid var(--seam)', paddingTop: 14 }}>
               <div className="eyebrow" style={{ marginBottom: 10 }}>o que treinar agora</div>
               <div className="col" style={{ gap: 10 }}>
@@ -363,6 +371,7 @@ export default function Painel() {
         </Card>
       )}
 
+      {graficosLivres ? (<>
       <div className="split" style={{ marginBottom: 14 }}>
         {/* ---- escada posicional: o elemento assinatura ---- */}
         {dash.escada !== false && (
@@ -441,10 +450,37 @@ Toda vez que você marca um ponto, o app anota a posição que veio junto. Passa
           sessions={sessions} rolls={rolls} partners={partners} gradings={gradings}
         />
       </Card>
+      </>) : !semDados && (
+        /* no grátis os gráficos viram uma vitrine só, com a evolução real borrada */
+        <Vitrine
+          recurso="analise"
+          fundo={<GraficoEvolucao compacto periodoInicial="3m" sessions={sessions} rolls={rolls} partners={partners} gradings={gradings} />}
+          titulo="Os gráficos do seu jogo"
+          texto={`Os seus ${r.rolas} rolas já desenham como você vence, onde fica por cima e com que frequência aparece.`}
+          itens={[
+            'Evolução: como você vence, semana a semana',
+            'Onde você fica por cima e onde fica por baixo',
+            'Com o que você finaliza e em que você cai',
+            'Presença no tatame, dia a dia',
+          ]}
+          onAssinar={() => irPara('ajustes')}
+        />
+      )}
 
       {/* a IA é do premium: no grátis o botão abre o convite */}
       <Sheet aberto={conviteIa} onClose={() => setConviteIa(false)} titulo="">
-        <Travado recurso="ia" acesso={acesso} onAssinar={() => { setConviteIa(false); irPara('ajustes'); }} />
+        <Convite
+          recurso="ia"
+          marca="NeuroJitsu"
+          titulo="Análise IA"
+          texto="A IA lê os seus treinos, rolas e técnicas e diz em poucas linhas o que os seus números mostram, e o que fazer no próximo treino."
+          itens={[
+            'Uma leitura curta do seu momento',
+            'Os focos pra agora, com o porquê e como treinar',
+            'Uma pergunta pra levar pro seu professor',
+          ]}
+          onAssinar={() => { setConviteIa(false); irPara('ajustes'); }}
+        />
       </Sheet>
 
       <Sheet aberto={!!analise} onClose={() => setAnalise(null)} titulo="O que os seus números dizem">

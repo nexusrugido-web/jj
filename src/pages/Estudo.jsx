@@ -29,7 +29,8 @@ import Quiz from '../components/Quiz';
 import { Linha } from '../components/Guia';
 import { PERGUNTAS } from '../db/quiz';
 import { useLimite } from '../components/Limite';
-import { limitarLista, LIMITES, RECOMENDACOES_NA_TELA } from '../lib/plano';
+import { podeVer, LIMITES, RECOMENDACOES_NA_TELA } from '../lib/plano';
+import { Vitrine } from '../components/Plano';
 import { jaComprou, ehLivre } from '../lib/pago';
 import { EVENTOS } from '../lib/xp';
 
@@ -45,7 +46,9 @@ export default function Estudo() {
   const feitas = useLiveQuery(() => db.recFeitas.toArray(), [], []) || [];
   const vistas = useMemo(() => assistidas.map((a) => a.videoId), [assistidas]);
 
-  const [aba, setAba] = useState('pravoce');
+  /* "Pra você" sai dos rolas e é do premium: no grátis a tela abre em Por tema */
+  const praVoceLivre = podeVer(acesso, 'recomendacoes');
+  const [aba, setAba] = useState(praVoceLivre ? 'pravoce' : 'temas');
   const [vistasNaTela, setVistasNaTela] = useState(12);
   const [ajudaPontos, setAjudaPontos] = useState(false);
   const [tema, setTema] = useState(null);
@@ -93,11 +96,7 @@ export default function Estudo() {
     [tecnicas, buracos, partners, sessions, rolls, faixa, feitas]
   );
 
-  /* no grátis abre uma, e o resto conta como o que está faltando */
-  const { itens: recs, cortados: recsCortadas } = useMemo(
-    () => limitarLista(todasRecs, acesso, LIMITES.recomendacoesAbertas),
-    [todasRecs, acesso]
-  );
+  const recs = todasRecs;
 
   /* o que o app acha que você precisa ver agora */
   const paraVoce = useMemo(() => {
@@ -237,7 +236,7 @@ export default function Estudo() {
       <div style={{ height: 14 }} />
 
       {/* ---------- pra você ---------- */}
-      {aba === 'pravoce' && (!minhas.length || editandoDif ? (
+      {aba === 'pravoce' && praVoceLivre && (!minhas.length || editandoDif ? (
         <Card style={{ marginBottom: 14 }}>
           <div className="card-head">
             <div>
@@ -280,6 +279,26 @@ export default function Estudo() {
             </p>
             <ListaAulas aulas={entrada} vistas={vistas} onTocar={(a) => tocar(a, origemDe('estudo', 'entrada'))} />
           </Card>
+        ) : !praVoceLivre ? (
+          /* no grátis: o primeiro assunto real, borrado, e as outras abas livres */
+          <Vitrine
+            recurso="recomendacoes"
+            fundo={(
+              <Card>
+                <div className="eyebrow">por causa disso</div>
+                <h2 className="h-sec">{paraVoce[0].motivo}</h2>
+                <p className="tiny muted" style={{ marginTop: 8, lineHeight: 1.65 }}>{paraVoce[0].texto}</p>
+              </Card>
+            )}
+            titulo="Aulas escolhidas pelos seus rolas"
+            texto={`O app já separou ${paraVoce.length} ${paraVoce.length === 1 ? 'assunto' : 'assuntos'} pelo que aparece nos seus treinos. Por tema e por dificuldade continuam abertos.`}
+            itens={[
+              'A aula que ataca o que mais te pega',
+              'O que estudar pra repetir o que já está saindo',
+              'Aulas do seu estilo de jogo',
+            ]}
+            onAssinar={() => irPara('ajustes')}
+          />
         ) : (
           <div className="col" style={{ gap: 16 }}>
             {paraVoce.map((b, i) => (
@@ -295,14 +314,6 @@ export default function Estudo() {
               </Card>
             ))}
 
-            {recsCortadas > 0 && (
-              <button className="valida atencao" onClick={() => irPara('ajustes')} style={{ width: '100%', textAlign: 'left' }}>
-                <p className="micro muted" style={{ lineHeight: 1.65 }}>
-                  Tem mais {recsCortadas} {recsCortadas === 1 ? 'assunto' : 'assuntos'} que saíram dos seus registros.
-                  No plano grátis abre um por vez. Toque aqui pra ver o premium.
-                </p>
-              </button>
-            )}
           </div>
         )
       )}

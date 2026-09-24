@@ -14,10 +14,10 @@ import {
 } from '../lib/graus';
 import { Ponteira } from '../components/Ponteira';
 import { faltaPara, recomendacoesDoAluno, INTENCOES, aderencia } from '../lib/recomendar';
-import Recomendacao from '../components/Recomendacao';
+import Recomendacao, { VitrineRecomendacao } from '../components/Recomendacao';
 import { buscaMatch, relativo } from '../lib/utils';
 import { posInicialPorId } from '../db/scoring';
-import { limitarLista, LIMITES, RECOMENDACOES_NA_TELA } from '../lib/plano';
+import { podeVer, RECOMENDACOES_NA_TELA } from '../lib/plano';
 
 export default function Dominio() {
   const { rolls, partners, sessions, techniques, categories, goals, gradings, settings, irPara, acesso } = useApp();
@@ -42,11 +42,9 @@ export default function Dominio() {
     [tecnicas, buracos, partners, sessions, rolls, faixa, feitas]
   );
 
-  /* no grátis abre uma, e o resto vira o tamanho do que falta */
-  const { itens: recs, cortados } = useMemo(
-    () => limitarLista(todasRecs, acesso, LIMITES.recomendacoesAbertas),
-    [todasRecs, acesso]
-  );
+  /* no grátis "o que treinar agora" vira vitrine: sai dos rolas, é do premium */
+  const recsLivres = podeVer(acesso, 'recomendacoes');
+  const recs = todasRecs;
   const adesao = useMemo(() => aderencia(feitas), [feitas]);
   const catById = useMemo(() => Object.fromEntries(categories.map((c) => [c.id, c])), [categories]);
 
@@ -102,25 +100,20 @@ export default function Dominio() {
               <h2 className="h-sec">O que treinar agora</h2>
             </div>
           </div>
-          <div className="col" style={{ gap: 10 }}>
-            {recs.map((r, i) => (
-              <Recomendacao
-                key={`${r.intencao}:${r.alvo || i}`}
-                rec={r}
-                tela="dominio"
-                faixa={faixa}
-                vistas={vistas.map((v) => v.videoId)}
-              />
-            ))}
-          </div>
-
-          {cortados > 0 && (
-            <button className="valida atencao" onClick={() => irPara('ajustes')} style={{ width: '100%', textAlign: 'left', marginTop: 12 }}>
-              <p className="micro muted" style={{ lineHeight: 1.65 }}>
-                O app achou mais {cortados} {cortados === 1 ? 'coisa' : 'coisas'} pra você treinar a partir dos seus
-                registros. No plano grátis abre uma por vez. Toque aqui pra ver o premium.
-              </p>
-            </button>
+          {recsLivres ? (
+            <div className="col" style={{ gap: 10 }}>
+              {recs.map((r, i) => (
+                <Recomendacao
+                  key={`${r.intencao}:${r.alvo || i}`}
+                  rec={r}
+                  tela="dominio"
+                  faixa={faixa}
+                  vistas={vistas.map((v) => v.videoId)}
+                />
+              ))}
+            </div>
+          ) : (
+            <VitrineRecomendacao recs={recs} faixa={faixa} vistas={vistas.map((v) => v.videoId)} onAssinar={() => irPara('ajustes')} />
           )}
 
           {adesao && adesao.total >= 2 && (

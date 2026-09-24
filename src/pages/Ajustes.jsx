@@ -116,6 +116,9 @@ export default function Ajustes() {
               {professores.filter((p) => !settings.academiaPadraoId || p.academiaId === settings.academiaPadraoId).map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
             </Select>
           </Field>
+          <Field label="Duração padrão do treino (min)" hint="O novo treino já abre com ela.">
+            <Stepper value={Number(settings.duracaoTreinoPadrao) || 90} onChange={(v) => set('duracaoTreinoPadrao', v)} min={15} max={240} step={15} />
+          </Field>
           <Field label="Peso (kg)"><Input type="number" value={settings.pesoKg} onChange={(e) => set('pesoKg', e.target.value)} /></Field>
           <Field label="Faixa" hint="Filtra as finalizações legais pra você.">
             <Select value={settings.faixa} onChange={(e) => set('faixa', e.target.value)}>

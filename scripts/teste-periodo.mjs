@@ -208,6 +208,26 @@ ok('a meta diz o período pelo nome, sem o intervalo de datas', freq.quando.incl
 const buracosM = [{ nome: 'Americana', recente: 2, ultima: addDias(hoje(), -10) }];
 const defesa = prog({ tipo: 'defesa', alvo: 'Americana', ajuste: 3 }, { buracos: buracosM });
 ok('defesa: dias sem ser pego, a barra anda', [defesa.valor, defesa.pct, defesa.semBotao], ['10 de 30 dias', 33, true]);
+
+/* quando zerou: sai dos rolas, da mais recente pra mais antiga */
+const zerados = M.historicoDaMeta(assumida({ tipo: 'defesa', alvo: 'Americana' }), {
+  sessions: [{ id: 'z1', data: antes(20) }, { id: 'z2', data: antes(10) }, { id: 'z3', data: antes(10) }, { id: 'z4', data: antes(5) }],
+  rolls: [
+    { sessionId: 'z1', partnerId: 1, subsSofridas: ['Americana'] },
+    { sessionId: 'z2', partnerId: 2, subsSofridas: ['Americana '] },
+    { sessionId: 'z3', partnerId: null, subsSofridas: ['Americana'] },
+    { sessionId: 'z4', partnerId: 1, subsSofridas: ['Kimura'] },
+  ],
+  partners: [{ id: 1, nome: 'Brabo' }, { id: 2, nome: 'Zé' }],
+});
+ok('zerou: uma linha por vez que pegou, a última primeiro', zerados.map((z) => z.data), [antes(10), antes(10), antes(20)]);
+ok('zerou: diz com quem e em quanto estava', [zerados[1].texto, zerados[1].detalhe, zerados[2].detalhe, zerados[0].detalhe],
+  ['Americana te pegou no rola com Zé.', 'A contagem estava em 10 dias e voltou pro zero.', 'A primeira vez registrada.', 'De novo no mesmo dia.']);
+
+/* frequência: as semanas que já fecharam, desde a semana em que a meta nasceu */
+const semanas = M.historicoDaMeta(assumida({ tipo: 'frequencia', alvo: 1, inicio: antes(15) }), { sessions: treinosM });
+const primeiraSemana = P.periodoDeDados('semana-atual', { hoje: antes(15) }).ini;
+ok('frequência: uma linha por semana fechada, sem a semana atual', [semanas.every((s) => s.data < semanaAgora.ini), semanas[semanas.length - 1].data], [true, primeiraSemana]);
 ok('defesa: diz desde quando, em português', defesa.quando.startsWith('Sem bater pra americana desde'), true);
 ok('defesa: ajuste antigo (da conta invertida) não entra', defesa.atual, 10);
 ok('defesa de quem nunca te pegou é meta batida', prog({ tipo: 'defesa', alvo: 'Kimura' }, { buracos: buracosM }).pct, 100);

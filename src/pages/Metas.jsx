@@ -18,11 +18,12 @@ import { minhasTecnicas, meusBuracos, grauPorN, GRAUS } from '../lib/graus';
 import { faltaPara } from '../lib/recomendar';
 import {
   TIPOS_META, tipoPorId, ORIGENS, sugerirMetas, progressoDaMeta, estadoSemMeta, tituloDaMeta, metaDeHorasNoAno,
+  historicoDaMeta,
 } from '../lib/metas';
 import { POSICOES_INICIAIS } from '../db/scoring';
 import { hoje, fmtData, relativo, diasEntre } from '../lib/utils';
 import { podeVer, LIMITES } from '../lib/plano';
-import { Travado } from '../components/Plano';
+import { Convite } from '../components/Plano';
 
 const vazia = () => ({
   tipo: 'frequencia',
@@ -166,7 +167,7 @@ export default function Metas() {
             {ativas.map((g) => (
               <CartaoMeta
                 key={g.id} g={g}
-                dados={{ sessions, rolls, tecnicas, buracos, aulas, quiz }}
+                dados={{ sessions, rolls, partners, tecnicas, buracos, aulas, quiz }}
                 faixa={faixa}
                 onEdit={() => setEdit({ ...g })}
                 onDel={() => setExcluir(g)}
@@ -259,7 +260,18 @@ export default function Metas() {
 
       {/* criar a própria meta, ou passar do limite, no grátis */}
       <Sheet aberto={convite} onClose={() => setConvite(false)} titulo="">
-        <Travado recurso="metas" acesso={acesso} onAssinar={() => { setConvite(false); irPara('ajustes'); }} />
+        <Convite
+          recurso="metas"
+          icone={Target}
+          titulo="Metas do seu jeito"
+          texto={`No grátis você assume até ${LIMITES.metasAtivas} metas que o app sugere pelo seu momento. No premium você cria as suas e acompanha quantas quiser.`}
+          itens={[
+            'Crie a meta que você quiser, com o seu alvo',
+            'Quantas metas ativas precisar',
+            'O app continua contando sozinho pelos seus registros',
+          ]}
+          onAssinar={() => { setConvite(false); irPara('ajustes'); }}
+        />
       </Sheet>
 
       {/* editor */}
@@ -482,16 +494,22 @@ function CartaoMeta({ g, dados, faixa, onEdit, onDel, onConcluir, onContar, onCo
   const tipo = tipoPorId(g.tipo);
   const t = g.tipo === 'tecnica' ? dados.tecnicas.find((x) => x.nome === g.alvo) : null;
   const falta = t ? faltaPara(t, faixa) : null;
+  const historico = historicoDaMeta(g, dados);
+  const [verHistorico, setVerHistorico] = useState(false);
 
   return (
     <Card className="hover" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {/* título na largura toda: os botões ficam na linha dos selos */}
       <div className="row" style={{ alignItems: 'flex-start' }}>
         <div className="row wrap" style={{ gap: 6, flex: 1, minWidth: 0 }}>
-          <Chip tone={tipo.processo ? 'jade' : 'warn'}>{tipo.nome}</Chip>
+          {/* no celular estreito o nome do tipo encurta com reticências em vez de
+              passar por baixo dos botões */}
+          <Chip tone={tipo.processo ? 'jade' : 'warn'} title={tipo.nome} style={{ maxWidth: '100%', minWidth: 0 }}>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{tipo.nome}</span>
+          </Chip>
           {p.concluida && <Chip tone="jade"><Check size={11} /> feita</Chip>}
         </div>
-        <div className="row" style={{ gap: 2 }}>
+        <div className="row" style={{ gap: 2, flex: 'none' }}>
           <button className="btn ghost icon sm" aria-label="Compartilhar" onClick={() => onCompartilhar(p)}><Share2 size={14} /></button>
           <button className="btn ghost icon sm" onClick={onEdit}><Pencil size={14} /></button>
           <button className="btn ghost icon sm" onClick={onDel}><Trash2 size={14} /></button>
@@ -517,6 +535,33 @@ function CartaoMeta({ g, dados, faixa, onEdit, onDel, onConcluir, onContar, onCo
         <span className="tiny">{p.texto}</span>
         <span className="micro muted">{[p.quando, ORIGENS[g.origem]?.nome || 'Você criou'].filter(Boolean).join(' · ')}</span>
       </div>
+
+      {/* por que zerou: a última vez fica à vista, as outras abrem embaixo */}
+      {historico.length > 0 && (
+        <div className="meta-zerou">
+          {g.tipo === 'defesa' && (
+            <p className="micro" style={{ lineHeight: 1.6 }}>
+              <b>Zerou em {fmtData(historico[0].data, { curto: true })}:</b> <span className="muted">{historico[0].texto}</span>
+            </p>
+          )}
+          <button type="button" className="btn ghost xs" style={{ alignSelf: 'flex-start' }} onClick={() => setVerHistorico(!verHistorico)}>
+            <Clock size={13} /> {g.tipo === 'frequencia' ? 'Semanas anteriores' : 'Quando zerou'} ({historico.length})
+          </button>
+          {verHistorico && (
+            <ol className="meta-zerou-lista">
+              {historico.map((h, i) => (
+                <li key={i} className={h.batida ? 'batida' : ''}>
+                  <span className="micro num muted">{fmtData(h.data, { curto: true })}</span>
+                  <div>
+                    <div className="micro" style={{ fontWeight: 600 }}>{h.texto}</div>
+                    <div className="micro muted">{h.detalhe}</div>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      )}
 
       {p.conta && !p.semBotao && typeof p.atual === 'number' && (
         <div className="contador">
