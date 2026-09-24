@@ -106,6 +106,10 @@ export function traduzErro(e) {
   if (/Email not confirmed/i.test(m)) return 'Confirme seu e-mail antes de entrar (olhe a caixa de entrada).';
   if (/User already registered/i.test(m)) return 'Esse e-mail já tem conta. Tente entrar.';
   if (/Password should be at least/i.test(m)) return 'A senha precisa ter pelo menos 6 caracteres.';
+  if (/Auth session missing|session_not_found|otp_expired|link is invalid or has expired/i.test(m)) return 'Esse link expirou ou já foi usado. Peça um novo em "Esqueci a senha".';
+  if (/should be different from the old password/i.test(m)) return 'A senha nova precisa ser diferente da antiga.';
+  if (/invalid format|validate email address/i.test(m)) return 'Esse e-mail não parece válido. Confere se digitou certo.';
+  if (/security purposes/i.test(m)) return 'Espera alguns segundos antes de pedir de novo.';
   if (/rate limit|too many/i.test(m)) return 'Muitas tentativas. Espera um pouco e tenta de novo.';
   if (/Failed to fetch|NetworkError/i.test(m)) return 'Sem conexão com o servidor. Seus dados continuam salvos no aparelho.';
   if (/exceeded the maximum allowed size/i.test(m)) return 'Arquivo grande demais para o plano atual do Supabase.';

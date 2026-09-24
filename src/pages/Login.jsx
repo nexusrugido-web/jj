@@ -6,7 +6,7 @@ import {
   recuperarSenha, trocarSenha, traduzErro,
 } from '../lib/supabase';
 
-export default function Login({ onPular, modoInicial }) {
+export default function Login({ onPular, onPronto, modoInicial }) {
   const toast = useToast();
   const [modo, setModo] = useState(modoInicial || 'entrar'); // entrar | criar | recuperar | nova_senha
   const [email, setEmail] = useState('');
@@ -25,6 +25,12 @@ export default function Login({ onPular, modoInicial }) {
         toast('Bem-vindo de volta');
       } else if (modo === 'criar') {
         const r = await cadastrar(email.trim(), senha, nome);
+        /* e-mail que já tem conta volta sem erro e sem identidade, pra
+           não revelar quem é cliente. Sem isso a tela dizia "olha seu
+           e-mail" e nenhum e-mail chegava. */
+        if (r?.user && Array.isArray(r.user.identities) && r.user.identities.length === 0) {
+          throw new Error('User already registered');
+        }
         if (r?.user && !r?.session) {
           setEnviado(true);
           toast('Confirme o e-mail que enviamos');
@@ -36,6 +42,9 @@ export default function Login({ onPular, modoInicial }) {
         await trocarSenha(senha);
         toast('Senha trocada. Bem-vindo de volta.');
         history.replaceState({}, '', location.pathname);
+        /* trocar a senha não é "entrar": sem fechar aqui, a tela
+           ficava parada pedindo a senha que acabou de ser salva */
+        onPronto?.();
       } else {
         await recuperarSenha(email.trim());
         setEnviado(true);
@@ -176,6 +185,11 @@ export default function Login({ onPular, modoInicial }) {
                   <button className="btn ghost xs" onClick={() => setModo('criar')}>Criar conta</button>
                   <button className="btn ghost xs" onClick={() => setModo('recuperar')}>Esqueci a senha</button>
                 </>
+              )}
+              {modo === 'nova_senha' && (
+                <button className="btn ghost xs" onClick={() => { history.replaceState({}, '', location.pathname); setModo('recuperar'); }}>
+                  O link não funcionou? Pedir outro
+                </button>
               )}
               {modo !== 'entrar' && modo !== 'nova_senha' && (
                 <button className="btn ghost xs" onClick={() => setModo('entrar')}><ArrowLeft size={12} /> Voltar pro login</button>

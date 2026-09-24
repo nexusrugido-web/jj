@@ -298,7 +298,9 @@ export default function App() {
         return;
       }
       if (evento === 'SIGNED_IN') {
-        setTelaLogin(false);
+        /* o link de recuperar senha também entra: a tela de senha nova
+           tem que ficar até a pessoa salvar */
+        if (new URLSearchParams(location.search).get('recuperar') !== '1') setTelaLogin(false);
         await setMeta('viu_login', true);
         iniciarSync();
         const migrou = await getMeta('migrou_nuvem', false);
@@ -451,7 +453,7 @@ export default function App() {
   if (telaLogin) {
     return (
       <ToastProvider>
-        <Login modoInicial={modoLogin} onPular={async () => { await setMeta('viu_login', true); setTelaLogin(false); setModoLogin('entrar'); }} />
+        <Login modoInicial={modoLogin} onPronto={() => { setTelaLogin(false); setModoLogin('entrar'); }} onPular={async () => { await setMeta('viu_login', true); setTelaLogin(false); setModoLogin('entrar'); }} />
       </ToastProvider>
     );
   }
