@@ -19,10 +19,12 @@ export function placarDaRola(r) {
   const finMeus = (r.subsAplicadas || []).length;
   const finDele = (r.subsSofridas || []).length;
 
+  /* no treino o rola recomeça depois do tap: quem finalizou mais
+     vezes ganhou, e só o empate nas finalizações é troca de taps */
   let resultado = 'empate';
-  if (finMeus > 0 && finDele > 0) resultado = 'ambos';
-  else if (finMeus > 0) resultado = 'finalizei';
-  else if (finDele > 0) resultado = 'fui_finalizado';
+  if (finMeus > finDele) resultado = 'finalizei';
+  else if (finDele > finMeus) resultado = 'fui_finalizado';
+  else if (finMeus > 0) resultado = 'ambos';
   else if (meus > dele) resultado = 'venci_pontos';
   else if (dele > meus) resultado = 'perdi_pontos';
   else if ((r.vantMinhas || 0) > (r.vantDele || 0)) resultado = 'venci_vantagem';

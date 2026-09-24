@@ -14,11 +14,8 @@ import { Card, Chip } from './UI';
    ============================================================ */
 
 export default function Destaques({ resumo, onVerTudo }) {
-  /* topAplicadas e topSofridas vêm de contar(): pares [nome, vezes] */
-  const [armaNome, armaN] = resumo.topAplicadas?.[0] || [];
-  const [buracoNome, buracoN] = resumo.topSofridas?.[0] || [];
-  const arma = armaNome && { nome: armaNome, n: armaN };
-  const buraco = buracoNome && { nome: buracoNome, n: buracoN };
+  const arma = primeiro(resumo.topAplicadas);
+  const buraco = primeiro(resumo.topSofridas);
 
   if (!arma && !buraco) return null;
 
@@ -31,7 +28,9 @@ export default function Destaques({ resumo, onVerTudo }) {
         nome={arma?.nome}
         vezes={arma?.n}
         vazio="Registre uma finalização pra descobrir"
-        leitura={arma && `Saiu ${arma.n} ${arma.n === 1 ? 'vez' : 'vezes'}. É por aqui que o seu jogo fecha.`}
+        leitura={arma && (arma.empate
+          ? `${arma.empate}, ${arma.n} ${arma.n === 1 ? 'vez' : 'vezes'} cada. A que sair de novo passa na frente.`
+          : `Saiu ${arma.n} ${arma.n === 1 ? 'vez' : 'vezes'}. É por aqui que o seu jogo fecha.`)}
       />
       <Destaque
         tom="blood"
@@ -40,10 +39,23 @@ export default function Destaques({ resumo, onVerTudo }) {
         nome={buraco?.nome}
         vezes={buraco?.n}
         vazio="Nada te pegou ainda"
-        leitura={buraco && `Você bateu ${buraco.n} ${buraco.n === 1 ? 'vez' : 'vezes'} disso. Treinar a saída rende mais que técnica nova.`}
+        leitura={buraco && (buraco.empate
+          ? `${buraco.empate}, ${buraco.n} ${buraco.n === 1 ? 'vez' : 'vezes'} cada. Treinar a saída rende mais que técnica nova.`
+          : `Você bateu ${buraco.n} ${buraco.n === 1 ? 'vez' : 'vezes'} disso. Treinar a saída rende mais que técnica nova.`)}
       />
     </div>
   );
+}
+
+/* A lista vem de contar(): pares [nome, vezes], do mais pro menos.
+   Empatadas no topo, nenhuma é "a melhor": o card diz o empate. */
+function primeiro(lista = []) {
+  if (!lista.length) return null;
+  const n = lista[0][1];
+  const nomes = lista.filter(([, v]) => v === n).map(([nome]) => nome);
+  if (nomes.length === 1) return { nome: nomes[0], n };
+  const juntos = `${nomes.slice(0, -1).join(', ')} e ${nomes[nomes.length - 1]}`;
+  return { nome: 'Empate', n, empate: juntos };
 }
 
 function Destaque({ tom, icone: Icone, rotulo, nome, vezes, vazio, leitura }) {

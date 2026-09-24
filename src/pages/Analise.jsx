@@ -14,6 +14,7 @@ import { minhasTecnicas } from '../lib/graus';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { resumo, escadaPosicional, radarHabilidades, buracosNoJogo } from '../lib/stats';
+import { placarDaRola } from '../lib/game';
 import { toCSV } from '../db/db';
 import { baixarArquivo, fmtDur, contar, hoje } from '../lib/utils';
 
@@ -70,7 +71,7 @@ export default function Analise() {
         parceiro: p?.nome || '',
         faixa_parceiro: p?.faixa || '',
         duracao_min: rr.duracao,
-        resultado: rr.resultado,
+        resultado: placarDaRola(rr).resultado,
         finalizacoes_aplicadas: (rr.subsAplicadas || []).join('|'),
         finalizacoes_sofridas: (rr.subsSofridas || []).join('|'),
         notas: rr.notas || '',

@@ -41,6 +41,9 @@ export function treinosNaSemana(sessions, ref = hoje()) {
   return { qtd: dias.size, ini, fim };
 }
 
+const teveFin = (r) => (r.subsAplicadas || []).length > 0 || r.resultado === 'finalizei' || r.resultado === 'ambos';
+const teveTap = (r) => (r.subsSofridas || []).length > 0 || r.resultado === 'fui_finalizado' || r.resultado === 'ambos';
+
 /* ---------- resumo geral ---------- */
 export function resumo(sessions, rolls) {
   const matMin = sessions.reduce((a, s) => a + (Number(s.duracao) || 0), 0);
@@ -50,8 +53,10 @@ export function resumo(sessions, rolls) {
      coisas infla o número e tira o sentido dele. */
   const lutas = rolls.filter((r) => (r.contexto || 'rola') !== 'drill');
   const total = lutas.length;
-  const fin = lutas.filter((r) => r.resultado === 'finalizei' || r.resultado === 'ambos').length;
-  const tap = lutas.filter((r) => r.resultado === 'fui_finalizado' || r.resultado === 'ambos').length;
+  /* conta o rola que teve tap, não só o resultado: no 2 a 1 você também
+     bateu. O resultado guardado segura os rolas antigos, sem a lista. */
+  const fin = lutas.filter(teveFin).length;
+  const tap = lutas.filter(teveTap).length;
   const placares = lutas.map(placarDaRola);
   const vitorias = placares.filter((p) => p.ganhou).length;
 
@@ -195,7 +200,7 @@ export function buracosNoJogo(rolls, positions) {
 /* ---------- parceiros ---------- */
 export function statsParceiro(rolls, partnerId) {
   const r = rolls.filter((x) => x.partnerId === partnerId);
-  const fin = r.filter((x) => x.resultado === 'finalizei' || x.resultado === 'ambos').length;
-  const tap = r.filter((x) => x.resultado === 'fui_finalizado' || x.resultado === 'ambos').length;
+  const fin = r.filter(teveFin).length;
+  const tap = r.filter(teveTap).length;
   return { rolas: r.length, fin, tap, saldo: fin - tap };
 }
