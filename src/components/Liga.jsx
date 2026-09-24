@@ -8,7 +8,7 @@ import {
   Card, Btn, Chip, Empty, Stat, Sheet, Field, Input, BeltTag, useToast,
 } from './UI';
 import { ajusteDe } from '../lib/ajustes';
-import { subirPraLiga, corteDoGrupo, nomeCurto } from '../lib/liga';
+import { subirPraLiga, corteDoGrupo, nomeCurto, DIVISOES_LIGA, nomeDivisao } from '../lib/liga';
 import { fmtData } from '../lib/utils';
 
 /* ============================================================
@@ -19,9 +19,9 @@ import { fmtData } from '../lib/utils';
    espera, e a corrida começa quando chega a segunda pessoa.
    Entrou no grupo, fica até a semana fechar.
 
-   A divisão tem nome de faixa, e não é a faixa da pessoa. Ela é
-   o degrau em que você está no jogo: um faixa branca que vai bem
-   chega na divisão Roxa e continua sendo faixa branca.
+   A divisão é o degrau em que você está na liga, com nome de
+   circuito de campeonato (lib/liga, DIVISOES_LIGA): um faixa
+   branca que vai bem chega no Mundial e continua faixa branca.
 
    Pros outros aparece o nome curto (primeiro nome e a inicial),
    o apelido, ou "Anônimo". Nada do que a pessoa registra nos
@@ -30,6 +30,11 @@ import { fmtData } from '../lib/utils';
 
 const ACIMA = { branca: 'azul', azul: 'roxa', roxa: 'marrom', marrom: 'preta', preta: 'preta' };
 const acima = (d) => ACIMA[d] || 'azul';
+
+function DivisaoTag({ id, prefixo = '' }) {
+  const d = DIVISOES_LIGA[id] || DIVISOES_LIGA.branca;
+  return <Chip tone={d.tom}><Trophy size={11} /> {prefixo}{d.nome}</Chip>;
+}
 
 export default function Liga({ compacto = false }) {
   const { sessao, irPara, ligada, settings } = useApp();
@@ -158,7 +163,7 @@ export default function Liga({ compacto = false }) {
             <Hourglass size={11} /> {total} {total === 1 ? 'pessoa' : 'pessoas'} · fecha segunda ao meio-dia
           </Chip>
           <h2 className="h-sec row" style={{ gap: 8 }}>
-            <Trophy size={16} /> Divisão <BeltTag faixa={divisao} graus={0} />
+            <Trophy size={16} /> Divisão <DivisaoTag id={divisao} />
           </h2>
         </div>
         <Btn size="sm" variant="ghost" icon={RefreshCw} onClick={() => buscar({ subir: true })} disabled={carregando}>
@@ -218,7 +223,7 @@ export default function Liga({ compacto = false }) {
               <span className="tiny" style={{ flex: 1, fontWeight: l.sou_eu ? 600 : 400, textAlign: 'left' }}>
                 {l.nome}{l.sou_eu ? ' (você)' : ''}
               </span>
-              {misturado && <BeltTag faixa={div} graus={0} />}
+              {misturado && <DivisaoTag id={div} />}
               {l.sequencia > 0 && (
                 <span className="micro num row" style={{ gap: 3, color: 'var(--roar)' }} title="dias de ofensiva">
                   <Flame size={12} /> {l.sequencia}
@@ -239,7 +244,7 @@ export default function Liga({ compacto = false }) {
             : <>
                 A semana fecha segunda ao meio-dia, e o treino de domingo registrado até lá ainda conta.{' '}
                 {sobem === 1 ? 'O primeiro que pontuou sobe' : `Os ${sobem} primeiros que pontuaram sobem`} de divisão
-                {divisao === 'preta' || misturado ? '' : `, pra ${acima(divisao)}`}
+                {divisao === 'preta' || misturado ? '' : `, pra ${nomeDivisao(acima(divisao))}`}
                 {descem
                   ? (descem === 1 ? ', e o último desce.' : `, e os ${descem} últimos descem.`)
                   : '. Com o grupo deste tamanho, ninguém desce.'}
@@ -363,13 +368,12 @@ function PerfilDoColega({ linha, onClose }) {
         <div className="col" style={{ gap: 16 }}>
           <div className="row wrap" style={{ gap: 8 }}>
             <BeltTag faixa={p.faixa} graus={p.graus || 0}>Faixa {p.faixa}</BeltTag>
-            <BeltTag faixa={p.divisao} graus={0}>Divisão {p.divisao}</BeltTag>
+            <DivisaoTag id={p.divisao} prefixo="Divisão " />
           </div>
           <div className="grid g2" style={{ gap: 14 }}>
             <Stat size="sm" icon={Flame} valor={p.sequencia || 0} label={p.sequencia === 1 ? 'dia de ofensiva' : 'dias de ofensiva'} tone={p.sequencia ? 'roar' : undefined} />
             <Stat size="sm" icon={Dumbbell} valor={p.treinos_semana ? `${p.treinos_semana}x` : '?'} label="treinos por semana" />
             <Stat size="sm" icon={Trophy} valor={p.xp_semana || 0} label="pontos nesta semana" tone="accent" />
-            <Stat size="sm" valor={p.total || 0} label="pontos na jornada" />
           </div>
           {p.semanas > 0 && (
             <p className="micro muted">

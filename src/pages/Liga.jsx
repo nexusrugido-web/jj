@@ -1,117 +1,46 @@
 import React, { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
-  Flame, Award, Info, Lock, Check, Swords, ChevronRight, Crown, ShieldCheck, Share2,
+  Flame, Info, Swords, ChevronRight, Crown, ShieldCheck, Share2,
 } from 'lucide-react';
 import { db } from '../db/db';
 import { useApp } from '../contexto';
-import { Card, Btn, Stat, Empty, Bar, Sheet, useToast } from '../components/UI';
+import { Card, Btn, Empty, Sheet, useToast } from '../components/UI';
 import { compartilhar } from '../lib/card';
 import Liga from '../components/Liga';
 import Par from '../components/Par';
 import RankingOfensivas from '../components/RankingOfensivas';
 import ListaResumida from '../components/ListaResumida';
-import RotuloPeriodo from '../components/RotuloPeriodo';
-import { periodoDeDados, dentroDoPeriodo } from '../lib/periodo';
-import { EVENTOS, DIVISOES, divisaoPorXp, proximaDivisao, semanaDe } from '../lib/xp';
+import { EVENTOS, semanaDe } from '../lib/xp';
+import { DIVISOES_LIGA } from '../lib/liga';
 import { ofensiva, textoOfensiva, diasFechados, diasParadosPorLesao, MAX_ESCUDOS, DIAS_POR_ESCUDO } from '../lib/ofensiva';
 import { relativo, hoje, addDias, fmtData } from '../lib/utils';
 
-/* Duas janelas, e não quatro.
-
-   A liga já mede a semana e zera toda segunda. A temporada
-   mensal saiu. O que sobra aqui são as duas perguntas que a
-   liga não responde: estou mantendo o passo, e de que tamanho
-   é o caminho que eu já fiz. */
-const JANELAS = [
-  {
-    id: 'ritmo', nome: 'Ritmo', intervalo: 'últimos 30 dias',
-    texto: 'Um mês é o intervalo em que dá pra ver hábito. Semana ruim acontece com todo mundo, mês inteiro parado é outra conversa.',
-  },
-  {
-    id: 'jornada', nome: 'Jornada', intervalo: 'desde o primeiro registro',
-    texto: 'Tudo que você já fez. Este número nunca volta pra trás, e é ele que mostra o tamanho do caminho.',
-  },
-];
-
 /* ============================================================
-   AS FASES
+   A LIGA
 
-   Cada divisão vira uma fase com nome de lugar, porque ponto
-   solto não diz nada e "Praticante" sozinho também não. O nome
-   do lugar diz o que muda quando você chega lá.
+   Esforço, social, e zera toda segunda: pontos de treino, de aula
+   e de quiz contra um grupo de gente com ritmo parecido. O que é
+   do seu jogo (técnicas, graus, rolas) fica nas telas de Evolução
+   e ninguém mais vê.
    ============================================================ */
-const ARENAS = {
-  iniciante: {
-    fase: 'Fase 1',
-    arena: 'Tatame de casa',
-    lema: 'Aqui o jogo é aparecer. Só isso.',
-    libera: 'Registrar treino, contar o que funcionou e ver a sua presença no mês.',
-  },
-  praticante: {
-    fase: 'Fase 2',
-    arena: 'Roda de treino',
-    lema: 'Você já tem ritmo. Agora é encaixar contra quem resiste.',
-    libera: 'Os graus das suas técnicas começam a fazer sentido, porque já tem registro suficiente.',
-  },
-  competidor: {
-    fase: 'Fase 3',
-    arena: 'Área de luta',
-    lema: 'O seu jogo tem forma. Dá pra escolher onde a luta vai parar.',
-    libera: 'O app já consegue apontar buraco de defesa e caminho de ataque com os seus próprios números.',
-  },
-  veterano: {
-    fase: 'Fase 4',
-    arena: 'Tatame principal',
-    lema: 'Anos somados. Daqui pra frente o número só cresce.',
-    libera: 'Nada trava mais. O que aparece aqui é o tamanho do caminho que você já fez.',
-  },
-};
-
-export default function Jornada() {
+export default function LigaPagina() {
   const { irPara } = useApp();
   const pontos = useLiveQuery(() => db.pontos.toArray(), [], []) || [];
   const [comoFunciona, setComoFunciona] = useState(false);
-  const [periodo, setPeriodo] = useState('ritmo');
 
   const dados = useMemo(() => {
-    /* cada janela conta só o que aconteceu dentro dela. Antes os
-       três botões mostravam o mesmo número, que é o que deixava
-       a tela sem sentido. */
     const soma = (f) => pontos.filter(f).reduce((a, x) => a + (x.xp || 0), 0);
     const sem = semanaDe();
     const semPassada = semanaDe(addDias(hoje(), -7));
-    const total = soma(() => true);
-    const porEvento = {};
-    for (const l of pontos) porEvento[l.evento] = (porEvento[l.evento] || 0) + l.xp;
-    const div = divisaoPorXp(total);
-    const prox = proximaDivisao(total);
-    const janela = (linhas) => {
-      return {
-        xp: linhas.reduce((a, x) => a + (x.xp || 0), 0),
-        eventos: linhas.length,
-        treinos: linhas.filter((x) => x.evento === 'treino').length,
-      };
-    };
-
     /* o seu melhor 7 dias de todos, pra saber contra o que você
        está lutando quando não tem mais ninguém na sala */
     const porSemana = {};
     for (const l of pontos) porSemana[l.semana] = (porSemana[l.semana] || 0) + (l.xp || 0);
-    const recorde = Math.max(0, ...Object.values(porSemana));
-
     return {
-      total,
       semana: soma((x) => x.semana === sem),
       semanaPassada: soma((x) => x.semana === semPassada),
-      recordeSemana: recorde,
-      porEvento,
-      divisao: div,
-      proxima: prox,
-      janelas: {
-        ritmo: janela(dentroDoPeriodo(pontos, periodoDeDados('ultimos-30'))),
-        jornada: janela(pontos),
-      },
+      recordeSemana: Math.max(0, ...Object.values(porSemana)),
     };
   }, [pontos]);
 
@@ -130,71 +59,21 @@ export default function Jornada() {
         <Card>
           <Empty
             icon={Flame}
-            titulo="Sua jornada começa no primeiro registro"
-            texto="Cada treino anotado, cada aula assistida e cada pergunta do quiz soma pontos. Eles nunca zeram, porque evolução no jiu-jitsu não zera toda segunda-feira."
+            titulo="Sua liga começa no primeiro ponto"
+            texto="Cada treino anotado, cada aula assistida e cada pergunta do quiz vale pontos na semana. O primeiro ponto já te coloca num grupo com gente de ritmo parecido com o seu."
             acao={<Btn variant="primary" onClick={() => irPara('treinos')}>Registrar treino</Btn>}
           />
         </Card>
-        <Trilha total={0} />
         <ComoFunciona aberto={comoFunciona} onClose={() => setComoFunciona(false)} />
       </div>
     );
   }
-
-  const arena = ARENAS[dados.divisao.id] || ARENAS.iniciante;
-  const faltam = dados.proxima ? dados.proxima.min - dados.total : 0;
-  const feito = dados.total - dados.divisao.min;
-  const trecho = dados.proxima ? dados.proxima.min - dados.divisao.min : 1;
 
   return (
     <div className="page">
       <Cabecalho onComo={() => setComoFunciona(true)} />
 
       <BlocoOfensiva o={ofa} pontos={pontos} lesoes={lesoes} irPara={irPara} />
-
-      {/* ---- a fase em que você está ---- */}
-      <div className="arena" style={{ '--cor': `var(--${dados.divisao.cor})` }}>
-        <div className="arena-luz" />
-        <div className="arena-topo">
-          <span className="arena-fase">{arena.fase}</span>
-          <span className="arena-selo"><Award size={13} /> {dados.divisao.nome}</span>
-        </div>
-
-        <h2 className="arena-nome">{arena.arena}</h2>
-        <p className="arena-lema">{arena.lema}</p>
-
-        <div className="arena-num">
-          <span className="num">{dados.total}</span>
-          <span className="stat-lab">pontos somados</span>
-        </div>
-
-        {dados.proxima ? (
-          <div className="arena-portao">
-            <div className="row tiny" style={{ gap: 8, marginBottom: 7 }}>
-              <span style={{ flex: 1 }}>
-                Portão da {ARENAS[dados.proxima.id]?.arena || dados.proxima.nome}
-              </span>
-              <span className="num micro muted">{feito} de {trecho}</span>
-            </div>
-            <Bar v={feito} max={trecho} />
-            <p className="tiny muted" style={{ marginTop: 8, lineHeight: 1.65 }}>
-              Faltam <b style={{ color: 'var(--chalk)' }}>{faltam} pontos</b> pra abrir.
-              {' '}{ARENAS[dados.proxima.id]?.libera}
-            </p>
-          </div>
-        ) : (
-          <div className="arena-portao">
-            <div className="row" style={{ gap: 9 }}>
-              <Crown size={15} style={{ color: `var(--${dados.divisao.cor})` }} />
-              <p className="tiny muted" style={{ flex: 1, lineHeight: 1.65 }}>
-                Última fase aberta. Daqui pra frente o número só cresce.
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <Trilha total={dados.total} />
 
       {/* ---- a arena da semana ---- */}
       <DueloDaSemana
@@ -204,82 +83,9 @@ export default function Jornada() {
         irPara={irPara}
       />
 
-      <div className="seletor-pill" style={{ marginBottom: 14 }}>
-        {JANELAS.map((o) => (
-          <button key={o.id} className={periodo === o.id ? 'on' : ''} onClick={() => setPeriodo(o.id)}>{o.nome}</button>
-        ))}
-      </div>
-
-      {(() => {
-        const j = JANELAS.find((x) => x.id === periodo) || JANELAS[0];
-        const d = dados.janelas[periodo];
-        return (
-          <Card className="accent" style={{ marginBottom: 14 }}>
-            <div className="card-head">
-              <div>
-                <div className="eyebrow">{j.intervalo}</div>
-                <h2 className="h-sec">{j.nome}</h2>
-              </div>
-            </div>
-            <p className="tiny muted" style={{ lineHeight: 1.7, marginBottom: 14 }}>{j.texto}</p>
-
-            <div className="grid g3" style={{ gap: 12 }}>
-              <Stat size="sm" valor={d.xp} label="pontos" tone="accent" />
-              <Stat size="sm" valor={d.treinos} label={d.treinos === 1 ? 'treino' : 'treinos'} />
-              <Stat size="sm" valor={d.eventos} label="registros" />
-            </div>
-
-            {d.xp === 0 && (
-              <p className="micro muted" style={{ marginTop: 12 }}>
-                Nada registrado neste intervalo ainda.
-              </p>
-            )}
-          </Card>
-        );
-      })()}
-
-      {/* de onde veio */}
-      <Card style={{ marginBottom: 14 }}>
-        <div className="card-head">
-          <div>
-            <RotuloPeriodo periodo={periodoDeDados('desde-inicio')}>de onde vieram os seus pontos</RotuloPeriodo>
-            <h2 className="h-sec">O que você anda fazendo</h2>
-          </div>
-        </div>
-        <div className="col" style={{ gap: 9 }}>
-          {Object.entries(dados.porEvento)
-            .sort((a, b) => b[1] - a[1])
-            .map(([k, v]) => {
-              const e = EVENTOS[k];
-              if (!e) return null;
-              return (
-                <div key={k}>
-                  <div className="row" style={{ gap: 9, marginBottom: 5 }}>
-                    <span className="tiny" style={{ flex: 1, fontWeight: 600 }}>{e.nome}</span>
-                    <span className="num micro" style={{ color: 'var(--accent)' }}>{v}</span>
-                  </div>
-                  <Bar v={v} max={Math.max(...Object.values(dados.porEvento))} />
-                </div>
-              );
-            })}
-        </div>
-      </Card>
-
+      <Liga />
       <RankingOfensivas />
       <Par />
-
-      {/* ---- fase, divisão e faixa são três coisas ----
-          O bloco de cima diz "Fase 2, Praticante" e a liga logo
-          abaixo diz "divisão roxa". Sem esta linha, são duas
-          escadas na mesma tela e ninguém sabe qual é qual. */}
-      <p className="micro muted" style={{ margin: '0 4px 12px', lineHeight: 1.7 }}>
-        A <b style={{ color: 'var(--chalk)' }}>fase</b> lá de cima é sua e sai dos seus pontos: ela só sobe.
-        A <b style={{ color: 'var(--chalk)' }}>divisão</b> aqui embaixo é a da liga, e ela sobe e desce toda
-        semana conforme você vai contra os outros. Nenhuma das duas é a sua{' '}
-        <b style={{ color: 'var(--chalk)' }}>faixa</b>, que continua sendo o que vale no tatame.
-      </p>
-
-      <Liga />
 
       {/* histórico */}
       <Card>
@@ -447,56 +253,6 @@ function BtnCompartilhar({ o }) {
 }
 
 /* ============================================================
-   A TRILHA
-
-   As quatro fases uma do lado da outra, com o caminho entre
-   elas preenchendo conforme os pontos sobem. Fase fechada fica
-   com cadeado e o preço aparece embaixo, pra você saber o que
-   está comprando com treino.
-   ============================================================ */
-function Trilha({ total = 0 }) {
-  const atual = divisaoPorXp(total);
-  return (
-    <Card className="pad-0" style={{ marginBottom: 14 }}>
-      <div style={{ padding: '16px 18px 2px' }}>
-        <div className="eyebrow">o caminho inteiro</div>
-        <h2 className="h-sec">As quatro fases</h2>
-      </div>
-      <div className="trilha">
-        {DIVISOES.map((d, i) => {
-          const prox = DIVISOES[i + 1];
-          const aberta = total >= d.min;
-          const estado = !aberta ? 'trancada' : d.id === atual.id ? 'atual' : 'feita';
-          const pct = !prox
-            ? (aberta ? 100 : 0)
-            : Math.max(0, Math.min(100, ((total - d.min) / (prox.min - d.min)) * 100));
-          const a = ARENAS[d.id] || {};
-          return (
-            <div key={d.id} className={`fase ${estado}`} style={{ '--cor': `var(--${d.cor})` }}>
-              <span className="fase-trilho">
-                <i style={{ width: `${aberta ? pct : 0}%`, background: `var(--${d.cor})` }} />
-              </span>
-              <span className="fase-no">
-                {estado === 'trancada' ? <Lock size={15} />
-                  : estado === 'atual' ? <Swords size={15} />
-                    : <Check size={15} />}
-              </span>
-              <span className="fase-n">{a.fase}</span>
-              <span className="fase-nome">{a.arena}</span>
-              <span className="fase-gate num">{d.min === 0 ? 'aberta' : `${d.min} pts`}</span>
-            </div>
-          );
-        })}
-      </div>
-      <p className="micro muted" style={{ padding: '4px 18px 16px', lineHeight: 1.6 }}>
-        A fase nunca fecha depois de aberta. Ficar seis meses parado não te devolve pra trás, porque o que você
-        treinou não deixa de ter acontecido.
-      </p>
-    </Card>
-  );
-}
-
-/* ============================================================
    A ARENA DA SEMANA
 
    Ninguém precisa de outra pessoa pra ter adversário. O seu
@@ -564,7 +320,7 @@ function Cabecalho({ onComo }) {
   return (
     <div className="page-head">
       <div>
-        <h1 className="h-page">Jornada</h1>
+        <h1 className="h-page">Liga</h1>
       </div>
       <Btn icon={Info} onClick={onComo}>Como funciona</Btn>
     </div>
@@ -573,45 +329,43 @@ function Cabecalho({ onComo }) {
 
 function ComoFunciona({ aberto, onClose }) {
   return (
-    <Sheet aberto={aberto} onClose={onClose} titulo="Como os pontos funcionam" wide>
+    <Sheet aberto={aberto} onClose={onClose} titulo="Como a liga funciona" wide>
       <p className="tiny muted" style={{ lineHeight: 1.7 }}>
         Cada coisa que você registra vale um tanto de pontos. Treinar vale mais que assistir aula, porque é o
         tatame que faz você melhorar. Assistir vale mais que nada, porque entender o porquê também conta.
       </p>
       <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        Os pontos somam e nunca voltam a zero. Serve pra você ver o quanto já andou. Tem dia que o treino
-        parece que não rendeu, aí você abre aqui e vê que em três meses foram trinta treinos. Esse número não
-        mente.
+        Toda semana você corre num grupo pequeno, com gente que treina num ritmo parecido com o seu. Quem faz
+        mais pontos sobe de divisão, quem faz menos desce. Na segunda ao meio-dia a semana fecha e tudo começa
+        de novo.
       </p>
 
       <div className="divider" />
-      <div className="eyebrow">as quatro fases</div>
-      <div className="col" style={{ gap: 9 }}>
-        {DIVISOES.map((d) => {
-          const a = ARENAS[d.id] || {};
-          return (
-            <div key={d.id} className="card" style={{ background: 'var(--void)', padding: 13 }}>
-              <div className="row" style={{ gap: 9, marginBottom: 5 }}>
-                <span className="micro" style={{ color: 'var(--dimmer)' }}>{a.fase}</span>
-                <span className="tiny" style={{ fontWeight: 600, flex: 1, color: `var(--${d.cor})` }}>{a.arena}</span>
-                <span className="num micro muted">{d.min === 0 ? 'aberta' : `${d.min}+`}</span>
-              </div>
-              <p className="micro muted" style={{ lineHeight: 1.6 }}>{a.lema}</p>
-              <p className="micro" style={{ color: 'var(--dimmer)', marginTop: 5, lineHeight: 1.6 }}>{a.libera}</p>
-            </div>
-          );
-        })}
+      <div className="eyebrow">as divisões</div>
+      <div className="row wrap" style={{ gap: 6 }}>
+        {Object.values(DIVISOES_LIGA).map((d, i, lista) => (
+          <span key={d.nome} className="tiny" style={{ fontWeight: 600 }}>
+            {d.nome}{i < lista.length - 1 ? ' →' : ''}
+          </span>
+        ))}
       </div>
       <p className="micro muted" style={{ lineHeight: 1.65 }}>
-        A sua faixa continua sendo o que vale no tatame. As fases aqui são um jeito de enxergar o esforço que
-        você vem colocando, e elas nunca voltam pra trás.
+        A divisão é só da liga e muda toda semana. A sua faixa continua sendo a do tatame, e quem gradua é o seu
+        professor.
+      </p>
+
+      <div className="divider" />
+      <div className="eyebrow">o que os outros veem</div>
+      <p className="tiny muted" style={{ lineHeight: 1.7 }}>
+        O seu nome ou apelido, a sua faixa, a divisão, os pontos da semana, a ofensiva e quantas vezes por
+        semana você disse que treina. As suas técnicas, os graus e o que acontece nos seus rolas ficam só com você.
       </p>
 
       <div className="divider" />
       <div className="eyebrow">a arena da semana</div>
       <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        O seu adversário padrão é a sua semana passada. Ela já jogou, já tem placar e não depende de mais
-        ninguém ter baixado o app. Quando a liga abrir, ela entra por cima disso, não no lugar.
+        Além do grupo, você tem sempre um adversário: a sua semana passada. Ela já jogou e já tem placar,
+        então dá pra ganhar dela mesmo na semana em que o grupo está parado.
       </p>
 
       <div className="divider" />
@@ -630,26 +384,6 @@ function ComoFunciona({ aberto, onClose }) {
           </div>
         ))}
       </div>
-
-      <div className="divider" />
-      <div className="eyebrow">as duas janelas</div>
-      <div className="col" style={{ gap: 10 }}>
-        {JANELAS.map((j) => (
-          <div key={j.id} className="row" style={{ gap: 11, alignItems: 'flex-start', padding: '10px 12px', background: 'var(--void)', borderRadius: 10 }}>
-            <div style={{ flex: 1 }}>
-              <div className="tiny" style={{ fontWeight: 600 }}>{j.nome}</div>
-              <p className="micro muted" style={{ marginTop: 3 }}>{j.intervalo}</p>
-            </div>
-            <span className="micro" style={{ color: j.id === 'jornada' ? 'var(--jade)' : 'var(--dimmer)' }}>
-              {j.id === 'jornada' ? 'nunca zera' : 'anda com você'}
-            </span>
-          </div>
-        ))}
-      </div>
-      <p className="micro muted" style={{ lineHeight: 1.65 }}>
-        O Ritmo olha sempre pros últimos trinta dias, então ele anda junto com você e mede hábito. A Jornada
-        guarda tudo, porque o que você já treinou não deixa de ter acontecido.
-      </p>
 
       <div className="divider" />
       <div className="eyebrow">o que uma semana cheia rende</div>
@@ -673,9 +407,8 @@ function ComoFunciona({ aberto, onClose }) {
         </div>
       </div>
       <p className="micro muted" style={{ lineHeight: 1.65 }}>
-        Nesse ritmo, a Fase 2 chega em umas quatro semanas e a Fase 3 em uns três meses. Quem treina duas vezes
-        por semana leva mais tempo, e tudo bem: o bônus de ritmo compara você com a sua própria média, não com
-        a de quem tem mais tempo livre.
+        Quem treina duas vezes por semana não fica pra trás: o bônus de ritmo compara você com a sua própria
+        média, não com a de quem tem mais tempo livre, e o grupo junta gente de ritmo parecido.
       </p>
 
       <p className="micro muted" style={{ lineHeight: 1.65 }}>
@@ -711,24 +444,6 @@ function ComoFunciona({ aberto, onClose }) {
         dos {DIAS_POR_ESCUDO} tem como voltar.
       </p>
 
-      <div className="divider" />
-      <div className="eyebrow">fase, divisão e faixa</div>
-      <div className="col" style={{ gap: 9 }}>
-        {[
-          ['Fase', 'Sai dos seus pontos, só sua. Nunca volta pra trás.', 'chalk'],
-          ['Divisão', 'É a da liga, contra outras pessoas. Sobe e desce toda semana.', 'accent'],
-          ['Faixa', 'A do tatame. O app não mexe nela, quem gradua é o seu professor.', 'jade'],
-        ].map(([nome, texto, cor]) => (
-          <div key={nome} className="row" style={{ gap: 11, alignItems: 'flex-start', padding: '10px 12px', background: 'var(--void)', borderRadius: 10 }}>
-            <span className="tiny" style={{ fontWeight: 700, color: `var(--${cor})`, minWidth: 58 }}>{nome}</span>
-            <p className="micro muted" style={{ flex: 1, lineHeight: 1.6 }}>{texto}</p>
-          </div>
-        ))}
-      </div>
-      <p className="micro muted" style={{ lineHeight: 1.65 }}>
-        A divisão da liga usa nome de faixa porque é a régua que todo jiuziteiro entende. Um faixa branca que
-        vai bem chega na divisão roxa, e continua sendo faixa branca.
-      </p>
     </Sheet>
   );
 }

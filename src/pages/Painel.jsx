@@ -253,7 +253,7 @@ export default function Painel() {
               </p>
             </div>
             <div className="row" style={{ gap: 8 }}>
-              <Btn variant="primary" icon={Swords} onClick={() => irPara('jornada')}>Ver a liga</Btn>
+              <Btn variant="primary" icon={Swords} onClick={() => irPara('liga')}>Ver a liga</Btn>
             </div>
           </div>
         </Card>

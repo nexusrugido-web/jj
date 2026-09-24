@@ -247,7 +247,7 @@ export function textoOfensiva(o) {
   if (!o.viva) {
     return {
       titulo: o.recorde >= DIAS_POR_ESCUDO ? `Seu recorde foi de ${o.recorde} dias` : 'Ofensiva zerada',
-      texto: 'Uma ação hoje começa a próxima. O que você já treinou continua valendo, porque ponto na Jornada não volta pra trás.',
+      texto: 'Uma ação hoje começa a próxima. O que você já treinou continua valendo: nada do seu histórico se perde.',
       tom: '',
     };
   }

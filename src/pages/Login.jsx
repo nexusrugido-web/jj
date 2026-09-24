@@ -99,7 +99,7 @@ export default function Login({ onPular, onPronto, modoInicial }) {
                 <p className="login-sub">
                   Registre o treino e veja as suas técnicas subirem de grau, rola por rola.
                 </p>
-                <Amostra />
+                <Exemplo />
               </>
             ) : (
               <>
@@ -218,15 +218,15 @@ function Marca() {
 
 /* O que o app faz, mostrado em vez de explicado: uma técnica
    perto de subir de grau, igual ela aparece no Painel. */
-function Amostra() {
+function Exemplo() {
   return (
-    <div className="login-amostra" aria-hidden="true">
+    <div className="login-exemplo" aria-hidden="true">
       <div className="row" style={{ justifyContent: 'space-between', gap: 10 }}>
-        <span className="login-amostra-nome">Chave de braço</span>
-        <span className="login-amostra-grau"><Ponteira n={2} mini /> Funciona no rola</span>
+        <span className="login-exemplo-nome">Chave de braço</span>
+        <span className="login-exemplo-grau"><Ponteira n={2} mini /> Funciona no rola</span>
       </div>
       <div className="tec-home-barra"><i style={{ width: '80%', background: 'var(--roar)' }} /></div>
-      <div className="login-amostra-pe">Falta 1 vez no rola pra subir pro 3º grau</div>
+      <div className="login-exemplo-pe">Falta 1 vez no rola pra subir pro 3º grau</div>
     </div>
   );
 }

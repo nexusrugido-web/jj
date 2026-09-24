@@ -26,6 +26,23 @@ import { ofensiva } from './ofensiva';
    aparecer do lado do nome no grupo.
    ============================================================ */
 
+/* ============================================================
+   O NOME DAS DIVISÕES
+
+   O servidor guarda branca, azul, roxa, marrom e preta. Na tela
+   isso confundia com a faixa de verdade: um faixa branca aparecia
+   na "divisão preta". O nome agora é o do circuito de campeonato,
+   que todo mundo que treina reconhece e ninguém confunde com faixa.
+   ============================================================ */
+export const DIVISOES_LIGA = {
+  branca: { nome: 'Academia', tom: '' },
+  azul: { nome: 'Estadual', tom: '' },
+  roxa: { nome: 'Nacional', tom: 'jade' },
+  marrom: { nome: 'Pan', tom: 'on' },
+  preta: { nome: 'Mundial', tom: 'warn' },
+};
+export const nomeDivisao = (id) => (DIVISOES_LIGA[id] || DIVISOES_LIGA.branca).nome;
+
 let emCurso = null;
 let espera = null;
 

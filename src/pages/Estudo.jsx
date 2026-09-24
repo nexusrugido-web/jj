@@ -468,7 +468,7 @@ function PontosDoEstudo({ aberto, onClose, cobrando }) {
         ))}
       </div>
       <p className="micro muted" style={{ lineHeight: 1.7 }}>
-        Os pontos abrem as fases da Jornada e contam na liga da semana, que fecha segunda ao meio-dia.
+        Os pontos contam na liga da semana, que fecha segunda ao meio-dia.
         O teto por dia existe pra ninguém liderar maratonando vídeo.
         {cobrando ? ` No plano grátis dá pra ver ${LIMITES.aulasPorDia} aula completa e ${LIMITES.shortsPorDia} aula rápida por dia.` : ''}
       </p>

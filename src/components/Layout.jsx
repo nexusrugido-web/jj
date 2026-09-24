@@ -12,11 +12,11 @@ export const ROTAS_TODAS = [
   { id: 'treinos', nome: 'Treinos e rolas', icon: NotebookPen, grupo: 'No tatame' },
   { id: 'tecnicas', nome: 'Técnicas', icon: Library, grupo: 'No tatame' },
   { id: 'estudo', nome: 'Estudo', icon: GraduationCap, grupo: 'No tatame' },
+  { id: 'liga', nome: 'Liga', icon: Flame, grupo: 'No tatame' },
 
   { id: 'meujogo', nome: 'Meu jogo', icon: Dna, grupo: 'Evolução' },
   { id: 'dominio', nome: 'Minhas técnicas', icon: Award, grupo: 'Evolução' },
   { id: 'analise', nome: 'Análise', icon: ChartNoAxesColumn, grupo: 'Evolução' },
-  { id: 'jornada', nome: 'Jornada', icon: Flame, grupo: 'Evolução' },
   { id: 'conquistas', nome: 'Conquistas', icon: Trophy, grupo: 'Evolução' },
   { id: 'metas', nome: 'Metas', icon: Target, grupo: 'Evolução' },
   { id: 'parceiros', nome: 'Parceiros', icon: Users, grupo: 'Evolução' },

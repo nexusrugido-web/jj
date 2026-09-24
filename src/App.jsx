@@ -48,7 +48,7 @@ const Termos = lazy(() => import('./pages/Legal').then((m) => ({ default: m.Term
 const Privacidade = lazy(() => import('./pages/Legal').then((m) => ({ default: m.Privacidade })));
 const MeuJogo = lazy(() => import('./pages/MeuJogo'));
 const Metas = lazy(() => import('./pages/Metas'));
-const Jornada = lazy(() => import('./pages/Jornada'));
+const LigaPagina = lazy(() => import('./pages/Liga'));
 const Dominio = lazy(() => import('./pages/Dominio'));
 import Treinos from './pages/Treinos';
 import Conquistas, { Celebracao } from './pages/Conquistas';
@@ -60,7 +60,7 @@ import Onboarding from './pages/Onboarding';
 
 const PAGINAS = {
   painel: Painel, treinos: Treinos, tecnicas: Tecnicas,
-  estudo: Estudo, jornada: Jornada, admin: Admin,
+  estudo: Estudo, liga: LigaPagina, admin: Admin,
   termos: Termos, privacidade: Privacidade, dominio: Dominio, meujogo: MeuJogo, analise: Analise, conquistas: Conquistas,
   metas: Metas, parceiros: Parceiros,
   academia: Academia, nutricao: Nutricao, respiracao: Respiracao,
@@ -71,7 +71,9 @@ const PAGINAS = {
 registrarSync(enfileirar);
 
 function rotaDaURL() {
-  const p = new URLSearchParams(location.search).get('go');
+  const pedida = new URLSearchParams(location.search).get('go');
+  /* a Jornada virou a Liga: notificação e link antigos ainda mandam ?go=jornada */
+  const p = pedida === 'jornada' ? 'liga' : pedida;
   return PAGINAS[p] ? p : 'painel';
 }
 

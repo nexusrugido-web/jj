@@ -3,6 +3,7 @@ import { Users, RefreshCw, Search } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Card, Btn, Chip, Busca, Empty, Stat, BeltTag, useToast } from './UI';
 import { fmtData, relativo } from '../lib/utils';
+import { nomeDivisao } from '../lib/liga';
 
 /* ============================================================
    AS CONTAS
@@ -125,7 +126,7 @@ export default function Contas() {
                     {!ass && <Chip>plano grátis</Chip>}
                     {Number(c.compras) > 0 && <Chip tone="accent">{c.compras} avulso(s)</Chip>}
                     {c.na_liga
-                      ? <Chip tone="jade">divisão {c.divisao || 'branca'}</Chip>
+                      ? <Chip tone="jade">divisão {nomeDivisao(c.divisao)}</Chip>
                       : <Chip>fora da liga</Chip>}
                   </div>
                 </div>

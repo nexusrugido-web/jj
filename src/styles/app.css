@@ -737,14 +737,14 @@ button.chip:hover { color: var(--chalk); border-color: var(--dimmer); }
 .login-marca .brand-name { font-size: 20px; }
 .login-titulo { font-family: var(--display); font-size: clamp(25px, 7vw, 29px); font-weight: 800; letter-spacing: -0.035em; line-height: 1.08; }
 .login-sub { font-size: 14.5px; color: var(--dim); line-height: 1.55; margin-top: -6px; }
-.login-amostra {
+.login-exemplo {
   padding: 13px 14px; border-radius: var(--r-sm);
   background: linear-gradient(160deg, color-mix(in srgb, var(--roar) 9%, var(--void)), var(--void));
   border: 1px solid color-mix(in srgb, var(--roar) 28%, var(--seam));
 }
-.login-amostra-nome { font-weight: 700; font-size: 14px; }
-.login-amostra-grau { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ice); white-space: nowrap; }
-.login-amostra-pe { font-size: 12px; color: var(--dim); margin-top: 7px; }
+.login-exemplo-nome { font-weight: 700; font-size: 14px; }
+.login-exemplo-grau { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ice); white-space: nowrap; }
+.login-exemplo-pe { font-size: 12px; color: var(--dim); margin-top: 7px; }
 .login-card .seg { width: 100%; }
 .login-card .seg button { flex: 1; min-height: 40px; }
 .login-google {
@@ -2266,154 +2266,6 @@ button.liga-linha:hover { border-color: var(--seam-hi); }
   .vista-titulo { font-size: 12.5px; }
 }
 
-/* ============================================================
-   JORNADA: FASES E ARENAS
-   ============================================================ */
-
-/* ---- a arena em que você está ---- */
-.arena {
-  position: relative;
-  overflow: hidden;
-  border-radius: var(--r-lg);
-  border: 1px solid color-mix(in srgb, var(--cor, var(--accent)) 26%, var(--seam));
-  background:
-    radial-gradient(120% 90% at 50% -20%, color-mix(in srgb, var(--cor, var(--accent)) 16%, transparent), transparent 62%),
-    linear-gradient(180deg, var(--mat-top), var(--mat));
-  padding: 22px 20px 20px;
-  margin-bottom: 14px;
-  isolation: isolate;
-}
-.arena::before {
-  /* as linhas do tatame, bem no fundo */
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(to right, color-mix(in srgb, var(--chalk) 4%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--chalk) 4%, transparent) 1px, transparent 1px);
-  background-size: 42px 42px;
-  mask-image: radial-gradient(120% 100% at 50% 0%, #000 10%, transparent 75%);
-  z-index: -1;
-}
-.arena-luz {
-  position: absolute;
-  top: -70px; left: 50%;
-  width: 260px; height: 260px;
-  transform: translateX(-50%);
-  border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--cor, var(--accent)) 24%, transparent), transparent 68%);
-  filter: blur(26px);
-  pointer-events: none;
-  z-index: -1;
-}
-.arena-topo { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-.arena-fase {
-  font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: var(--dimmer);
-}
-.arena-selo {
-  margin-left: auto;
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 5px 11px;
-  border-radius: 99px;
-  font-size: 11.5px; font-weight: 600;
-  color: var(--cor, var(--accent));
-  background: color-mix(in srgb, var(--cor, var(--accent)) 13%, transparent);
-  border: 1px solid color-mix(in srgb, var(--cor, var(--accent)) 34%, transparent);
-}
-.arena-nome {
-  font-family: var(--display);
-  font-size: clamp(25px, 6.4vw, 34px);
-  line-height: 1.06;
-  letter-spacing: -.02em;
-  color: var(--chalk);
-  margin: 0;
-}
-.arena-lema { font-size: 13px; color: var(--dim); margin-top: 7px; line-height: 1.6; max-width: 46ch; }
-.arena-num { display: flex; align-items: baseline; gap: 9px; margin-top: 18px; }
-.arena-num .num {
-  font-size: clamp(34px, 9vw, 46px);
-  font-weight: 700;
-  line-height: 1;
-  color: var(--cor, var(--accent));
-}
-.arena-portao {
-  margin-top: 18px;
-  padding-top: 16px;
-  border-top: 1px solid var(--seam);
-}
-
-/* ---- a trilha das quatro fases ---- */
-.trilha {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(124px, 1fr);
-  overflow-x: auto;
-  scrollbar-width: none;
-  padding: 14px 18px 12px;
-}
-.trilha::-webkit-scrollbar { display: none; }
-.fase {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 6px 0;
-  text-align: center;
-}
-.fase-trilho {
-  position: absolute;
-  top: 24px; left: 50%;
-  width: 100%; height: 3px;
-  background: var(--seam);
-  border-radius: 99px;
-  overflow: hidden;
-}
-.fase:last-child .fase-trilho { display: none; }
-.fase-trilho i { display: block; height: 100%; border-radius: 99px; transition: width .6s var(--ease); }
-.fase-no {
-  position: relative;
-  z-index: 1;
-  width: 44px; height: 44px;
-  border-radius: 50%;
-  display: grid; place-items: center;
-  background: var(--mat-top);
-  border: 2px solid var(--seam-hi);
-  color: var(--dimmer);
-  margin-bottom: 9px;
-  transition: all .3s var(--ease);
-}
-.fase.feita .fase-no {
-  border-color: color-mix(in srgb, var(--cor) 55%, transparent);
-  background: color-mix(in srgb, var(--cor) 14%, var(--mat-top));
-  color: var(--cor);
-}
-.fase.atual .fase-no {
-  border-color: var(--cor);
-  background: color-mix(in srgb, var(--cor) 20%, var(--mat-top));
-  color: var(--cor);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--cor) 15%, transparent);
-  animation: pulsoFase 2.6s var(--ease-io) infinite;
-}
-@keyframes pulsoFase {
-  0%, 100% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--cor) 15%, transparent); }
-  50%      { box-shadow: 0 0 0 9px color-mix(in srgb, var(--cor) 4%, transparent); }
-}
-.fase-n {
-  font-family: var(--mono);
-  font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase;
-  color: var(--dimmer);
-}
-.fase-nome { font-size: 12.5px; font-weight: 600; color: var(--dim); line-height: 1.25; }
-.fase.atual .fase-nome { color: var(--chalk); }
-.fase.feita .fase-nome { color: var(--dim); }
-.fase-gate { font-size: 10.5px; color: var(--dimmer); margin-top: 2px; }
-.fase.trancada .fase-gate { color: color-mix(in srgb, var(--roar) 70%, var(--dimmer)); }
-
 /* ---- a arena da semana, você contra você ---- */
 .arena-duelo {
   position: relative;
@@ -2491,10 +2343,6 @@ button.liga-linha:hover { border-color: var(--seam-hi); }
 }
 
 @media (max-width: 560px) {
-  .arena { padding: 18px 15px 16px; }
-  .trilha { grid-auto-columns: minmax(104px, 1fr); padding: 14px 12px 12px; }
-  .fase-no { width: 38px; height: 38px; }
-  .fase-trilho { top: 21px; }
   .duelo { gap: 8px; }
   .duelo-vs { width: 32px; height: 32px; font-size: 10px; }
 }

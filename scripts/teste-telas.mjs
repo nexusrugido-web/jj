@@ -157,7 +157,7 @@ if (raiz.innerHTML.includes('login-card') || raiz.innerHTML.includes('entrada-ca
 }
 
 /* ---------- todas as telas ---------- */
-const telas = ['painel', 'treinos', 'tecnicas', 'estudo', 'jornada', 'dominio', 'meujogo', 'analise', 'conquistas',
+const telas = ['painel', 'treinos', 'tecnicas', 'estudo', 'liga', 'jornada', 'dominio', 'meujogo', 'analise', 'conquistas',
   'metas', 'parceiros', 'academia', 'nutricao', 'respiracao', 'lesoes', 'ajustes', 'termos', 'privacidade'];
 let falhas = 0;
 for (const t of telas) {
