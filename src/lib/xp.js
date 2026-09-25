@@ -35,7 +35,7 @@ export const EVENTOS = {
     xp: 15,
     tetoDia: 2,
     familia: 'estudo',
-    desc: 'Aula completa vista até o fim. É a que ensina de verdade, então é a que mais vale.',
+    desc: 'Aula completa vista até o fim, pela primeira vez ou revendo. É a que ensina de verdade, então é a que mais vale.',
   },
   revista: {
     id: 'revista',
@@ -43,7 +43,9 @@ export const EVENTOS = {
     xp: 5,
     tetoDia: 1,
     familia: 'estudo',
-    desc: 'Rever aula completa vale um terço. Você já sabia, mas voltar é o que fixa.',
+    /* antigo: rever agora conta como aula. Fica aqui só pro histórico da Liga ter nome */
+    antigo: true,
+    desc: 'Aula revista.',
   },
   revistaShort: {
     id: 'revistaShort',
@@ -52,7 +54,8 @@ export const EVENTOS = {
     tetoDia: 3,
     familia: 'estudo',
     premium: true,
-    desc: 'Rever aula rápida vale um ponto, e só no Premium. No grátis ela vale uma vez só.',
+    antigo: true,
+    desc: 'Aula rápida revista.',
   },
   short: {
     id: 'short',
@@ -60,7 +63,7 @@ export const EVENTOS = {
     xp: 1,
     tetoDia: 6,
     familia: 'estudo',
-    desc: 'Custa trinta segundos, então vale um ponto.',
+    desc: 'Custa trinta segundos, então vale um ponto, vendo ou revendo.',
   },
   quizAcerto: {
     id: 'quizAcerto',

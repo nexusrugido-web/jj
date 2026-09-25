@@ -273,14 +273,15 @@ export async function registrarAulaVista(aula, segundos = 0) {
       segundosVistos: Math.max(Number.isFinite(antes) ? antes : 0, seg),
     });
 
-    /* Rever paga menos que ver pela primeira vez, e poucas vezes
-       por dia. Rever short só paga no premium: um ponto, três por
-       dia, senão o ranking viraria competição de quem toca o play
-       mais vezes. */
-    const evento = aula.k === 'aula' ? 'revista' : 'revistaShort';
+    /* Rever vale o mesmo que ver pela primeira vez: quem volta num
+       assunto quer dominar ele, e assiste até o fim do mesmo jeito.
+       O ranking não vira competição de play porque rever divide o
+       teto do dia (e o da semana) com as aulas novas, e o mesmo
+       vídeo só paga uma vez por dia. */
+    const evento = aula.k === 'aula' ? 'aula' : 'short';
 
     const p = await darXp(evento, {
-      refId: `${evento}:${aula.id}:${hoje}`,
+      refId: `rever:${aula.id}:${hoje}`,
       detalhe: aula.t,
     });
     return { xp: p?.xp || 0, revisao: true };

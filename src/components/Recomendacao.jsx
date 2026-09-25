@@ -3,7 +3,7 @@ import Capa from '../components/Capa';
 import { Check } from 'lucide-react';
 import { db } from '../db/db';
 import { Chip, useToast } from './UI';
-import { INTENCOES, RESULTADOS, chaveDaRec, respostaAoMarcar } from '../lib/recomendar';
+import { INTENCOES, chaveDaRec, respostaAoMarcar } from '../lib/recomendar';
 import { capa, duracaoTexto, registrarAulaVista } from '../lib/aulas';
 import { aulasPara } from '../lib/motor';
 import { pedidoDaRec, descreverPedido } from '../lib/necessidades';
@@ -17,18 +17,18 @@ import { Vitrine } from './Plano';
 /* ============================================================
    A RECOMENDAÇÃO QUE FECHA O LAÇO
 
-   O app diz o que treinar. Você treina. Aí você marca aqui se
-   funcionou, e aquilo sai da lista por duas semanas.
+   O app diz o que treinar e traz a aula. Quando você termina a
+   aula, a sugestão sai da lista por duas semanas e a aula vai pra
+   Vistas. Não tem botão de "já fiz": vale o que foi assistido.
 
-   Sem isso, a mesma sugestão volta igual amanhã e você nunca
-   sabe se o app está te ouvindo.
+   Aula já vista só volta quando as outras do assunto acabaram, e
+   aí vem avisando que é pra reforçar.
    ============================================================ */
 
 export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFeito, comAula = true, tela = 'painel' }) {
   const toast = useToast();
   const { acesso, irPara } = useApp();
   const { liberarVideo, aviso } = useLimite(acesso, irPara);
-  const [marcando, setMarcando] = useState(false);
   const [resposta, setResposta] = useState(null);
   const [tocando, setTocando] = useState(null);
 
@@ -64,7 +64,7 @@ export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFei
     if (faltou) medir('faltou', { origem: deOnde, detalhe: descreverPedido(pedido) });
   }, [deOnde, idDaAula, faltou]);
 
-  async function marcar(resultado) {
+  async function concluiu(resultado) {
     await db.recFeitas.add({
       chave: chaveDaRec(rec),
       intencao: rec.intencao,
@@ -76,7 +76,6 @@ export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFei
     });
 
     setResposta(respostaAoMarcar(resultado, rec, faixa));
-    setMarcando(false);
     onFeito?.(resultado);
   }
 
@@ -112,6 +111,9 @@ export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFei
             <span className="aula-dur">{duracaoTexto(aulas[0].d)}</span>
           </div>
           <div style={{ minWidth: 0, textAlign: 'left' }}>
+            {vistas.includes(aulas[0].id) && (
+              <div className="micro" style={{ color: 'var(--roar)', fontWeight: 700, marginBottom: 3 }}>Você já viu esta aula. Vale reforçar.</div>
+            )}
             <div className="micro" style={{ color: 'var(--dimmer)' }}>
               {aulas[0].generico && rec.alvo
                 ? `ainda não há aula de ${rec.alvo} · esta é de ${String(aulas[0].porque?.[0] || 'defesa').toLowerCase()} em geral`
@@ -122,23 +124,6 @@ export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFei
         </button>
       )}
 
-      {!marcando ? (
-        <button className="btn ghost xs" onClick={() => setMarcando(true)} style={{ marginTop: 11 }}>
-          <Check size={12} /> Já treinei isso
-        </button>
-      ) : (
-        <div style={{ marginTop: 12 }}>
-          <div className="eyebrow" style={{ marginBottom: 8 }}>e aí, saiu?</div>
-          <div className="row wrap" style={{ gap: 7 }}>
-            {RESULTADOS.map((r) => (
-              <button key={r.id} className="chip" style={{ minHeight: 38 }} onClick={() => marcar(r.id)}>
-                {r.nome}
-              </button>
-            ))}
-            <button className="btn ghost xs" onClick={() => setMarcando(false)}>Deixa</button>
-          </div>
-        </div>
-      )}
 
       {tocando && (
         <Player
@@ -147,7 +132,9 @@ export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFei
           onConcluir={async (aula, segundos) => {
             const r = await registrarAulaVista(aula, segundos);
             setTocando(null);
-            toast(r.xp ? `Aula vista, +${r.xp} pontos` : r.revisao ? 'Revisto' : 'Aula vista');
+            toast(r.xp ? `Aula vista, +${r.xp} pontos` : 'Aula vista');
+            /* terminou a aula da sugestão: ela sai da lista */
+            await concluiu('assistiu');
           }}
         />
       )}

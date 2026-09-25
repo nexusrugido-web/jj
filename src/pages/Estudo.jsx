@@ -485,7 +485,7 @@ export default function Estudo() {
    cada valor. Sai do mesmo cadastro que dá os pontos, então nunca
    fica desencontrado. */
 function PontosDoEstudo({ aberto, onClose, cobrando }) {
-  const itens = Object.values(EVENTOS).filter((e) => e.familia === 'estudo');
+  const itens = Object.values(EVENTOS).filter((e) => e.familia === 'estudo' && !e.antigo);
   return (
     <Sheet
       aberto={aberto} onClose={onClose}

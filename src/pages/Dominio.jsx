@@ -118,10 +118,8 @@ export default function Dominio() {
 
           {adesao && adesao.total >= 2 && (
             <p className="micro muted" style={{ marginTop: 12, lineHeight: 1.6 }}>
-              No último mês você treinou {adesao.total} das coisas que apareceram aqui,
-              {adesao.funcionou > 0
-                ? ` e ${adesao.funcionou} ${adesao.funcionou === 1 ? 'funcionou' : 'funcionaram'}.`
-                : ' e o app segue ajustando conforme você marca.'}
+              No último mês você estudou {adesao.total} das coisas que apareceram aqui. O app segue
+              ajustando pelo que você assiste e pelo que aparece nos seus rolas.
             </p>
           )}
         </Card>

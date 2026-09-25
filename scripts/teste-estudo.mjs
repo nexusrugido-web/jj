@@ -91,6 +91,12 @@ await registrarAulaVista(a1, 900);
 ok('rever guarda o maior numero', (await db.aulasVistas.where('videoId').equals('a1').first()).segundosVistos, 900);
 ok('concluir vira evento', (await db.videoEventos.where('videoId').equals('a1').toArray()).some((e) => e.evento === 'concluiu'), true);
 
+/* rever vale o mesmo que a primeira vez, uma vez por dia por vídeo */
+const pontosA1 = async () => (await db.pontos.toArray()).filter((p) => String(p.refId || '').includes(':a1:'));
+ok('rever a aula paga o mesmo que a primeira vez', (await pontosA1()).map((p) => [p.evento, p.xp]), [['aula', 15], ['aula', 15]]);
+await registrarAulaVista(a1, 900);
+ok('rever o mesmo vídeo de novo no mesmo dia não paga outra vez', (await pontosA1()).length, 2);
+
 await db.aulasVistas.add({ videoId: 'x1', tipo: 'aula', duracao: 420, segundosVistos: { id: 'x1' }, data: ontem });
 await db.aulasVistas.add({ videoId: 'x2', tipo: 'aula', duracao: 300, segundosVistos: 250, data: ontem });
 await consertarAulasVistas();

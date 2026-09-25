@@ -136,7 +136,7 @@ function Cabecalho({ onComo }) {
 
 function ComoFunciona({ aberto, onClose }) {
   const { irPara } = useApp();
-  const eventos = Object.values(EVENTOS).sort((a, b) => b.xp - a.xp);
+  const eventos = Object.values(EVENTOS).filter((e) => !e.antigo).sort((a, b) => b.xp - a.xp);
   const divisoes = Object.values(DIVISOES_LIGA);
 
   return (

@@ -442,12 +442,6 @@ export function faltaPara(t, faixa = 'branca') {
    se funcionou ou não.
    ============================================================ */
 
-export const RESULTADOS = [
-  { id: 'funcionou', nome: 'Funcionou', cor: 'jade', peso: 1 },
-  { id: 'meio', nome: 'Mais ou menos', cor: 'roar', peso: 0.5 },
-  { id: 'nao', nome: 'Não saiu', cor: 'blood', peso: 0 },
-];
-
 /* a chave identifica a sugestão, pra ela não voltar igual */
 export function chaveDaRec(r) {
   return `${r.intencao}:${r.alvo || r.situacao || 'geral'}`;
@@ -466,6 +460,16 @@ export function filtrarFeitas(recs, feitas, diasDeDescanso = 14) {
 
 /* o que dizer depois que a pessoa marcou */
 export function respostaAoMarcar(resultado, rec, faixa = 'branca') {
+  /* a aula da sugestão foi vista até o fim: agora é levar pro rola */
+  if (resultado === 'assistiu') {
+    return {
+      titulo: 'Aula vista',
+      texto: rec.alvo
+        ? `Agora leva pro rola. Quando ${rec.alvo} aparecer nos seus treinos, o app conta como evolução. Isso sai da lista por duas semanas.`
+        : 'Agora leva pro rola. Isso sai da lista por duas semanas.',
+      tom: 'jade',
+    };
+  }
   if (resultado === 'funcionou') {
     return {
       titulo: 'Boa',
