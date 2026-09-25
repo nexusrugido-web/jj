@@ -25,6 +25,9 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
    Deploy pelo painel, sem instalar nada:
      Edge Functions -> Deploy a new function -> Via Editor
      nome: notificar, cola este arquivo inteiro, Deploy
+   Depois, em Details da funcao: DESLIGUE a verificacao de JWT
+   ("Verify JWT with legacy secret" / "Enforce JWT Verification").
+   A porta e o chamadaValida() la embaixo.
 
    Os segredos ficam em Edge Functions -> Secrets:
      VAPID_PUBLICA, VAPID_PRIVADA, VAPID_CONTATO
@@ -38,7 +41,31 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
    ============================================================ */
 
 const url = Deno.env.get('SUPABASE_URL')!;
-const chave = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+/* ------------------------------------------------------------
+   AS CHAVES NOVAS (sb_secret_...)
+
+   Com as chaves legadas desligadas, a SUPABASE_SERVICE_ROLE_KEY
+   que o Supabase injeta aqui não vale mais, e o banco chamava a
+   função com ela: tudo voltava "Invalid API key" e nenhum aviso
+   saía. As chaves novas vêm em SUPABASE_SECRET_KEYS (um JSON
+   {nome: chave}). Elas não são JWT, então a verificação de JWT da
+   função fica DESLIGADA no painel e quem confere a chave é o código
+   abaixo: o banco manda a chave no header "apikey".
+   A legada fica de reserva enquanto existir.
+   ------------------------------------------------------------ */
+const secretas: string[] = (() => {
+  try { return Object.values(JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}')) as string[]; }
+  catch { return []; }
+})();
+const legada = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const chave = secretas[0] ?? legada;
+
+function chamadaValida(req: Request): boolean {
+  const apikey = req.headers.get('apikey') ?? '';
+  const bearer = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '');
+  return (!!apikey && secretas.includes(apikey)) || (!!legada && bearer === legada);
+}
 const publica = Deno.env.get('VAPID_PUBLICA')!;
 const privada = Deno.env.get('VAPID_PRIVADA')!;
 const contato = Deno.env.get('VAPID_CONTATO') ?? 'mailto:contato@neurojitsu.app';
@@ -48,6 +75,10 @@ webPush.setVapidDetails(contato, publica, privada);
 const site = Deno.env.get('SITE_URL') ?? 'https://jj-theta-eight.vercel.app';
 
 Deno.serve(async (req) => {
+  /* sem a verificação de JWT do painel, a porta é esta */
+  if (!chamadaValida(req)) {
+    return new Response(JSON.stringify({ erro: 'chave invalida' }), { status: 401 });
+  }
   const db = createClient(url, chave);
 
   /* {"teste": "<user_id>"} pula todas as regras e manda um aviso

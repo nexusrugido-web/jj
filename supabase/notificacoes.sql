@@ -393,7 +393,7 @@ begin
     url     := (select decrypted_secret from vault.decrypted_secrets where name = 'url_notificar'),
     headers := jsonb_build_object(
       'Content-Type',  'application/json',
-      'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'chave_notificar')
+      'apikey',        (select decrypted_secret from vault.decrypted_secrets where name = 'chave_notificar')
     ),
     body    := jsonb_build_object('teste', v_user)
   );
@@ -468,7 +468,10 @@ grant execute on function public.notificacao_respondida() to authenticated;
 --
 -- Troque a URL e a chave pelos seus antes de rodar:
 --   select vault.create_secret('https://SEUPROJETO.supabase.co/functions/v1/notificar', 'url_notificar');
---   select vault.create_secret('SUA_SERVICE_ROLE_KEY', 'chave_notificar');
+--   select vault.create_secret('SUA_CHAVE_sb_secret', 'chave_notificar');
+--
+-- A chave vai no header apikey (as chaves novas sb_secret_ nao sao JWT
+-- e o Authorization: Bearer recusa). A funcao notificar confere ela.
 --
 -- Precisa das duas extensoes ligadas:
 --   create extension if not exists pg_cron;
@@ -485,7 +488,7 @@ begin
         url     := (select decrypted_secret from vault.decrypted_secrets where name = 'url_notificar'),
         headers := jsonb_build_object(
           'Content-Type',  'application/json',
-          'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'chave_notificar')
+          'apikey',        (select decrypted_secret from vault.decrypted_secrets where name = 'chave_notificar')
         ),
         body    := '{}'::jsonb
       )
