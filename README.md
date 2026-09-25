@@ -114,6 +114,7 @@ Só as últimas, pra saber o estado atual. O detalhe de cada dia fica em `Downlo
 
 - **24/09/2026**
   - Gráficos: "como você venceu/perdeu" com 2 linhas (tap e placar; vantagem entra no placar), verde nas vitórias e vermelho nas derrotas; o Painel mostra "Ganhou e perdeu". Teste `teste:resultados` prova que cada rola cai no balde certo e que gráfico, totais e resumo batem.
+  - Gráficos em barras (a curva desenhava morrinho em dia sem treino): partes do mesmo todo empilhadas (como venceu, como perdeu), lados opostos em espelho (ganhou e perdeu, finalizações, pontos). Saiu "Variedade técnica"; o volume desenha só rolas, com as horas no número de cima.
   - Nutrição mais fácil: busca de comida em popup, rotinas alimentares (várias), Bati/Não bati em verde e vermelho, "?" em cada parte.
   - Assinatura: sai o "Já assinei" (link no WhatsApp libera sozinho), card com renovação, dias pagos e faturas, aviso de renovar. Nutrição: seu dia de comida com barra, alimentos e refeições próprios, mês de proteína, ponto verde no calendário de presença; sai o prato em volta do treino, suplementação vira sanfona. Sai o "Demorando?" da abertura.
   - Compartilhar: 8 desenhos de jiu-jitsu na figurinha (escolhe ou tira). Figurinha sem a pílula laranja, com frase de impacto (liga/desliga/troca), cores extras no premium, figurinha de graduação com a faixa desenhada, recorde do dia e card da semana. Sai o "desde o começo": o resumo mostra a faixa.

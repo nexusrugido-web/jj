@@ -1067,16 +1067,10 @@ button.chip:not(.on):hover { color: var(--chalk); border-color: var(--dimmer); }
   overflow: hidden;
 }
 
-.graf-linha { animation: grafLinha 1s var(--ease) both; }
-@keyframes grafLinha { from { opacity: 0; } to { opacity: 1; } }
-.graf-area { animation: grafArea 0.9s var(--ease) both; transform-box: fill-box; transform-origin: bottom; }
-@keyframes grafArea { from { opacity: 0; transform: scaleY(0.75); } }
-/* a linha se desenha da esquerda pra direita */
+.graf-barra { transition: opacity 0.18s var(--ease); }
+/* as barras aparecem da esquerda pra direita */
 .graf-revela { animation: grafRevela 1.2s var(--ease) both; transform-box: fill-box; transform-origin: left; }
 @keyframes grafRevela { from { transform: scaleX(0); } }
-/* o fim da linha, hoje, respira */
-.graf-agora { animation: grafAgora 2.2s ease-out infinite; transform-box: fill-box; transform-origin: center; }
-@keyframes grafAgora { 0% { opacity: 0.45; transform: scale(0.6); } 70%, 100% { opacity: 0; transform: scale(2.4); } }
 
 .graf-tip {
   position: absolute; z-index: 6; pointer-events: none;
@@ -1175,7 +1169,7 @@ button.chip:not(.on):hover { color: var(--chalk); border-color: var(--dimmer); }
   from { opacity: 0; transform: translateY(6px); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .anima-troca, .cal-dia, .graf-area, .graf-linha, .graf-revela, .graf-agora { animation: none !important; }
+  .anima-troca, .cal-dia, .graf-revela { animation: none !important; }
 }
 
 /* ---------- ponteira de graus ---------- */

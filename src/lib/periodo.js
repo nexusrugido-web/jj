@@ -73,6 +73,8 @@ export const METRICAS = [
     pergunta: 'Dos rolas que você ganhou, o que decidiu',
     desc: 'Só as vitórias: as que acabaram em tap e as que você ganhou no placar.',
     eixoY: 'rolas vencidos',
+    /* as partes do mesmo todo vão empilhadas: a barra inteira é o total */
+    empilhado: true,
     /* pontos e vantagem num balde só: vitória na vantagem é rara no
        treino, e a terceira linha ficava colada no zero, parecendo
        dado que faltou. A pergunta que importa é tap ou placar. */
@@ -87,6 +89,7 @@ export const METRICAS = [
     pergunta: 'Dos rolas que você perdeu, o que decidiu',
     desc: 'Só as derrotas, separadas do mesmo jeito. Serve pra ver se você está perdendo por tap ou por controle.',
     eixoY: 'rolas perdidos',
+    empilhado: true,
     chaves: [
       { k: 'fuiFinalizado', nome: 'Fui finalizado', cor: 'var(--blood)', explica: 'Você bateu.' },
       { k: 'perdiPlacar', nome: 'No placar', cor: 'var(--blood-claro)', explica: 'Ninguém bateu: ele terminou na frente nos pontos, ou empatou nos pontos e ganhou na vantagem.' },
@@ -101,7 +104,7 @@ export const METRICAS = [
     divergente: true,
     chaves: [
       { k: 'vitorias', nome: 'Venci', cor: 'var(--jade)', explica: 'Rolas que terminaram a seu favor, por qualquer motivo.' },
-      { k: 'derrotas', nome: 'Perdi', cor: 'var(--blood)', explica: 'Rolas que terminaram contra você, por qualquer motivo.' },
+      { k: 'derrotas', desce: true, nome: 'Perdi', cor: 'var(--blood)', explica: 'Rolas que terminaram contra você, por qualquer motivo.' },
     ],
   },
   {
@@ -109,21 +112,24 @@ export const METRICAS = [
     nome: 'Volume de treino',
     pergunta: 'Quanto você treinou',
     desc: 'A coisa que mais prevê evolução. Nada supera tempo no tatame.',
-    eixoY: 'quantidade',
+    eixoY: 'rolas',
+    /* rolas e horas no mesmo eixo não conversam (4 rolas, 1,5 hora):
+       o gráfico conta rolas, e as horas ficam só no número de cima */
     chaves: [
-      { k: 'rolas', nome: 'Rolas', cor: 'var(--accent)', explica: 'Quantos rolas você registrou no período.' },
-      { k: 'horas', nome: 'Horas', cor: 'var(--jade)', explica: 'Tempo total de treino somado.' },
+      { k: 'rolas', nome: 'Rolas', cor: 'var(--accent)', explica: 'Quantos rolas você registrou.' },
     ],
+    extras: [{ k: 'horas', nome: 'Horas', sufixo: 'h' }],
   },
   {
     id: 'finalizacoes',
     nome: 'Finalizações',
     pergunta: 'Quantas você deu e quantas você levou',
-    desc: 'Só os taps, dos dois lados.',
+    desc: 'Só os taps, dos dois lados: os que você deu sobem, os que você levou descem.',
     eixoY: 'finalizações',
+    divergente: true,
     chaves: [
       { k: 'subsFeitas', nome: 'Você aplicou', cor: 'var(--jade)', explica: 'Finalizações que você encaixou.' },
-      { k: 'subsSofridas', nome: 'Você levou', cor: 'var(--blood)', explica: 'Finalizações que aplicaram em você.' },
+      { k: 'subsSofridas', desce: true, nome: 'Você levou', cor: 'var(--blood)', explica: 'Finalizações que aplicaram em você.' },
     ],
   },
   {
@@ -132,19 +138,10 @@ export const METRICAS = [
     pergunta: 'Quantos pontos você fez e quantos sofreu',
     desc: 'Queda 2, raspagem 2, joelho na barriga 2, passagem 3, montada 4, costas 4.',
     eixoY: 'pontos',
+    divergente: true,
     chaves: [
       { k: 'ptsFeitos', nome: 'Você fez', cor: 'var(--jade)', explica: 'Soma dos pontos que você conquistou.' },
-      { k: 'ptsSofridos', nome: 'Você sofreu', cor: 'var(--blood)', explica: 'Soma dos pontos que ele conquistou em você.' },
-    ],
-  },
-  {
-    id: 'diversidade',
-    nome: 'Variedade técnica',
-    pergunta: 'Quantas técnicas diferentes você usou',
-    desc: 'Jogo de duas técnicas trava quando alguém já sabe o que vem.',
-    eixoY: 'técnicas diferentes',
-    chaves: [
-      { k: 'tecnicasUnicas', nome: 'Técnicas diferentes', cor: 'var(--accent)', explica: 'Quantas técnicas distintas apareceram nos seus rolas.' },
+      { k: 'ptsSofridos', desce: true, nome: 'Você sofreu', cor: 'var(--blood)', explica: 'Soma dos pontos que ele conquistou em você.' },
     ],
   },
 ];
@@ -204,7 +201,6 @@ export function serieDoPeriodo(sessions, rolls, partners, periodo) {
     let porFinalizacao = 0, porPontos = 0, porVantagem = 0, empates = 0;
     let fuiFinalizado = 0, perdiPontos = 0, perdiVantagem = 0;
     let ptsFeitos = 0, ptsSofridos = 0;
-    const tecnicas = new Set();
 
     for (const r of rs) {
       const pl = placarDaRola(r);
@@ -218,9 +214,6 @@ export function serieDoPeriodo(sessions, rolls, partners, periodo) {
 
       ptsFeitos += somarPontos(r.ptsMeus);
       ptsSofridos += somarPontos(r.ptsDele);
-
-      for (const n of r.subsAplicadas || []) tecnicas.add(n);
-      for (const nomes of Object.values(r.tecMeus || {})) for (const n of nomes) tecnicas.add(n);
     }
 
     const vitorias = porFinalizacao + porPontos + porVantagem;
@@ -245,7 +238,6 @@ export function serieDoPeriodo(sessions, rolls, partners, periodo) {
       saldo: ptsFeitos - ptsSofridos,
       subsFeitas: rs.flatMap((r) => r.subsAplicadas || []).length,
       subsSofridas: rs.flatMap((r) => r.subsSofridas || []).length,
-      tecnicasUnicas: tecnicas.size,
       nivelMedio,
     };
   });
@@ -543,46 +535,21 @@ export function mesDoCalendario(sessions, rolls, ano, mes) {
 }
 
 /* ============================================================
-   A LINHA QUE SE ABRE PROS LADOS
+   AS BARRAS DO GRÁFICO
 
-   Um dia de treino entre dias vazios virava um espinho: a curva
-   tinha que sair do zero no dia anterior e voltar ao zero no dia
-   seguinte. Aqui cada valor vira um sino (uma gaussiana) que se
-   abre pros baldes vizinhos, e a linha é o contorno dos sinos.
-
-   O contorno é quase o máximo dos sinos, e não a soma: o pico de
-   um dia continua na altura do valor dele, e dias seguidos com o
-   mesmo valor viram um platô na mesma altura, sem inflar. O número
-   exato de cada dia continua no toque.
-
-   largura  em baldes: 1 quer dizer que o sino chega a 60% da
-            altura no dia vizinho
-   amostras quantos pontos por balde, pra curva sair lisa
+   Cada dia (ou semana, ou mês) vira uma barra por série, na altura
+   exata do valor. Balde vazio não tem barra: dia sem treino fica
+   vazio. A curva que vinha antes se abria pros dias vizinhos e
+   desenhava um morrinho em dia sem treino, e o toque ali dizia
+   "sem treino registrado".
    ============================================================ */
-const EXPOENTE_DO_CONTORNO = 8;
-
-export function contornoSuave(valores, { largura = 1, amostras = 8 } = {}) {
-  const n = valores.length;
-  if (!n) return [];
-  const alcance = Math.ceil(largura * 3);
-  const total = (n - 1) * amostras;
+export function barrasDoGrafico(serie, chaves) {
   const out = [];
-  for (let k = 0; k <= total; k++) {
-    const t = n === 1 ? 0 : k / amostras;
-    let soma = 0;
-    const de = Math.max(0, Math.floor(t) - alcance);
-    const ate = Math.min(n - 1, Math.ceil(t) + alcance);
-    for (let j = de; j <= ate; j++) {
-      const v = Number(valores[j]) || 0;
-      if (v <= 0) continue;
-      const sino = v * Math.exp(-((t - j) ** 2) / (2 * largura * largura));
-      soma += sino ** EXPOENTE_DO_CONTORNO;
+  serie.forEach((s, i) => {
+    for (const k of chaves) {
+      const v = s[k] || 0;
+      if (v > 0) out.push({ i, k, v });
     }
-    out.push([t, soma ** (1 / EXPOENTE_DO_CONTORNO)]);
-  }
+  });
   return out;
 }
-
-/* quanto o sino se abre: mais pontos no gráfico, sino mais largo
-   em baldes, pra ele ocupar um pedaço parecido da tela */
-export const larguraDoSino = (n) => Math.min(1.6, Math.max(0.8, n / 22));

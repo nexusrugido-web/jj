@@ -2,8 +2,7 @@ import React, { useMemo, useState, useRef } from 'react';
 import { TrendingUp, TrendingDown, Minus, Sparkles } from 'lucide-react';
 import {
   PRESETS, periodoDeDados, primeiroTreino, METRICAS, serieDoPeriodo, totaisComparados,
-  contextoDaVitoria, marcadoresGraduacao, faixaDoNivel,
-  contornoSuave, larguraDoSino,
+  contextoDaVitoria, marcadoresGraduacao, faixaDoNivel, barrasDoGrafico,
 } from '../lib/periodo';
 import { fmtData } from '../lib/utils';
 
@@ -13,38 +12,6 @@ import { fmtData } from '../lib/utils';
 const W = 960;
 const H = 250;
 const PAD = { l: 38, r: 16, t: 22, b: 34 };
-
-/* pontos da curva por balde: o bastante pra ela sair lisa */
-const AMOSTRAS = 8;
-
-/* curva monotônica cúbica, suave sem inventar picos que não existem */
-function curva(pts) {
-  if (pts.length < 2) return pts.length ? `M${pts[0][0]},${pts[0][1]}` : '';
-  const n = pts.length;
-  const dx = [], dy = [], m = [];
-  for (let i = 0; i < n - 1; i++) {
-    dx.push(pts[i + 1][0] - pts[i][0]);
-    dy.push(pts[i + 1][1] - pts[i][1]);
-    m.push(dy[i] / (dx[i] || 1));
-  }
-  const t = [m[0]];
-  for (let i = 1; i < n - 1; i++) {
-    if (m[i - 1] * m[i] <= 0) t.push(0);
-    else {
-      const w1 = 2 * dx[i] + dx[i - 1];
-      const w2 = dx[i] + 2 * dx[i - 1];
-      t.push((w1 + w2) / (w1 / m[i - 1] + w2 / m[i]));
-    }
-  }
-  t.push(m[n - 2]);
-
-  let d = `M${pts[0][0]},${pts[0][1]}`;
-  for (let i = 0; i < n - 1; i++) {
-    const h = dx[i] / 3;
-    d += ` C${pts[i][0] + h},${pts[i][1] + t[i] * h} ${pts[i + 1][0] - h},${pts[i + 1][1] - t[i + 1] * h} ${pts[i + 1][0]},${pts[i + 1][1]}`;
-  }
-  return d;
-}
 
 export default function GraficoEvolucao({
   sessions, rolls, partners, gradings = [],
@@ -71,21 +38,21 @@ export default function GraficoEvolucao({
   const marcas = useMemo(() => marcadoresGraduacao(gradings, serie), [gradings, serie]);
 
   const chaves = metrica.chaves.filter((c) => !ocultas.includes(c.k));
-  /* "Ganhou e perdeu" é um espelho: as vitórias sobem da linha do
-     meio, as derrotas descem */
+  /* espelho (ganhou e perdeu, finalizações, pontos): um lado sobe da
+     linha do meio, o outro desce. Empilhado (como venceu, como
+     perdeu): as partes do mesmo todo numa barra só. */
   const divergente = !!metrica.divergente;
-  const desce = (c) => divergente && c.k === 'derrotas';
+  const empilhado = !!metrica.empilhado;
+  const desce = (c) => divergente && !!c.desce;
+  /* no empilhado, onde cada parte começa: o que as de antes já somaram */
+  const baseDe = (c, i) => (empilhado ? chaves.slice(0, chaves.indexOf(c)).reduce((a, y) => a + (serie[i][y.k] || 0), 0) : 0);
+  const emCima = (c, i) => !empilhado || chaves.slice(chaves.indexOf(c) + 1).every((y) => !(serie[i][y.k] > 0));
 
   const n = serie.length;
-  const curvas = useMemo(() => {
-    const largura = larguraDoSino(n);
-    return Object.fromEntries(metrica.chaves.map((c) => [
-      c.k, contornoSuave(serie.map((s) => s[c.k] || 0), { largura, amostras: AMOSTRAS }),
-    ]));
-  }, [serie, metrica, n]);
-  const topoDe = (c) => Math.max(0, ...curvas[c.k].map((p) => p[1]), ...serie.map((s) => s[c.k] || 0));
+  const topoDe = (c) => Math.max(0, ...serie.map((s) => s[c.k] || 0));
+  const topoEmpilhado = Math.max(0, ...serie.map((s) => chaves.reduce((a, c) => a + (s[c.k] || 0), 0)));
 
-  const max = Math.max(1, ...chaves.filter((c) => !desce(c)).map(topoDe));
+  const max = Math.max(1, ...(empilhado ? [topoEmpilhado] : chaves.filter((c) => !desce(c)).map(topoDe)));
   const maxNeg = Math.max(0, ...chaves.filter(desce).map(topoDe));
 
   const iw = W - PAD.l - PAD.r;
@@ -94,9 +61,16 @@ export default function GraficoEvolucao({
   const escPos = (zeroY - PAD.t) / max;
   const escNeg = maxNeg > 0 ? (PAD.t + ih - zeroY) / maxNeg : 0;
 
-  /* t pode ser fracionário: a curva tem pontos entre os baldes */
-  const x = (t) => PAD.l + (n > 1 ? (t / (n - 1)) * iw : iw / 2);
+  /* cada balde tem a sua faixa do eixo, e as barras dele ficam no
+     meio dela, lado a lado. No espelho (ganhou e perdeu) as duas
+     ficam no mesmo lugar, uma subindo e outra descendo. */
+  const faixa = iw / Math.max(1, n);
+  const x = (i) => PAD.l + (i + 0.5) * faixa;
   const yDe = (c, v) => (desce(c) ? zeroY + v * escNeg : zeroY - v * escPos);
+  const lado = divergente || empilhado ? 1 : Math.max(1, chaves.length);
+  const grupo = Math.min(faixa * 0.74, 34 * lado);
+  const larg = Math.max(2, grupo / lado - (lado > 1 ? 3 : 0));
+  const barras = barrasDoGrafico(serie, chaves.map((c) => c.k));
 
   const totais = useMemo(
     () => totaisComparados(sessions, rolls, partners, periodo),
@@ -111,7 +85,7 @@ export default function GraficoEvolucao({
     const r = svg.getBoundingClientRect();
     const cliente = e.touches && e.touches[0] ? e.touches[0].clientX : e.clientX;
     const cx = ((cliente - r.left) / r.width) * W;
-    const i = Math.round(((cx - PAD.l) / iw) * (n - 1));
+    const i = Math.floor((cx - PAD.l) / faixa);
     return Math.max(0, Math.min(n - 1, i));
   };
 
@@ -155,6 +129,17 @@ export default function GraficoEvolucao({
                   </div>
                 );
               })}
+              {(metrica.extras || []).map((c) => {
+                const total = serie.reduce((a, s) => a + (s[c.k] || 0), 0);
+                return (
+                  <div key={c.k} className="graf-total">
+                    <span className="graf-total-num num" style={{ color: 'var(--chalk)' }}>
+                      {Number.isInteger(total) ? total : total.toFixed(1)}{c.sufixo}
+                    </span>
+                    <span className="graf-total-lab">{c.nome}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -179,31 +164,19 @@ export default function GraficoEvolucao({
             onTouchMove={(e) => setHover(posDoEvento(e))}
           >
             <defs>
-              {/* a área é forte junto da linha e some em direção ao zero,
-                  dos dois lados do espelho */}
+              {/* a barra é forte na ponta e vai sumindo em direção ao
+                  zero, dos dois lados do espelho */}
               {metrica.chaves.map((c, i) => (
                 <linearGradient
-                  key={c.k} id={`ar-${uid}-${i}`}
+                  key={c.k} id={`barra-${uid}-${i}`}
                   x1="0" y1={desce(c) ? '1' : '0'} x2="0" y2={desce(c) ? '0' : '1'}
                 >
-                  <stop offset="0%" stopColor={c.cor} stopOpacity="0.42" />
-                  <stop offset="55%" stopColor={c.cor} stopOpacity="0.13" />
-                  <stop offset="100%" stopColor={c.cor} stopOpacity="0" />
+                  <stop offset="0%" stopColor={c.cor} stopOpacity="1" />
+                  {/* empilhada quase sólida: com degradê, cada pedaço parecia uma barra solta */}
+                  <stop offset="100%" stopColor={c.cor} stopOpacity={empilhado ? 0.82 : 0.28} />
                 </linearGradient>
               ))}
-              {/* o traço fica mais forte no recente: o olho vai pra onde
-                  você está agora */}
-              {metrica.chaves.map((c, i) => (
-                <linearGradient
-                  key={'t' + c.k} id={`traco-${uid}-${i}`}
-                  gradientUnits="userSpaceOnUse" x1={PAD.l} y1="0" x2={W - PAD.r} y2="0"
-                >
-                  <stop offset="0%" stopColor={c.cor} stopOpacity="0.35" />
-                  <stop offset="65%" stopColor={c.cor} stopOpacity="0.85" />
-                  <stop offset="100%" stopColor={c.cor} stopOpacity="1" />
-                </linearGradient>
-              ))}
-              {/* a linha se desenha da esquerda pra direita */}
+              {/* as barras aparecem da esquerda pra direita */}
               <clipPath id={`revela-${uid}`}>
                 <rect x="0" y="0" width={W} height={H} className="graf-revela" />
               </clipPath>
@@ -257,50 +230,28 @@ export default function GraficoEvolucao({
             ))}
 
             <g clipPath={`url(#revela-${uid})`}>
-              {chaves.map((c) => {
+              {barras.map(({ i, k, v }) => {
+                const c = chaves.find((y) => y.k === k);
                 const idx = metrica.chaves.indexOf(c);
-                const pts = curvas[c.k].map(([t, v]) => [x(t), yDe(c, v)]);
-                const d = curva(pts);
-                const area = `${d} L${pts[pts.length - 1][0]},${zeroY} L${pts[0][0]},${zeroY} Z`;
-                const naMao = hover !== null ? pts[hover * AMOSTRAS] : null;
+                const j = divergente ? 0 : chaves.indexOf(c);
+                const bx = x(i) - grupo / 2 + j * (grupo / lado) + (grupo / lado - larg) / 2;
+                const base = baseDe(c, i);
+                const y0 = yDe(c, base);
+                const h = Math.max(base ? 0 : 3, Math.abs(yDe(c, base + v) - y0));
+                /* só a ponta de longe do zero é arredondada, e no
+                   empilhado só a de cima */
+                const r = emCima(c, i) ? Math.min(larg / 2, 7, h) : 0;
+                const d = desce(c)
+                  ? `M${bx},${y0} L${bx},${y0 + h - r} Q${bx},${y0 + h} ${bx + r},${y0 + h} L${bx + larg - r},${y0 + h} Q${bx + larg},${y0 + h} ${bx + larg},${y0 + h - r} L${bx + larg},${y0} Z`
+                  : `M${bx},${y0} L${bx},${y0 - h + r} Q${bx},${y0 - h} ${bx + r},${y0 - h} L${bx + larg - r},${y0 - h} Q${bx + larg},${y0 - h} ${bx + larg},${y0 - h + r} L${bx + larg},${y0} Z`;
+                const apagada = hover !== null && hover !== i;
                 return (
-                  <g key={c.k}>
-                    <path
-                      d={area} fill={`url(#ar-${uid}-${idx})`} className="graf-area"
-                      style={desce(c) ? { transformOrigin: 'top' } : undefined}
-                    />
-                    <path
-                      d={d} fill="none" stroke={c.cor} strokeWidth="5"
-                      strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"
-                      filter={`url(#glow-${uid})`} opacity="0.35"
-                    />
-                    <path
-                      d={d} fill="none" stroke={`url(#traco-${uid}-${idx})`} strokeWidth="2.6"
-                      strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"
-                      className="graf-linha"
-                    />
-                    {naMao && (
-                      <>
-                        <circle cx={naMao[0]} cy={naMao[1]} r="9" fill={c.cor} opacity="0.16" />
-                        <circle cx={naMao[0]} cy={naMao[1]} r="4.5" fill="var(--mat)" stroke={c.cor} strokeWidth="2.5" />
-                      </>
-                    )}
+                  <g key={`${k}-${i}`} opacity={apagada ? 0.4 : 1} className="graf-barra">
+                    <path d={d} fill={c.cor} filter={`url(#glow-${uid})`} opacity="0.3" />
+                    <path d={d} fill={`url(#barra-${uid}-${idx})`} />
                   </g>
                 );
               })}
-
-              {/* hoje: o fim da primeira linha pulsa */}
-              {chaves[0] && hover === null && (() => {
-                const ult = curvas[chaves[0].k][curvas[chaves[0].k].length - 1];
-                const cx = x(ult[0]);
-                const cy = yDe(chaves[0], ult[1]);
-                return (
-                  <g>
-                    <circle cx={cx} cy={cy} r="7" fill={chaves[0].cor} className="graf-agora" />
-                    <circle cx={cx} cy={cy} r="3.6" fill={chaves[0].cor} />
-                  </g>
-                );
-              })()}
             </g>
 
             {serie.map((s, i) => {
@@ -339,6 +290,12 @@ export default function GraficoEvolucao({
                       <b className="num" style={{ marginLeft: 'auto' }}>{serie[hover][c.k] || 0}</b>
                     </div>
                   ))}
+                  {(metrica.extras || []).map((c) => (
+                    <div key={c.k} className="graf-tip-linha">
+                      <span className="muted">{c.nome}</span>
+                      <b className="num" style={{ marginLeft: 'auto' }}>{serie[hover][c.k] || 0}{c.sufixo}</b>
+                    </div>
+                  ))}
                   <div className="graf-tip-rodape">
                     {serie[hover].rolas} {serie[hover].rolas === 1 ? 'rola' : 'rolas'}
                     {serie[hover].nivelMedio !== null && `, média ${faixaDoNivel(serie[hover].nivelMedio)}`}
@@ -374,8 +331,8 @@ export default function GraficoEvolucao({
         )}
         {!compacto && (
           <p className="micro muted" style={{ marginTop: 4 }}>
-            O eixo de baixo é o tempo, o de lado conta {metrica.eixoY}. A linha se abre em volta de cada treino pra
-            mostrar o ritmo. Toque nela pra ver o número exato de cada {{ dia: 'dia', semana: 'semana', mes: 'mês' }[grao] || 'ponto'}.
+            O eixo de baixo é o tempo, o de lado conta {metrica.eixoY}. Cada barra é {{ dia: 'um dia', semana: 'uma semana', mes: 'um mês' }[grao] || 'um período'}
+            de treino, e onde não tem barra você não treinou. Toque numa barra pra ver o número exato.
           </p>
         )}
       </div>
