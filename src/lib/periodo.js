@@ -535,13 +535,57 @@ export function mesDoCalendario(sessions, rolls, ano, mes) {
 }
 
 /* ============================================================
+   A LINHA QUE SE ABRE PROS LADOS
+
+   Um dia de treino entre dias vazios virava um espinho: a curva
+   tinha que sair do zero no dia anterior e voltar ao zero no dia
+   seguinte. Aqui cada valor vira um sino (uma gaussiana) que se
+   abre pros baldes vizinhos, e a linha é o contorno dos sinos.
+
+   O contorno é quase o máximo dos sinos, e não a soma: o pico de
+   um dia continua na altura do valor dele, e dias seguidos com o
+   mesmo valor viram um platô na mesma altura, sem inflar. O número
+   exato de cada dia continua no toque.
+
+   largura  em baldes: 1 quer dizer que o sino chega a 60% da
+            altura no dia vizinho
+   amostras quantos pontos por balde, pra curva sair lisa
+   ============================================================ */
+const EXPOENTE_DO_CONTORNO = 8;
+
+export function contornoSuave(valores, { largura = 1, amostras = 8 } = {}) {
+  const n = valores.length;
+  if (!n) return [];
+  const alcance = Math.ceil(largura * 3);
+  const total = (n - 1) * amostras;
+  const out = [];
+  for (let k = 0; k <= total; k++) {
+    const t = n === 1 ? 0 : k / amostras;
+    let soma = 0;
+    const de = Math.max(0, Math.floor(t) - alcance);
+    const ate = Math.min(n - 1, Math.ceil(t) + alcance);
+    for (let j = de; j <= ate; j++) {
+      const v = Number(valores[j]) || 0;
+      if (v <= 0) continue;
+      const sino = v * Math.exp(-((t - j) ** 2) / (2 * largura * largura));
+      soma += sino ** EXPOENTE_DO_CONTORNO;
+    }
+    out.push([t, soma ** (1 / EXPOENTE_DO_CONTORNO)]);
+  }
+  return out;
+}
+
+/* quanto o sino se abre: mais pontos no gráfico, sino mais largo
+   em baldes, pra ele ocupar um pedaço parecido da tela */
+export const larguraDoSino = (n) => Math.min(1.6, Math.max(0.8, n / 22));
+
+/* ============================================================
    AS BARRAS DO GRÁFICO
 
-   Cada dia (ou semana, ou mês) vira uma barra por série, na altura
-   exata do valor. Balde vazio não tem barra: dia sem treino fica
-   vazio. A curva que vinha antes se abria pros dias vizinhos e
-   desenhava um morrinho em dia sem treino, e o toque ali dizia
-   "sem treino registrado".
+   A outra forma de ver, que a pessoa escolhe no gráfico. Cada dia
+   (ou semana, ou mês) vira uma barra por série, na altura exata do
+   valor, e dia sem treino fica vazio: a linha se abre pros dias
+   vizinhos, a barra não.
    ============================================================ */
 export function barrasDoGrafico(serie, chaves) {
   const out = [];

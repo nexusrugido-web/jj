@@ -1,8 +1,9 @@
 import React, { useMemo, useState, useRef } from 'react';
-import { TrendingUp, TrendingDown, Minus, Sparkles } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Sparkles, ChartSpline, ChartColumnBig } from 'lucide-react';
 import {
   PRESETS, periodoDeDados, primeiroTreino, METRICAS, serieDoPeriodo, totaisComparados,
   contextoDaVitoria, marcadoresGraduacao, faixaDoNivel, barrasDoGrafico,
+  contornoSuave, larguraDoSino,
 } from '../lib/periodo';
 import { fmtData } from '../lib/utils';
 
@@ -12,6 +13,40 @@ import { fmtData } from '../lib/utils';
 const W = 960;
 const H = 250;
 const PAD = { l: 38, r: 16, t: 22, b: 34 };
+
+/* pontos da curva por balde: o bastante pra ela sair lisa */
+const AMOSTRAS = 8;
+
+/* curva monotônica cúbica, suave sem inventar picos que não existem */
+function curva(pts) {
+  if (pts.length < 2) return pts.length ? `M${pts[0][0]},${pts[0][1]}` : '';
+  const n = pts.length;
+  const dx = [], dy = [], m = [];
+  for (let i = 0; i < n - 1; i++) {
+    dx.push(pts[i + 1][0] - pts[i][0]);
+    dy.push(pts[i + 1][1] - pts[i][1]);
+    m.push(dy[i] / (dx[i] || 1));
+  }
+  const tg = [m[0]];
+  for (let i = 1; i < n - 1; i++) {
+    if (m[i - 1] * m[i] <= 0) tg.push(0);
+    else {
+      const w1 = 2 * dx[i] + dx[i - 1];
+      const w2 = dx[i] + 2 * dx[i - 1];
+      tg.push((w1 + w2) / (w1 / m[i - 1] + w2 / m[i]));
+    }
+  }
+  tg.push(m[n - 2]);
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 0; i < n - 1; i++) {
+    const h = dx[i] / 3;
+    d += ` C${pts[i][0] + h},${pts[i][1] + tg[i] * h} ${pts[i + 1][0] - h},${pts[i + 1][1] - tg[i + 1] * h} ${pts[i + 1][0]},${pts[i + 1][1]}`;
+  }
+  return d;
+}
+
+/* linha ou barras: a linha é o padrão, e a escolha fica guardada no aparelho */
+const lerForma = () => { try { return localStorage.getItem('graficoForma') === 'barras' ? 'barras' : 'linha'; } catch { return 'linha'; } };
 
 export default function GraficoEvolucao({
   sessions, rolls, partners, gradings = [],
@@ -28,6 +63,9 @@ export default function GraficoEvolucao({
   const [metricaId, setMetricaId] = useState(metricaInicial);
   const [ocultas, setOcultas] = useState([]);
   const [hover, setHover] = useState(null);
+  const [forma, setForma] = useState(lerForma);
+  const linha = forma === 'linha';
+  const mudarForma = (v) => { setForma(v); try { localStorage.setItem('graficoForma', v); } catch { /* vale até fechar */ } };
   const svgRef = useRef(null);
 
   const metrica = METRICAS.find((m) => m.id === metricaId) || METRICAS[0];
@@ -49,10 +87,18 @@ export default function GraficoEvolucao({
   const emCima = (c, i) => !empilhado || chaves.slice(chaves.indexOf(c) + 1).every((y) => !(serie[i][y.k] > 0));
 
   const n = serie.length;
-  const topoDe = (c) => Math.max(0, ...serie.map((s) => s[c.k] || 0));
+  /* a linha: cada valor vira um sino que se abre pros vizinhos */
+  const curvas = useMemo(() => {
+    const largura = larguraDoSino(n);
+    return Object.fromEntries(metrica.chaves.map((c) => [
+      c.k, contornoSuave(serie.map((s) => s[c.k] || 0), { largura, amostras: AMOSTRAS }),
+    ]));
+  }, [serie, metrica, n]);
+  const topoDe = (c) => Math.max(0, ...serie.map((s) => s[c.k] || 0), ...(linha ? curvas[c.k].map((p) => p[1]) : []));
   const topoEmpilhado = Math.max(0, ...serie.map((s) => chaves.reduce((a, c) => a + (s[c.k] || 0), 0)));
 
-  const max = Math.max(1, ...(empilhado ? [topoEmpilhado] : chaves.filter((c) => !desce(c)).map(topoDe)));
+  /* na linha cada série é uma curva; na barra, as partes empilham */
+  const max = Math.max(1, ...(empilhado && !linha ? [topoEmpilhado] : chaves.filter((c) => !desce(c)).map(topoDe)));
   const maxNeg = Math.max(0, ...chaves.filter(desce).map(topoDe));
 
   const iw = W - PAD.l - PAD.r;
@@ -151,7 +197,12 @@ export default function GraficoEvolucao({
           <p className="tiny muted">Sem treino registrado neste período.</p>
         </div>
       ) : (
-        <div className="graf-wrap anima-troca" key={`${periodo.id}-${metricaId}`}>
+        <>
+        <div className="graf-forma" role="radiogroup" aria-label="Forma do gráfico">
+          <button type="button" role="radio" aria-checked={linha} className={linha ? 'on' : ''} aria-label="Linha" onClick={() => mudarForma('linha')}><ChartSpline size={15} /></button>
+          <button type="button" role="radio" aria-checked={!linha} className={!linha ? 'on' : ''} aria-label="Barras" onClick={() => mudarForma('barras')}><ChartColumnBig size={15} /></button>
+        </div>
+        <div className="graf-wrap anima-troca" key={`${periodo.id}-${metricaId}-${forma}`}>
           <svg
             ref={svgRef}
             viewBox={`0 0 ${W} ${H}`}
@@ -176,7 +227,29 @@ export default function GraficoEvolucao({
                   <stop offset="100%" stopColor={c.cor} stopOpacity={empilhado ? 0.82 : 0.28} />
                 </linearGradient>
               ))}
-              {/* as barras aparecem da esquerda pra direita */}
+              {/* a área da linha é forte junto dela e some em direção ao zero */}
+              {metrica.chaves.map((c, i) => (
+                <linearGradient
+                  key={'a' + c.k} id={`ar-${uid}-${i}`}
+                  x1="0" y1={desce(c) ? '1' : '0'} x2="0" y2={desce(c) ? '0' : '1'}
+                >
+                  <stop offset="0%" stopColor={c.cor} stopOpacity="0.42" />
+                  <stop offset="55%" stopColor={c.cor} stopOpacity="0.13" />
+                  <stop offset="100%" stopColor={c.cor} stopOpacity="0" />
+                </linearGradient>
+              ))}
+              {/* o traço fica mais forte no recente: o olho vai pra onde você está agora */}
+              {metrica.chaves.map((c, i) => (
+                <linearGradient
+                  key={'t' + c.k} id={`traco-${uid}-${i}`}
+                  gradientUnits="userSpaceOnUse" x1={PAD.l} y1="0" x2={W - PAD.r} y2="0"
+                >
+                  <stop offset="0%" stopColor={c.cor} stopOpacity="0.35" />
+                  <stop offset="65%" stopColor={c.cor} stopOpacity="0.85" />
+                  <stop offset="100%" stopColor={c.cor} stopOpacity="1" />
+                </linearGradient>
+              ))}
+              {/* o desenho aparece da esquerda pra direita */}
               <clipPath id={`revela-${uid}`}>
                 <rect x="0" y="0" width={W} height={H} className="graf-revela" />
               </clipPath>
@@ -229,7 +302,44 @@ export default function GraficoEvolucao({
               </g>
             ))}
 
-            <g clipPath={`url(#revela-${uid})`}>
+            {linha && (
+              <g clipPath={`url(#revela-${uid})`}>
+                {chaves.map((c) => {
+                  const idx = metrica.chaves.indexOf(c);
+                  const pts = curvas[c.k].map(([tt, v]) => [x(tt), yDe(c, v)]);
+                  const d = curva(pts);
+                  const area = `${d} L${pts[pts.length - 1][0]},${zeroY} L${pts[0][0]},${zeroY} Z`;
+                  const naMao = hover !== null ? pts[hover * AMOSTRAS] : null;
+                  return (
+                    <g key={c.k}>
+                      <path d={area} fill={`url(#ar-${uid}-${idx})`} className="graf-area" style={desce(c) ? { transformOrigin: 'top' } : undefined} />
+                      <path d={d} fill="none" stroke={c.cor} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"
+                        vectorEffect="non-scaling-stroke" filter={`url(#glow-${uid})`} opacity="0.35" />
+                      <path d={d} fill="none" stroke={`url(#traco-${uid}-${idx})`} strokeWidth="2.6" strokeLinecap="round"
+                        strokeLinejoin="round" vectorEffect="non-scaling-stroke" className="graf-linha" />
+                      {naMao && (
+                        <>
+                          <circle cx={naMao[0]} cy={naMao[1]} r="9" fill={c.cor} opacity="0.16" />
+                          <circle cx={naMao[0]} cy={naMao[1]} r="4.5" fill="var(--mat)" stroke={c.cor} strokeWidth="2.5" />
+                        </>
+                      )}
+                    </g>
+                  );
+                })}
+                {/* hoje: o fim da primeira linha pulsa */}
+                {chaves[0] && hover === null && (() => {
+                  const ult = curvas[chaves[0].k][curvas[chaves[0].k].length - 1];
+                  return (
+                    <g>
+                      <circle cx={x(ult[0])} cy={yDe(chaves[0], ult[1])} r="7" fill={chaves[0].cor} className="graf-agora" />
+                      <circle cx={x(ult[0])} cy={yDe(chaves[0], ult[1])} r="3.6" fill={chaves[0].cor} />
+                    </g>
+                  );
+                })()}
+              </g>
+            )}
+
+            {!linha && <g clipPath={`url(#revela-${uid})`}>
               {barras.map(({ i, k, v }) => {
                 const c = chaves.find((y) => y.k === k);
                 const idx = metrica.chaves.indexOf(c);
@@ -252,7 +362,7 @@ export default function GraficoEvolucao({
                   </g>
                 );
               })}
-            </g>
+            </g>}
 
             {serie.map((s, i) => {
               const passo = Math.max(1, Math.ceil(n / (compacto ? 4 : 7)));
@@ -305,6 +415,7 @@ export default function GraficoEvolucao({
             </div>
           )}
         </div>
+        </>
       )}
 
       <div className="col" style={{ gap: 8 }}>
@@ -331,8 +442,9 @@ export default function GraficoEvolucao({
         )}
         {!compacto && (
           <p className="micro muted" style={{ marginTop: 4 }}>
-            O eixo de baixo é o tempo, o de lado conta {metrica.eixoY}. Cada barra é {{ dia: 'um dia', semana: 'uma semana', mes: 'um mês' }[grao] || 'um período'}
-            de treino, e onde não tem barra você não treinou. Toque numa barra pra ver o número exato.
+            O eixo de baixo é o tempo, o de lado conta {metrica.eixoY}. {linha
+              ? 'A linha se abre em volta de cada treino pra mostrar o ritmo; pra ver dia por dia, troque pras barras no canto do gráfico.'
+              : `Cada barra é ${{ dia: 'um dia', semana: 'uma semana', mes: 'um mês' }[grao] || 'um período'} de treino, e onde não tem barra você não treinou.`} Toque no gráfico pra ver o número exato.
           </p>
         )}
       </div>
