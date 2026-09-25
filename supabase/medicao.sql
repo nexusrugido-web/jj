@@ -92,7 +92,8 @@ grant execute on function public.medir(jsonb) to authenticated;
 -- abandono   aberto 3 vezes ou mais e terminado em menos de 30%
 -- faltou     as necessidades sem video, por quantas pessoas
 -- barrado    quantas vezes o limite e o video pago seguraram
--- feitas     o "Ja treinei isso": funcionou, mais ou menos, nao
+-- feitas     a aula da sugestao vista ate o fim (assistiu), e as
+--            marcacoes antigas do "Ja treinei isso" (funcionou, meio, nao)
 -- ------------------------------------------------------------
 create or replace function public.medicao_estudo(p_dias int default 30)
 returns jsonb language plpgsql stable security definer set search_path = public as $$
@@ -199,6 +200,7 @@ begin
       from (
         select r.dados->>'intencao' as intencao,
                count(*) as total,
+               count(*) filter (where r.dados->>'resultado' = 'assistiu')  as assistiu,
                count(*) filter (where r.dados->>'resultado' = 'funcionou') as funcionou,
                count(*) filter (where r.dados->>'resultado' = 'meio')      as meio,
                count(*) filter (where r.dados->>'resultado' = 'nao')       as nao

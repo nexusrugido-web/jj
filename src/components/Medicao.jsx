@@ -246,16 +246,20 @@ export default function Medicao() {
 
             <Card>
               <div className="card-head">
-                <h2 className="h-sec row" style={{ gap: 8 }}><Check size={16} /> "Já treinei isso"</h2>
+                <h2 className="h-sec row" style={{ gap: 8 }}><Check size={16} /> Aula da sugestão vista até o fim</h2>
               </div>
+              <p className="micro muted" style={{ marginBottom: 10, lineHeight: 1.6 }}>
+                A sugestão sai da lista quando o aluno termina a aula dela. As marcações antigas do "Já treinei isso" aparecem ao lado, enquanto houver.
+              </p>
               {!(m.feitas || []).length ? (
-                <p className="tiny muted">Ninguém marcou no período.</p>
+                <p className="tiny muted">Ninguém terminou a aula de uma sugestão no período.</p>
               ) : (
                 <div className="col" style={{ gap: 8 }}>
                   {m.feitas.map((f) => (
                     <div key={f.intencao} className="liga-linha">
                       <span className="tiny" style={{ flex: 1 }}>{INTENCOES[f.intencao]?.nome || f.intencao}</span>
-                      <Chip tone="jade">{f.funcionou} funcionou</Chip>
+                      <Chip tone="jade">{f.assistiu || 0} {(f.assistiu || 0) === 1 ? 'vista' : 'vistas'}</Chip>
+                      {f.funcionou > 0 && <Chip>{f.funcionou} funcionou</Chip>}
                       {f.meio > 0 && <Chip tone="roar">{f.meio} mais ou menos</Chip>}
                       {f.nao > 0 && <Chip tone="blood">{f.nao} não saiu</Chip>}
                     </div>
