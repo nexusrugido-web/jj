@@ -48,7 +48,7 @@ export const PLANOS_ATAQUE = [
     aviso: '',
     passos: [
       { gatilho: 'seatbelt firme + os dois ganchos', acao: 'Mata-leão', detalhe: 'Primeiro o controle, depois a finalização. Nunca solte o seatbelt pra tentar o estrangulamento.' },
-      { gatilho: 'ele defende o pescoço com as duas mãos e expõe a lapela', acao: 'Estrangulamento de laço (bow and arrow)', seFalhar: 'ele defende o colarinho', detalhe: 'Pega a lapela por cima do ombro, a outra mão na calça.' },
+      { gatilho: 'ele defende o pescoço com as duas mãos e expõe a lapela', acao: 'Arco e flecha (bow and arrow)', seFalhar: 'ele defende o colarinho', detalhe: 'Pega a lapela por cima do ombro, a outra mão na calça.' },
       { gatilho: 'ele estica o braço pra defender o colarinho', acao: 'Chave de braço a partir das costas', seFalhar: 'ele recolhe o braço', proxima: 'Volta pro mata-leão, o ciclo se repete' },
     ],
   },
@@ -81,7 +81,7 @@ export const PLANOS_ATAQUE = [
     passos: [
       { gatilho: 'montada estável, quadril baixo, lapela acessível', acao: 'Estrangulamento cruzado (cruzada)', detalhe: 'Mão fundo na lapela primeiro, depois a segunda.' },
       { gatilho: 'ele sobe os dois braços pra defender o pescoço', acao: 'Chave de braço (montada em S)', seFalhar: 'ele segura as mãos e resiste', detalhe: 'Isola o braço, sobe pra S-mount antes de deitar.' },
-      { gatilho: 'ele vira de lado pra escapar', acao: 'Gift wrap → tomar as costas', proxima: 'Mata-leão ou bow and arrow' },
+      { gatilho: 'ele vira de lado pra escapar', acao: 'Gift wrap → tomar as costas', proxima: 'Mata-leão ou arco e flecha' },
     ],
   },
   {
@@ -239,7 +239,7 @@ export const PLANOS_ATAQUE = [
     aviso: 'Pular para a guarda é PROIBIDO para faixa branca na IBJJF. Sente antes de puxar.',
     passos: [
       { gatilho: 'ele com a postura alta e o peso na frente', acao: 'Baiana (double leg)', detalhe: 'Nível abaixo do dele antes de entrar. Cabeça pro lado de fora.' },
-      { gatilho: 'ele defende a baiana espalhando (sprawl)', acao: 'Solo (single leg) do outro lado', seFalhar: 'ele defende de novo' },
+      { gatilho: 'ele defende a baiana espalhando (sprawl)', acao: 'Single leg do outro lado', seFalhar: 'ele defende de novo' },
       { gatilho: 'não conseguiu a queda e o tempo tá passando', acao: 'Sentar e puxar para a guarda (sem pular)', proxima: 'Entrar no seu sistema de guarda fechada' },
     ],
   },

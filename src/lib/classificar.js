@@ -73,6 +73,8 @@ export function indiceDeTecnicas(catalogo) {
       ...String(t.nome).replace(/\(.*?\)/g, '').split(',').map(semAcento),
       ...String(t.en || '').split('/').map(semAcento),
       ...[...String(t.nome).matchAll(/\(([^)]+)\)/g)].map((m) => semAcento(m[1])),
+      /* o nome de antes da troca continua achando a técnica */
+      ...(t.antigo ? [semAcento(t.antigo)] : []),
     ].filter(Boolean);
     for (const v of variantes) if (!exato.has(v)) exato.set(v, t.uid);
     return { uid: t.uid, tamanho: nome.length, texto: variantes.join(' '), palavras: new Set(variantes.join(' ').split(' ')) };

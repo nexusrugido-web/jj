@@ -16,13 +16,15 @@ import { indiceDeTecnicas, semAcento } from './classificar';
    Americana" com a aula de defesa de estrangulamento.
    ============================================================ */
 export const CATALOGO_TECNICAS = SEED.techniques.map((t) => ({
-  uid: uidEstavel(chaveNome('techniques', t.pt)),
+  /* o uid sai do nome antigo, quando teve: as aulas marcadas antes da troca continuam ligadas */
+  uid: uidEstavel(chaveNome('techniques', t.antigo || t.pt)),
   nome: t.pt,
+  antigo: t.antigo || null,
   en: t.en,
   cat: t.cat,
   de: DE_POSICAO_BIBLIOTECA[t.from] || null,
   posicao: separar(DE_POSICAO_BIBLIOTECA[t.from] || '').posicao || null,
-  busca: semAcento(`${t.pt} ${t.en}`),
+  busca: semAcento(`${t.pt} ${t.en} ${t.antigo || ''}`),
 }));
 
 export const TECNICA_POR_UID = new Map(CATALOGO_TECNICAS.map((t) => [t.uid, t]));

@@ -1,5 +1,6 @@
 import Dexie from 'dexie';
 import { db, TABELAS_SYNC } from '../db/db';
+import { RENOMEAR } from '../db/renomeios';
 import { uidEstavel, chaveNome } from './uid';
 import { supabase, supabaseConfigurado, sessaoAtual } from './supabase';
 
@@ -82,7 +83,10 @@ export function sementeIntacta(tabela, o) {
   }
   if ((o.updatedAt || 0) - (o.criadoEm || 0) > 5000) return false;
   if (tabela === 'techniques' && ((o.status || 'nao_iniciada') !== 'nao_iniciada' || o.favorita || o.nivel || o.detalhes || o.video)) return false;
-  return o.uid === uidEstavel(chaveNome(tabela, o.nome));
+  if (o.uid === uidEstavel(chaveNome(tabela, o.nome))) return true;
+  /* técnica que mudou de nome: o uid continua sendo o do nome antigo */
+  return tabela === 'techniques' && Object.entries(RENOMEAR)
+    .some(([antigo, novo]) => novo === o.nome && o.uid === uidEstavel(chaveNome(tabela, antigo)));
 }
 
 let timer = null;

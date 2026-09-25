@@ -4,6 +4,7 @@ import { PLANOS_ATAQUE } from './attackPlans';
 import { uidEstavel, chaveNome } from '../lib/uid';
 import { resultadoDoTexto } from '../lib/competicao';
 import { dataLocal } from '../lib/utils';
+import { RENOMEAR as NOMES_NOVOS, nomeAtual } from './renomeios';
 
 export const db = new Dexie('tatame_os');
 
@@ -205,6 +206,52 @@ export const DEFAULT_SETTINGS = {
   iaLigada: true, celebrar: true,
 };
 
+/* ============================================================
+   OS NOMES NOVOS DAS TÉCNICAS, NO QUE JÁ ESTÁ GRAVADO
+
+   Uma vez por aparelho: troca o nome antigo pelo novo (ver
+   renomeios.js) na biblioteca, nos treinos, nos rolas e nas metas.
+   O uid da técnica não muda, então a nuvem e as aulas continuam
+   ligadas. Duas técnicas que viraram o mesmo nome são juntadas logo
+   depois, pelo limparDuplicados.
+   ============================================================ */
+export async function renomearTecnicas() {
+  if (await getMeta('renomeou_v1', false)) return;
+  const troca = (n) => nomeAtual(n);
+  const trocaLista = (l) => (Array.isArray(l) ? l.map(troca) : l);
+  const mudou = (a, b) => JSON.stringify(a) !== JSON.stringify(b);
+
+  for (const t of await db.techniques.toArray()) {
+    /* a biblioteca é igual em todo aparelho: a troca fica só aqui (__local),
+       sem subir. Cada aparelho faz a sua. */
+    if (NOMES_NOVOS[t.nome]) await db.techniques.update(t.id, { nome: NOMES_NOVOS[t.nome], __local: Math.random() });
+  }
+  for (const s of await db.sessions.toArray()) {
+    const foco = (s.focoTecnicas || []).map((f) => ({ ...f, nome: troca(f.nome) }));
+    const doDia = trocaLista(s.tecnicasDoDia);
+    if (mudou(foco, s.focoTecnicas || []) || mudou(doDia, s.tecnicasDoDia)) {
+      await db.sessions.update(s.id, { focoTecnicas: foco, ...(s.tecnicasDoDia ? { tecnicasDoDia: doDia } : {}) });
+    }
+  }
+  const trocaMapa = (m) => Object.fromEntries(Object.entries(m || {}).map(([k, v]) => [k, trocaLista(v)]));
+  for (const r of await db.rolls.toArray()) {
+    const novo = {
+      subsAplicadas: trocaLista(r.subsAplicadas || []),
+      subsSofridas: trocaLista(r.subsSofridas || []),
+      tecMeus: trocaMapa(r.tecMeus),
+      tecDele: trocaMapa(r.tecDele),
+    };
+    if (mudou(novo.subsAplicadas, r.subsAplicadas || []) || mudou(novo.subsSofridas, r.subsSofridas || [])
+      || mudou(novo.tecMeus, r.tecMeus || {}) || mudou(novo.tecDele, r.tecDele || {})) {
+      await db.rolls.update(r.id, novo);
+    }
+  }
+  for (const g of await db.goals.toArray()) {
+    if (typeof g.alvo === 'string' && NOMES_NOVOS[g.alvo]) await db.goals.update(g.id, { alvo: NOMES_NOVOS[g.alvo] });
+  }
+  await setMeta('renomeou_v1', true);
+}
+
 /* ---------- seed ---------- */
 export async function ensureSeed() {
   const v1 = await getMeta('seeded_v1', false);
@@ -218,7 +265,7 @@ export async function ensureSeed() {
         for (const c of SEED.categories) catMap[c.slug] = await db.categories.add({ ...c, uid: uidEstavel(chaveNome('categories', c.nome)), arquivada: 0, criadoEm: Date.now(), __local: 1 });
         for (const t of SEED.techniques) {
           await db.techniques.add({
-            uid: uidEstavel(chaveNome('techniques', t.pt)),
+            uid: uidEstavel(chaveNome('techniques', t.antigo || t.pt)),
             nome: t.pt, nomeEn: t.en || '',
             categoriaId: catMap[t.cat] ?? null,
             origemId: posMap[t.from] ?? null,
@@ -272,7 +319,7 @@ export async function ensureSeed() {
       const chave = String(t.pt).normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
       if (existentes.has(chave)) continue;
       await db.techniques.add({
-        uid: uidEstavel(chaveNome('techniques', t.pt)),
+        uid: uidEstavel(chaveNome('techniques', t.antigo || t.pt)),
         nome: t.pt, nomeEn: t.en || '',
         categoriaId: catPorSlug[t.cat] ?? null,
         origemId: posPorSlug[t.from] ?? null,
@@ -291,6 +338,8 @@ export async function ensureSeed() {
     await db.meta.put({ key: 'seeded_v5', value: true });
     if (novas) console.info(`[seed] ${novas} técnicas novas adicionadas à biblioteca`);
   }
+
+  await renomearTecnicas();
 
   const v2 = await getMeta('seeded_v2', false);
   if (!v2) {
