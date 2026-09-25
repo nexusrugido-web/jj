@@ -79,3 +79,43 @@ export function resumoDeCompeticoes(sessoes, rolasPorSessao) {
   }
   return { campeonatos: sessoes.length, lutas, vitorias, podios };
 }
+
+/* ============================================================
+   A CHAVE E O PÓDIO DA CATEGORIA
+
+   A chave guarda as lutas dos outros só com quem venceu:
+     chave: [{ a: 'Fulano', b: 'Beltrano', venceu: 'a' }]
+   O pódio tem campeão, vice e os dois 3º lugares (IBJJF):
+     podio: { ouro, prata, bronze: [x, y] }
+   EU no pódio é você. A colocação do "Como terminou" e o pódio
+   andam juntos: marcar um preenche o outro.
+   ============================================================ */
+export const EU = '__eu';
+
+export function resultadoDoPodio(podio) {
+  if (!podio) return null;
+  if (podio.ouro === EU) return 'ouro';
+  if (podio.prata === EU) return 'prata';
+  if ((podio.bronze || []).includes(EU)) return 'bronze';
+  return null;
+}
+
+export function podioComEu(podio = {}, resultado) {
+  const semEu = {
+    ouro: podio.ouro === EU ? '' : podio.ouro || '',
+    prata: podio.prata === EU ? '' : podio.prata || '',
+    bronze: (podio.bronze || ['', '']).map((x) => (x === EU ? '' : x || '')),
+  };
+  while (semEu.bronze.length < 2) semEu.bronze.push('');
+  if (resultado === 'ouro') semEu.ouro = EU;
+  else if (resultado === 'prata') semEu.prata = EU;
+  else if (resultado === 'bronze') semEu.bronze[semEu.bronze[0] ? 1 : 0] = EU;
+  return semEu;
+}
+
+/* os nomes que já apareceram na chave e nas suas lutas, pra escolher no pódio */
+export function atletasDaChave(chave = [], lutas = []) {
+  const nomes = [...chave.flatMap((l) => [l.a, l.b]), ...lutas.map((r) => r.adversario)]
+    .map((x) => String(x || '').trim()).filter(Boolean);
+  return [...new Set(nomes)];
+}

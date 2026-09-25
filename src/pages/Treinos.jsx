@@ -19,7 +19,7 @@ import {
   Empty, Confirmar, useToast, SubsInput, Busca, PontosInput, EscolhaChips, ParceiroRapido, Seg,
 } from '../components/UI';
 import Calendario from '../components/Calendario';
-import ResumoDoTipo from '../components/ResumoDoTipo';
+import ResumoDoTipo, { PodioCategoria } from '../components/ResumoDoTipo';
 import { hoje, fmtDur, relativo, buscaMatch, mesPorExtenso } from '../lib/utils';
 import { recortarHistorico } from '../lib/plano';
 import { HistoricoCortado } from '../components/Plano';
@@ -27,7 +27,7 @@ import AntesDeCompetir from '../components/AntesDeCompetir';
 import { padraoDoTipo } from '../lib/padraoTreino';
 import {
   ORGANIZACOES, DIVISOES, CATEGORIAS_PESO, RESULTADOS, resultadoPorId, ehPodio,
-  competicaoVazia,
+  competicaoVazia, EU, resultadoDoPodio, podioComEu, atletasDaChave,
 } from '../lib/competicao';
 
 const TIPOS = [
@@ -38,6 +38,29 @@ const TIPOS = [
   { id: 'privada', nome: 'Aula privada' },
   { id: 'competicao', nome: 'Competição', competicao: true },
 ];
+
+/* ============================================================
+   O FORMULÁRIO DE CADA TIPO
+
+   Gi e No-Gi: a aula e os rolas com placar.
+   Drill: as técnicas e quantas repetições; sem rola (ninguém resiste).
+   Open mat: sem aula nem professor, direto pros rolas.
+   Aula particular: o professor e o que você aprendeu; rola é extra.
+   Competição: o campeonato, as suas lutas (adversário pelo nome), as
+   lutas da chave e o pódio. Academia e professor não entram.
+   ============================================================ */
+const FORMA = {
+  gi: { aula: 'A aula', professor: true, rolas: 'sempre', nota: 'Anotação da aula', tecnicas: 'Técnicas treinadas hoje' },
+  nogi: { aula: 'A aula', professor: true, rolas: 'sempre', nota: 'Anotação da aula', tecnicas: 'Técnicas treinadas hoje' },
+  drill: { aula: 'O drill', professor: true, rolas: 'nunca', repeticoes: true, nota: 'O que ficou do drill', tecnicas: 'O que você drillou' },
+  openmat: { aula: 'Onde foi', professor: false, rolas: 'sempre', nota: 'Anotação do open mat', tecnicas: 'Técnicas que você testou' },
+  privada: { aula: 'A aula particular', professor: true, rolas: 'extra', nota: 'O que ficou da aula', tecnicas: 'O que você aprendeu' },
+  competicao: { aula: null, rolas: 'sempre', lutas: true },
+};
+const formaDe = (tipo) => FORMA[tipo] || FORMA.gi;
+/* rola com alguma coisa dentro: o vazio que nasce com o treino novo não conta */
+const rolaTemDado = (r) => !!(r.partnerId || String(r.adversario || '').trim() || (r.ptsMeus || []).length || (r.ptsDele || []).length
+  || (r.subsAplicadas || []).length || (r.subsSofridas || []).length || String(r.notas || '').trim());
 
 /* Competição não é rola de treino. A luta vale mais no cálculo,
    o adversário é desconhecido e o resultado conta de outro jeito. */
@@ -290,7 +313,9 @@ export default function Treinos() {
   }
 
   function abrirNova(minutosDaRola) {
-    setEditando(novaSessao(settings));
+    /* dentro de uma aba (Drill, Competição...), o treino novo já nasce daquele tipo */
+    const tipo = filtroTipo !== 'todos' ? filtroTipo : 'gi';
+    setEditando({ ...novaSessao(settings, tipo), ...(ehCompeticao(tipo) ? { competicao: competicaoVazia() } : {}) });
     setRolasEdit([novaRolaDoTreino(minutosDaRola || settings.duracaoRolaPadrao || 5)]);
   }
 
@@ -336,7 +361,9 @@ export default function Treinos() {
       } else {
         id = await db.sessions.add({ ...s, criadoEm: Date.now() });
       }
-      for (const r of rolasEdit) {
+      /* drill e aula particular: o rola vazio que nasce com o treino não é gravado */
+      const paraGravar = formaDe(s.tipo).rolas === 'sempre' ? rolasEdit : rolasEdit.filter(rolaTemDado);
+      for (const r of paraGravar) {
         const { id: _drop, uid: _u, updatedAt: _up, ...rest } = r;
         const pos = posicoesImplicadas(r, positions);
         await db.rolls.add({
@@ -390,8 +417,16 @@ export default function Treinos() {
       if (p) total += p.xp;
     }
 
-    for (const [i, r] of rolasEdit.entries()) {
-      const completa = r.partnerId && (
+    /* competir vale um bônus, uma vez por dia */
+    if (ehCompeticao(s.tipo)) {
+      const p = await darXp('competicao', { refId: `competicao:${id}`, detalhe: s.competicao?.evento || s.data });
+      if (p) total += p.xp;
+    }
+
+    /* drill não dá ponto de rola: sem resistência não é luta */
+    for (const [i, r] of (s.tipo === 'drill' ? [] : rolasEdit.entries())) {
+      /* na competição o adversário vem pelo nome, não pelo cadastro */
+      const completa = (r.partnerId || (ehCompeticao(s.tipo) && String(r.adversario || '').trim())) && (
         (r.ptsMeus || []).length || (r.ptsDele || []).length ||
         (r.subsAplicadas || []).length || (r.subsSofridas || []).length
       );
@@ -488,6 +523,26 @@ export default function Treinos() {
                 </div>
               )}
 
+              {ehCompeticao(s.tipo) && s.competicao?.podio && (
+                <div style={{ marginBottom: 12 }}>
+                  <div className="eyebrow">pódio da categoria</div>
+                  <PodioCategoria podio={s.competicao.podio} />
+                </div>
+              )}
+              {ehCompeticao(s.tipo) && (s.competicao?.chave || []).some((l) => l.a && l.b) && (
+                <div className="col" style={{ gap: 6, marginBottom: 12 }}>
+                  <div className="eyebrow">lutas da chave</div>
+                  {s.competicao.chave.filter((l) => l.a && l.b).map((l, k) => (
+                    <div key={k} className="micro">
+                      <b style={{ color: l.venceu === 'a' ? 'var(--jade)' : 'var(--chalk)' }}>{l.a}</b>
+                      <span className="muted"> x </span>
+                      <b style={{ color: l.venceu === 'b' ? 'var(--jade)' : 'var(--chalk)' }}>{l.b}</b>
+                      {l.venceu && <span className="muted"> · venceu {l.venceu === 'a' ? l.a : l.b}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {(s.focoTecnicas || []).length > 0 && (
                 <div style={{ marginBottom: 12 }}>
                   <div className="eyebrow" style={{ marginBottom: 8 }}>técnicas da aula</div>
@@ -512,7 +567,7 @@ export default function Treinos() {
 
               {rs.length > 0 && (
                 <div className="col" style={{ gap: 9, marginBottom: 12 }}>
-                  <span className="eyebrow">os rolas</span>
+                  <span className="eyebrow">{ehCompeticao(s.tipo) ? 'suas lutas' : 'os rolas'}</span>
                   {rs.map((r, i) => {
                     const pl = placarDaRola(r);
                     const parceiro = partById[r.partnerId];
@@ -520,7 +575,7 @@ export default function Treinos() {
                       <div key={i} className="card" style={{ background: 'var(--void)', padding: 13 }}>
                         <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
                           <span className="num micro muted">#{i + 1}</span>
-                          <span className="tiny" style={{ fontWeight: 600 }}>{parceiro?.nome || 'Sem parceiro'}</span>
+                          <span className="tiny" style={{ fontWeight: 600 }}>{parceiro?.nome || r.adversario || 'Sem parceiro'}</span>
                           {parceiro?.faixa && <Chip>{parceiro.faixa}</Chip>}
                           {r.pesoRel && <Chip>{pesoRelPorId[r.pesoRel]?.icone} {r.pesoRel === 'similar' ? 'peso igual' : r.pesoRel}</Chip>}
                           <Chip tone={TOM_RESULTADO[pl.resultado] || ''}>{ROTULO_RESULTADO[pl.resultado]}</Chip>
@@ -638,9 +693,13 @@ export default function Treinos() {
         <Card>
           <Empty
             icon={NotebookPen}
-            titulo={sessions.length ? 'Nada com esse filtro' : 'Nenhum treino registrado'}
-            texto="Escolha as técnicas da aula e marque se pegou. Depois registre os rolas com os pontos e as anotações, é dali que sai o seu domínio e o seu estilo de jogo."
-            acao={<Btn variant="primary" icon={Plus} onClick={() => abrirNova()}>Registrar treino</Btn>}
+            titulo={!sessions.length ? 'Nenhum treino registrado'
+              : filtroTipo === 'competicao' ? 'Nenhum campeonato ainda'
+                : filtroTipo !== 'todos' && !busca ? `Nenhum treino de ${TIPOS.find((x) => x.id === filtroTipo)?.nome} ainda` : 'Nada com esse filtro'}
+            texto={filtroTipo === 'competicao'
+              ? 'Registre o campeonato com as suas lutas completas, as lutas da chave (só quem venceu) e o pódio da categoria. Competir ainda vale 30 pontos.'
+              : 'Escolha as técnicas da aula e marque se pegou. Depois registre os rolas com os pontos e as anotações, é dali que sai o seu domínio e o seu estilo de jogo.'}
+            acao={<Btn variant="primary" icon={Plus} onClick={() => abrirNova()}>{filtroTipo === 'competicao' ? 'Registrar campeonato' : filtroTipo !== 'todos' ? `Registrar ${TIPOS.find((x) => x.id === filtroTipo)?.nome}` : 'Registrar treino'}</Btn>}
           />
           <HistoricoCortado cortados={cortados} onAssinar={() => irPara('ajustes')} />
         </Card>
@@ -761,6 +820,98 @@ export default function Treinos() {
    categoria e como terminou. Cada luta entra como um rola, com
    placar e finalização, igual ao resto do app.
    ============================================================ */
+/* ============================================================
+   A CHAVE DA CATEGORIA
+
+   As lutas dos outros que você viu, só com quem venceu (sem pontos:
+   ninguém anota o que não viu), e o pódio: campeão, vice e os dois
+   3º lugares. Você entra no pódio pelo "Como terminou" ou pelo botão
+   "Eu"; os nomes da chave e dos seus adversários viram sugestão.
+   ============================================================ */
+function ChaveDaCategoria({ s, setS, rolas }) {
+  const c = s.competicao || competicaoVazia();
+  const chave = c.chave || [];
+  const podio = c.podio || { ouro: '', prata: '', bronze: ['', ''] };
+  const set = (patch) => setS({ ...s, competicao: { ...c, ...patch } });
+  const mudarLuta = (i, patch) => set({ chave: chave.map((l, j) => (j === i ? { ...l, ...patch } : l)) });
+  const mudarPodio = (novo) => {
+    /* você no pódio define a colocação; fora do pódio, a colocação fica */
+    const r = resultadoDoPodio(novo);
+    set({ podio: novo, resultado: r || (['ouro', 'prata', 'bronze'].includes(c.resultado) ? 'participou' : c.resultado) });
+  };
+  const atletas = atletasDaChave(chave, rolas);
+  const lugares = [
+    { k: 'ouro', nome: 'Campeão' }, { k: 'prata', nome: 'Vice' },
+    { k: 'bronze0', nome: '3º lugar' }, { k: 'bronze1', nome: '3º lugar' },
+  ];
+  const valorDe = (k) => (k.startsWith('bronze') ? (podio.bronze || [])[Number(k.slice(6))] : podio[k]) || '';
+  const porNoLugar = (k, v) => {
+    const novo = { ...podio, bronze: [...(podio.bronze || ['', ''])] };
+    /* você só ocupa um lugar */
+    if (v === EU) {
+      if (novo.ouro === EU) novo.ouro = '';
+      if (novo.prata === EU) novo.prata = '';
+      novo.bronze = novo.bronze.map((x) => (x === EU ? '' : x));
+    }
+    if (k.startsWith('bronze')) novo.bronze[Number(k.slice(6))] = v; else novo[k] = v;
+    mudarPodio(novo);
+  };
+
+  return (
+    <div className="card" style={{ background: 'var(--void)', display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 12 }}>
+      <div>
+        <div className="eyebrow">a sua categoria</div>
+        <h3 className="h-sec">A chave e o pódio</h3>
+        <p className="micro muted" style={{ marginTop: 4, lineHeight: 1.6 }}>
+          As lutas dos outros entram só com quem venceu. As suas você registra completas, mais embaixo.
+        </p>
+      </div>
+
+      {chave.map((l, i) => (
+        <div key={i} className="chave-luta">
+          <button type="button" className={`chave-atleta${l.venceu === 'a' ? ' venceu' : ''}`} onClick={() => mudarLuta(i, { venceu: 'a' })} aria-label="Venceu">
+            <Trophy size={12} />
+          </button>
+          <Input value={l.a} onChange={(e) => mudarLuta(i, { a: e.target.value })} placeholder="Atleta" />
+          <button type="button" className="btn ghost icon sm chave-tirar" aria-label="Tirar esta luta" onClick={() => set({ chave: chave.filter((_, j) => j !== i) })}><Trash2 size={13} /></button>
+          <button type="button" className={`chave-atleta${l.venceu === 'b' ? ' venceu' : ''}`} onClick={() => mudarLuta(i, { venceu: 'b' })} aria-label="Venceu">
+            <Trophy size={12} />
+          </button>
+          <Input value={l.b} onChange={(e) => mudarLuta(i, { b: e.target.value })} placeholder="Atleta" />
+        </div>
+      ))}
+      <button type="button" className="btn ghost xs" style={{ alignSelf: 'flex-start' }} onClick={() => set({ chave: [...chave, { a: '', b: '', venceu: '' }] })}>
+        <Plus size={13} /> Luta da chave
+      </button>
+      {chave.length > 0 && <p className="micro muted">Toque no troféu do lado de quem venceu.</p>}
+
+      <div className="divider" />
+      <span className="label">Pódio da categoria</span>
+      <datalist id="atletas-da-chave">{atletas.map((a) => <option key={a} value={a} />)}</datalist>
+      <div className="grid g2" style={{ gap: 10 }}>
+        {lugares.map((l) => {
+          const v = valorDe(l.k);
+          return (
+            <Field key={l.k} label={l.nome}>
+              {v === EU ? (
+                <button type="button" className="chip on" style={{ minHeight: 42, justifyContent: 'center' }} onClick={() => porNoLugar(l.k, '')}>
+                  <Check size={12} /> Você
+                </button>
+              ) : (
+                <div className="row" style={{ gap: 6 }}>
+                  <Input list="atletas-da-chave" value={v} onChange={(e) => porNoLugar(l.k, e.target.value)} placeholder="Nome" />
+                  <button type="button" className="btn contorno sm" onClick={() => porNoLugar(l.k, EU)}>Eu</button>
+                </div>
+              )}
+            </Field>
+          );
+        })}
+      </div>
+      <PodioCategoria podio={podio} compacto />
+    </div>
+  );
+}
+
 /* O campeonato do treino e o da meta são o mesmo: registrou a
    competição com o nome da meta, a meta fecha sozinha. */
 const semAcentoMin = (x) => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
@@ -854,7 +1005,10 @@ function BlocoCompeticao({ s, setS, onAbrirRegras }) {
               key={r.id} type="button"
               className={`chip ${c.resultado === r.id ? 'on' : ''}`}
               style={{ minHeight: 38, paddingInline: 16 }}
-              onClick={() => set({ resultado: c.resultado === r.id ? '' : r.id })}
+              onClick={() => {
+                const novo = c.resultado === r.id ? '' : r.id;
+                set({ resultado: novo, podio: podioComEu(c.podio, novo) });
+              }}
             >
               {r.nome}
             </button>
@@ -867,6 +1021,11 @@ function BlocoCompeticao({ s, setS, onAbrirRegras }) {
 
 function EditorTreino({ s, setS, rolas, setRolas, partners, positions, techniques, categories, finalizacoes, maisUsadas, recentesPorPonto, recentesFoco, faixa, academias, professores, duracaoPadrao, padraoDe, onSalvarPadrao }) {
   const padrao = padraoDe(s.tipo);
+  const forma = formaDe(s.tipo);
+  /* aula particular: rola é extra, aparece quando a pessoa pede */
+  const [comRola, setComRola] = useState(false);
+  const temDado = rolas.some(rolaTemDado);
+  const mostraRolas = forma.rolas === 'sempre' || temDado || (forma.rolas === 'extra' && comRola);
   const set = (k, v) => setS({ ...s, [k]: v });
   const ehPadrao = !!padrao.academiaId && s.academiaId === padrao.academiaId && (s.professorId || null) === (padrao.professorId || null);
   const [trocando, setTrocando] = useState(false);
@@ -915,8 +1074,10 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
       {/* a aula: academia, professor, técnicas e anotação num bloco só.
           Com o padrão salvo, academia e professor já vêm marcados e ficam
           fechados numa linha; "Trocar" abre os chips. */}
-      <div className="bloco-cor aula">
-      <div className="bloco-cor-titulo"><GraduationCap size={15} /> A aula</div>
+      {forma.lutas && <ChaveDaCategoria s={s} setS={setS} rolas={rolas} />}
+
+      {forma.aula && (<div className="bloco-cor aula">
+      <div className="bloco-cor-titulo"><GraduationCap size={15} /> {forma.aula}</div>
       {academias.length > 0 && ehPadrao && !trocando ? (
         <div className="row" style={{ gap: 10 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -948,7 +1109,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
             </div>
           </Field>
 
-          {profsDaAcademia.length > 0 && (
+          {forma.professor && profsDaAcademia.length > 0 && (
             <Field label="Professor">
               <div className="chips-scroll" style={{ margin: 0, padding: 0 }}>
                 {profsDaAcademia.map((p) => (
@@ -963,7 +1124,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
               </div>
             </Field>
           )}
-          {s.academiaId && profsDaAcademia.length === 0 && (
+          {forma.professor && s.academiaId && profsDaAcademia.length === 0 && (
             <p className="micro muted">Nenhum professor cadastrado nessa academia ainda. Cadastre em Parceiros → Professores.</p>
           )}
           {s.academiaId && !ehPadrao && (
@@ -988,7 +1149,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
         </div>
       )}
 
-      <Field label="Técnicas treinadas hoje" hint="Escolha da biblioteca e marque se pegou. Isso alimenta metas, planos e domínio.">
+      <Field label={forma.tecnicas} hint="Escolha da biblioteca e marque se pegou. Isso alimenta metas, planos e domínio.">
         <ListaFoco
           itens={s.focoTecnicas || []}
           onChange={(v) => set('focoTecnicas', v)}
@@ -996,21 +1157,44 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
         />
       </Field>
 
-      <Field label="Anotação da aula" hint="Detalhes, sacadas, o que focar da próxima, pergunta pro professor.">
+      {/* drill: quantas vezes cada técnica foi repetida */}
+      {forma.repeticoes && (s.focoTecnicas || []).length > 0 && (
+        <div className="col" style={{ gap: 8 }}>
+          <span className="label">Repetições de cada uma</span>
+          {s.focoTecnicas.map((ft, k) => (
+            <div key={k} className="row" style={{ gap: 10, alignItems: 'center' }}>
+              <span className="tiny" style={{ flex: 1, minWidth: 0, fontWeight: 600 }}>{ft.nome}</span>
+              <Stepper value={Number(ft.reps) || 0} min={0} max={500}
+                onChange={(v) => set('focoTecnicas', s.focoTecnicas.map((x, j) => (j === k ? { ...x, reps: v } : x)))} />
+            </div>
+          ))}
+        </div>
+      )}
+
+      <Field label={forma.nota} hint="Detalhes, sacadas, o que focar da próxima, pergunta pro professor.">
         <Textarea value={s.nota || ''} onChange={(e) => set('nota', e.target.value)} placeholder="Escreve livre…" style={{ minHeight: 96 }} />
       </Field>
-      </div>
+      </div>)}
 
+      {forma.rolas === 'extra' && !mostraRolas && (
+        <button type="button" className="btn ghost xs" style={{ alignSelf: 'flex-start' }} onClick={() => { setComRola(true); if (!rolas.length) addRola(); }}>
+          <Plus size={13} /> Teve rola no fim da aula
+        </button>
+      )}
+
+      {mostraRolas && <>
       <div className="divider" />
       <div className="row">
         <div>
-          <div className="eyebrow">rolas ({rolas.length})</div>
+          <div className="eyebrow">{forma.lutas ? 'suas lutas' : 'rolas'} ({rolas.length})</div>
           <p className="micro muted" style={{ marginTop: 3 }}>
-            Pontos, finalizações e anotação de cada rola. É daqui que sai tudo: placar, estilo de jogo e domínio.
+            {forma.lutas
+              ? 'Cada luta sua, com o adversário, os pontos e as finalizações. As lutas dos outros ficam na chave, lá em cima.'
+              : 'Pontos, finalizações e anotação de cada rola. É daqui que sai tudo: placar, estilo de jogo e domínio.'}
           </p>
         </div>
         <span className="spacer" />
-        <Btn size="sm" variant="primary" icon={Plus} onClick={addRola}>Rola</Btn>
+        <Btn size="sm" variant="primary" icon={Plus} onClick={addRola}>{forma.lutas ? 'Luta' : 'Rola'}</Btn>
       </div>
 
       <div className="col" style={{ gap: 9 }}>
@@ -1035,7 +1219,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
                 >
                 <span className="rola-n num">{i + 1}</span>
                 <div className="grow col" style={{ gap: 6, minWidth: 0 }}>
-                  <span className="tiny" style={{ fontWeight: 600, color: parceiro ? 'var(--roar)' : undefined }}>{parceiro?.nome || 'Sem parceiro'}</span>
+                  <span className="tiny" style={{ fontWeight: 600, color: parceiro ? 'var(--roar)' : undefined }}>{parceiro?.nome || r.adversario || 'Sem parceiro'}</span>
                 <div className="row wrap" style={{ gap: 6 }}>
                   <Chip tone={TOM_RESULTADO[res] || ''}>{ROTULO_RESULTADO[res]}</Chip>
                   <span className="micro muted num">{r.duracao}min</span>
@@ -1067,13 +1251,22 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
                   )}
                   {/* o parceiro: com quem e o peso dele, num bloco com cor própria */}
                   <div className="bloco-cor parceiro">
-                    <div className="bloco-cor-titulo"><Users size={15} /> Com quem foi</div>
-                    <ParceiroRapido
-                      valor={r.partnerId}
-                      partners={partners}
-                      onEscolher={(id) => setRola(i, { partnerId: id })}
-                    />
-                    {!partners.length && <p className="micro muted">Escreva o nome e pronto. Academia e professor ficam pra depois.</p>}
+                    <div className="bloco-cor-titulo"><Users size={15} /> {forma.lutas ? 'Contra quem' : 'Com quem foi'}</div>
+                    {forma.lutas ? (
+                      <div className="grid g2" style={{ gap: 10 }}>
+                        <Field label="Adversário"><Input value={r.adversario || ''} onChange={(e) => setRola(i, { adversario: e.target.value })} placeholder="Nome do atleta" /></Field>
+                        <Field label="Equipe dele"><Input value={r.equipeAdversario || ''} onChange={(e) => setRola(i, { equipeAdversario: e.target.value })} placeholder="Opcional" /></Field>
+                      </div>
+                    ) : (
+                      <>
+                        <ParceiroRapido
+                          valor={r.partnerId}
+                          partners={partners}
+                          onEscolher={(id) => setRola(i, { partnerId: id })}
+                        />
+                        {!partners.length && <p className="micro muted">Escreva o nome e pronto. Academia e professor ficam pra depois.</p>}
+                      </>
+                    )}
                     <Field label="Peso dele em relação a você" hint="Encaixar em alguém mais pesado é mais difícil, e o app leva isso em conta.">
                       <EscolhaChips valor={r.pesoRel} onChange={(v) => setRola(i, { pesoRel: v })} opcoes={PESO_REL} />
                     </Field>
@@ -1174,6 +1367,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
           <p className="tiny muted">Sem rolas ainda. Cada rola registrado alimenta a escada posicional, o cálculo de domínio e as estatísticas.</p>
         )}
       </div>
+      </>}
 
       <SeletorTecnica
         aberto={!!seletor}

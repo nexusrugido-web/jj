@@ -75,7 +75,8 @@ alter table public.evento_valor add column if not exists so_premium boolean not 
 
 insert into public.evento_valor (evento, xp, teto_dia, familia, so_premium) values
   ('treino',        20,  1, null,     false),
-  ('rola',          12,  8, null,     false),
+  ('rola',          12,  5, null,     false),
+  ('competicao',    30,  1, null,     false),
   ('aula',          15,  2, 'estudo', false),
   ('revista',        5,  1, 'estudo', false),
   ('short',          1,  6, 'estudo', false),

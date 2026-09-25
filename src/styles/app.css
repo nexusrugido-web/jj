@@ -2828,6 +2828,25 @@ button.liga-linha:hover { border-color: var(--seam-hi); }
 }
 .figurinha-previa img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .figurinha-opcoes { display: flex; flex-direction: column; gap: 8px; }
+/* ---------- a chave e o pódio da categoria ---------- */
+/* uma luta, um atleta por linha, cada um com o troféu do lado */
+.chave-luta { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 6px 8px; padding: 10px; border-radius: var(--r-sm); background: var(--mat); border: 1px solid var(--seam); }
+.chave-tirar { grid-row: span 2; align-self: center; }
+.chave-atleta {
+  width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center;
+  color: var(--dimmer); background: var(--mat); border: 1px solid var(--seam);
+}
+.chave-atleta.venceu { color: #1a1300; background: #e3b04b; border-color: #e3b04b; box-shadow: 0 0 14px -4px #e3b04b; }
+.podio-cat { margin-top: 10px; }
+.podio-cat .podio-base { gap: 3px; }
+.podio-cat .podio-nome { font-size: 12px; white-space: normal; line-height: 1.25; }
+.podio-cat .podio-eu { color: var(--accent); font-weight: 800; }
+.podio-cat.compacto .podio-lugar.p1 .podio-base { min-height: 96px; }
+.podio-cat.compacto .podio-lugar.p2 .podio-base { min-height: 80px; }
+.podio-cat.compacto .podio-lugar.p3 .podio-base { min-height: 70px; }
+.podio-cat .podio-avatar { width: 46px; height: 46px; }
+.podio-cat .podio-lugar.p1 .podio-avatar { width: 56px; height: 56px; }
+
 /* ---------- o resumo de cada tipo de treino ---------- */
 .tipo-hero {
   --cor: var(--accent);

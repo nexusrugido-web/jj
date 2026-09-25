@@ -26,8 +26,18 @@ export const EVENTOS = {
     id: 'rola',
     nome: 'Rola com dados completos',
     xp: 12,
-    tetoDia: 8,
-    desc: 'Parceiro e o que aconteceu no rola preenchidos.',
+    /* registrar é livre, quantos quiser; ponto, só os 5 primeiros do
+       dia, somando todas as modalidades. Drill não conta: sem
+       resistência não é luta. */
+    tetoDia: 5,
+    desc: 'Parceiro e o que aconteceu no rola preenchidos. Os 5 primeiros do dia valem ponto.',
+  },
+  competicao: {
+    id: 'competicao',
+    nome: 'Competiu',
+    xp: 30,
+    tetoDia: 1,
+    desc: 'Subir no tatame de campeonato. As suas lutas contam como rola.',
   },
   aula: {
     id: 'aula',

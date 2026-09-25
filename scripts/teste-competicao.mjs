@@ -79,6 +79,17 @@ const perdeuMesmoFinalizando = new Map([[treinos[1].id, [
 ok('luta com finalização que terminou perdida não conta como vitória',
   C.resumoDeCompeticoes([treinos[1]], perdeuMesmoFinalizando).vitorias, 0);
 
+/* ---------- o pódio da categoria ---------- */
+const { EU, resultadoDoPodio, podioComEu, atletasDaChave } = C;
+ok('campeão no "Como terminou" põe você no 1º lugar', podioComEu({ prata: 'Rafa', bronze: ['Leo', ''] }, 'ouro'), { ouro: EU, prata: 'Rafa', bronze: ['Leo', ''] });
+ok('bronze entra no 3º lugar que está vago', podioComEu({ bronze: ['Leo', ''] }, 'bronze').bronze, ['Leo', EU]);
+ok('mudar de vice pra campeão não te deixa em dois lugares', podioComEu({ prata: EU }, 'ouro'), { ouro: EU, prata: '', bronze: ['', ''] });
+ok('sem pódio, você sai do pódio', podioComEu({ ouro: EU, prata: 'Rafa' }, 'participou'), { ouro: '', prata: 'Rafa', bronze: ['', ''] });
+ok('a colocação sai do pódio', [resultadoDoPodio({ prata: EU }), resultadoDoPodio({ bronze: ['x', EU] }), resultadoDoPodio({ ouro: 'Rafa' })], ['prata', 'bronze', null]);
+ok('os nomes da chave e dos seus adversários viram sugestão, sem repetir',
+  atletasDaChave([{ a: 'Rafa', b: 'Leo', venceu: 'a' }, { a: 'Rafa', b: 'Caio' }], [{ adversario: 'Duda' }, { adversario: 'Leo' }]),
+  ['Rafa', 'Leo', 'Caio', 'Duda']);
+
 /* ---------- o padrão de cada tipo de treino ---------- */
 const { padraoDoTipo } = await import('../src/lib/padraoTreino.js');
 const ajustes = { academiaPadraoId: 7, professorPadraoId: 3, duracaoTreinoPadrao: 90 };

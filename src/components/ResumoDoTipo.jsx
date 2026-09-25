@@ -2,8 +2,9 @@ import React, { useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Swords, Shirt, Repeat, Users, GraduationCap, Trophy, Medal, CalendarClock } from 'lucide-react';
 import { db } from '../db/db';
+import { useApp } from '../contexto';
 import { placarDaRola } from '../lib/game';
-import { resumoDeCompeticoes } from '../lib/competicao';
+import { resumoDeCompeticoes, EU } from '../lib/competicao';
 import { fmtDur, diasEntre, hoje, fmtData } from '../lib/utils';
 
 /* ============================================================
@@ -71,6 +72,9 @@ export default function ResumoDoTipo({ tipo, lista, rolasPorSessao, partners, pr
     competicao: [['campeonatos', r.comp.campeonatos], ['lutas', r.comp.lutas], ['vitórias', r.comp.vitorias], ['finalizações', r.fin]],
   }[tipo];
 
+  /* o pódio da categoria no campeonato mais recente que tem um */
+  const ultimoComPodio = tipo === 'competicao' ? lista.find((s) => s.competicao?.podio) : null;
+
   /* o próximo campeonato, da meta: a contagem regressiva aparece aqui */
   const proximo = metasCamp.filter((g) => g.data && g.data >= hoje()).sort((a, b) => a.data.localeCompare(b.data))[0];
 
@@ -93,7 +97,7 @@ export default function ResumoDoTipo({ tipo, lista, rolasPorSessao, partners, pr
       {tipo === 'competicao' && (
         <>
           <div className="podio" style={{ marginTop: 6 }}>
-            {[['prata', 2, 'Vice'], ['ouro', 1, 'Campeão'], ['bronze', 3, '3º lugar']].map(([id, lugar, nome]) => (
+            {[['prata', 2, 'Prata'], ['ouro', 1, 'Ouro'], ['bronze', 3, 'Bronze']].map(([id, lugar, nome]) => (
               <div key={id} className={`podio-lugar p${lugar}`}>
                 <span className="podio-avatar">
                   <Medal size={lugar === 1 ? 26 : 22} />
@@ -106,6 +110,12 @@ export default function ResumoDoTipo({ tipo, lista, rolasPorSessao, partners, pr
               </div>
             ))}
           </div>
+          {ultimoComPodio && (
+            <div>
+              <div className="eyebrow">pódio · {ultimoComPodio.competicao.evento || 'último campeonato'}</div>
+              <PodioCategoria podio={ultimoComPodio.competicao.podio} />
+            </div>
+          )}
           {proximo && (
             <div className="tipo-proximo">
               <CalendarClock size={16} />
@@ -136,6 +146,47 @@ export default function ResumoDoTipo({ tipo, lista, rolasPorSessao, partners, pr
           {r.tecnicas.length > 0 && <Destaques titulo="O que você aprendeu" itens={r.tecnicas.slice(0, 5)} />}
         </>
       )}
+    </div>
+  );
+}
+
+/* ============================================================
+   O PÓDIO DA CATEGORIA
+
+   Quem ficou em 1º, 2º e nos dois 3º lugares (a IBJJF tem dois
+   bronzes), com você em destaque. "__eu" no pódio é você: o nome
+   sai dos Ajustes, e o app sabe a sua colocação sem perguntar de novo.
+   ============================================================ */
+
+
+export function PodioCategoria({ podio, compacto = false }) {
+  const { settings } = useApp();
+  if (!podio || !(podio.ouro || podio.prata || (podio.bronze || []).some(Boolean))) return null;
+  const nome = (x) => (x === EU ? (settings.nome || 'Você') : x);
+  const lugares = [
+    { id: 'prata', n: 2, titulo: '2º', nomes: [podio.prata] },
+    { id: 'ouro', n: 1, titulo: '1º', nomes: [podio.ouro] },
+    { id: 'bronze', n: 3, titulo: '3º', nomes: (podio.bronze || []).filter(Boolean) },
+  ];
+  return (
+    <div className={`podio podio-cat${compacto ? ' compacto' : ''}`}>
+      {lugares.map((l) => {
+        const souEu = l.nomes.includes(EU);
+        return (
+          <div key={l.id} className={`podio-lugar p${l.n}${souEu ? ' eu' : ''}`}>
+            <span className="podio-avatar">
+              <Medal size={l.n === 1 ? 24 : 20} />
+              <span className="podio-n">{l.titulo}</span>
+            </span>
+            <div className="podio-base">
+              {l.nomes.filter(Boolean).length ? l.nomes.filter(Boolean).map((x) => (
+                <span key={x} className={`podio-nome${x === EU ? ' podio-eu' : ''}`}>{nome(x)}</span>
+              )) : <span className="podio-nome muted">·</span>}
+              {souEu && <span className="podio-voce">você</span>}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
