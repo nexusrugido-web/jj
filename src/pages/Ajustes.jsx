@@ -10,7 +10,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, exportAll, importAll, wipeAll, ensureSeed } from '../db/db';
 import { FAIXAS } from '../db/seed';
 import {
-  Card, Btn, Field, Input, NumeroInput, Select, Switch, Modal, Chip, useToast, Stat, Confirmar, Stepper, Sheet,
+  Card, Btn, Field, Input, NumeroInput, Select, Switch, Modal, Chip, useToast, Stat, Confirmar, Stepper, Sheet, EscolherData,
 } from '../components/UI';
 import { baixarArquivo, hoje } from '../lib/utils';
 import { ehStandalone, detectarPlataforma } from '../lib/pwa';
@@ -192,7 +192,7 @@ export default function Ajustes() {
             </Select>
           </Field>
           <Field label="Graus"><Stepper value={settings.graus} onChange={(v) => set('graus', v)} min={0} max={4} /></Field>
-          <Field label="Comecei a treinar em"><Input type="date" value={settings.inicioTreino} onChange={(e) => set('inicioTreino', e.target.value)} /></Field>
+          <Field label="Comecei a treinar em"><EscolherData valor={settings.inicioTreino || ''} titulo="Quando você começou a treinar" onChange={(v) => set('inicioTreino', v)} /></Field>
           <Field label="Meta de treinos por semana"><Stepper value={settings.metaSemanal} onChange={(v) => set('metaSemanal', v)} min={1} max={14} /></Field>
           <Field label="Meta de horas no ano" hint="3x/semana de 1h30 dá ~200h."><NumeroInput valor={settings.metaAnualHoras} onChange={(v) => set('metaAnualHoras', v)} /></Field>
           <Field label="Duração padrão do rola (min)"><Stepper value={settings.duracaoRolaPadrao} onChange={(v) => set('duracaoRolaPadrao', v)} min={1} max={20} /></Field>

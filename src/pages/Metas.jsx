@@ -8,7 +8,7 @@ import { db } from '../db/db';
 import { useApp } from '../contexto';
 import {
   Card, Btn, Field, Input, NumeroInput, Textarea, Select, Sheet, Chip, Empty, Confirmar, useToast,
-  Bar, Seg, Diamante,
+  Bar, Seg, Diamante, EscolherData,
 } from '../components/UI';
 import { SeletorTecnica } from '../components/SeletorTecnica';
 import { Ponteira } from '../components/Ponteira';
@@ -61,6 +61,8 @@ export default function Metas() {
   /* só entram aqui as metas que você assumiu */
   const aulas = useLiveQuery(() => db.aulasVistas.toArray(), [], []) || [];
   const quiz = useLiveQuery(() => db.quizRespostas.toArray(), [], []) || [];
+  /* os campeonatos que você já lutou (treino tipo Competição), pra meta nova */
+  const jaLutados = useMemo(() => [...new Set(sessions.filter((s) => s.tipo === 'competicao' && s.competicao?.evento).map((s) => s.competicao.evento.trim()))].slice(0, 8), [sessions]);
 
   const minhas = useMemo(
     () => goals.filter((g) => g.origem !== 'sugerida' && g.status !== 'arquivada'),
@@ -439,8 +441,17 @@ export default function Metas() {
 
             {edit.tipo === 'competicao' && (
               <>
-                <Field label="Qual campeonato"><Input value={edit.alvo || ''} onChange={(e) => setEdit({ ...edit, alvo: e.target.value })} /></Field>
-                <Field label="Data"><Input type="date" value={edit.data || ''} onChange={(e) => setEdit({ ...edit, data: e.target.value })} /></Field>
+                <Field label="Qual campeonato" hint="Quando você registrar esse campeonato em Treinos, a meta fecha sozinha.">
+                  <Input value={edit.alvo || ''} onChange={(e) => setEdit({ ...edit, alvo: e.target.value })} placeholder="Ex.: Copa Bahia de Jiu-Jitsu" />
+                  {jaLutados.length > 0 && (
+                    <div className="row wrap" style={{ gap: 6, marginTop: 7 }}>
+                      {jaLutados.map((ev) => (
+                        <button key={ev} type="button" className={`chip ${edit.alvo === ev ? 'on' : ''}`} onClick={() => setEdit({ ...edit, alvo: ev })}>{ev}</button>
+                      ))}
+                    </div>
+                  )}
+                </Field>
+                <Field label="Quando é"><EscolherData futuro valor={edit.data || ''} titulo="Quando é o campeonato" onChange={(data) => setEdit({ ...edit, data })} /></Field>
               </>
             )}
 

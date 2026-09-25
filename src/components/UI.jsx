@@ -253,7 +253,7 @@ const diaDaSemana = (iso) => DIAS_DA_SEMANA[new Date(`${iso}T00:00:00`).getDay()
 
 export function EscolherData({ valor, onChange, titulo = 'Quando foi', futuro = false }) {
   const [aberto, setAberto] = useState(false);
-  const atalhos = [
+  const atalhos = futuro ? [] : [
     { data: hoje(), nome: 'Hoje' },
     { data: addDias(hoje(), -1), nome: 'Ontem' },
     { data: addDias(hoje(), -2), nome: 'Anteontem' },
@@ -263,8 +263,11 @@ export function EscolherData({ valor, onChange, titulo = 'Quando foi', futuro = 
   return (
     <>
       <button type="button" className="input" onClick={() => setAberto(true)} style={{ textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <CalendarDays size={14} className="muted" />
-        {atalho ? atalho.nome : `${diaDaSemana(valor)}, ${fmtData(valor)}`}
+        <CalendarDays size={14} className={atalho ? '' : 'muted'} style={atalho ? { color: 'var(--accent)' } : undefined} />
+        {/* "Hoje" em destaque: é o caso de quase todo registro */}
+        {!valor ? <span className="muted">Escolher a data</span>
+          : atalho ? <b style={{ color: 'var(--chalk)' }}>{atalho.nome}</b>
+            : `${diaDaSemana(valor)}, ${fmtData(valor)}`}
       </button>
 
       <Sheet aberto={aberto} onClose={() => setAberto(false)} titulo={titulo}>

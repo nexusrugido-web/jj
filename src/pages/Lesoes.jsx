@@ -6,9 +6,9 @@ import { useApp } from '../contexto';
 import ParadoEstudando from '../components/ParadoEstudando';
 import { REGIOES_CORPO } from '../db/seed';
 import {
-  Card, Btn, Field, Input, Textarea, Select, Modal, Chip, Empty, Confirmar, useToast, Stat, Seg, Bar,
+  Card, Btn, Field, Input, Textarea, Select, Modal, Chip, Empty, Confirmar, useToast, Stat, Seg, Bar, EscolherData,
 } from '../components/UI';
-import { hoje, addDias, relativo, diasEntre, contar } from '../lib/utils';
+import { hoje, relativo, diasEntre, contar } from '../lib/utils';
 import { IMPACTOS, impactoPorId, PRAZOS, guiaDeEstudo } from '../lib/lesao';
 
 const STATUS = [
@@ -22,14 +22,6 @@ const vazia = () => ({
   impacto: 'adaptado', prazo: 'nsei',
   comoAconteceu: '', tratamento: '', notas: '', dataCura: '',
 });
-
-/* Hoje e ontem cobrem quase todo registro. Data por extenso só
-   quando a pessoa lembra de anotar dias depois. */
-const QUANDO = [
-  { id: 'hoje', nome: 'Hoje', data: () => hoje() },
-  { id: 'ontem', nome: 'Ontem', data: () => addDias(hoje(), -1) },
-  { id: 'outro', nome: 'Outro dia', data: null },
-];
 
 export default function Lesoes() {
   const toast = useToast();
@@ -165,25 +157,7 @@ export default function Lesoes() {
           <>
             <div className="grid g3" style={{ gap: 12 }}>
               <Field label="Quando foi">
-                <div className="row wrap" style={{ gap: 7 }}>
-                  {QUANDO.map((q) => {
-                    const escolhido = q.data
-                      ? edit.data === q.data()
-                      : edit.data !== hoje() && edit.data !== addDias(hoje(), -1);
-                    return (
-                      <button key={q.id} type="button"
-                        className={`chip ${escolhido ? 'on' : ''}`}
-                        style={{ minHeight: 38, paddingInline: 14 }}
-                        onClick={() => setEdit({ ...edit, data: q.data ? q.data() : addDias(hoje(), -2) })}>
-                        {q.nome}
-                      </button>
-                    );
-                  })}
-                </div>
-                {edit.data !== hoje() && edit.data !== addDias(hoje(), -1) && (
-                  <Input type="date" value={edit.data} max={hoje()} style={{ marginTop: 8 }}
-                    onChange={(e) => setEdit({ ...edit, data: e.target.value })} />
-                )}
+                <EscolherData valor={edit.data} titulo="Quando machucou" onChange={(data) => setEdit({ ...edit, data })} />
               </Field>
               <Field label="Região">
                 <Select value={edit.regiao} onChange={(e) => setEdit({ ...edit, regiao: e.target.value })}>

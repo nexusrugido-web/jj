@@ -347,13 +347,16 @@ export default function Treinos() {
     /* o treino já está gravado: daqui pra frente nada desfaz ele */
     setEditando(null);
     let ganho = 0;
+    let metaFechada = null;
     try {
       await fecharLesaoAberta();
       ganho = await premiar(s, id);
+      metaFechada = await fecharMetaDoCampeonato(s);
     } catch (e) {
       console.error('[treino] pontos', e);
     }
-    toast(ganho > 0 ? `Treino salvo, +${ganho} pontos` : 'Treino salvo');
+    toast(metaFechada ? `Campeonato registrado. Meta "${metaFechada}" concluída 🥋`
+      : ganho > 0 ? `Treino salvo, +${ganho} pontos` : 'Treino salvo');
   }
 
   /* pontos pelo que foi registrado. Reflexão escrita vale mais,
@@ -725,7 +728,22 @@ export default function Treinos() {
    categoria e como terminou. Cada luta entra como um rola, com
    placar e finalização, igual ao resto do app.
    ============================================================ */
+/* O campeonato do treino e o da meta são o mesmo: registrou a
+   competição com o nome da meta, a meta fecha sozinha. */
+const semAcentoMin = (x) => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+async function fecharMetaDoCampeonato(s) {
+  const evento = s.competicao?.evento;
+  if (!ehCompeticao(s.tipo) || !evento) return null;
+  const metas = await db.goals.where('status').equals('ativa').filter((g) => g.tipo === 'competicao'
+    && g.alvo && semAcentoMin(g.alvo) === semAcentoMin(evento)).toArray();
+  for (const g of metas) await db.goals.update(g.id, { status: 'concluida', concluidaEm: s.data });
+  return metas.length ? evento : null;
+}
+
 function BlocoCompeticao({ s, setS, onAbrirRegras }) {
+  /* os campeonatos que a pessoa marcou como meta: um toque preenche */
+  const metasCamp = useLiveQuery(() => db.goals.where('status').equals('ativa')
+    .filter((g) => g.tipo === 'competicao' && !!g.alvo).toArray(), [], []) || [];
   const c = s.competicao || competicaoVazia();
   const set = (patch) => setS({ ...s, competicao: { ...c, ...patch } });
 
@@ -742,6 +760,16 @@ function BlocoCompeticao({ s, setS, onAbrirRegras }) {
       <div className="grid g2" style={{ gap: 10 }}>
         <Field label="Campeonato">
           <Input value={c.evento} onChange={(e) => set({ evento: e.target.value })} placeholder="Ex.: Copa Bahia de Jiu-Jitsu" />
+          {metasCamp.length > 0 && (
+            <div className="row wrap" style={{ gap: 6, marginTop: 7 }}>
+              {metasCamp.map((g) => (
+                <button key={g.id} type="button" className={`chip ${semAcentoMin(c.evento) === semAcentoMin(g.alvo) ? 'on' : ''}`}
+                  onClick={() => set({ evento: g.alvo })}>
+                  🎯 {g.alvo}
+                </button>
+              ))}
+            </div>
+          )}
         </Field>
         <Field label="Organização">
           <Select value={c.organizacao} onChange={(e) => set({ organizacao: e.target.value })}>

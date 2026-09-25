@@ -7,9 +7,10 @@ import { useApp } from '../contexto';
 import { db } from '../db/db';
 import { FAIXAS } from '../db/seed';
 import {
-  Card, Btn, Field, Input, Textarea, Select, Sheet, Empty, useToast, Stat, BeltTag, Stepper,
-  Confirmar,
+  Card, Btn, Field, Textarea, Select, Sheet, Empty, useToast, Stat, BeltTag, Stepper,
+  Confirmar, EscolherData,
 } from '../components/UI';
+import AcademiaProfessor from '../components/AcademiaProfessor';
 import { resumo as resumoGeral } from '../lib/stats';
 import { ofensiva } from '../lib/ofensiva';
 import Figurinha from '../components/Figurinha';
@@ -55,7 +56,7 @@ function figuraDaGraduacao(g, sessions, desde) {
 }
 
 export default function Conquistas() {
-  const { sessions, rolls, partners, techniques, settings, salvarSettings } = useApp();
+  const { sessions, rolls, partners, techniques, settings, salvarSettings, irPara } = useApp();
   const toast = useToast();
   const marcos = useLiveQuery(() => db.milestones.orderBy('data').reverse().toArray(), [], []) || [];
   const graduacoes = useLiveQuery(() => db.gradings.orderBy('data').reverse().toArray(), [], []) || [];
@@ -123,7 +124,9 @@ export default function Conquistas() {
           data: hoje(), tipo: settings.graus < 4 ? 'grau' : 'faixa',
           faixa: settings.graus < 4 ? settings.faixa : (FAIXAS_ORDEM[FAIXAS_ORDEM.indexOf(settings.faixa) + 1] || settings.faixa),
           graus: settings.graus < 4 ? settings.graus + 1 : 0,
-          professor: settings.professor || '', academia: settings.academia || '', notas: '',
+          /* o padrão do treino, que é quase sempre quem gradua */
+          academiaId: settings.academiaPadraoId || null, professorId: settings.professorPadraoId || null,
+          professor: '', academia: '', notas: '',
         })}>
           Ganhei graduação
         </Btn>
@@ -308,7 +311,7 @@ export default function Conquistas() {
           <>
             <p className="tiny muted">Esse é o único momento que o app comemora de verdade. Merecido.</p>
             <div className="grid g2" style={{ gap: 12 }}>
-              <Field label="Data"><Input type="date" value={registrar.data} onChange={(e) => setRegistrar({ ...registrar, data: e.target.value })} /></Field>
+              <Field label="Quando foi"><EscolherData valor={registrar.data} titulo="Quando foi a graduação" onChange={(data) => setRegistrar({ ...registrar, data })} /></Field>
               <Field label="O que ganhou">
                 <Select value={registrar.tipo} onChange={(e) => setRegistrar({ ...registrar, tipo: e.target.value })}>
                   <option value="grau">Um grau</option>
@@ -324,10 +327,10 @@ export default function Conquistas() {
             {registrar.tipo === 'grau' && (
               <Field label="Qual grau"><Stepper value={registrar.graus} onChange={(v) => setRegistrar({ ...registrar, graus: v })} min={1} max={4} /></Field>
             )}
-            <div className="grid g2" style={{ gap: 12 }}>
-              <Field label="Professor"><Input value={registrar.professor} onChange={(e) => setRegistrar({ ...registrar, professor: e.target.value })} /></Field>
-              <Field label="Academia"><Input value={registrar.academia} onChange={(e) => setRegistrar({ ...registrar, academia: e.target.value })} /></Field>
-            </div>
+            <AcademiaProfessor
+              valor={registrar} onChange={(ap) => setRegistrar({ ...registrar, ...ap })}
+              onCadastrar={() => { setRegistrar(null); irPara('parceiros'); }}
+            />
             <Field label="O que ficou marcado"><Textarea value={registrar.notas} onChange={(e) => setRegistrar({ ...registrar, notas: e.target.value })} placeholder="Como foi, quem estava, o que você sentiu" /></Field>
           </>
         )}
