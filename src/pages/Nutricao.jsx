@@ -64,7 +64,7 @@ export default function Nutricao() {
             'Bateu a proteína hoje? Toca no que comeu e a barra enche até a sua meta',
             'Seus alimentos e suas refeições salvas: o café da manhã entra com um toque',
             'O mês de proteína num calendário, junto dos seus dias de tatame',
-            'Suplementação com estudo: creatina, beta-alanina, cafeína pelo seu peso, e o que é só propaganda',
+            'Suplementação com estudo: o que a creatina, a beta-alanina e a cafeína fazem no seu corpo e no tatame',
           ]}
           onAssinar={() => irPara('ajustes')}
         />
@@ -486,99 +486,108 @@ function MesDaProteina({ meta, onDia, diaAberto }) {
 }
 
 /* ============================================================
-   SUPLEMENTAÇÃO: O QUE VALE
+   SUPLEMENTAÇÃO
 
-   Veredito na frente, e quem quiser abre o que a ciência diz, com
-   a fonte. Nada de "turbina", "explode" ou promessa: o que tem
-   estudo, a dose pelo peso e o que é só propaganda.
+   Só o que ajuda, e o que cada um faz: no corpo e no tatame. Sem
+   veredito de "vale ou não vale" e sem falar do que o app não
+   recomenda. A dose sai do peso quando dá, e a fonte vai junto.
    ============================================================ */
 function Suplementos({ contas }) {
   const [sanfona, setSanfona] = useState(false);
   const [aberto, setAberto] = useState('creatina');
   const cafe = contas?.cafeina;
   const lista = [
-    { id: 'creatina', nome: 'Creatina', nota: 'vale', dose: '3 a 5 g por dia, todo dia, sem fase de carga',
+    { id: 'creatina', nome: 'Creatina', dose: '3 a 5 g por dia, todo dia, sem fase de carga',
       resumo: 'O suplemento mais estudado do esporte, e o que mais combina com jiu-jitsu.',
-      ciencia: [
-        'Mais força e mais potência, e ajuda a aguentar treino pesado com recuperação melhor entre um treino e outro.',
-        'Também é combustível pro cérebro: uma meta-análise de 2024 viu memória, atenção e rapidez de raciocínio melhores com creatina.',
-        'Protege o raciocínio depois de uma noite mal dormida, que é a noite antes de quase todo treino cedo.',
-        'Segura nas doses recomendadas e não precisa ciclar. Atenção pra quem compete: ela segura um pouco de água no músculo, e a balança sobe perto de 1 kg.',
+      corpo: [
+        'Enche o estoque de energia rápida do músculo, a que acaba nos primeiros segundos de esforço forte.',
+        'Ajuda a ganhar força e massa magra junto com o treino de academia.',
+        'Também alimenta o cérebro: memória, atenção e raciocínio mais rápidos, principalmente depois de noite mal dormida.',
+      ],
+      tatame: [
+        'Mais explosão na queda, na raspagem e na hora de sair de baixo.',
+        'Recupera melhor entre um rola e outro, e entre um treino e o próximo.',
+        'Segura a cabeça ligada no fim do treino, quando o cansaço embaralha a técnica.',
       ],
       fonte: 'ISSN (posição sobre creatina) e meta-análise na Frontiers in Nutrition, 2024' },
-    { id: 'betaalanina', nome: 'Beta-alanina', nota: 'vale', dose: '4 a 6 g por dia, divididos em doses de 1,6 g, por pelo menos 4 semanas',
-      resumo: 'Pra quem rola forte ou compete: segura o braço queimando no fim do round.',
-      ciencia: [
+    { id: 'betaalanina', nome: 'Beta-alanina', dose: '4 a 6 g por dia, divididos em doses de 1,6 g, por pelo menos 4 semanas',
+      resumo: 'Segura o braço queimando no fim do round.',
+      corpo: [
         'Aumenta a carnosina no músculo, que segura a acidez do esforço forte.',
-        'O efeito aparece mais em esforços de 1 a 4 minutos, que é o tamanho de um rola.',
-        'Leva de 2 a 4 semanas pra fazer efeito: não adianta tomar só no dia da luta.',
-        'O formigamento na pele é normal e sem perigo. Dividir a dose em 1,6 g diminui.',
+        'Adia a hora em que o músculo "trava" de cansaço.',
+      ],
+      tatame: [
+        'O efeito aparece em esforços de 1 a 4 minutos, que é o tamanho de um rola.',
+        'Pegada e braço aguentam mais no fim do round e no rola seguinte.',
+        'Dividir a dose em 1,6 g deixa o formigamento na pele (normal e sem perigo) bem mais leve.',
       ],
       fonte: 'ISSN (posição sobre beta-alanina)' },
-    { id: 'cafeina', nome: 'Cafeína', nota: 'vale',
+    { id: 'cafeina', nome: 'Cafeína',
       dose: cafe ? `uns ${cafe.mg} mg, 1 hora antes (${cafe.xicaras} ${cafe.xicaras === 1 ? 'xícara' : 'xícaras'} de café coado)` : '3 mg por kg, 1 hora antes',
       resumo: 'Mais força e mais fôlego no treino pesado, com o café que você já toma.',
-      ciencia: [
-        'De 3 a 6 mg por kg melhora força, velocidade e resistência; começa pela menor dose.',
-        'Mais que 9 mg por kg só aumenta tremedeira e taquicardia, sem ganho nenhum.',
-        'Depois das 16h atrapalha o sono, e sono ruim cobra mais do que o café entrega.',
+      corpo: [
+        'Diminui a sensação de cansaço e deixa o esforço parecer mais leve.',
+        'Melhora força, velocidade e resistência em doses de 3 a 6 mg por kg.',
+      ],
+      tatame: [
+        'Mais disposição pro treino da noite depois de um dia inteiro de trabalho.',
+        'Reação mais rápida no rola.',
+        'Tomada até umas 16h, não atrapalha o sono, que é onde o corpo se recupera.',
       ],
       fonte: 'ISSN (posição sobre cafeína)' },
-    { id: 'whey', nome: 'Whey', nota: 'depende', dose: '1 scoop quando não der pra bater a proteína com comida',
-      resumo: 'É só proteína em pó, prática. Não faz nada que um filé de frango não faça.',
-      ciencia: ['O que importa é a proteína do dia inteiro. O whey só é o jeito mais rápido de fechar a conta.'],
+    { id: 'whey', nome: 'Whey', dose: '1 scoop quando não der pra bater a proteína com comida',
+      resumo: 'O jeito mais rápido de fechar a proteína do dia.',
+      corpo: [
+        'Proteína completa e de digestão rápida, com todos os aminoácidos que o músculo usa pra se reconstruir.',
+        'Prático pra quem tem o dia corrido e não consegue comer proteína em toda refeição.',
+      ],
+      tatame: [
+        'Depois do treino, ajuda a consertar o que o rola quebrou.',
+        'Bater a proteína do dia deixa você menos dolorido pro próximo treino.',
+      ],
       fonte: 'ISSN (posição sobre proteína)' },
-    { id: 'kefir', nome: 'Kefir e probióticos', nota: 'depende', dose: '1 copo de kefir por dia',
-      resumo: 'Bom hábito pro intestino, não milagre.',
-      ciencia: [
+    { id: 'kefir', nome: 'Kefir e probióticos', dose: '1 copo de kefir por dia',
+      resumo: 'Cuida do intestino, que cuida da imunidade.',
+      corpo: [
+        'Aumenta as bactérias boas do intestino.',
         'Nos estudos com atletas: menos problema de estômago e menos gripe na época de treino pesado.',
-        'Em jogadoras de futebol, o kefir aumentou as bactérias boas do intestino.',
+      ],
+      tatame: [
+        'Menos treino perdido por resfriado e mal-estar.',
+        'Ainda soma proteína: um copo tem uns 7 g.',
       ],
       fonte: 'ISSN (posição sobre probióticos) e ensaio com jogadoras de futebol, 2025' },
-    { id: 'bcaa', nome: 'BCAA', nota: 'nao', dose: 'não precisa',
-      resumo: 'Se você bate a proteína do dia, o BCAA já veio junto. É pagar duas vezes pela mesma coisa.',
-      ciencia: ['Os aminoácidos do BCAA já estão em qualquer proteína completa: carne, ovo, leite, whey.'],
-      fonte: 'ISSN (posição sobre proteína)' },
-    { id: 'termogenico', nome: 'Termogênico', nota: 'nao', dose: 'não vale',
-      resumo: 'O que emagrece é o prato. O termogênico acelera o coração e atrapalha o sono.',
-      ciencia: ['A maioria é cafeína cara com outros estimulantes. O café resolve a parte que funciona, pagando bem menos.'],
-      fonte: 'ISSN (posição sobre cafeína)' },
   ];
-  const ICONE = { vale: Check, depende: CircleHelp, nao: X };
-  const ROTULO = { vale: 'Vale', depende: 'Depende', nao: 'Não vale' };
   return (
     <Card style={{ marginBottom: 14 }}>
       <button type="button" className="nutri-sanfona" onClick={() => setSanfona(!sanfona)} aria-expanded={sanfona}>
         <span className="stat-ico"><Pill size={15} /></span>
         <div style={{ flex: 1, textAlign: 'left' }}>
-          <div className="eyebrow">Sem propaganda, com estudo</div>
-          <h2 className="h-sec">Suplementação: o que vale</h2>
+          <div className="eyebrow">Com estudo por trás</div>
+          <h2 className="h-sec">Suplementação: o que ajuda</h2>
         </div>
         <ChevronDown size={18} className="muted" style={{ transform: sanfona ? 'rotate(180deg)' : undefined, transition: 'transform .2s' }} />
       </button>
       {sanfona && <div className="col" style={{ gap: 8, marginTop: 12 }}>
-        <p className="nutri-ajuda micro" style={{ margin: 0 }}>
-          Vale: tem estudo forte mostrando ganho pra quem luta. Depende: ajuda em alguns casos, mas não é obrigatório.
-          Não vale: é gastar dinheiro com o que a comida já dá. Toque num suplemento pra ver o que a ciência diz e a fonte.
+        <p className="micro muted" style={{ margin: 0, lineHeight: 1.6 }}>
+          O que cada um faz no seu corpo e no tatame. Toque num suplemento pra ver os detalhes e a fonte.
         </p>
         {lista.map((s) => {
-          const I = ICONE[s.nota];
           const on = aberto === s.id;
           return (
-            <div key={s.id} className={`nutri-supl ${s.nota}`}>
+            <div key={s.id} className="nutri-supl">
               <button type="button" className="nutri-supl-cab" onClick={() => setAberto(on ? null : s.id)} aria-expanded={on}>
-                <span className="nutri-supl-selo"><I size={13} /> {ROTULO[s.nota]}</span>
-                <span className="tiny" style={{ fontWeight: 700, flex: 1, textAlign: 'left' }}>{s.nome}</span>
+                <span className="tiny" style={{ fontWeight: 800, flex: 1, textAlign: 'left' }}>{s.nome}</span>
                 <ChevronDown size={17} className="muted" style={{ transform: on ? 'rotate(180deg)' : undefined, transition: 'transform .2s' }} />
               </button>
-              <div className="micro" style={{ fontWeight: 600 }}>{s.dose}</div>
-              <p className="micro muted" style={{ lineHeight: 1.55 }}>{s.resumo}</p>
+              <p className="micro" style={{ lineHeight: 1.55 }}>{s.resumo}</p>
+              <div className="micro" style={{ fontWeight: 600, color: 'var(--accent)' }}>{s.dose}</div>
               {on && (
                 <div className="nutri-ciencia">
-                  <div className="micro" style={{ fontWeight: 700, color: 'var(--cor)' }}>O que a ciência diz</div>
-                  <ul>
-                    {s.ciencia.map((c) => <li key={c} className="micro">{c}</li>)}
-                  </ul>
+                  <div className="micro" style={{ fontWeight: 700 }}>No corpo</div>
+                  <ul>{s.corpo.map((c) => <li key={c} className="micro">{c}</li>)}</ul>
+                  <div className="micro" style={{ fontWeight: 700, marginTop: 4 }}>No tatame</div>
+                  <ul>{s.tatame.map((c) => <li key={c} className="micro">{c}</li>)}</ul>
                   <div className="micro muted">Fonte: {s.fonte}</div>
                 </div>
               )}

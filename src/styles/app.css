@@ -3411,9 +3411,7 @@ body::after {
   width: 5px; height: 5px; border-radius: 99px; background: var(--jade);
 }
 .cal-prot-ponto.legenda { position: static; transform: none; width: 7px; height: 7px; }
-.nutri-supl { display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: var(--r-sm); background: var(--void); border: 1px solid color-mix(in srgb, var(--cor) 30%, var(--seam)); --cor: var(--dim); }
-.nutri-supl.vale { --cor: var(--jade); } .nutri-supl.depende { --cor: var(--roar); } .nutri-supl.nao { --cor: var(--blood); }
-.nutri-supl-selo { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 800; padding: 2px 8px; border-radius: 99px; color: var(--cor); background: color-mix(in srgb, var(--cor) 14%, transparent); }
+.nutri-supl { display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: var(--r-sm); background: var(--void); border: 1px solid color-mix(in srgb, var(--cor) 30%, var(--seam)); --cor: var(--accent); }
 .nutri-supl-cab { display: flex; align-items: center; gap: 8px; width: 100%; color: inherit; font: inherit; }
 .nutri-ciencia { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--seam); }
 .nutri-ciencia ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 5px; line-height: 1.55; }
