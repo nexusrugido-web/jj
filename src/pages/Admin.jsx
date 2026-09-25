@@ -17,6 +17,7 @@ import Links from '../components/Links';
 import Recuperacao from '../components/Recuperacao';
 import Vendas from '../components/Vendas';
 import CascaAdmin from '../components/CascaAdmin';
+import TesteAviso from '../components/TesteAviso';
 
 /* ============================================================
    PAINEL DO ADMINISTRADOR
@@ -258,6 +259,8 @@ export default function Admin() {
           Vale só neste aparelho.{ligada('cobranca') ? '' : ' A cobrança está desligada, então por enquanto todo mundo vê tudo.'}
         </p>
       </Card>
+
+      <TesteAviso email={sessao?.user?.email} />
 
       {/* números */}
       {numeros && (

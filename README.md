@@ -60,6 +60,7 @@ O que é grátis e o que é pago mora em `RECURSOS` (`src/lib/plano.js`) e só v
 ## Avisos (notificações)
 
 - O servidor decide **quem** recebe e **quando** (`supabase/notificacoes.sql`, pg_cron de hora em hora chamando a Edge Function `notificar`). No máximo um por dia.
+- **Testar:** Painel do admin → Visão → "Testar avisos" manda um aviso real pro celular (mesmo caminho dos avisos do aluno) e mostra o diagnóstico elo por elo (`testar_aviso` e `diagnostico_de_aviso`, só admin desde o SQL 14).
 - O **texto** que a pessoa lê mora em `public/sw.js` (função `aviso`): com a cara do tatame, com emoji e botões de ação, e se reveza por dia. Mudar texto é mexer lá, não no SQL.
 - "Toque para copiar o URL desse app" **não é aviso nosso**: é o Chrome avisando que o app foi instalado como atalho. Resolve reinstalando por ⋮ → Instalar app (no Xiaomi, liberar "Atalhos na tela inicial" pro Chrome).
 

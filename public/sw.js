@@ -122,6 +122,17 @@ function aviso(n) {
       acoes: [{ acao: 'estudar', titulo: 'Aula rápida', rota: ROTA.estudar }],
     };
   }
+  /* o botão "Testar avisos" do painel: mesmo visual dos avisos de verdade */
+  if (tipo === 'teste') {
+    return {
+      titulo: '🥋 Teste do NeuroJitsu: é assim que o aviso chega',
+      corpo: 'Se apareceu com o app fechado, a corrente inteira funciona. Toca nos botões pra ver se levam pro lugar certo.',
+      acoes: [
+        { acao: 'estudar', titulo: 'Aula rápida', rota: ROTA.estudar },
+        { acao: 'treino', titulo: 'Registrar treino', rota: ROTA.treino },
+      ],
+    };
+  }
   return { titulo: n.title || 'NeuroJitsu', corpo: n.body || '', acoes: [] };
 }
 

@@ -307,6 +307,11 @@ declare
   v_fuso text;
   v_hoje date;
 begin
+  /* só quem administra: aberta, qualquer visitante descobria se um
+     e-mail tem conta e mandava aviso pro celular de qualquer aluno */
+  if not public.sou_admin() then
+    raise exception 'so o administrador testa avisos';
+  end if;
   select id into v_user from auth.users where email = lower(trim(p_email));
   if v_user is null then
     return query select '1. conta'::text, 'NAO'::text, ('nenhuma conta com o email ' || p_email)::text;
@@ -367,6 +372,11 @@ declare
   v_user uuid;
   v_n    int;
 begin
+  /* só quem administra: aberta, qualquer visitante descobria se um
+     e-mail tem conta e mandava aviso pro celular de qualquer aluno */
+  if not public.sou_admin() then
+    raise exception 'so o administrador testa avisos';
+  end if;
   select id into v_user from auth.users where email = lower(trim(p_email));
   if v_user is null then return 'nenhuma conta com esse email'; end if;
 
@@ -392,6 +402,11 @@ begin
 end $$;
 
 
+
+revoke all on function public.diagnostico_de_aviso(text) from public, anon;
+revoke all on function public.testar_aviso(text) from public, anon;
+grant execute on function public.diagnostico_de_aviso(text) to authenticated;
+grant execute on function public.testar_aviso(text) to authenticated;
 
 -- ------------------------------------------------------------
 -- 6. MARCAR O QUE SAIU, E LIMPAR O QUE MORREU
