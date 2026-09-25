@@ -4,7 +4,9 @@ import { Sheet, Btn, Seg, Diamante, useToast } from './UI';
 import { useApp } from '../contexto';
 import { FAIXAS } from '../db/seed';
 import { podeVer } from '../lib/plano';
-import { desenharFigurinha, paraPNG, INSTAGRAM, FRASES, TEMAS } from '../lib/figurinha';
+import {
+  desenharFigurinha, paraPNG, INSTAGRAM, FRASES, TEMAS, DESENHOS, DESENHO_PADRAO, urlDoDesenho,
+} from '../lib/figurinha';
 import { compartilhar } from '../lib/card';
 
 /* ============================================================
@@ -33,6 +35,7 @@ export default function Figurinha({ aberto, onClose, dados, tipo = 'marco', link
   /* começa numa frase qualquer: senão todo mundo posta a mesma */
   const [qualFrase, setQualFrase] = useState(() => Math.floor(Math.random() * frases.length));
   const [tema, setTema] = useState('app');
+  const [desenho, setDesenho] = useState(DESENHO_PADRAO[tipo] || '');
   const [url, setUrl] = useState(null);
   const blob = useRef(null);
   const chave = JSON.stringify(dados || {});
@@ -46,7 +49,7 @@ export default function Figurinha({ aberto, onClose, dados, tipo = 'marco', link
   useEffect(() => {
     if (!aberto) return undefined;
     let vivo = true;
-    desenharFigurinha({ ...JSON.parse(chave), frase, tema, corFaixa, fundo: fundo === 'com' })
+    desenharFigurinha({ ...JSON.parse(chave), frase, tema, corFaixa, desenho, fundo: fundo === 'com' })
       .then(paraPNG)
       .then((b) => {
         if (!vivo || !b) return;
@@ -55,7 +58,7 @@ export default function Figurinha({ aberto, onClose, dados, tipo = 'marco', link
       })
       .catch((e) => console.error('[figurinha]', e));
     return () => { vivo = false; };
-  }, [aberto, fundo, chave, frase, tema, corFaixa]);
+  }, [aberto, fundo, chave, frase, tema, corFaixa, desenho]);
 
   const arquivo = () => new File([blob.current], 'neurojitsu.png', { type: 'image/png' });
   const podeCompartilhar = (() => {
@@ -107,6 +110,18 @@ export default function Figurinha({ aberto, onClose, dados, tipo = 'marco', link
               <RefreshCw size={16} />
             </button>
           )}
+        </div>
+        {/* o desenho de jiu-jitsu: toca pra trocar, o primeiro tira */}
+        <div className="figurinha-desenhos" role="radiogroup" aria-label="Desenho">
+          <button type="button" role="radio" aria-checked={!desenho} className={!desenho ? 'on' : ''} onClick={() => setDesenho('')}>
+            <span className="micro">Sem desenho</span>
+          </button>
+          {DESENHOS.map((d) => (
+            <button key={d.id} type="button" role="radio" aria-checked={desenho === d.id} aria-label={d.nome}
+              className={desenho === d.id ? 'on' : ''} onClick={() => setDesenho(d.id)}>
+              <img src={urlDoDesenho(d.id)} alt="" loading="lazy" />
+            </button>
+          ))}
         </div>
         <Seg value={tema} onChange={setTema} options={TEMAS.map((t) => ({
           id: t.id,

@@ -78,7 +78,7 @@ O que é grátis e o que é pago mora em `RECURSOS` (`src/lib/plano.js`) e só v
 - Tudo é de graça, menos as cores extras (cor da faixa e dourado, recurso `temasFigurinha`): a prévia mostra a cor, e no lugar dos botões aparece o convite.
 - Onde abre: marcos e resumo (Conquistas), a comemoração de marco, a graduação (depois de registrar, "Postar no story", e em cada linha da linha do tempo, com a faixa desenhada), o card da semana (Conquistas), ofensiva e metas.
 - **Recorde do dia** é marco (`tipo: 'recorde'`, `src/lib/milestones.js`): um por recorde batido, a partir de 5 rolas ou 3h de tatame num dia. Aparece sozinho na comemoração depois de salvar o treino. Teste: `npm run teste:marcos`.
-- Os desenhos de jiu-jitsu (queda, guarda, finalização) ainda não entraram: os prompts pra gerar estão em `NEUROJITSU-COLAR/18-PROMPTS-DESENHOS-FIGURINHA.md`.
+- **Desenhos de jiu-jitsu** (`public/figurinhas/`, 8 PNGs sem fundo de ~30 KB, gerados com IA pelos prompts de `NEUROJITSU-COLAR/18-PROMPTS-DESENHOS-FIGURINHA.md`): vão no canto de cima à direita. Cada tipo tem um padrão (`DESENHO_PADRAO`) e a pessoa troca ou tira na fileira da folha. O desenho encolhe quando o texto precisa de espaço: o número nunca fica menor que 120 px por causa dele. Desenho novo entra em `DESENHOS` com o arquivo em 560×560.
 
 ---
 
@@ -114,7 +114,7 @@ Só as últimas, pra saber o estado atual. O detalhe de cada dia fica em `Downlo
 
 - **24/09/2026**
   - Assinatura: sai o "Já assinei" (link no WhatsApp libera sozinho), card com renovação, dias pagos e faturas, aviso de renovar. Nutrição: seu dia de comida com barra, alimentos e refeições próprios, mês de proteína, ponto verde no calendário de presença; sai o prato em volta do treino, suplementação vira sanfona. Sai o "Demorando?" da abertura.
-  - Compartilhar: figurinha sem a pílula laranja, com frase de impacto (liga/desliga/troca), cores extras no premium, figurinha de graduação com a faixa desenhada, recorde do dia e card da semana. Sai o "desde o começo": o resumo mostra a faixa.
+  - Compartilhar: 8 desenhos de jiu-jitsu na figurinha (escolhe ou tira). Figurinha sem a pílula laranja, com frase de impacto (liga/desliga/troca), cores extras no premium, figurinha de graduação com a faixa desenhada, recorde do dia e card da semana. Sai o "desde o começo": o resumo mostra a faixa.
   - Admin: Testar avisos com um botão pra cada aviso.
   - Sincronização: acabou o ciclo infinito, a biblioteca não sobe mais, cada tabela sobe inteira, Sair não perde a fila, pontos voltam do servidor da Liga.
   - Salvar treino: trava contra toque duplo, grava tudo ou nada, e os repetidos antigos são limpos sozinhos.

@@ -52,6 +52,24 @@ export const FRASES = {
   ],
 };
 
+/* Os desenhos de jiu-jitsu (public/figurinhas), um padrão por tipo
+   de conquista. A pessoa troca ou tira na folha. */
+export const DESENHOS = [
+  { id: 'queda', nome: 'Queda' },
+  { id: 'raspagem', nome: 'Raspagem' },
+  { id: 'passagem', nome: 'Passagem' },
+  { id: 'montada', nome: 'Montada' },
+  { id: 'chave-de-braco', nome: 'Chave de braço' },
+  { id: 'mata-leao', nome: 'Mata-leão' },
+  { id: 'cumprimento', nome: 'Cumprimento' },
+  { id: 'comemoracao', nome: 'Comemoração' },
+];
+export const DESENHO_PADRAO = {
+  graduacao: 'comemoracao', recorde: 'queda', ofensiva: 'raspagem',
+  semana: 'cumprimento', meta: 'montada', marco: 'chave-de-braco',
+};
+export const urlDoDesenho = (id) => `/figurinhas/${id}.png`;
+
 /* As cores da figurinha. A do app é de graça; as outras são do
    premium. A cor da faixa vem de quem chama (settings.faixa). */
 export const TEMAS = [
@@ -153,9 +171,10 @@ function desenharFaixa(ctx, x, y, largura, { cor: corFaixa, graus = 0, preta = f
  * faixa   { cor, graus, preta }: desenha a faixa (graduação)
  * tema    'app', 'faixa' ou 'ouro': a cor de destaque
  * corFaixa a cor da faixa da pessoa, pro tema 'faixa'
+ * desenho id de DESENHOS, ou vazio: vai no canto de cima, à direita
  * fundo   false = PNG transparente, true = cartão escuro
  */
-export async function desenharFigurinha({ selo, grande, sub = '', pct = null, frase = '', faixa = null, tema = 'app', corFaixa = null, fundo = false }) {
+export async function desenharFigurinha({ selo, grande, sub = '', pct = null, frase = '', faixa = null, tema = 'app', corFaixa = null, desenho = '', fundo = false }) {
   /* fonte que só o canvas usa o navegador não baixa sozinho */
   try {
     await Promise.all([
@@ -200,7 +219,6 @@ export async function desenharFigurinha({ selo, grande, sub = '', pct = null, fr
 
   /* o meio fica entre a marca (em cima) e o @ (embaixo): o texto
      grande encolhe até tudo caber nesse espaço, sem encostar no @ */
-  const TOPO = 250;
   const FUNDO = LADO - 190;
   ctx.font = `600 50px ${CORPO}`;
   const lSub = sub ? linhas(ctx, sub, LARGURA, 2) : [];
@@ -211,6 +229,16 @@ export async function desenharFigurinha({ selo, grande, sub = '', pct = null, fr
     + (lSub.length ? 30 + lSub.length * 62 : 0)
     + (pct != null ? 64 : 0)
     + (lFrase.length ? 44 + lFrase.length * 58 : 0);
+
+  /* com desenho, ele ocupa o canto de cima e o texto começa mais
+     embaixo. Quanto de cima ele pega depende do texto: o número
+     precisa caber em 120 px no espaço que sobra, senão o desenho
+     encolhe (até o tamanho da linha da marca). */
+  const img = desenho ? await carregarImagem(urlDoDesenho(desenho)) : null;
+  ctx.font = `800 120px ${DISPLAY}`;
+  const precisa = alturaDe(120, linhas(ctx, grande, LARGURA, 3).length);
+  const TOPO = img ? Math.max(250, Math.min(470, FUNDO - precisa)) : 250;
+  const tamDesenho = Math.min(420, TOPO - 50);
   let tGrande = 190;
   let lGrande = [];
   for (; tGrande >= 72; tGrande -= 6) {
@@ -228,6 +256,15 @@ export async function desenharFigurinha({ selo, grande, sub = '', pct = null, fr
   ctx.font = `700 52px ${DISPLAY}`;
   ctx.textBaseline = 'middle';
   ctx.fillText('NeuroJitsu', MARGEM + (logo ? 110 : 0), 156);
+
+  /* o desenho, no canto de cima à direita, sem sombra (o contorno
+     preto dele já segura a leitura em cima de foto) */
+  if (img) {
+    ctx.save();
+    ctx.shadowColor = 'transparent';
+    ctx.drawImage(img, LADO - MARGEM - tamDesenho + 36, 44, tamDesenho, tamDesenho);
+    ctx.restore();
+  }
 
   /* o selo, em texto: sem pílula, pra não ter cara de print de app */
   ctx.font = `700 32px ${MONO}`;
