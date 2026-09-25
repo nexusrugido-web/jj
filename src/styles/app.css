@@ -1518,6 +1518,14 @@ body.player-cheio .sheet-overlay { backdrop-filter: none; -webkit-backdrop-filte
   background: var(--accent); border-color: var(--accent); color: var(--accent-ink);
   animation: pulsoMic 1.6s ease-in-out infinite;
 }
+/* com o medidor ligado, o anel acompanha a voz (--nivel de 0 a 1, do Voz.jsx) */
+.mic.ouvindo[style*="--nivel"] {
+  animation: none;
+  box-shadow: 0 0 0 calc(4px + var(--nivel) * 22px) color-mix(in srgb, var(--accent) 30%, transparent);
+  transition: box-shadow .08s linear;
+}
+.gira { animation: gira 1s linear infinite; }
+@keyframes gira { to { transform: rotate(360deg); } }
 @keyframes pulsoMic {
   0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 42%, transparent); }
   50% { box-shadow: 0 0 0 16px transparent; }

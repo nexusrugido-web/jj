@@ -6,12 +6,14 @@
    - validar_tecnica : usa busca web real (groq/compound) pra checar regra IBJJF
    - autopreencher   : preenche os campos da técnica só pelo nome
    - analisar        : lê o resumo do diário e sugere foco
+   - transcrever     : o áudio do treino falado vira texto (Whisper)
    - ler_treino      : transforma o treino falado em dados
    - classificar_videos : diz o que cada vídeo do acervo ensina, no
                           vocabulário de src/lib/vocab.js
 */
 
 import { POSICOES, HABILIDADES, FORMATOS, NIVEIS, SITUACOES } from '../src/lib/vocab.js';
+import { textoDaTranscricao } from '../src/lib/voz.js';
 
 const GROQ = 'https://api.groq.com/openai/v1/chat/completions';
 
@@ -40,6 +42,9 @@ const doSupabase = (caminho, token, corpo) => fetch(`${SUPA}${caminho}`, {
   ...(corpo ? { body: JSON.stringify(corpo) } : {}),
 });
 
+const PREMIUM = new Set(['analisar', 'transcrever', 'ler_treino']);
+const NOME_PREMIUM = { analisar: 'A Análise IA', transcrever: 'Registrar falando', ler_treino: 'Registrar falando' };
+
 async function barrar(acao, req) {
   const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
   if (!SUPA || !ANON) return { status: 503, erro: 'A IA não consegue conferir a conta neste servidor.' };
@@ -48,12 +53,13 @@ async function barrar(acao, req) {
   }
   const admin = await (await doSupabase('/rest/v1/rpc/sou_admin', token, {})).json().catch(() => false);
   if (acao === 'classificar_videos' && admin !== true) return { status: 403, erro: 'Só quem administra classifica vídeo.' };
-  if (acao === 'analisar' && admin !== true) {
+  /* Análise IA e registrar falando são do Premium */
+  if (PREMIUM.has(acao) && admin !== true) {
     const chave = await (await doSupabase('/rest/v1/chave?id=eq.cobranca&select=ligada')).json().catch(() => []);
     if (chave?.[0]?.ligada) {
       const acesso = await (await doSupabase('/rest/v1/rpc/meu_acesso', token, {})).json().catch(() => null);
       const r = Array.isArray(acesso) ? acesso[0] : acesso;
-      if (!r?.premium) return { status: 402, erro: 'A Análise IA é do Premium.' };
+      if (!r?.premium) return { status: 402, erro: `${NOME_PREMIUM[acao]} é do Premium.` };
     }
   }
   return null;
@@ -73,14 +79,49 @@ function podePassar(ip) {
   return true;
 }
 
+/* ============================================================
+   TRANSCREVER O TREINO FALADO
+
+   O app grava e manda o áudio (em base64, dentro do JSON); o
+   Whisper grande da Groq transcreve em português, com a dica dos
+   nomes da pessoa e das palavras do tatame. O que o Whisper
+   inventa no silêncio sai em textoDaTranscricao (src/lib/voz.js).
+   ============================================================ */
+const WHISPER = 'https://api.groq.com/openai/v1/audio/transcriptions';
+const EXTENSOES = new Set(['webm', 'mp4', 'm4a', 'ogg', 'wav', 'mp3']);
+
+async function transcrever(p, key) {
+  const audio = Buffer.from(String(p.audio || ''), 'base64');
+  if (audio.length < 1000) return { status: 400, corpo: { erro: 'A gravação veio vazia.' } };
+  if (audio.length > 6_000_000) return { status: 413, corpo: { erro: 'A gravação ficou grande demais. Grave em partes menores.' } };
+  const ext = EXTENSOES.has(p.ext) ? p.ext : 'webm';
+  const dica = String(p.dica || '').slice(0, 600);
+
+  const form = new FormData();
+  form.append('file', new Blob([audio], { type: String(p.tipo || `audio/${ext}`).split(';')[0] }), `treino.${ext}`);
+  form.append('model', 'whisper-large-v3');
+  form.append('language', 'pt');
+  form.append('temperature', '0');
+  form.append('response_format', 'verbose_json');
+  if (dica) form.append('prompt', dica);
+
+  const r = await fetch(WHISPER, { method: 'POST', headers: { Authorization: `Bearer ${key}` }, body: form });
+  if (!r.ok) {
+    const t = await r.text();
+    return { status: r.status === 429 ? 429 : 502, corpo: { erro: 'A transcrição falhou.', detalhe: t.slice(0, 400) } };
+  }
+  const data = await r.json();
+  return { status: 200, corpo: { ok: true, texto: textoDaTranscricao(data?.segments, data?.text, dica) } };
+}
+
 const PROMPTS = {
   ler_treino: (p) => ({
     modelo: MODELO_JSON,
     json: true,
     system: `Você lê o relato falado de um treino de jiu-jitsu brasileiro e transforma em dados.
 
-A pessoa fala de forma natural, com repetição, pausa e correção. A transcrição pode vir com erro.
-Entenda o sentido, não a letra.
+A pessoa fala de forma natural, com pausa, repetição e correção ("não, foi o Ismael"). A transcrição
+pode vir com erro de grafia. Entenda o sentido, não a letra. Vale a última versão do que ela disse.
 
 Devolva SOMENTE o JSON, sem texto antes ou depois:
 {
@@ -88,6 +129,9 @@ Devolva SOMENTE o JSON, sem texto antes ou depois:
   "tipo": "gi",
   "academia": "nome ou vazio",
   "professor": "nome ou vazio",
+  "evento": "nome do campeonato ou vazio",
+  "colocacao": "ouro, prata, bronze, participou ou vazio",
+  "tecnicas": [{ "nome": "Raspagem de gancho", "reps": 0 }],
   "nota": "o relato limpo, em primeira pessoa, sem repetição",
   "rolas": [
     {
@@ -95,46 +139,71 @@ Devolva SOMENTE o JSON, sem texto antes ou depois:
       "duracao": 5,
       "ptsMeus": ["queda", "passagem", "montada"],
       "ptsDele": ["raspagem"],
+      "vantMinhas": 0,
+      "vantDele": 0,
       "subsAplicadas": [],
-      "subsSofridas": ["Chave de braço, armlock"]
+      "subsSofridas": ["Chave de braço (armlock)"]
     }
   ]
 }
 
 REGRAS DE INTERPRETAÇÃO
 
-Quem é quem:
-- "treinei com o professor X", "aula do X", "o mestre X" => professor
-- "rolei com Y", "lutei com Y", "peguei o Y", "caí com o Y" => parceiro daquele rola
-- "na academia Z", "lá no Z" => academia
-- Se o nome estiver na lista de cadastrados, use exatamente como está lá, mesmo que a fala tenha
-  escrito diferente. "ismael", "ismail", "ysmael" => o Ismael cadastrado.
-- Cada parceiro citado é um rola diferente, a menos que a fala diga que foram vários com a mesma pessoa.
+Tipo do treino (um só):
+- gi: aula com kimono. É o padrão quando não falar.
+- nogi: "sem kimono", "no gi", "de rash guard".
+- drill: o treino INTEIRO foi repetição de técnica, sem rola. Se teve rola, é gi ou nogi.
+- openmat: "open mat", "treino livre", sem aula.
+- privada: "aula particular", "particular", "aula privada".
+- competicao: "campeonato", "competi", "torneio", "lutei no", "copa".
 
-O que ele fez (ptsMeus) e o que sofreu (ptsDele):
-- pontos válidos, use exatamente estes ids: queda, raspagem, joelho, passagem, montada, costas
-- "ganhei a queda", "derrubei", "puxei ele pro chão" => ptsMeus: queda
+Quem é quem:
+- "treinei com o professor X", "aula do X", "o mestre X", "o sensei X" => professor
+- "na academia Z", "lá na Z", "no CT Z" => academia
+- "rolei com Y", "lutei com Y", "peguei o Y", "caí com o Y", "fiz um rola com o Y" => parceiro daquele rola
+- Na competição, cada luta é um rola e "parceiro" é o nome do adversário.
+- Se o nome estiver nas listas de cadastrados, use exatamente como está lá, mesmo que a fala tenha
+  escrito diferente ("ismail", "ysmael" => "Ismael").
+- Nome que não está na lista é gente nova: devolva como foi falado, com a primeira letra maiúscula.
+- Nunca troque um nome por outro parecido que é de outra pessoa.
+- A mesma pessoa não é professor e parceiro ao mesmo tempo, a menos que a fala diga que rolou com o professor.
+- Cada parceiro citado é um rola diferente, a menos que a fala diga vários com a mesma pessoa ("dois rolas com o Marcão" => 2 rolas).
+
+O que ele fez (ptsMeus) e o que sofreu (ptsDele), um item por vez que aconteceu:
+- ids válidos, exatamente estes: queda, raspagem, joelho, passagem, montada, costas
+- "ganhei a queda", "derrubei", "botei pra baixo" => ptsMeus: queda
+- "raspei ele", "inverti" => ptsMeus: raspagem
 - "passei a guarda", "passei por cima" => ptsMeus: passagem
+- "joelho na barriga", "botei o joelho" => ptsMeus: joelho
 - "cheguei na montada", "montei nele" => ptsMeus: montada
-- "peguei as costas" => ptsMeus: costas
-- "raspei ele" => ptsMeus: raspagem
+- "peguei as costas", "pus os ganchos" => ptsMeus: costas
 - "tomei uma raspagem", "ele me raspou" => ptsDele: raspagem
 - "ele me passou", "passou minha guarda" => ptsDele: passagem
-- "ele me derrubou" => ptsDele: queda
+- "ele me derrubou", "tomei queda" => ptsDele: queda
+- "ele me montou", "pegou minhas costas" => ptsDele: montada / costas
+- "duas vezes" => o item aparece duas vezes.
+- "vantagem" => conte em vantMinhas ou vantDele.
 
 Finalizações:
-- "finalizei", "peguei", "bateu pra mim", "dei o tap nele" => subsAplicadas
-- "fui finalizado", "bati", "tomei", "ele me pegou" => subsSofridas
-- Use o nome da técnica como está na lista fornecida quando reconhecer. Senão use como foi falado.
+- "finalizei", "peguei de", "bateu pra mim", "fiz ele bater" => subsAplicadas
+- "fui finalizado", "bati", "tomei um", "ele me pegou de" => subsSofridas
+- Use o nome EXATO da lista de finalizações quando reconhecer ("mata leão" => "Mata-leão").
+  Se não reconhecer, use como foi falado.
+
+Técnicas da aula (tecnicas):
+- O que o professor passou na aula ou o que foi drillado: "a aula foi de raspagem de gancho",
+  "drillei armlock da guarda 50 vezes" => { "nome": "...", "reps": 50 }.
+- Use o nome EXATO da lista de técnicas quando reconhecer. reps é 0 quando não falar.
+- Finalização que aconteceu no rola não entra aqui.
 
 Duração:
-- Se não falar, use 60 para treino e 5 para cada rola.
-- "uma hora" = 60, "hora e meia" = 90, "duas horas" = 120
+- Se não falar, use 60 para treino e 5 para cada rola (6 na competição).
+- "uma hora" = 60, "hora e meia" = 90, "duas horas" = 120.
 
-Tipo:
-- gi, nogi, drill, openmat ou competicao. Se não falar, gi.
-- "sem kimono", "no gi" => nogi
-- "campeonato", "competi", "torneio" => competicao
+Competição:
+- evento: o nome do campeonato, se falar.
+- colocacao: "fui campeão", "ouro" => ouro; "vice", "prata" => prata; "bronze", "terceiro" => bronze;
+  "não subi no pódio", "perdi na primeira" => participou.
 
 A nota:
 - Reescreva o relato de forma limpa e em primeira pessoa, mantendo o que a pessoa sentiu e onde travou.
@@ -143,12 +212,13 @@ A nota:
 
 Se não conseguir identificar nenhum rola, devolva "rolas": [].`,
     user: `Relato falado:
-${p.texto}
+${String(p.texto || '').slice(0, 6000)}
 
-Parceiros cadastrados: ${(p.parceiros || []).join(', ') || 'nenhum'}
-Professores cadastrados: ${(p.professores || []).join(', ') || 'nenhum'}
-Academias cadastradas: ${(p.academias || []).join(', ') || 'nenhuma'}
-Técnicas conhecidas: ${(p.tecnicas || []).slice(0, 250).join(', ')}`,
+Parceiros cadastrados: ${(p.parceiros || []).slice(0, 300).join(', ') || 'nenhum'}
+Professores cadastrados: ${(p.professores || []).slice(0, 50).join(', ') || 'nenhum'}
+Academias cadastradas: ${(p.academias || []).slice(0, 50).join(', ') || 'nenhuma'}
+Finalizações conhecidas: ${(p.finalizacoes || []).slice(0, 300).join(', ')}
+Técnicas conhecidas: ${(p.tecnicas || []).slice(0, 700).join(', ')}`,
   }),
 
   autopreencher: (p) => ({
@@ -268,10 +338,19 @@ export default async function handler(req, res) {
   const { acao, ...params } = body || {};
 
   const build = PROMPTS[acao];
-  if (!build) return res.status(400).json({ erro: `Ação desconhecida: ${acao}` });
+  if (!build && acao !== 'transcrever') return res.status(400).json({ erro: `Ação desconhecida: ${acao}` });
 
   const barrado = await barrar(acao, req);
   if (barrado) return res.status(barrado.status).json({ erro: barrado.erro });
+
+  if (acao === 'transcrever') {
+    try {
+      const { status, corpo } = await transcrever(params, key);
+      return res.status(status).json(corpo);
+    } catch (e) {
+      return res.status(500).json({ erro: 'Falha ao transcrever.', detalhe: String(e?.message || e) });
+    }
+  }
 
   const cfg = build(params);
 

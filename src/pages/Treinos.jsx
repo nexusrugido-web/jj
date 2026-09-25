@@ -21,8 +21,10 @@ import {
 import Calendario from '../components/Calendario';
 import ResumoDoTipo, { PodioCategoria } from '../components/ResumoDoTipo';
 import { hoje, fmtDur, relativo, buscaMatch, mesPorExtenso } from '../lib/utils';
-import { recortarHistorico } from '../lib/plano';
-import { HistoricoCortado } from '../components/Plano';
+import { recortarHistorico, podeVer } from '../lib/plano';
+import { HistoricoCortado, Convite } from '../components/Plano';
+import { acharPorNome } from '../lib/voz';
+import { nomeAtual } from '../db/renomeios';
 import AntesDeCompetir from '../components/AntesDeCompetir';
 import { padraoDoTipo } from '../lib/padraoTreino';
 import { avaliarTecnica, idadeDe, modalidadeDoTreino, FONTE_DA_REGRA } from '../lib/regras';
@@ -159,6 +161,7 @@ export default function Treinos() {
   const [filtroTipo, setFiltroTipo] = useState('todos');
   const [cronoAberto, setCronoAberto] = useState(false);
   const [vozAberta, setVozAberta] = useState(false);
+  const [conviteVoz, setConviteVoz] = useState(false);
   const [mostrar, setMostrar] = useState(POR_VEZ);
   /* 'lista' ou 'calendario': o popup com todos os treinos */
   const [todosAberto, setTodosAberto] = useState(null);
@@ -261,57 +264,84 @@ export default function Treinos() {
   const novaRolaDoTreino = (dur, ultima) => novaRola(dur, ultima, editando?.tipo);
 
   async function montarDoFalado(d, falado) {
-    const base = novaSessao(settings);
+    /* o tipo que a pessoa falou, com o padrão daquele tipo (academia,
+       professor, duração); cada tipo guarda só o que é dele */
+    const tipo = TIPOS.some((x) => x.id === d.tipo) ? d.tipo : 'gi';
+    const forma = formaDe(tipo);
+    const base = novaSessao(settings, tipo);
     const s2 = {
       ...base,
       duracao: Number(d.duracao) || base.duracao,
-      tipo: d.tipo || base.tipo,
       nota: d.nota || falado || '',
     };
 
-    const semAcento = (t) => String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-
-    /* acha quem já existe, e cadastra quem é novo. O documento
-       pediu pra não fazer a pessoa preencher o que já se sabe. */
-    const acharOuCriar = async (nome) => {
-      if (!nome) return null;
-      const n = semAcento(nome);
-      const achado = partners.find((x) => semAcento(x.nome) === n)
-        || partners.find((x) => semAcento(x.nome).includes(n) || n.includes(semAcento(x.nome)));
+    /* acha quem já existe e cadastra quem é novo: a pessoa não
+       preenche o que já falou */
+    const semAcento = (x) => String(x).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const nomeBonito = (x) => String(x).trim().replace(/^./, (c) => c.toUpperCase());
+    const criados = [];
+    const acharOuCriar = async (tabela, lista, nome, novo) => {
+      if (!String(nome || '').trim()) return null;
+      const achado = acharPorNome(lista, nome);
       if (achado) return achado.id;
-      const id = await db.partners.add({
-        nome: String(nome).trim(), faixa: 'branca', graus: 0,
-        academiaId: null, pesoKg: null, notas: '', criadoEm: Date.now(),
-      });
-      return Number(id);
+      const id = Number(await db[tabela].add({ ...novo, nome: nomeBonito(nome), criadoEm: Date.now() }));
+      lista.push({ id, nome: nomeBonito(nome) });
+      criados.push(nomeBonito(nome));
+      return id;
     };
 
-    const rs = [];
-    for (const r of d.rolas || []) {
-      rs.push({
-        ...novaRola(Number(r.duracao) || settings.duracaoRolaPadrao || 5),
-        partnerId: await acharOuCriar(r.parceiro),
-        subsAplicadas: r.subsAplicadas || [],
-        subsSofridas: r.subsSofridas || [],
-        ptsMeus: r.ptsMeus || [],
-        ptsDele: r.ptsDele || [],
-      });
+    if (ehCompeticao(tipo)) {
+      s2.academiaId = null;
+      s2.professorId = null;
+      const divisao = divisaoDaIdade(idadeDe(settings.anoNascimento));
+      s2.competicao = {
+        ...competicaoVazia(),
+        ...(divisao ? { divisao } : {}),
+        evento: String(d.evento || '').trim(),
+        resultado: ['ouro', 'prata', 'bronze', 'participou'].includes(d.colocacao) ? d.colocacao : '',
+      };
+    } else {
+      if (d.academia) {
+        s2.academiaId = await acharOuCriar('academies', [...academias], d.academia, { cidade: '', equipe: '', notas: '', arquivada: 0 });
+      }
+      if (forma.professor && d.professor) {
+        s2.professorId = await acharOuCriar('professors', [...professores], d.professor,
+          { faixa: 'preta', graus: 0, academiaId: s2.academiaId || null, notas: '', arquivada: 0 });
+      } else if (!forma.professor) {
+        s2.professorId = null;
+      }
     }
 
-    if (d.academia) {
-      const a = academias.find((x) => semAcento(x.nome) === semAcento(d.academia));
-      s2.academiaId = a ? a.id : null;
-      s2.academia = d.academia;
-    }
-    if (d.professor) {
-      const pr = professores.find((x) => semAcento(x.nome) === semAcento(d.professor));
-      s2.professorId = pr ? pr.id : null;
-      s2.professor = d.professor;
+    /* as técnicas da aula (ou do drill, com as repetições) */
+    s2.focoTecnicas = (d.tecnicas || []).map((x) => {
+      const nome = nomeAtual(String(x.nome || '').trim());
+      const tec = techniques.find((y) => semAcento(y.nome) === semAcento(nome));
+      return { tecnicaId: tec?.id || null, nome: tec?.nome || nome, aprendizado: null, ...(Number(x.reps) > 0 ? { reps: Number(x.reps) } : {}) };
+    }).filter((x) => x.nome);
+
+    const listaParceiros = [...partners];
+    const rs = [];
+    for (const r of forma.rolas === 'nunca' ? [] : d.rolas || []) {
+      const rola = {
+        ...novaRola(Number(r.duracao) || settings.duracaoRolaPadrao || 5, null, tipo),
+        subsAplicadas: (r.subsAplicadas || []).map(nomeAtual),
+        subsSofridas: (r.subsSofridas || []).map(nomeAtual),
+        ptsMeus: r.ptsMeus || [],
+        ptsDele: r.ptsDele || [],
+        vantMinhas: Number(r.vantMinhas) || 0,
+        vantDele: Number(r.vantDele) || 0,
+      };
+      /* na competição o adversário é só o nome, não vira parceiro */
+      if (ehCompeticao(tipo)) rola.adversario = String(r.parceiro || '').trim();
+      else rola.partnerId = await acharOuCriar('partners', listaParceiros, r.parceiro,
+        { faixa: 'branca', graus: 0, academiaId: null, pesoKg: null, notas: '' });
+      rs.push(rola);
     }
 
     setEditando(s2);
-    setRolasEdit(rs.length ? rs : [novaRola(settings.duracaoRolaPadrao || 5)]);
-    toast(rs.length ? `Montei ${rs.length} ${rs.length === 1 ? 'rola' : 'rolas'}. Confira antes de salvar.` : 'Guardei o que você falou. Confira e complete.');
+    setRolasEdit(rs.length ? rs : [novaRola(settings.duracaoRolaPadrao || 5, null, tipo)]);
+    const quantos = rs.length ? `Montei ${rs.length} ${ehCompeticao(tipo) ? (rs.length === 1 ? 'luta' : 'lutas') : rs.length === 1 ? 'rola' : 'rolas'}. ` : '';
+    toast(`${quantos}${criados.length ? `Cadastrei ${criados.join(', ')}. ` : ''}Confira antes de salvar.`);
   }
 
   function abrirNova(minutosDaRola) {
@@ -672,7 +702,9 @@ export default function Treinos() {
         </div>
         <div className="row" style={{ gap: 8 }}>
           {ligada('timer') && <Btn icon={Timer} onClick={() => setCronoAberto(true)}>Cronômetro</Btn>}
-          {temVoz() && ligada('voz') && <Btn icon={Mic} onClick={() => setVozAberta(true)}>Falar</Btn>}
+          {temVoz() && ligada('voz') && (
+            <Btn icon={Mic} onClick={() => (podeVer(acesso, 'voz') ? setVozAberta(true) : setConviteVoz(true))}>Falar</Btn>
+          )}
           <Btn variant="primary" icon={Plus} onClick={() => abrirNova()}>Novo treino</Btn>
         </div>
       </div>
@@ -778,10 +810,28 @@ export default function Treinos() {
         )}
       </Sheet>
 
+      <Sheet aberto={conviteVoz} onClose={() => setConviteVoz(false)} titulo="">
+        <Convite
+          recurso="voz"
+          icone={Mic}
+          marca="NeuroJitsu"
+          titulo="Registrar falando"
+          texto="Saiu do treino cansado? Conta como foi, do jeito que contaria pro parceiro, e o app monta o treino inteiro pra você só conferir."
+          itens={[
+            'Tipo, professor, academia e técnicas da aula',
+            'Cada rola com parceiro, pontos e finalizações',
+            'Parceiro, professor e academia novos entram sozinhos no cadastro',
+          ]}
+          onAssinar={() => { setConviteVoz(false); irPara('ajustes'); }}
+        />
+      </Sheet>
+
       <Voz
         aberto={vozAberta}
         onClose={() => setVozAberta(false)}
         techniques={techniques}
+        finalizacoes={finalizacoes}
+        regra={{ faixa: settings.faixa, idade: idadeDe(settings.anoNascimento), liberadas: settings.tecnicasLiberadas || [] }}
         partners={partners}
         academies={academias}
         professors={professores}

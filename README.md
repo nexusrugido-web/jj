@@ -87,7 +87,9 @@ O que é grátis e o que é pago mora em `RECURSOS` (`src/lib/plano.js`) e só v
 
 ## IA
 
-`/api/ia` (Vercel Function) guarda a chave da Groq. Só atende conta logada (o token é conferido no Supabase). A Análise IA pede premium quando a cobrança está ligada; classificar vídeo é só do admin. Teste: `teste:ia`.
+`/api/ia` (Vercel Function) guarda a chave da Groq. Só atende conta logada (o token é conferido no Supabase). A Análise IA e o registrar falando (`transcrever` e `ler_treino`) pedem premium quando a cobrança está ligada; classificar vídeo é só do admin. Teste: `teste:ia`.
+
+**Registrar falando** (`src/components/Voz.jsx`, `src/lib/voz.js`): o app grava o áudio (MediaRecorder, pedaços de 1 s por causa do iPhone, até 2 min por gravação, e cada gravação soma no texto) e o `whisper-large-v3` da Groq transcreve em português, com a dica dos nomes da pessoa e das palavras do tatame. Sai o que o Whisper inventa no silêncio ("Legendas pela comunidade Amara.org", a própria dica, trecho em loop). Se a transcrição falhar, o áudio fica guardado e "Tentar de novo" reenvia. A IA monta o treino no tipo certo (open mat sem professor, competição com adversário pelo nome, drill sem rola, técnicas da aula com repetições), e professor, academia e parceiro novos viram cadastro. O reconhecimento de voz do navegador saiu: no Android ele parava no silêncio e repetia a frase a cada pedaço. Teste: `teste:voz`.
 
 ---
 
@@ -116,6 +118,7 @@ SQL do Supabase: os arquivos de `supabase/` são a versão sem segredo; os pront
 Só as últimas, pra saber o estado atual. O detalhe de cada dia fica em `Downloads/NEUROJITSU-RELATORIOS`.
 
 - **25/09/2026**
+  - Registrar falando refeito: grava o áudio e transcreve no Whisper (antes parava sozinho no Android e repetia a frase), conferência por tipo de treino, cadastro novo de professor, academia e parceiro, e o escudo da regra na finalização. Virou Premium (`voz` em `RECURSOS`).
   - Nomes das técnicas com o nome do tatame (Single leg, Arco e flecha, botinha, tesoura voadora, raspagem de pêndulo, katagatame...): 66 nomes antigos trocados, duplicadas viram uma só, o nome velho ainda acha a técnica e a migração troca o nome nos treinos, rolas e metas do aparelho. A lista inteira pra revisar: `NEUROJITSU-RELATORIOS/2026-09-25-tecnicas-para-revisar.csv`.
   - Regra da IBJJF por faixa, idade e Gi/No-Gi (`regras.js`, `teste:regras`): o escudo no seletor e o popup no treino. Idade: passo "Sua idade" no primeiro acesso (9 etapas), pergunta única pra quem já usava (`PerguntaIdade`), campo em Ajustes → Perfil, divisão Infantil no campeonato, Privacidade atualizada (aceite de novo, versão 2026-09-25.1).
 - **24/09/2026**
