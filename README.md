@@ -73,12 +73,12 @@ O que é grátis e o que é pago mora em `RECURSOS` (`src/lib/plano.js`) e só v
 
 ## Compartilhar (figurinha do story)
 
-- A imagem é desenhada no aparelho (`src/lib/figurinha.js`), com a folha em `src/components/Figurinha.jsx`. O NeuroJitsu e o @neuro_jitsu saem sempre: cada post é propaganda.
-- A pessoa escolhe **fundo** (sem, pra colar por cima da foto, ou com), **frase de impacto** (com ou sem, e "outra frase") e **cor**. As frases ficam em `FRASES`, uma lista por tipo (graduacao, recorde, ofensiva, semana, meta, marco), e quem abre a folha diz o tipo.
+- A imagem é desenhada no aparelho (`src/lib/figurinha.js`), com a folha em `src/components/Figurinha.jsx`. A logo e o nome NeuroJitsu saem sempre, em cima: cada post é propaganda. O @neuro_jitsu não vai na imagem (quem posta marca no Instagram); a folha só lembra de marcar.
+- A pessoa escolhe **fundo** (sem, pra colar por cima da foto, ou com), **rótulo** ("minha semana", "marco atingido": vem ligado, dá pra tirar), **frase de impacto** (com ou sem, e "outra frase"; frase de autor só com fonte confirmada, e o nome sai embaixo) e **cor**. As frases ficam em `FRASES`, uma lista por tipo (graduacao, recorde, ofensiva, semana, meta, marco), e quem abre a folha diz o tipo.
 - Tudo é de graça, menos as cores extras (cor da faixa e dourado, recurso `temasFigurinha`): a prévia mostra a cor, e no lugar dos botões aparece o convite.
 - Onde abre: marcos e resumo (Conquistas), a comemoração de marco, a graduação (depois de registrar, "Postar no story", e em cada linha da linha do tempo, com a faixa desenhada), o card da semana (Conquistas), ofensiva e metas.
 - **Recorde do dia** é marco (`tipo: 'recorde'`, `src/lib/milestones.js`): um por recorde batido, a partir de 5 rolas ou 3h de tatame num dia. Aparece sozinho na comemoração depois de salvar o treino. Teste: `npm run teste:marcos`.
-- **Desenhos de jiu-jitsu** (`public/figurinhas/`, 8 PNGs sem fundo de ~30 KB, gerados com IA pelos prompts de `NEUROJITSU-COLAR/18-PROMPTS-DESENHOS-FIGURINHA.md`): vão no canto de cima à direita. Cada tipo tem um padrão (`DESENHO_PADRAO`) e a pessoa troca ou tira na fileira da folha. O desenho encolhe quando o texto precisa de espaço: o número nunca fica menor que 120 px por causa dele. Desenho novo entra em `DESENHOS` com o arquivo em 560×560.
+- **Desenhos de jiu-jitsu** (`public/figurinhas/`, 8 PNGs sem fundo de ~30 KB, gerados com IA pelos prompts de `NEUROJITSU-COLAR/18-PROMPTS-DESENHOS-FIGURINHA.md`): vão no canto de cima à direita. Cada tipo tem um padrão (`DESENHO_PADRAO`) e a pessoa troca ou tira na fileira da folha. A arrumação prefere o desenho grande (até 560 px); com muito texto, primeiro a descrição e a frase diminuem um pouco, e só no fim o desenho encolhe. O número nunca fica abaixo de 84 px. Desenho novo entra em `DESENHOS` com o arquivo em 560×560.
 
 ---
 

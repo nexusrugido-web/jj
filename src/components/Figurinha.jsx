@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Download, Share2, Copy, Link2, RefreshCw } from 'lucide-react';
+import { Download, Share2, Copy, Link2, RefreshCw, Check, Plus } from 'lucide-react';
 import { Sheet, Btn, Seg, Diamante, useToast } from './UI';
 import { useApp } from '../contexto';
 import { FAIXAS } from '../db/seed';
 import { podeVer } from '../lib/plano';
 import {
-  desenharFigurinha, paraPNG, INSTAGRAM, FRASES, TEMAS, DESENHOS, DESENHO_PADRAO, urlDoDesenho,
+  desenharFigurinha, paraPNG, INSTAGRAM, FRASES, TEMAS, DESENHOS, DESENHO_PADRAO, urlDoDesenho, lerFrase,
 } from '../lib/figurinha';
 import { compartilhar } from '../lib/card';
 
@@ -30,7 +30,8 @@ export default function Figurinha({ aberto, onClose, dados, tipo = 'marco', link
   const { acesso, settings, irPara } = useApp();
   const toast = useToast();
   const [fundo, setFundo] = useState('sem');
-  const [comFrase, setComFrase] = useState('com');
+  const [comFrase, setComFrase] = useState(true);
+  const [comSelo, setComSelo] = useState(true);
   const frases = FRASES[tipo] || FRASES.marco;
   /* começa numa frase qualquer: senão todo mundo posta a mesma */
   const [qualFrase, setQualFrase] = useState(() => Math.floor(Math.random() * frases.length));
@@ -43,13 +44,16 @@ export default function Figurinha({ aberto, onClose, dados, tipo = 'marco', link
   const faixa = settings.faixa || 'branca';
   /* a preta pega o vermelho da ponteira: cinza escuro some no fundo escuro */
   const corFaixa = faixa === 'preta' ? '#c1272d' : FAIXAS.find((f) => f.id === faixa)?.cor;
-  const frase = comFrase === 'com' ? frases[qualFrase % frases.length] : '';
+  const frase = comFrase ? lerFrase(frases[qualFrase % frases.length]) : { t: '', autor: '' };
   const travado = !!TEMAS.find((t) => t.id === tema)?.premium && !podeVer(acesso, 'temasFigurinha');
 
   useEffect(() => {
     if (!aberto) return undefined;
     let vivo = true;
-    desenharFigurinha({ ...JSON.parse(chave), frase, tema, corFaixa, desenho, fundo: fundo === 'com' })
+    desenharFigurinha({
+      ...JSON.parse(chave), selo: comSelo ? dados?.selo : '', frase: frase.t, autor: frase.autor,
+      tema, corFaixa, desenho, fundo: fundo === 'com',
+    })
       .then(paraPNG)
       .then((b) => {
         if (!vivo || !b) return;
@@ -58,7 +62,7 @@ export default function Figurinha({ aberto, onClose, dados, tipo = 'marco', link
       })
       .catch((e) => console.error('[figurinha]', e));
     return () => { vivo = false; };
-  }, [aberto, fundo, chave, frase, tema, corFaixa, desenho]);
+  }, [aberto, fundo, chave, comSelo, frase.t, frase.autor, tema, corFaixa, desenho]);
 
   const arquivo = () => new File([blob.current], 'neurojitsu.png', { type: 'image/png' });
   const podeCompartilhar = (() => {
@@ -100,14 +104,17 @@ export default function Figurinha({ aberto, onClose, dados, tipo = 'marco', link
 
       <div className="figurinha-opcoes">
         <Seg value={fundo} onChange={setFundo} options={[{ id: 'sem', nome: 'Sem fundo' }, { id: 'com', nome: 'Com fundo' }]} />
-        <div className="row" style={{ gap: 8 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <Seg value={comFrase} onChange={setComFrase} options={[{ id: 'com', nome: 'Com frase' }, { id: 'sem', nome: 'Sem frase' }]} />
-          </div>
-          {comFrase === 'com' && (
-            <button type="button" className="btn contorno icon sm" aria-label="Outra frase" title="Outra frase"
-              onClick={() => setQualFrase((i) => i + 1)}>
-              <RefreshCw size={16} />
+        {/* o que sai além do resultado: o rótulo ("minha semana") e a frase */}
+        <div className="figurinha-liga">
+          <button type="button" className={comSelo ? 'on' : ''} aria-pressed={comSelo} onClick={() => setComSelo(!comSelo)}>
+            {comSelo ? <Check size={14} /> : <Plus size={14} />} Rótulo
+          </button>
+          <button type="button" className={comFrase ? 'on' : ''} aria-pressed={comFrase} onClick={() => setComFrase(!comFrase)}>
+            {comFrase ? <Check size={14} /> : <Plus size={14} />} Frase
+          </button>
+          {comFrase && (
+            <button type="button" aria-label="Outra frase" onClick={() => setQualFrase((i) => i + 1)}>
+              <RefreshCw size={14} /> Outra frase
             </button>
           )}
         </div>

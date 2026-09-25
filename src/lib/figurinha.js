@@ -12,45 +12,59 @@ export const INSTAGRAM = '@neuro_jitsu';
 
 /* A frase de impacto, por tipo de conquista. A pessoa liga ou
    desliga, e troca por outra com um toque. Na primeira pessoa:
-   quem posta é o aluno, não o app. */
+   quem posta é o aluno, não o app. Frase de gente conhecida leva o
+   nome, e só entra a que tem fonte: "Não é quem é bom, é quem fica"
+   é do Chris Haueter no documentário Roll. Ditado que cada site dá
+   pra um autor diferente entra sem nome. */
 export const FRASES = {
   graduacao: [
-    'Faixa preta é só uma faixa branca que não desistiu.',
-    'Grau não se compra. Se paga em treino.',
-    'O professor amarrou, mas quem conquistou foi o tatame.',
-    'Cada grau veio de um rola em que eu quis bater e não bati.',
-    'Mais um grau, e a mesma vontade de voltar amanhã.',
+    'Faixa preta é uma faixa branca que nunca desistiu.',
+    'Grau não se compra no balcão. Se paga no tatame, um rola de cada vez.',
+    { t: 'Não é quem é bom, é quem fica.', autor: 'Chris Haueter' },
+    'Cada listra dessa custou suor, tapinha e segunda-feira de manhã.',
+    'O professor amarrou a faixa. Quem apertou o nó foram os treinos que ninguém viu.',
+    'Subi de faixa, não de ego. Amanhã eu volto como aluno.',
   ],
   recorde: [
-    'Hoje o gás acabou antes da vontade.',
-    'O corpo pediu pra parar. Eu pedi mais um rola.',
-    'Recorde batido. Amanhã eu ando que nem pinguim.',
-    'Dia bom de tatame não se explica, se registra.',
+    'O gás acabou antes da vontade.',
+    'O corpo pediu arrego. A cabeça pediu mais um.',
+    'Hoje eu fui o último a sair do tatame.',
+    'Recorde batido. Amanhã eu ando igual pinguim, mas valeu cada round.',
+    '"Só mais um rola", eu disse. Várias vezes.',
   ],
   ofensiva: [
-    'Disciplina é aparecer no dia em que a vontade não aparece.',
-    'Não é motivação. É hábito de kimono.',
-    'Um dia de cada vez, sem dar os três tapinhas.',
-    'A sequência não para porque eu não paro.',
+    { t: 'Não é quem é bom, é quem fica.', autor: 'Chris Haueter' },
+    'Motivação some. Disciplina bate o ponto.',
+    'Constância finaliza mais que talento.',
+    'Treino não depende do humor. Depende de aparecer.',
+    'Dia após dia, sem dar os três tapinhas.',
+    'Minha sequência é a minha guarda fechada: ninguém passa.',
   ],
   semana: [
     'Semana fechada. O tatame sabe quem apareceu.',
     'Não foi perfeita. Foi feita.',
-    'Kimono lavado, semana cumprida.',
-    'Treino a treino, a semana foi minha.',
+    'Kimono lavado, semana cumprida, ego no lugar.',
+    'Enquanto uns planejam, eu fui treinar.',
+    'A semana cansou. Eu não parei.',
   ],
   meta: [
-    'Meta dita, meta treinada.',
+    'Meta falada em voz alta já é meio caminho da finalização.',
     'Plano no papel, suor no tatame.',
-    'Prometi e estou cumprindo, um treino de cada vez.',
+    'Não quero ser o melhor da academia. Quero ser melhor que eu no mês passado.',
+    'Um treino de cada vez, até a meta bater.',
   ],
   marco: [
+    { t: 'Assuma que o oponente é maior, mais forte e mais rápido. Aí você aprende a vencer com técnica.', autor: 'Hélio Gracie' },
     'Hora no tatame é a única moeda que o jiu-jitsu aceita.',
     'Ninguém vê o treino. Todo mundo vê o resultado.',
-    'Cada rola desses fui eu escolhendo voltar.',
-    'Devagar e sempre. No jiu-jitsu, devagar e por baixo, raspando.',
+    'No jiu-jitsu não existe perder: ou você ganha, ou você aprende.',
+    'Técnica vence força. Constância vence as duas.',
+    'Devagar se vai longe. No jiu-jitsu, devagar se chega nas costas.',
   ],
 };
+
+/* frase simples ou com autor: sempre { t, autor } */
+export const lerFrase = (f) => (typeof f === 'string' ? { t: f, autor: '' } : f);
 
 /* Os desenhos de jiu-jitsu (public/figurinhas), um padrão por tipo
    de conquista. A pessoa troca ou tira na folha. */
@@ -163,18 +177,19 @@ function desenharFaixa(ctx, x, y, largura, { cor: corFaixa, graus = 0, preta = f
 }
 
 /**
- * selo    a linha pequena de cima ("marco atingido", "minha semana")
+ * selo    a linha pequena de cima ("marco atingido", "minha semana"), ou vazio
  * grande  o que aparece enorme ("100 horas de tatame", "12 dias")
  * sub     uma ou duas linhas embaixo
  * pct     0 a 100, desenha a barra (meta em andamento)
  * frase   a frase de impacto, ou vazio pra sair sem
+ * autor   quem disse a frase, quando é de alguém
  * faixa   { cor, graus, preta }: desenha a faixa (graduação)
  * tema    'app', 'faixa' ou 'ouro': a cor de destaque
  * corFaixa a cor da faixa da pessoa, pro tema 'faixa'
  * desenho id de DESENHOS, ou vazio: vai no canto de cima, à direita
  * fundo   false = PNG transparente, true = cartão escuro
  */
-export async function desenharFigurinha({ selo, grande, sub = '', pct = null, frase = '', faixa = null, tema = 'app', corFaixa = null, desenho = '', fundo = false }) {
+export async function desenharFigurinha({ selo, grande, sub = '', pct = null, frase = '', autor = '', faixa = null, tema = 'app', corFaixa = null, desenho = '', fundo = false }) {
   /* fonte que só o canvas usa o navegador não baixa sozinho */
   try {
     await Promise.all([
@@ -217,36 +232,65 @@ export async function desenharFigurinha({ selo, grande, sub = '', pct = null, fr
     sombra();
   }
 
-  /* o meio fica entre a marca (em cima) e o @ (embaixo): o texto
-     grande encolhe até tudo caber nesse espaço, sem encostar no @ */
-  const FUNDO = LADO - 190;
-  ctx.font = `600 50px ${CORPO}`;
-  const lSub = sub ? linhas(ctx, sub, LARGURA, 2) : [];
-  ctx.font = `italic 600 46px ${CORPO}`;
-  const lFrase = frase ? linhas(ctx, frase, LARGURA - 34, 3) : [];
-  const alturaDe = (t, n) => 66 + n * t * 1.02
-    + (faixa ? 40 + ALTURA_FAIXA : 0)
-    + (lSub.length ? 30 + lSub.length * 62 : 0)
-    + (pct != null ? 64 : 0)
-    + (lFrase.length ? 44 + lFrase.length * 58 : 0);
+  /* o meio fica entre a marca (em cima) e a margem de baixo: o texto
+     grande encolhe até tudo caber nesse espaço. O @ saiu: quem posta
+     marca o perfil no próprio Instagram. */
+  const FUNDO = LADO - 110;
 
-  /* com desenho, ele ocupa o canto de cima e o texto começa mais
-     embaixo. Quanto de cima ele pega depende do texto: o número
-     precisa caber em 120 px no espaço que sobra, senão o desenho
-     encolhe (até o tamanho da linha da marca). */
+  /* A arrumação: o desenho (quando tem) no canto de cima, o texto
+     embaixo dele. Procura, nesta ordem de preferência:
+       1. o desenho grande (até 560 px) com o número em 120 px ou mais;
+       2. o desenho de pelo menos 400 px, mesmo com o número menor;
+       3. a descrição e a frase um pouco menores (escala), pra o
+          desenho não encolher;
+       4. só no fim, o desenho menor.
+     O número nunca desce de 84 px. */
   const img = desenho ? await carregarImagem(urlDoDesenho(desenho)) : null;
-  ctx.font = `800 120px ${DISPLAY}`;
-  const precisa = alturaDe(120, linhas(ctx, grande, LARGURA, 3).length);
-  const TOPO = img ? Math.max(250, Math.min(470, FUNDO - precisa)) : 250;
-  const tamDesenho = Math.min(420, TOPO - 50);
-  let tGrande = 190;
-  let lGrande = [];
-  for (; tGrande >= 72; tGrande -= 6) {
-    ctx.font = `800 ${tGrande}px ${DISPLAY}`;
-    lGrande = linhas(ctx, grande, LARGURA, 3);
-    const cabe = lGrande.every((x) => ctx.measureText(x).width <= LARGURA) && !lGrande.at(-1).endsWith('…');
-    if (cabe && alturaDe(tGrande, lGrande.length) <= FUNDO - TOPO) break;
+  const medir = (e) => {
+    ctx.font = `600 ${Math.round(50 * e)}px ${CORPO}`;
+    const lSub = sub ? linhas(ctx, sub, LARGURA, 2) : [];
+    ctx.font = `italic 600 ${Math.round(46 * e)}px ${CORPO}`;
+    const lFrase = frase ? linhas(ctx, frase, LARGURA - 34, 3) : [];
+    const alt = (tg, n) => (selo ? 66 : 0) + n * tg * 1.02
+      + (faixa ? 40 + ALTURA_FAIXA : 0)
+      + (lSub.length ? 30 + lSub.length * 62 * e : 0)
+      + (pct != null ? 64 : 0)
+      + (lFrase.length ? 44 + lFrase.length * 58 * e + (autor ? 48 * e : 0) : 0);
+    return { e, lSub, lFrase, alt };
+  };
+  /* o maior número que cabe entre TOPO e FUNDO, ou null */
+  const numero = (m, topo, piso) => {
+    for (let tg = 190; tg >= piso; tg -= 6) {
+      ctx.font = `800 ${tg}px ${DISPLAY}`;
+      const l = linhas(ctx, grande, LARGURA, 3);
+      const cabe = l.every((x) => ctx.measureText(x).width <= LARGURA) && !l.at(-1).endsWith('…');
+      if (cabe && m.alt(tg, l.length) <= FUNDO - topo) return { tg, l };
+    }
+    return null;
+  };
+  const tentativas = img
+    ? [[560, 1, 120], [480, 1, 108], [400, 1, 96], [400, 0.88, 96], [400, 0.78, 90], [320, 0.78, 84], [240, 0.78, 84], [180, 0.78, 84]]
+    : [[0, 1, 84], [0, 0.88, 84], [0, 0.78, 84]];
+  let arrumo = null;
+  for (const [tam, e, piso] of tentativas) {
+    const m = medir(e);
+    const topo = img ? Math.max(250, tam + 40) : 250;
+    const n = numero(m, topo, piso);
+    if (n) { arrumo = { ...m, ...n, topo, tam }; break; }
   }
+  /* nada coube (texto enorme): o menor de tudo, e o texto que sobrar fica cortado */
+  if (!arrumo) {
+    const m = medir(0.78);
+    ctx.font = `800 84px ${DISPLAY}`;
+    arrumo = { ...m, tg: 84, l: linhas(ctx, grande, LARGURA, 3), topo: 250, tam: 180 };
+  }
+  const { lSub, lFrase, e: escala } = arrumo;
+  const alturaDe = arrumo.alt;
+  const TOPO = arrumo.topo;
+  /* o desenho cresce até onde o texto deixa, até 560 */
+  const tamDesenho = img ? Math.min(560, TOPO - 40) : 0;
+  const tGrande = arrumo.tg;
+  const lGrande = arrumo.l;
   let y = TOPO + Math.max(0, (FUNDO - TOPO - alturaDe(tGrande, lGrande.length)) / 2);
 
   /* a marca, em cima */
@@ -262,18 +306,20 @@ export async function desenharFigurinha({ selo, grande, sub = '', pct = null, fr
   if (img) {
     ctx.save();
     ctx.shadowColor = 'transparent';
-    ctx.drawImage(img, LADO - MARGEM - tamDesenho + 36, 44, tamDesenho, tamDesenho);
+    ctx.drawImage(img, LADO - tamDesenho - 36, 28, tamDesenho, tamDesenho);
     ctx.restore();
   }
 
   /* o selo, em texto: sem pílula, pra não ter cara de print de app */
-  ctx.font = `700 32px ${MONO}`;
-  if ('letterSpacing' in ctx) ctx.letterSpacing = '5px';
-  ctx.fillStyle = acento;
-  ctx.fillText(String(selo || '').toUpperCase(), MARGEM, y + 22);
-  if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  if (selo) {
+    ctx.font = `700 32px ${MONO}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '5px';
+    ctx.fillStyle = acento;
+    ctx.fillText(String(selo).toUpperCase(), MARGEM, y + 22);
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+    y += 66;
+  }
   ctx.textBaseline = 'alphabetic';
-  y += 66;
 
   /* o número / título grande */
   ctx.fillStyle = '#ffffff';
@@ -295,8 +341,8 @@ export async function desenharFigurinha({ selo, grande, sub = '', pct = null, fr
   if (lSub.length) {
     y += 30;
     ctx.fillStyle = 'rgba(255,255,255,0.86)';
-    ctx.font = `600 50px ${CORPO}`;
-    for (const l of lSub) { y += 62; ctx.fillText(l, MARGEM, y - 12); }
+    ctx.font = `600 ${Math.round(50 * escala)}px ${CORPO}`;
+    for (const l of lSub) { y += 62 * escala; ctx.fillText(l, MARGEM, y - 12 * escala); }
   }
 
   /* a barra da meta */
@@ -315,16 +361,17 @@ export async function desenharFigurinha({ selo, grande, sub = '', pct = null, fr
   if (lFrase.length) {
     y += 44;
     ctx.fillStyle = acento;
-    ctx.fillRect(MARGEM, y + 6, 8, lFrase.length * 58 - 6);
+    ctx.fillRect(MARGEM, y + 6, 8, lFrase.length * 58 * escala - 6);
     ctx.fillStyle = '#ffffff';
-    ctx.font = `italic 600 46px ${CORPO}`;
-    for (const l of lFrase) { y += 58; ctx.fillText(l, MARGEM + 34, y - 10); }
+    ctx.font = `italic 600 ${Math.round(46 * escala)}px ${CORPO}`;
+    for (const l of lFrase) { y += 58 * escala; ctx.fillText(l, MARGEM + 34, y - 10 * escala); }
+    if (autor) {
+      y += 48 * escala;
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.font = `600 ${Math.round(34 * escala)}px ${CORPO}`;
+      ctx.fillText(autor, MARGEM + 34, y - 8 * escala);
+    }
   }
-
-  /* o @, embaixo */
-  ctx.fillStyle = '#ffffff';
-  ctx.font = `700 40px ${MONO}`;
-  ctx.fillText(INSTAGRAM, MARGEM, LADO - 104);
 
   return canvas;
 }
