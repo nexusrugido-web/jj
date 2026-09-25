@@ -2,11 +2,11 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Info, Droplet, Beef, Salad, Calculator, Clock, Zap, Flame, Minus, Plus, ChevronDown,
-  ChevronLeft, ChevronRight, Check, X, CircleHelp, Pencil, Save, Pill,
+  ChevronLeft, ChevronRight, Check, X, CircleHelp, Pencil, Save, Pill, Search,
 } from 'lucide-react';
 import { useApp } from '../contexto';
 import { db } from '../db/db';
-import { Card, Btn, Sheet, Field, Input, NumeroInput, Stepper, Chip, Busca, useToast } from '../components/UI';
+import { Card, Btn, Sheet, Field, Input, NumeroInput, Stepper, Busca, useToast } from '../components/UI';
 import Guia from '../components/Guia';
 import { Vitrine } from '../components/Plano';
 import { podeVer } from '../lib/plano';
@@ -101,27 +101,50 @@ export default function Nutricao() {
 }
 
 /* ============================================================
+   O "?" DE CADA PARTE
+
+   Um toque abre a explicação curta embaixo do título, outro fecha.
+   Fica na tela, sem popup: a pessoa lê e já usa.
+   ============================================================ */
+function Titulo({ texto, ajuda, acao, grande = false }) {
+  const [aberto, setAberto] = useState(false);
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <div className="row" style={{ gap: 6, alignItems: 'center' }}>
+        {grande ? <h2 className="h-sec">{texto}</h2> : <h3 className="tiny" style={{ fontWeight: 700 }}>{texto}</h3>}
+        {ajuda && (
+          <button type="button" className={`nutri-ajuda-btn${aberto ? ' on' : ''}`} aria-label={`O que é ${texto}`} aria-expanded={aberto} onClick={() => setAberto(!aberto)}>
+            <CircleHelp size={15} />
+          </button>
+        )}
+        <span className="spacer" />
+        {acao}
+      </div>
+      {aberto && <p className="nutri-ajuda micro">{ajuda}</p>}
+    </div>
+  );
+}
+
+/* ============================================================
    SEU DIA DE COMIDA
 
-   Toca no que comeu e a barra enche até a meta de proteína. Nada de
-   bronca: é a ferramenta pra saber se está batendo. Quem não quer
-   anotar comida marca "bati" ou "não bati" direto. Fica guardado na
-   conta (tabela meals, um registro por dia), e o dia aparece no
-   calendário daqui e no de presença do tatame.
+   Na tela fica só o que a pessoa comeu no dia, com a barra enchendo
+   até a meta. Pra anotar: uma rotina inteira com um toque, ou o
+   "Adicionar comida", que abre a busca num popup. Quem não quer
+   anotar marca "Bati" ou "Não bati" direto. Nada de bronca.
 
-   As refeições salvas (dietPlans) são o atalho: "café da manhã" com
-   três ovos e um copo de leite entra inteiro com um toque.
+   Um registro por dia na tabela meals. As rotinas (dietPlans) são
+   os padrões da pessoa: "Dia de treino", "Dia de descanso", "Café
+   da manhã". Quantas quiser.
    ============================================================ */
 function SeuDia({ dia, setDia, meta, metaCarbo }) {
   const toast = useToast();
   const meus = useLiveQuery(() => db.foods.toArray(), [], []) || [];
-  const refeicoes = useLiveQuery(() => db.dietPlans.toArray(), [], []) || [];
+  const rotinas = (useLiveQuery(() => db.dietPlans.toArray(), [], []) || []).filter((r) => !r.arquivada);
   const reg = useLiveQuery(() => db.meals.where('data').equals(dia).first(), [dia]);
   const alimentos = useMemo(() => todosOsAlimentos(meus), [meus]);
-  const [busca, setBusca] = useState('');
-  const [verTodos, setVerTodos] = useState(false);
-  const [editar, setEditar] = useState(null);
-  const [salvarRefeicao, setSalvarRefeicao] = useState(false);
+  const [adicionar, setAdicionar] = useState(false);
+  const [rotina, setRotina] = useState(null);
 
   const comi = reg?.comi || {};
   const soma = somarDia(comi, alimentos);
@@ -143,27 +166,15 @@ function SeuDia({ dia, setDia, meta, metaCarbo }) {
       else await db.meals.add(dados);
     }).catch((e) => console.error('[nutrição]', e));
   };
-  const mudar = (chave, passo) => gravar((r) => {
-    r.comi[chave] = Math.max(0, (Number(r.comi[chave]) || 0) + passo);
-    if (!r.comi[chave]) delete r.comi[chave];
-    return r;
-  });
+  const mudar = (chave, passo) => gravar((r) => ({ ...r, comi: mudarItens(r.comi, chave, passo) }));
   const marcar = (m) => gravar((r) => ({ ...r, marcado: r.marcado === m ? null : m }));
-  const usarRefeicao = (ref) => {
+  const usarRotina = (ro) => {
     gravar((r) => {
-      for (const [k, n] of Object.entries(ref.itens || {})) r.comi[k] = (Number(r.comi[k]) || 0) + n;
+      for (const [k, n] of Object.entries(ro.itens || {})) r.comi[k] = (Number(r.comi[k]) || 0) + n;
       return r;
     });
-    toast(`${ref.nome} entrou no dia`);
+    toast(`${ro.nome} entrou no dia. Ajuste o que mudou.`);
   };
-
-  const termo = busca.trim().toLowerCase();
-  /* a lista curta: os da pessoa, o que já está marcado e os de casa
-     mais comuns. O resto abre no "ver todos" ou na busca. */
-  const COMUNS = ['frango', 'ovo', 'carne', 'arroz', 'feijao', 'leite'];
-  const lista = termo ? alimentos.filter((a) => a.nome.toLowerCase().includes(termo))
-    : verTodos ? alimentos
-      : alimentos.filter((a) => !a.base || comi[chaveDoAlimento(a)] > 0 || COMUNS.includes(a.id));
 
   return (
     <Card style={{ marginBottom: 14 }}>
@@ -180,150 +191,217 @@ function SeuDia({ dia, setDia, meta, metaCarbo }) {
         <div className="row" style={{ alignItems: 'baseline', gap: 8 }}>
           <span className="nutri-meta-num num" style={{ color: bateu ? 'var(--jade)' : 'var(--chalk)' }}>{soma.proteina} g</span>
           <span className="tiny muted">de {meta} g de proteína</span>
-          {bateu && <Chip tone="jade" style={{ marginLeft: 'auto' }}><Check size={12} /> bateu</Chip>}
         </div>
         <div className="bar grossa"><i style={{ width: `${pct}%`, background: bateu ? 'var(--jade)' : 'var(--accent)' }} /></div>
-        <div className="row micro muted" style={{ gap: 8 }}>
-          <span>Carboidrato: <b className="num" style={{ color: 'var(--chalk)' }}>{soma.carbo} g</b> de {metaCarbo} g</span>
-        </div>
+        <div className="micro muted">Carboidrato: <b className="num" style={{ color: 'var(--chalk)' }}>{soma.carbo} g</b> de {metaCarbo} g</div>
         <div className="bar"><i style={{ width: `${pctC}%`, background: 'var(--ice)' }} /></div>
         {ehHoje && soma.proteina > 0 && <p className="tiny" style={{ lineHeight: 1.55 }}>{paraFechar(meta - soma.proteina)}</p>}
       </div>
 
-      <p className="micro muted" style={{ marginBottom: 8 }}>Sem tempo de anotar? Marque direto:</p>
-      <div className="row" style={{ gap: 8, marginBottom: 16 }}>
-        <Chip on={reg?.marcado === 'bati'} onClick={() => marcar('bati')} tone={reg?.marcado === 'bati' ? 'jade' : ''}><Check size={12} /> Bati</Chip>
-        <Chip on={reg?.marcado === 'nao'} onClick={() => marcar('nao')}>Não bati</Chip>
+      <Titulo
+        texto="Bateu a proteína?"
+        ajuda="Pra quem não quer anotar comida: marque direto se bateu a meta do dia. Se você anotar o que comeu, o app descobre sozinho quando passa da meta, e o que você marcar aqui vale mais que a conta. O dia marcado aparece no seu mês de proteína e no calendário do tatame."
+      />
+      <div className="nutri-bati">
+        <button type="button" className={`sim${reg?.marcado === 'bati' || (bateu && !reg?.marcado) ? ' on' : ''}`} onClick={() => marcar('bati')}>
+          <Check size={18} /> Bati
+        </button>
+        <button type="button" className={`nao${reg?.marcado === 'nao' ? ' on' : ''}`} onClick={() => marcar('nao')}>
+          <X size={18} /> Não bati
+        </button>
       </div>
 
-      <div className="card-head" style={{ marginBottom: 8 }}>
-        <h3 className="tiny" style={{ fontWeight: 700 }}>Minhas refeições</h3>
-        {marcados.length > 0 && (
-          <button className="btn ghost xs" onClick={() => setSalvarRefeicao(true)}><Save size={12} /> Salvar o que marquei</button>
-        )}
-      </div>
-      {refeicoes.filter((r) => !r.arquivada).length === 0 ? (
-        <p className="micro muted" style={{ marginBottom: 14, lineHeight: 1.6 }}>
-          Marque o que você come sempre junto (o café da manhã, o prato do almoço) e toque em "Salvar o que marquei".
-          Depois ele entra inteiro com um toque.
+      <Titulo
+        texto="Minhas rotinas"
+        ajuda="Rotina é o que você come de costume, salvo uma vez. Crie quantas quiser: dia de treino, dia de descanso, só o café da manhã. Um toque na rotina coloca tudo dela no dia, e depois é só ajustar o que mudou."
+        acao={<button className="btn ghost xs" onClick={() => setRotina({ nome: '', itens: {} })}><Plus size={12} /> Nova rotina</button>}
+      />
+      {rotinas.length === 0 ? (
+        <p className="micro muted" style={{ marginBottom: 16, lineHeight: 1.6 }}>
+          Monte o seu dia de sempre uma vez só, e daí em diante ele entra com um toque, sem procurar comida por comida.
         </p>
       ) : (
-        <div className="row wrap" style={{ gap: 6, marginBottom: 14 }}>
-          {refeicoes.filter((r) => !r.arquivada).map((r) => (
-            <span key={r.id} className="nutri-refeicao">
-              <button type="button" onClick={() => usarRefeicao(r)}><Plus size={13} /> {r.nome}
-                <span className="micro muted num"> {somarDia(r.itens, alimentos).proteina} g</span></button>
-              <button type="button" aria-label={`Apagar ${r.nome}`} onClick={() => db.dietPlans.update(r.id, { arquivada: 1 })}><X size={12} /></button>
-            </span>
-          ))}
+        <div className="nutri-rotinas">
+          {rotinas.map((r) => {
+            const s = somarDia(r.itens, alimentos);
+            return (
+              <div key={r.id} className="nutri-rotina">
+                <button type="button" className="nutri-rotina-usar" onClick={() => usarRotina(r)}>
+                  <span className="nutri-rotina-mais"><Plus size={15} /></span>
+                  <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                    <span className="tiny" style={{ fontWeight: 700, display: 'block' }}>{r.nome}</span>
+                    <span className="micro muted">{s.proteina} g de proteína · {s.carbo} g de carbo</span>
+                  </span>
+                </button>
+                <button type="button" className="nutri-rotina-editar" aria-label={`Editar ${r.nome}`} onClick={() => setRotina(r)}><Pencil size={14} /></button>
+              </div>
+            );
+          })}
         </div>
       )}
 
-      <div className="card-head" style={{ marginBottom: 8 }}>
-        <h3 className="tiny" style={{ fontWeight: 700 }}>O que você comeu</h3>
-        <button className="btn ghost xs" onClick={() => setEditar({ nome: '', porcao: '', p: '', c: '' })}><Plus size={12} /> Criar alimento</button>
-      </div>
-      <div style={{ display: 'flex', marginBottom: 10 }}><Busca value={busca} onChange={setBusca} placeholder="Buscar alimento" /></div>
-      <div className="nutri-comidas">
-        {lista.map((a) => {
-          const k = chaveDoAlimento(a);
-          const n = Number(comi[k]) || 0;
-          return (
-            <div key={k} className={`nutri-comida${n ? ' on' : ''}`}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="tiny" style={{ fontWeight: 700 }}>
-                  {a.nome}
-                  {!a.base && (
-                    <button type="button" className="nutri-editar" aria-label={`Editar ${a.nome}`} onClick={() => setEditar(a)}><Pencil size={11} /></button>
-                  )}
-                </div>
-                <div className="micro muted">{a.porcao ? `${a.porcao} · ` : ''}{a.p} g prot{a.c ? ` · ${a.c} g carbo` : ''}</div>
-              </div>
-              {n > 0 && <button type="button" className="nutri-mais" onClick={() => mudar(k, -1)} aria-label={`Tirar ${a.nome}`}><Minus size={15} /></button>}
-              {n > 0 && <span className="num tiny" style={{ minWidth: 18, textAlign: 'center', fontWeight: 700 }}>{n}</span>}
-              <button type="button" className="nutri-mais" onClick={() => mudar(k, 1)} aria-label={`Mais ${a.nome}`}><Plus size={15} /></button>
-            </div>
-          );
-        })}
-      </div>
-      {!termo && lista.length < alimentos.length && (
-        <button className="btn ghost xs" style={{ marginTop: 8 }} onClick={() => setVerTodos(true)}>
-          Ver todos os alimentos ({alimentos.length}) <ChevronDown size={12} />
-        </button>
-      )}
-      {termo && lista.length === 0 && (
-        <p className="micro muted" style={{ marginTop: 8 }}>
-          Não achei "{busca}". <button className="btn ghost xs" onClick={() => setEditar({ nome: busca, porcao: '', p: '', c: '' })}>Criar "{busca}"</button>
-        </p>
-      )}
-      <p className="micro muted" style={{ marginTop: 10 }}>Os alimentos de casa seguem a tabela brasileira de alimentos, com valores aproximados.</p>
-
-      <CriarAlimento alimento={editar} onClose={() => setEditar(null)} />
-      <SalvarRefeicao
-        aberto={salvarRefeicao} onClose={() => setSalvarRefeicao(false)}
-        itens={comi} marcados={marcados}
+      <Titulo
+        texto={ehHoje ? 'O que comeu hoje' : 'O que comeu'}
+        ajuda="A lista do dia. O mais e o menos mudam a quantidade, e a barra lá em cima acompanha. Pra colocar comida que não está aqui, toque em Adicionar comida e procure pelo nome. Se não achar, dá pra criar o seu alimento com a proteína do rótulo."
+        acao={marcados.length > 0 && (
+          <button className="btn ghost xs" onClick={() => setRotina({ nome: '', itens: { ...comi } })}><Save size={12} /> Virar rotina</button>
+        )}
       />
+      {marcados.length === 0 ? (
+        <p className="micro muted" style={{ marginBottom: 10 }}>Nada anotado {ehHoje ? 'hoje' : 'neste dia'}.</p>
+      ) : (
+        <div className="col" style={{ gap: 6, marginBottom: 10 }}>
+          {marcados.map((a) => <LinhaDeComida key={chaveDoAlimento(a)} a={a} n={comi[chaveDoAlimento(a)]} onMudar={mudar} />)}
+        </div>
+      )}
+      <Btn variant="contorno" icon={Search} onClick={() => setAdicionar(true)} style={{ width: '100%' }}>Adicionar comida</Btn>
+
+      <Sheet
+        aberto={adicionar} onClose={() => setAdicionar(false)} titulo="Adicionar comida"
+        subtitulo={`${soma.proteina} de ${meta} g de proteína ${ehHoje ? 'hoje' : 'neste dia'}`}
+        footer={<Btn variant="primary" icon={Check} onClick={() => setAdicionar(false)} style={{ width: '100%' }}>Pronto</Btn>}
+      >
+        {adicionar && <ListaDeComida itens={comi} onMudar={mudar} alimentos={alimentos} />}
+      </Sheet>
+      <EditorDeRotina rotina={rotina} onClose={() => setRotina(null)} alimentos={alimentos} />
     </Card>
+  );
+}
+
+/* soma ou tira uma porção; zerou, sai da lista */
+function mudarItens(itens, chave, passo) {
+  const novo = { ...itens, [chave]: Math.max(0, (Number(itens[chave]) || 0) + passo) };
+  if (!novo[chave]) delete novo[chave];
+  return novo;
+}
+
+function LinhaDeComida({ a, n, onMudar, onEditar }) {
+  const k = chaveDoAlimento(a);
+  return (
+    <div className={`nutri-comida${n ? ' on' : ''}`}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="tiny" style={{ fontWeight: 700 }}>
+          {a.nome}
+          {onEditar && !a.base && (
+            <button type="button" className="nutri-editar" aria-label={`Editar ${a.nome}`} onClick={() => onEditar(a)}><Pencil size={11} /></button>
+          )}
+        </div>
+        <div className="micro muted">{a.porcao ? `${a.porcao} · ` : ''}{a.p} g prot{a.c ? ` · ${a.c} g carbo` : ''}</div>
+      </div>
+      {n > 0 && <button type="button" className="nutri-mais" onClick={() => onMudar(k, -1)} aria-label={`Tirar ${a.nome}`}><Minus size={15} /></button>}
+      {n > 0 && <span className="num tiny" style={{ minWidth: 18, textAlign: 'center', fontWeight: 700 }}>{n}</span>}
+      <button type="button" className="nutri-mais" onClick={() => onMudar(k, 1)} aria-label={`Mais ${a.nome}`}><Plus size={15} /></button>
+    </div>
+  );
+}
+
+/* ============================================================
+   A BUSCA DE COMIDA
+
+   Serve pro dia e pro editor de rotina: busca em cima, os
+   alimentos da pessoa primeiro, e o "criar alimento" no próprio
+   popup (sem abrir outro por cima).
+   ============================================================ */
+function ListaDeComida({ itens, onMudar, alimentos }) {
+  const [busca, setBusca] = useState('');
+  const [form, setForm] = useState(null);
+  const [primeiros] = useState(() => new Set(Object.keys(itens).filter((k) => itens[k] > 0)));
+  if (form) return <FormAlimento alimento={form} onPronto={() => setForm(null)} />;
+
+  const termo = busca.trim().toLowerCase();
+  /* o que já estava marcado quando abriu vem primeiro (na rotina, é o
+     que ela tem). A ordem fica parada: item não pula enquanto a pessoa toca */
+  const tem = (x) => (primeiros.has(chaveDoAlimento(x)) ? 0 : 1);
+  const lista = (termo ? alimentos.filter((a) => a.nome.toLowerCase().includes(termo)) : alimentos)
+    .map((x, i) => [x, i]).sort((p, q) => tem(p[0]) - tem(q[0]) || p[1] - q[1]).map(([x]) => x);
+  return (
+    <>
+      <div className="nutri-busca">
+        <Busca value={busca} onChange={setBusca} placeholder="Buscar: ovo, frango, arroz…" />
+      </div>
+      <button type="button" className="btn ghost xs" style={{ alignSelf: 'flex-start' }} onClick={() => setForm({ nome: busca, porcao: '', p: '', c: '' })}>
+        <Plus size={12} /> Criar alimento{busca.trim() ? ` "${busca.trim()}"` : ''}
+      </button>
+      <div className="col" style={{ gap: 6 }}>
+        {lista.map((a) => <LinhaDeComida key={chaveDoAlimento(a)} a={a} n={itens[chaveDoAlimento(a)] || 0} onMudar={onMudar} onEditar={setForm} />)}
+      </div>
+      {termo && lista.length === 0 && <p className="micro muted">Não achei "{busca}". Crie ele aí em cima, com a proteína do rótulo.</p>}
+      <p className="micro muted">Os alimentos de casa seguem a tabela brasileira de alimentos, com valores aproximados.</p>
+    </>
   );
 }
 
 /* O alimento da pessoa: nome, porção e quanto tem de proteína e
    carboidrato nessa porção. "1 ovo, 6 g" e o app faz o resto. */
-function CriarAlimento({ alimento, onClose }) {
+function FormAlimento({ alimento, onPronto }) {
   const toast = useToast();
-  const [f, setF] = useState(null);
-  useEffect(() => { setF(alimento ? { ...alimento } : null); }, [alimento]);
-  if (!f) return null;
+  const [f, setF] = useState(alimento);
   const novo = !f.id;
-  const pronto = f.nome.trim() && Number(f.p) >= 0 && f.p !== '';
+  const pronto = f.nome.trim() && f.p !== '' && Number(f.p) >= 0;
 
   async function salvar() {
-    const dados = { nome: f.nome.trim(), porcao: f.porcao.trim(), p: Number(f.p) || 0, c: Number(f.c) || 0, grupo: 'meu', arquivada: 0 };
+    const dados = { nome: f.nome.trim(), porcao: String(f.porcao || '').trim(), p: Number(f.p) || 0, c: Number(f.c) || 0, grupo: 'meu', arquivada: 0 };
     if (novo) await db.foods.add(dados); else await db.foods.update(f.id, dados);
     toast(novo ? 'Alimento criado' : 'Alimento salvo');
+    onPronto();
+  }
+
+  return (
+    <>
+      <div className="h-sec">{novo ? 'Criar alimento' : 'Editar alimento'}</div>
+      <p className="tiny muted" style={{ lineHeight: 1.6 }}>
+        Olhe o rótulo ou a tabela e coloque quanto tem numa porção. Exemplo: 1 ovo tem uns 6 g de proteína; 1 pote de iogurte proteico, uns 15 g.
+      </p>
+      <Field label="Nome"><Input value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} placeholder="Iogurte proteico" /></Field>
+      <Field label="Porção" hint="O que conta como 1 toque no mais"><Input value={f.porcao} onChange={(e) => setF({ ...f, porcao: e.target.value })} placeholder="1 pote (160 g)" /></Field>
+      <div className="grid g2" style={{ gap: 10 }}>
+        <Field label="Proteína (g)"><NumeroInput valor={f.p} vazio="" onChange={(v) => setF({ ...f, p: v })} /></Field>
+        <Field label="Carboidrato (g)"><NumeroInput valor={f.c} vazio="" onChange={(v) => setF({ ...f, c: v })} /></Field>
+      </div>
+      <div className="row" style={{ gap: 8 }}>
+        <Btn variant="ghost" onClick={onPronto}>Voltar</Btn>
+        {!novo && <Btn variant="ghost" onClick={async () => { await db.foods.update(f.id, { arquivada: 1 }); onPronto(); }}>Apagar</Btn>}
+        <span className="spacer" />
+        <Btn variant="primary" icon={Check} disabled={!pronto} onClick={salvar}>Salvar</Btn>
+      </div>
+    </>
+  );
+}
+
+/* ============================================================
+   O EDITOR DE ROTINA
+
+   Nome e o que tem nela, com a mesma busca do dia. Nasce vazia
+   ("Nova rotina") ou com o que já foi anotado no dia ("Virar
+   rotina").
+   ============================================================ */
+function EditorDeRotina({ rotina, onClose, alimentos }) {
+  const toast = useToast();
+  const [r, setR] = useState(null);
+  useEffect(() => { setR(rotina ? { ...rotina, itens: { ...(rotina.itens || {}) } } : null); }, [rotina]);
+  if (!r) return null;
+  const nova = !r.id;
+  const soma = somarDia(r.itens, alimentos);
+  const temItem = Object.keys(r.itens).length > 0;
+
+  async function salvar() {
+    const dados = { nome: r.nome.trim(), itens: r.itens, ativo: 1, arquivada: 0 };
+    if (nova) await db.dietPlans.add(dados); else await db.dietPlans.update(r.id, dados);
+    toast(nova ? 'Rotina criada' : 'Rotina salva');
     onClose();
   }
 
   return (
     <Sheet
-      aberto onClose={onClose} titulo={novo ? 'Criar alimento' : 'Editar alimento'}
+      aberto onClose={onClose} titulo={nova ? 'Nova rotina' : 'Editar rotina'}
+      subtitulo={`${soma.proteina} g de proteína · ${soma.carbo} g de carboidrato`}
       footer={<>
-        {!novo && <Btn variant="ghost" onClick={async () => { await db.foods.update(f.id, { arquivada: 1 }); onClose(); }}>Apagar</Btn>}
-        <Btn variant="primary" icon={Check} disabled={!pronto} onClick={salvar}>Salvar</Btn>
+        {!nova && <Btn variant="ghost" onClick={async () => { await db.dietPlans.update(r.id, { arquivada: 1 }); onClose(); }}>Apagar</Btn>}
+        <Btn variant="primary" icon={Save} disabled={!r.nome.trim() || !temItem} onClick={salvar}>Salvar rotina</Btn>
       </>}
     >
-      <p className="tiny muted" style={{ lineHeight: 1.6 }}>
-        Olhe o rótulo ou a tabela e coloque quanto tem numa porção. Exemplo: 1 ovo tem uns 6 g de proteína; 1 pote de iogurte proteico, uns 15 g.
-      </p>
-      <Field label="Nome"><Input value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} placeholder="Iogurte proteico" autoFocus /></Field>
-      <Field label="Porção" hint="O que conta como 1 toque"><Input value={f.porcao} onChange={(e) => setF({ ...f, porcao: e.target.value })} placeholder="1 pote (160 g)" /></Field>
-      <div className="grid g2" style={{ gap: 10 }}>
-        <Field label="Proteína (g)"><NumeroInput valor={f.p} vazio="" onChange={(v) => setF({ ...f, p: v })} /></Field>
-        <Field label="Carboidrato (g)"><NumeroInput valor={f.c} vazio="" onChange={(v) => setF({ ...f, c: v })} /></Field>
-      </div>
-    </Sheet>
-  );
-}
-
-function SalvarRefeicao({ aberto, onClose, itens, marcados }) {
-  const toast = useToast();
-  const [nome, setNome] = useState('');
-  useEffect(() => { if (aberto) setNome(''); }, [aberto]);
-  const soma = somarDia(itens, marcados);
-  return (
-    <Sheet
-      aberto={aberto} onClose={onClose} titulo="Salvar como refeição"
-      footer={<Btn variant="primary" icon={Save} disabled={!nome.trim()} onClick={async () => {
-        await db.dietPlans.add({ nome: nome.trim(), itens: { ...itens }, ativo: 1, arquivada: 0 });
-        toast('Refeição salva');
-        onClose();
-      }}>Salvar</Btn>}
-    >
-      <Field label="Nome da refeição"><Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Café da manhã" autoFocus /></Field>
-      <ul className="nutri-itens">
-        {marcados.map((a) => <li key={chaveDoAlimento(a)} className="tiny">{itens[chaveDoAlimento(a)]}× {a.nome}</li>)}
-      </ul>
-      <p className="micro muted">Dá {soma.proteina} g de proteína e {soma.carbo} g de carboidrato.</p>
+      <Field label="Nome da rotina"><Input value={r.nome} onChange={(e) => setR({ ...r, nome: e.target.value })} placeholder="Dia de treino" /></Field>
+      <ListaDeComida itens={r.itens} alimentos={alimentos} onMudar={(k, passo) => setR((x) => ({ ...x, itens: mudarItens(x.itens, k, passo) }))} />
     </Sheet>
   );
 }
@@ -362,7 +440,7 @@ function MesDaProteina({ meta, onDia, diaAberto }) {
       <div className="card-head">
         <div>
           <div className="eyebrow">Toque num dia pra abrir</div>
-          <h2 className="h-sec">Seu mês de proteína</h2>
+          <Titulo grande texto="Seu mês de proteína" ajuda="Cada quadrado é um dia. Verde: bateu a proteína. Só o contorno: anotou, mas ficou abaixo da meta. Vazio: não anotou nada, e tudo bem. Tocar num dia abre ele lá em cima, pra ver ou corrigir." />
         </div>
       </div>
       <div className="cal-nav">
@@ -479,6 +557,10 @@ function Suplementos({ contas }) {
         <ChevronDown size={18} className="muted" style={{ transform: sanfona ? 'rotate(180deg)' : undefined, transition: 'transform .2s' }} />
       </button>
       {sanfona && <div className="col" style={{ gap: 8, marginTop: 12 }}>
+        <p className="nutri-ajuda micro" style={{ margin: 0 }}>
+          Vale: tem estudo forte mostrando ganho pra quem luta. Depende: ajuda em alguns casos, mas não é obrigatório.
+          Não vale: é gastar dinheiro com o que a comida já dá. Toque num suplemento pra ver o que a ciência diz e a fonte.
+        </p>
         {lista.map((s) => {
           const I = ICONE[s.nota];
           const on = aberto === s.id;
@@ -515,7 +597,7 @@ function Calculadora({ contas, settings, treinosSemana, onPeso, onTreinos, podeE
       <div className="card-head">
         <div>
           <div className="eyebrow row" style={{ gap: 6 }}><Calculator size={13} /> Feito pro seu corpo</div>
-          <h2 className="h-sec">Quanto você precisa por dia</h2>
+          <Titulo grande texto="Quanto você precisa por dia" ajuda="A conta sai do seu peso e de quantas vezes você treina por semana, seguindo a recomendação de nutrição esportiva pra luta. A meta de proteína do seu dia (a barra logo abaixo) é o número menor da faixa. Mudou de peso? Troque aqui e tudo se ajusta." />
         </div>
       </div>
 
