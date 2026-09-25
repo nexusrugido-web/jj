@@ -4,8 +4,15 @@ import React from 'react';
    ESCADA POSICIONAL, o elemento assinatura.
    Cada degrau e uma posicao, ordenada pela hierarquia real do
    jiu-jitsu. Verde = tempo que voce dominou. Vermelho = tempo
-   que voce sofreu. A linha d'agua separa cima de baixo.
+   que voce sofreu. A linha pontilhada separa cima de baixo.
+
+   A etiqueta da esquerda e quanto a posicao vale em pontos: +4 na
+   montada que voce pegou, -4 na montada que pegaram em voce (as
+   posicoes "sofridas" nao valem ponto no cadastro, o valor vem da
+   posicao espelhada). A direita, em quantos rolas aconteceu.
    ============================================================ */
+const VALE_SOFRIDA = { sob_montada: 4, costas_tomadas: 4, sob_joelho: 2 };
+
 export function EscadaPosicional({ dados, compacto = false }) {
   const comDados = dados.filter((d) => d.dom + d.inf > 0);
   const linhas = compacto ? (comDados.length ? comDados.slice(0, 12) : dados.slice(0, 8)) : dados;
@@ -24,13 +31,16 @@ export function EscadaPosicional({ dados, compacto = false }) {
         const w = valor === 0 ? 0 : Math.max(4, (valor / (p.max || 1)) * 100);
         return (
           <React.Fragment key={p.id}>
-            {agua && (
-              <div className="waterline">
-                <i /><span>linha d'água</span><i />
-              </div>
-            )}
+            {agua && <div className="waterline"><i /></div>}
             <div className={`rung ${tone}`} title={`${p.nome}, dominou ${p.dom}x, sofreu ${p.inf}x`}>
-              <span className="rung-pts">{p.pts ? p.pts : '·'}</span>
+              {(() => {
+                const vale = inferior ? VALE_SOFRIDA[p.slug] : p.pts;
+                return (
+                  <span className={`rung-pts${vale ? (inferior ? ' menos' : ' mais') : ''}`} title={vale ? `vale ${vale} pontos pra quem chega` : 'sem ponto fixo'}>
+                    {vale ? `${inferior ? '−' : '+'}${vale}` : '·'}
+                  </span>
+                );
+              })()}
               <span className="rung-mid">
                 <span className="rung-name truncate">{p.nome}</span>
                 <span className="rung-track">
@@ -38,9 +48,9 @@ export function EscadaPosicional({ dados, compacto = false }) {
                 </span>
               </span>
               <span className="rung-val">
-                {p.dom > 0 && <span style={{ color: 'var(--jade)' }}>+{p.dom}</span>}
+                {p.dom > 0 && <span style={{ color: 'var(--jade)' }}>{p.dom}×</span>}
                 {p.dom > 0 && p.inf > 0 && <span className="muted"> </span>}
-                {p.inf > 0 && <span style={{ color: 'var(--blood)' }}>−{p.inf}</span>}
+                {p.inf > 0 && <span style={{ color: 'var(--blood)' }}>{p.inf}×</span>}
                 {p.dom === 0 && p.inf === 0 && <span style={{ color: 'var(--dimmer)' }}>,</span>}
               </span>
             </div>

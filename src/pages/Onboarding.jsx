@@ -11,9 +11,10 @@ import { EscolherDificuldades } from '../components/Dificuldades';
 /* ============================================================
    ONBOARDING
 
-   Ordem: perfil, teste de estilo, sugestão de metas, confirmação.
-   Nenhuma meta nasce sozinha. O que sai daqui é o que você
-   marcou, e nada além disso.
+   Uma pergunta por tela: nome, faixa, tempo de tatame, ritmo, o
+   que move, o que trava, o teste de estilo e as metas. Pergunta
+   de um toque só avança sozinha. Nenhuma meta nasce sozinha: o
+   que sai daqui é o que você marcou, e nada além disso.
    ============================================================ */
 
 const OBJETIVOS = [
@@ -51,7 +52,29 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
   const [metasEscolhidas, setMetasEscolhidas] = useState([]);
   const [salvando, setSalvando] = useState(false);
 
-  const PASSOS = ['Quem é você', 'Seu ritmo', 'Seu estilo', 'Suas metas'];
+  const PASSOS = [
+    { id: 'nome', rotulo: 'Quem é você' },
+    { id: 'faixa', rotulo: 'Sua faixa' },
+    { id: 'tempo', rotulo: 'Seu tempo de tatame' },
+    { id: 'frequencia', rotulo: 'Seu ritmo' },
+    { id: 'objetivo', rotulo: 'O que te move' },
+    { id: 'trava', rotulo: 'O que te trava' },
+    { id: 'estilo', rotulo: 'Seu estilo' },
+    { id: 'metas', rotulo: 'Suas metas' },
+  ];
+  const atual = PASSOS[passo].id;
+  const ultimo = passo === PASSOS.length - 1;
+  /* escolha de um toque só: marca e já passa pra próxima */
+  const escolher = (mudanca) => {
+    setPerfil((p) => ({ ...p, ...mudanca }));
+    setTimeout(() => setPasso((x) => Math.min(x + 1, PASSOS.length - 1)), 260);
+  };
+  const Pergunta = ({ titulo, texto }) => (
+    <div>
+      <h2 style={{ fontSize: 21, fontWeight: 800, letterSpacing: '-0.02em' }}>{titulo}</h2>
+      {texto && <p className="tiny muted" style={{ marginTop: 6, lineHeight: 1.6 }}>{texto}</p>}
+    </div>
+  );
 
   /* ---------- sugestões nascem do perfil, não viram meta sozinhas ---------- */
   const sugestoes = [];
@@ -123,9 +146,10 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
   }
 
   const podeAvancar =
-    passo === 0 ? perfil.nome.trim().length > 0
-    : passo === 1 ? perfil.frequencia > 0 && perfil.objetivo
-    : passo === 2 ? true
+    atual === 'nome' ? perfil.nome.trim().length > 0
+    : atual === 'tempo' ? !!perfil.tempo
+    : atual === 'frequencia' ? perfil.frequencia > 0
+    : atual === 'objetivo' ? !!perfil.objetivo
     : true;
 
   return (
@@ -135,102 +159,108 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
           <span className="brand-mark" style={{ width: 40, height: 40, borderRadius: 12 }} />
           <div style={{ flex: 1 }}>
             <div className="brand-name" style={{ fontSize: 17 }}>NeuroJitsu</div>
-            <div className="brand-sub">{PASSOS[passo]}</div>
+            <div className="brand-sub">{PASSOS[passo].rotulo}</div>
           </div>
-          <span className="micro muted num">{passo + 1} de 4</span>
+          <span className="micro muted num">{passo + 1} de {PASSOS.length}</span>
         </div>
 
         <div className="quiz-barra" style={{ marginBottom: 20 }}>
-          <i style={{ width: `${((passo) / 4) * 100}%` }} />
+          <i style={{ width: `${((passo + 1) / PASSOS.length) * 100}%` }} />
         </div>
 
-        {/* ---------- 1. perfil ---------- */}
-        {passo === 0 && (
+        {atual === 'nome' && (
           <div className="col" style={{ gap: 16 }}>
-            <div>
-              <h2 style={{ fontSize: 21, fontWeight: 800, letterSpacing: '-0.02em' }}>Vamos começar pelo básico</h2>
-              <p className="tiny muted" style={{ marginTop: 6 }}>
-                Isso fica só no seu aparelho, e serve pra o app falar com você do jeito certo.
-              </p>
+            <Pergunta titulo="Como te chamam?" texto="Isso fica só no seu aparelho, e serve pra o app falar com você do jeito certo." />
+            <Input
+              value={perfil.nome} onChange={(e) => setPerfil({ ...perfil, nome: e.target.value })}
+              onKeyDown={(e) => { if (e.key === 'Enter' && perfil.nome.trim()) setPasso(passo + 1); }}
+              placeholder="Seu nome" autoFocus
+            />
+          </div>
+        )}
+
+        {atual === 'faixa' && (
+          <div className="col" style={{ gap: 16 }}>
+            <Pergunta titulo="Qual a sua faixa?" texto="E quantos graus ela tem hoje. O app ajusta a régua das suas técnicas por aqui." />
+            <div className="row wrap" style={{ gap: 7 }}>
+              {FAIXAS.map((f) => (
+                <button key={f.id} type="button" className={`chip ${perfil.faixa === f.id ? 'on' : ''}`}
+                  style={{ minHeight: 44, paddingInline: 16 }}
+                  onClick={() => setPerfil({ ...perfil, faixa: f.id })}>
+                  <span style={{ width: 14, height: 7, borderRadius: 2, background: f.cor, border: f.id === 'preta' ? '1px solid #4a5250' : 'none' }} />
+                  {f.nome}
+                </button>
+              ))}
             </div>
-            <Field label="Como te chamam">
-              <Input value={perfil.nome} onChange={(e) => setPerfil({ ...perfil, nome: e.target.value })} placeholder="Seu nome" autoFocus />
-            </Field>
-            <Field label="Sua faixa">
-              <div className="row wrap" style={{ gap: 7 }}>
-                {FAIXAS.map((f) => (
-                  <button key={f.id} type="button" className={`chip ${perfil.faixa === f.id ? 'on' : ''}`}
-                    style={{ minHeight: 40, paddingInline: 14 }}
-                    onClick={() => setPerfil({ ...perfil, faixa: f.id })}>
-                    <span style={{ width: 14, height: 7, borderRadius: 2, background: f.cor, border: f.id === 'preta' ? '1px solid #4a5250' : 'none' }} />
-                    {f.nome}
-                  </button>
-                ))}
-              </div>
-            </Field>
             <Field label="Graus">
               <div className="row wrap" style={{ gap: 7 }}>
                 {[0, 1, 2, 3, 4].map((n) => (
                   <button key={n} type="button" className={`chip ${perfil.graus === n ? 'on' : ''}`}
-                    style={{ minHeight: 38, paddingInline: 15 }}
+                    style={{ minHeight: 42, paddingInline: 17 }}
                     onClick={() => setPerfil({ ...perfil, graus: n })}>{n}</button>
                 ))}
               </div>
             </Field>
-            <Field label="Há quanto tempo treina">
-              <div className="row wrap" style={{ gap: 7 }}>
-                {TEMPO.map((t) => (
-                  <button key={t.id} type="button" className={`chip ${perfil.tempo === t.id ? 'on' : ''}`}
-                    style={{ minHeight: 38 }}
-                    onClick={() => setPerfil({ ...perfil, tempo: t.id })}>{t.nome}</button>
-                ))}
-              </div>
-            </Field>
           </div>
         )}
 
-        {/* ---------- 2. ritmo e objetivo ---------- */}
-        {passo === 1 && (
+        {atual === 'tempo' && (
           <div className="col" style={{ gap: 16 }}>
-            <div>
-              <h2 style={{ fontSize: 21, fontWeight: 800, letterSpacing: '-0.02em' }}>Como é a sua rotina hoje</h2>
-              <p className="tiny muted" style={{ marginTop: 6 }}>
-                Fala o que acontece de verdade, não o que você gostaria. O app usa isso pra sugerir coisa realista.
-              </p>
-            </div>
-            <Field label="Quantas vezes por semana você treina">
-              <div className="row wrap" style={{ gap: 7 }}>
-                {[1, 2, 3, 4, 5, 6, 7].map((n) => (
-                  <button key={n} type="button" className={`chip ${perfil.frequencia === n ? 'on' : ''}`}
-                    style={{ minHeight: 42, paddingInline: 16 }}
-                    onClick={() => setPerfil({ ...perfil, frequencia: n })}>{n}x</button>
-                ))}
-              </div>
-            </Field>
-            <Field label="O que te move">
-              <div className="col" style={{ gap: 8 }}>
-                {OBJETIVOS.map((o) => (
-                  <button key={o.id} type="button" className={`opcao-meta ${perfil.objetivo === o.id ? 'on' : ''}`}
-                    onClick={() => setPerfil({ ...perfil, objetivo: o.id })}>
-                    <div className="tiny" style={{ fontWeight: 600 }}>{o.nome}</div>
-                    <p className="micro muted" style={{ marginTop: 3 }}>{o.desc}</p>
-                  </button>
-                ))}
-              </div>
-            </Field>
-            <div className="field">
-              <span className="label">O que mais te trava hoje (até 3)</span>
-              <EscolherDificuldades
-                valor={perfil.dificuldades}
-                onChange={(dificuldades) => setPerfil({ ...perfil, dificuldades })}
-              />
-              <span className="micro muted">Opcional. O Estudo começa pelas aulas que atacam isso.</span>
+            <Pergunta titulo="Há quanto tempo você treina?" texto="Contando desde o primeiro treino, mesmo com pausas no meio." />
+            <div className="col" style={{ gap: 8 }}>
+              {TEMPO.map((x) => (
+                <button key={x.id} type="button" className={`opcao-meta ${perfil.tempo === x.id ? 'on' : ''}`}
+                  onClick={() => escolher({ tempo: x.id })}>
+                  <div className="tiny" style={{ fontWeight: 600 }}>{x.nome}</div>
+                </button>
+              ))}
             </div>
           </div>
         )}
 
-        {/* ---------- 3. estilo ---------- */}
-        {passo === 2 && (
+        {atual === 'frequencia' && (
+          <div className="col" style={{ gap: 16 }}>
+            <Pergunta
+              titulo="Quantas vezes por semana você treina?"
+              texto="Fala o que acontece de verdade, não o que você gostaria. O app usa isso pra sugerir coisa realista."
+            />
+            <div className="row wrap" style={{ gap: 8 }}>
+              {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                <button key={n} type="button" className={`chip ${perfil.frequencia === n ? 'on' : ''}`}
+                  style={{ minHeight: 48, minWidth: 56, justifyContent: 'center' }}
+                  onClick={() => escolher({ frequencia: n })}>{n}x</button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {atual === 'objetivo' && (
+          <div className="col" style={{ gap: 16 }}>
+            <Pergunta titulo="O que te move no jiu-jitsu?" texto="Escolha o que pesa mais hoje. O app usa isso pra sugerir as suas primeiras metas." />
+            <div className="col" style={{ gap: 8 }}>
+              {OBJETIVOS.map((o) => (
+                <button key={o.id} type="button" className={`opcao-meta ${perfil.objetivo === o.id ? 'on' : ''}`}
+                  onClick={() => escolher({ objetivo: o.id })}>
+                  <div className="tiny" style={{ fontWeight: 600 }}>{o.nome}</div>
+                  <p className="micro muted" style={{ marginTop: 3 }}>{o.desc}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {atual === 'trava' && (
+          <div className="col" style={{ gap: 16 }}>
+            <Pergunta titulo="O que mais te trava hoje?" texto="Marque até três, ou pule. O Estudo começa pelas aulas que atacam isso." />
+            <EscolherDificuldades
+              valor={perfil.dificuldades}
+              onChange={(dificuldades) => setPerfil({ ...perfil, dificuldades })}
+            />
+          </div>
+        )}
+
+        {/* ---------- o teste de estilo ---------- */}
+        {atual === 'estilo' && (
           <div className="col" style={{ gap: 16 }}>
             {estilo ? (
               <div className="col center" style={{ alignItems: 'center', gap: 14 }}>
@@ -279,11 +309,11 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
           </div>
         )}
 
-        {/* ---------- 4. metas, com confirmação ---------- */}
-        {passo === 3 && (
+        {/* ---------- as metas, com confirmação ---------- */}
+        {atual === 'metas' && (
           <div className="col" style={{ gap: 16 }}>
             <div>
-              <h2 style={{ fontSize: 21, fontWeight: 800, letterSpacing: '-0.02em' }}>Quer definir alguma meta</h2>
+              <h2 style={{ fontSize: 21, fontWeight: 800, letterSpacing: '-0.02em' }}>Quer definir alguma meta?</h2>
               <p className="tiny muted" style={{ marginTop: 6, lineHeight: 1.7 }}>
                 Pelo que você contou, essas fazem sentido. Marque as que você quer assumir de verdade.
                 O que você não marcar não aparece em lugar nenhum.
@@ -333,9 +363,9 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
             <Btn variant="ghost" icon={ChevronLeft} onClick={() => setPasso(passo - 1)}>Voltar</Btn>
           )}
           <span className="spacer" />
-          {passo < 3 ? (
+          {!ultimo ? (
             <Btn variant="primary" onClick={() => setPasso(passo + 1)} disabled={!podeAvancar}>
-              Continuar <ChevronRight size={15} />
+              {atual === 'trava' && !perfil.dificuldades.length ? 'Pular' : 'Continuar'} <ChevronRight size={15} />
             </Btn>
           ) : (
             <Btn variant="primary" icon={Check} onClick={concluir} disabled={salvando}>

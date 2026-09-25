@@ -472,6 +472,8 @@ button.chip:not(.on):hover { color: var(--chalk); border-color: var(--dimmer); }
   font-family: var(--mono); font-size: 10px; font-weight: 700; text-align: center;
   padding: 2px 0; border-radius: 5px; background: var(--void); border: 1px solid var(--seam); color: var(--dimmer);
 }
+.rung-pts.mais { color: var(--jade); border-color: color-mix(in srgb, var(--jade) 40%, var(--seam)); }
+.rung-pts.menos { color: var(--blood); border-color: color-mix(in srgb, var(--blood) 40%, var(--seam)); }
 .rung-mid { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .rung-name { font-size: 12.5px; font-weight: 500; line-height: 1.2; }
 .rung-track { height: 7px; border-radius: 99px; background: var(--void); overflow: hidden; display: flex; }
@@ -481,7 +483,6 @@ button.chip:not(.on):hover { color: var(--chalk); border-color: var(--dimmer); }
 .rung.neu .rung-fill { background: var(--seam-hi); }
 .rung-val { text-align: right; font-family: var(--mono); font-size: 11px; white-space: nowrap; }
 .waterline { display: flex; align-items: center; gap: 10px; padding: 8px 10px 6px; }
-.waterline span { font-family: var(--mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--dimmer); }
 .waterline i { flex: 1; height: 1px; background: repeating-linear-gradient(90deg, var(--seam-hi) 0 6px, transparent 6px 12px); }
 
 /* ---------- timer ring ---------- */
@@ -1133,13 +1134,23 @@ button.chip:not(.on):hover { color: var(--chalk); border-color: var(--dimmer); }
 
 /* ============ TAXA POR FAIXA ============ */
 .taxa-total {
-  display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+  display: flex; flex-direction: column; gap: 12px;
   padding: 15px; border-radius: var(--r-sm);
   background: var(--void); border: 1px solid var(--seam);
 }
-.taxa-total-detalhe { flex: 1; min-width: 160px; }
-.taxa-linha { min-width: 0; }
-.taxa-faixa-cor { width: 20px; height: 9px; border-radius: 3px; flex: none; }
+/* cada faixa num bloco, com a faixa desenhada do lado */
+.taxa-bloco { display: flex; flex-direction: column; gap: 9px; padding: 13px; border-radius: var(--r-sm); background: var(--void); border: 1px solid var(--seam); }
+.taxa-faixa-cor { width: 30px; height: 12px; border-radius: 3px; flex: none; }
+/* vitória, empate e derrota numa barra só */
+.taxa-ved { display: flex; gap: 2px; height: 8px; border-radius: 99px; overflow: hidden; background: var(--seam); }
+.taxa-ved.grossa { height: 12px; }
+.taxa-ved > i { display: block; min-width: 3px; transition: flex .7s var(--ease); }
+.taxa-ponto { display: inline-block; width: 8px; height: 8px; border-radius: 99px; margin-right: 6px; vertical-align: 1px; }
+/* os três números da faixa, lado a lado */
+.taxa-numeros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.taxa-numeros > div { display: flex; flex-direction: column; gap: 2px; padding: 8px 9px; border-radius: 9px; background: var(--mat); }
+.taxa-numeros b { font-size: 18px; font-weight: 800; line-height: 1.1; }
+.taxa-numeros span { font-size: 11.5px; color: var(--dim); line-height: 1.3; }
 .taxa-barra { height: 6px; border-radius: 99px; background: var(--seam); overflow: hidden; }
 .taxa-barra > i { display: block; height: 100%; border-radius: 99px; transition: width .7s var(--ease); }
 
@@ -2806,6 +2817,22 @@ button.liga-linha:hover { border-color: var(--seam-hi); }
 }
 .figurinha-previa img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .figurinha-opcoes { display: flex; flex-direction: column; gap: 8px; }
+/* o convite do Estudo: "O que mais te trava hoje?" pisca de leve até a
+   pessoa responder */
+.trava-convite {
+  position: relative; display: flex; align-items: center; gap: 12px; width: 100%;
+  min-height: 56px; padding: 14px 16px; border-radius: var(--r-sm);
+  font: inherit; font-size: 16px; font-weight: 800; text-align: left; color: var(--chalk);
+  background: color-mix(in srgb, var(--accent) 12%, var(--void));
+  border: 1.5px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  animation: travaBrilho 2.4s ease-in-out infinite;
+}
+.trava-convite .lucide { margin-left: auto; color: var(--accent); }
+.trava-pulso { flex: none; width: 10px; height: 10px; border-radius: 99px; background: var(--accent); animation: travaPulso 1.6s ease-in-out infinite; }
+@keyframes travaBrilho { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 50% { box-shadow: 0 0 22px -6px var(--accent); } }
+@keyframes travaPulso { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.7); } }
+@media (prefers-reduced-motion: reduce) { .trava-convite, .trava-pulso { animation: none; } }
+
 /* liga e desliga o rótulo e a frase: cheio quando está na imagem */
 .figurinha-liga { display: flex; flex-wrap: wrap; gap: 8px; }
 .figurinha-liga button {
@@ -3142,7 +3169,7 @@ body::after {
 .tec-cats { margin: 12px calc(-1 * var(--e4)) 0; padding: 0 var(--e4) 4px; }
 
 /* rótulos pequenos das telas: mesma voz do sistema, legível, sem caixa-alta espaçada */
-.waterline span, .subs-titulo, .placar-lab, .cal-mes-nome, .graf-tip-titulo, .graf-total-lab,
+.subs-titulo, .placar-lab, .cal-mes-nome, .graf-tip-titulo, .graf-total-lab,
 .podio-pts small, .fin-rot, .entrada-sub, .ou-separador, .duelo-rot, .ofa-legenda, .rank-corte {
   font-family: var(--body); text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 12px;
 }

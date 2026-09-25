@@ -156,11 +156,13 @@ if (raiz.innerHTML.includes('login-card') || raiz.innerHTML.includes('entrada-ca
   Object.getOwnPropertyDescriptor(w.HTMLInputElement.prototype, 'value').set.call(i, 'Teste');
   i.dispatchEvent(new w.Event('input', { bubbles: true })); await esperar();
   clicar(acharBotao('continuar')); await esperar();
-  clicar([...raiz.querySelectorAll('button')].find((b) => b.textContent.trim() === '3x')); await esperar(200);
-  clicar(acharBotao('treinar por prazer')); await esperar(200);
+  // uma pergunta por tela: faixa, tempo, ritmo, objetivo, trava, estilo, metas
   clicar(acharBotao('continuar')); await esperar();
+  clicar(acharBotao('menos de 6 meses')); await esperar(600);
+  clicar([...raiz.querySelectorAll('button')].find((b) => b.textContent.trim() === '3x')); await esperar(600);
+  clicar(acharBotao('treinar por prazer')); await esperar(600);
+  clicar(acharBotao('pular')); await esperar();
   clicar(acharBotao('pular esta parte')); await esperar();
-  clicar(acharBotao('continuar')); await esperar();
   clicar(acharBotao('começar')); await esperar(1500);
 }
 

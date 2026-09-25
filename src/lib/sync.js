@@ -54,7 +54,10 @@ export async function enfileirar(tabela, op, registro) {
     // fila é best-effort: nunca pode derrubar a gravação principal
     return;
   }
-  contarPendentes();
+  // a contagem também roda por fora: ainda dentro do hook, ela caía na
+  // transação que já tinha terminado (TransactionInactiveError solto no
+  // console a cada gravação)
+  Dexie.ignoreTransaction(() => contarPendentes()).catch(() => {});
   agendar();
 }
 

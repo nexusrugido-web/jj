@@ -185,7 +185,9 @@ export default function Analise() {
             <h2 className="h-sec">Onde você fica por cima e onde fica por baixo</h2>
             <p className="tiny muted" style={{ marginTop: 7, lineHeight: 1.7 }}>
               As posições vêm dos pontos que você marca em cada rola. Passagem de guarda coloca você em cima dos 100kg,
-              montada coloca na montada. Só aparecem aqui as posições que já apareceram nos seus treinos.
+              montada coloca na montada. A etiqueta da esquerda é quanto a posição vale em pontos (+4 pra quem pega a
+              montada, −4 quando pegam em você), e o número da direita é em quantos rolas aconteceu. Só aparecem aqui
+              as posições que já apareceram nos seus treinos.
             </p>
           </div>
         </div>

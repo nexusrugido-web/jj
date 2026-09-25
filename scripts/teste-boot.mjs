@@ -71,12 +71,13 @@ try {
     console.log('passando pelo onboarding...');
     escreverNome(); await esperar();
     clicar(acharBotao('continuar')); await esperar();
-    // ritmo e objetivo
-    clicar([...raiz.querySelectorAll('button')].find((b) => b.textContent.trim() === '3x')); await esperar(200);
-    clicar(acharBotao('treinar por prazer')); await esperar(200);
+    // uma pergunta por tela: faixa, tempo, ritmo, objetivo, trava, estilo, metas
     clicar(acharBotao('continuar')); await esperar();
+    clicar(acharBotao('menos de 6 meses')); await esperar(600);
+    clicar([...raiz.querySelectorAll('button')].find((b) => b.textContent.trim() === '3x')); await esperar(600);
+    clicar(acharBotao('treinar por prazer')); await esperar(600);
+    clicar(acharBotao('pular')); await esperar();
     clicar(acharBotao('pular esta parte')); await esperar();
-    clicar(acharBotao('continuar')); await esperar();
     clicar(acharBotao('começar')); await esperar(1200);
   }
 

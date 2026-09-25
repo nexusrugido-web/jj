@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import { TriangleAlert, Check } from 'lucide-react';
-import { Stat } from './UI';
 import { taxaPorFaixa, PRESETS, periodoDeDados, primeiroTreino } from '../lib/periodo';
 
 const COR_FAIXA = {
@@ -51,65 +50,70 @@ export default function TaxaPorFaixa({
     <div className="col anima-troca" key={periodo.id} style={{ gap: 14 }}>
       {seletor}
 
+      {/* o total: o número grande e a barra de vitória, empate e derrota */}
       <div className="taxa-total">
-        <div>
-          <div className="stat-val num" style={{ fontSize: 34, color: t.total.taxa >= 50 ? 'var(--jade)' : 'var(--chalk)' }}>
-            {t.total.taxa}%
+        <div className="row" style={{ gap: 12, alignItems: 'flex-end' }}>
+          <div style={{ flex: 1 }}>
+            <div className="stat-val num" style={{ fontSize: 38, lineHeight: 1, color: t.total.taxa >= 50 ? 'var(--jade)' : 'var(--chalk)' }}>
+              {t.total.taxa}%
+            </div>
+            <div className="stat-lab" style={{ marginTop: 4 }}>de vitória {t.semParceiro ? 'com parceiro marcado' : 'no período'}</div>
           </div>
-          <div className="stat-lab">{t.semParceiro ? 'com parceiro marcado' : 'taxa geral'}</div>
+          <div className="micro muted" style={{ textAlign: 'right', lineHeight: 1.5 }}>
+            <b className="num" style={{ color: 'var(--chalk)' }}>{t.total.n}</b> {t.total.n === 1 ? 'rola' : 'rolas'}<br />
+            <b className="num" style={{ color: 'var(--chalk)' }}>{t.total.parceiros}</b> {t.total.parceiros === 1 ? 'parceiro' : 'parceiros'}
+          </div>
         </div>
-        <div className="taxa-total-detalhe">
-          <div className="row" style={{ gap: 12, flexWrap: 'wrap' }}>
-            <span className="tiny"><b className="num" style={{ color: 'var(--jade)' }}>{t.total.v}</b> <span className="muted">{t.total.v === 1 ? 'vitória' : 'vitórias'}</span></span>
-            <span className="tiny"><b className="num" style={{ color: 'var(--blood)' }}>{t.total.d}</b> <span className="muted">{t.total.d === 1 ? 'derrota' : 'derrotas'}</span></span>
-            {t.total.e > 0 && <span className="tiny"><b className="num muted">{t.total.e}</b> <span className="muted">empates</span></span>}
-          </div>
-          <p className="micro muted" style={{ marginTop: 6 }}>
-            {t.total.n} {t.total.n === 1 ? 'rola' : 'rolas'} contra {t.total.parceiros} {t.total.parceiros === 1 ? 'parceiro' : 'parceiros diferentes'}
-          </p>
+        <BarraVED v={t.total.v} e={t.total.e} d={t.total.d} grossa />
+        <div className="row" style={{ gap: 14, flexWrap: 'wrap' }}>
+          <span className="tiny"><i className="taxa-ponto" style={{ background: 'var(--jade)' }} /><b className="num">{t.total.v}</b> <span className="muted">{t.total.v === 1 ? 'vitória' : 'vitórias'}</span></span>
+          {t.total.e > 0 && <span className="tiny"><i className="taxa-ponto" style={{ background: 'var(--dim)' }} /><b className="num">{t.total.e}</b> <span className="muted">{t.total.e === 1 ? 'empate' : 'empates'}</span></span>}
+          <span className="tiny"><i className="taxa-ponto" style={{ background: 'var(--blood)' }} /><b className="num">{t.total.d}</b> <span className="muted">{t.total.d === 1 ? 'derrota' : 'derrotas'}</span></span>
         </div>
       </div>
 
-      <div className="col" style={{ gap: 11 }}>
+      {/* uma faixa por bloco */}
+      <div className="col" style={{ gap: 10 }}>
         {t.linhas.map((l) => (
-          <div key={l.faixa} className="taxa-linha">
-            <div className="row" style={{ gap: 9, alignItems: 'center', marginBottom: 6 }}>
+          <div key={l.faixa} className="taxa-bloco">
+            <div className="row" style={{ gap: 10, alignItems: 'center' }}>
               <span className="taxa-faixa-cor" style={{ background: COR_FAIXA[l.faixa], border: l.faixa === 'preta' ? '1px solid #4a5250' : 'none' }} />
-              <span className="tiny" style={{ fontWeight: 600, flex: 1 }}>
-                <span style={{ textTransform: 'capitalize' }}>{l.faixa}</span>
-                {l.acima && <span className="micro" style={{ color: 'var(--roar)', marginLeft: 6, whiteSpace: 'nowrap' }}>acima de você</span>}
-                {l.igual && <span className="micro muted" style={{ marginLeft: 6, whiteSpace: 'nowrap' }}>sua faixa</span>}
-              </span>
-              <span className="num micro muted">{l.v}V {l.d}D</span>
-              <span className="num tiny" style={{ minWidth: 40, textAlign: 'right', fontWeight: 700, color: l.taxa >= 50 ? 'var(--jade)' : 'var(--blood)' }}>
-                {l.taxa}%
-              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="tiny" style={{ fontWeight: 800, textTransform: 'capitalize' }}>{l.faixa}</div>
+                <div className="micro" style={{ color: l.acima ? 'var(--roar)' : 'var(--dim)', fontWeight: 600 }}>
+                  {l.acima ? 'acima de você' : l.igual ? 'sua faixa' : 'abaixo de você'}
+                </div>
+              </div>
+              <span className="num" style={{ fontSize: 22, fontWeight: 800, color: l.taxa >= 50 ? 'var(--jade)' : 'var(--blood)' }}>{l.taxa}%</span>
             </div>
-            <div className="taxa-barra">
-              <i style={{ width: `${l.taxa}%`, background: l.taxa >= 50 ? 'var(--jade)' : 'var(--blood)' }} />
-            </div>
-            <div className="row" style={{ gap: 8, marginTop: 5, flexWrap: 'wrap' }}>
-              <span className="micro muted">{l.n} {l.n === 1 ? 'rola' : 'rolas'} · {l.parceiros} {l.parceiros === 1 ? 'parceiro' : 'parceiros'}</span>
-              {l.fin > 0 && <span className="micro" style={{ color: 'var(--jade)' }}>{l.fin} por finalização</span>}
-              {l.pontos > 0 && <span className="micro" style={{ color: 'var(--roar)' }}>{l.pontos} nos pontos</span>}
-              {l.tap > 0 && <span className="micro" style={{ color: 'var(--blood)' }}>{l.tap} finalizaç{l.tap > 1 ? 'ões' : 'ão'} sofrida{l.tap > 1 ? 's' : ''}</span>}
+            <BarraVED v={l.v} e={l.e} d={l.d} />
+            <div className="micro muted">{l.n} {l.n === 1 ? 'rola' : 'rolas'} com {l.parceiros} {l.parceiros === 1 ? 'parceiro' : 'parceiros'}: {l.v} {l.v === 1 ? 'vitória' : 'vitórias'}, {l.d} {l.d === 1 ? 'derrota' : 'derrotas'}{l.e ? `, ${l.e} ${l.e === 1 ? 'empate' : 'empates'}` : ''}</div>
+            <div className="taxa-numeros">
+              <div><b className="num" style={{ color: 'var(--jade)' }}>{l.fin}</b><span>venceu no tap</span></div>
+              <div><b className="num" style={{ color: 'var(--jade-claro)' }}>{l.pontos}</b><span>venceu no placar</span></div>
+              <div><b className="num" style={{ color: 'var(--blood)' }}>{l.tap}</b><span>{l.tap === 1 ? 'vez que você bateu' : 'vezes que você bateu'}</span></div>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="divider" />
-
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))', gap: 12 }}>
-        {t.contraAcima.n > 0 && (
-          <Stat size="sm" valor={`${t.contraAcima.taxa}%`} label="contra faixa acima" sub={`${t.contraAcima.n} ${t.contraAcima.n === 1 ? 'rola' : 'rolas'}`} tone="roar" />
-        )}
-        {t.contraIgual.n > 0 && (
-          <Stat size="sm" valor={`${t.contraIgual.taxa}%`} label="contra a sua faixa" sub={`${t.contraIgual.n} ${t.contraIgual.n === 1 ? 'rola' : 'rolas'}`} />
-        )}
-        {t.contraAbaixo.n > 0 && (
-          <Stat size="sm" valor={`${t.contraAbaixo.taxa}%`} label="contra faixa abaixo" sub={`${t.contraAbaixo.n} ${t.contraAbaixo.n === 1 ? 'rola' : 'rolas'}`} />
-        )}
+      {/* a comparação que importa, em barras */}
+      <div className="col" style={{ gap: 10 }}>
+        <div className="eyebrow">vitória por faixa do parceiro</div>
+        {[
+          { k: 'acima', nome: 'Contra faixa acima', o: t.contraAcima, cor: 'var(--roar)' },
+          { k: 'igual', nome: 'Contra a sua faixa', o: t.contraIgual, cor: 'var(--chalk)' },
+          { k: 'abaixo', nome: 'Contra faixa abaixo', o: t.contraAbaixo, cor: 'var(--dim)' },
+        ].filter((x) => x.o.n > 0).map((x) => (
+          <div key={x.k}>
+            <div className="row" style={{ gap: 8, alignItems: 'baseline', marginBottom: 5 }}>
+              <span className="tiny" style={{ fontWeight: 600, flex: 1 }}>{x.nome}</span>
+              <span className="micro muted">{x.o.n} {x.o.n === 1 ? 'rola' : 'rolas'}</span>
+              <span className="num tiny" style={{ fontWeight: 800, minWidth: 40, textAlign: 'right', color: x.cor }}>{x.o.taxa}%</span>
+            </div>
+            <div className="taxa-barra"><i style={{ width: `${Math.max(2, x.o.taxa)}%`, background: x.cor }} /></div>
+          </div>
+        ))}
       </div>
 
       <Honestidade t={t} />
@@ -119,6 +123,18 @@ export default function TaxaPorFaixa({
           {t.semParceiro === 1 ? '1 rola sem parceiro marcado ficou' : `${t.semParceiro} rolas sem parceiro marcado ficaram`} de fora desta conta.
         </p>
       )}
+    </div>
+  );
+}
+
+/* vitória, empate e derrota numa barra só, na proporção */
+function BarraVED({ v, e, d, grossa = false }) {
+  const n = v + e + d || 1;
+  return (
+    <div className={`taxa-ved${grossa ? ' grossa' : ''}`} role="img" aria-label={`${v} vitórias, ${e} empates, ${d} derrotas`}>
+      {v > 0 && <i style={{ flex: v / n, background: 'var(--jade)' }} />}
+      {e > 0 && <i style={{ flex: e / n, background: 'var(--dim)' }} />}
+      {d > 0 && <i style={{ flex: d / n, background: 'var(--blood)' }} />}
     </div>
   );
 }

@@ -237,24 +237,19 @@ export default function Estudo() {
       <div style={{ height: 14 }} />
 
       {/* ---------- pra você ---------- */}
-      {aba === 'pravoce' && praVoceLivre && (!minhas.length || editandoDif ? (
+      {/* o que trava o aluno: um convite curto que pisca até ele responder,
+          e as opções num popup, em vez da lista inteira aberta na tela */}
+      {aba === 'pravoce' && praVoceLivre && (!minhas.length ? (
         <Card style={{ marginBottom: 14 }}>
-          <div className="card-head">
-            <div>
-              <div className="eyebrow">pro app escolher melhor</div>
-              <h2 className="h-sec">O que mais te trava hoje?</h2>
-            </div>
-          </div>
-          <p className="tiny muted" style={{ marginBottom: 12, lineHeight: 1.65 }}>
-            Marque até três. As aulas desta tela passam a começar por aí.
+          <div className="eyebrow">pro app escolher melhor</div>
+          <p className="tiny muted" style={{ margin: '6px 0 12px', lineHeight: 1.6 }}>
+            Pra uma melhor experiência nas recomendações, conte o que está pegando no seu jogo.
           </p>
-          <EscolherDificuldades
-            valor={minhas}
-            onChange={(lista) => { setEditandoDif(true); marcarDificuldades(lista); }}
-          />
-          {editandoDif && (
-            <Btn size="sm" style={{ marginTop: 12 }} onClick={() => setEditandoDif(false)}>Pronto</Btn>
-          )}
+          <button type="button" className="trava-convite" onClick={() => setEditandoDif(true)}>
+            <span className="trava-pulso" aria-hidden="true" />
+            O que mais te trava hoje?
+            <ChevronRight size={18} />
+          </button>
         </Card>
       ) : (
         <div className="row wrap" style={{ gap: 7, marginBottom: 14, alignItems: 'center' }}>
@@ -263,6 +258,13 @@ export default function Estudo() {
           <button className="btn ghost xs" onClick={() => setEditandoDif(true)}>Mudar</button>
         </div>
       ))}
+      <Sheet
+        aberto={editandoDif} onClose={() => setEditandoDif(false)} titulo="O que mais te trava hoje?"
+        subtitulo="Marque até três. As aulas do Pra você passam a começar por aí."
+        footer={<Btn variant="primary" onClick={() => setEditandoDif(false)} style={{ width: '100%' }}>Pronto</Btn>}
+      >
+        <EscolherDificuldades valor={minhas} onChange={marcarDificuldades} />
+      </Sheet>
 
       {aba === 'pravoce' && (
         paraVoce.length === 0 ? (

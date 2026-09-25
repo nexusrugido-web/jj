@@ -402,7 +402,8 @@ export default function Painel() {
               <p className="tiny muted" style={{ marginBottom: 10 }}>
 Toda vez que você marca um ponto, o app anota a posição que veio junto. Passagem de guarda coloca
                 você em cima dos 100kg, montada coloca na montada, e assim por diante. Verde é quando você chegou lá,
-                vermelho é quando o outro chegou. De cima pra baixo, da melhor posição pra pior.
+                vermelho é quando o outro chegou. A etiqueta da esquerda é quanto a posição vale em pontos (+4 pra
+                quem pega a montada, −4 quando pegam em você), e o número da direita é em quantos rolas aconteceu.
               </p>
             </div>
             <div style={{ padding: '0 10px 16px' }}>
