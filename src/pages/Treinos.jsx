@@ -3,7 +3,7 @@ import { lazy } from '../lib/lazy';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Plus, Trash2, Pencil, NotebookPen, Timer, ChevronDown, ChevronRight, Copy, Check,
-  MessageSquare, Building2, GraduationCap, Trophy, Weight, Mic, Users, History,
+  MessageSquare, Building2, GraduationCap, Trophy, Weight, Mic, Users, History, ShieldAlert,
 } from 'lucide-react';
 import { useApp } from '../contexto';
 import { db } from '../db/db';
@@ -25,6 +25,8 @@ import { recortarHistorico } from '../lib/plano';
 import { HistoricoCortado } from '../components/Plano';
 import AntesDeCompetir from '../components/AntesDeCompetir';
 import { padraoDoTipo } from '../lib/padraoTreino';
+import { avaliarTecnica, idadeDe, modalidadeDoTreino, FONTE_DA_REGRA } from '../lib/regras';
+import { divisaoDaIdade } from '../lib/idade';
 import {
   ORGANIZACOES, DIVISOES, CATEGORIAS_PESO, RESULTADOS, resultadoPorId, ehPodio,
   competicaoVazia, EU, resultadoDoPodio, podioComEu, atletasDaChave,
@@ -315,7 +317,8 @@ export default function Treinos() {
   function abrirNova(minutosDaRola) {
     /* dentro de uma aba (Drill, Competição...), o treino novo já nasce daquele tipo */
     const tipo = filtroTipo !== 'todos' ? filtroTipo : 'gi';
-    setEditando({ ...novaSessao(settings, tipo), ...(ehCompeticao(tipo) ? { competicao: competicaoVazia() } : {}) });
+    const divisao = divisaoDaIdade(idadeDe(settings.anoNascimento));
+    setEditando({ ...novaSessao(settings, tipo), ...(ehCompeticao(tipo) ? { competicao: { ...competicaoVazia(), ...(divisao ? { divisao } : {}) } } : {}) });
     setRolasEdit([novaRolaDoTreino(minutosDaRola || settings.duracaoRolaPadrao || 5)]);
   }
 
@@ -760,6 +763,9 @@ export default function Treinos() {
             academias={academias} professores={professores}
             duracaoPadrao={settings.duracaoRolaPadrao || 5}
             padraoDe={(tipo) => padraoDoTipo(settings, tipo)}
+            idade={idadeDe(settings.anoNascimento)}
+            liberadas={settings.tecnicasLiberadas || []}
+            onLiberar={(nome) => salvarSettings({ tecnicasLiberadas: [...new Set([...(settings.tecnicasLiberadas || []), nome])] })}
             onSalvarPadrao={async (tipo, p) => {
               /* o de Gi continua sendo o padrão geral (graduação, Ajustes) */
               await salvarSettings({
@@ -1019,8 +1025,17 @@ function BlocoCompeticao({ s, setS, onAbrirRegras }) {
   );
 }
 
-function EditorTreino({ s, setS, rolas, setRolas, partners, positions, techniques, categories, finalizacoes, maisUsadas, recentesPorPonto, recentesFoco, faixa, academias, professores, duracaoPadrao, padraoDe, onSalvarPadrao }) {
+function EditorTreino({ s, setS, rolas, setRolas, partners, positions, techniques, categories, finalizacoes, maisUsadas, recentesPorPonto, recentesFoco, faixa, academias, professores, duracaoPadrao, padraoDe, onSalvarPadrao, idade = null, liberadas = [], onLiberar }) {
   const padrao = padraoDe(s.tipo);
+  /* A REGRA DA TÉCNICA: quando a regra não permite (faixa, idade, Gi ou
+     No-Gi), o app avisa e pergunta. Nunca proíbe: o professor pode
+     liberar, e "não avisar mais" guarda isso pra aquela técnica. */
+  const [aviso, setAviso] = useState(null);
+  const checarTecnica = (nome, aplicar) => {
+    const r = liberadas.includes(nome) ? null : avaliarTecnica(nome, { faixa, idade, modalidade: modalidadeDoTreino(s) });
+    if (!r) { aplicar(); return; }
+    setAviso({ ...r, nome, aplicar });
+  };
   const forma = formaDe(s.tipo);
   /* aula particular: rola é extra, aparece quando a pessoa pede */
   const [comRola, setComRola] = useState(false);
@@ -1337,7 +1352,11 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
                     </div>
                     <SubsInput
                       valor={r.subsAplicadas || []}
-                      onChange={(v) => setRola(i, { subsAplicadas: v })}
+                      onChange={(v) => {
+                        const nova = v.find((x) => !(r.subsAplicadas || []).includes(x));
+                        if (!nova) { setRola(i, { subsAplicadas: v }); return; }
+                        checarTecnica(nova, () => setRola(i, { subsAplicadas: v }));
+                      }}
                       sugestoes={finalizacoes} rapidas={maisUsadas.apliquei}
                       tone="jade" placeholder="Qual finalização?"
                     />
@@ -1376,6 +1395,9 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
         categories={categories}
         positions={positions}
         faixa={faixa}
+        idade={idade}
+        modalidade={modalidadeDoTreino(s)}
+        liberadas={liberadas}
         multiplo
         titulo={seletor?.tipo === 'foco' ? 'Técnicas da aula' : `Qual ${seletor?.ponto?.nome?.toLowerCase() || 'técnica'}?`}
         categoriaFiltro={seletor?.tipo === 'ponto' ? CAT_DO_PONTO[seletor.ponto.id] : null}
@@ -1393,21 +1415,50 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
             if (atuais.some((x) => x.nome === tec.nome)) {
               set('focoTecnicas', atuais.filter((x) => x.nome !== tec.nome));
             } else {
-              set('focoTecnicas', [...atuais, { tecnicaId: tec.id, nome: tec.nome, aprendizado: null }]);
+              checarTecnica(tec.nome, () => set('focoTecnicas', [...atuais, { tecnicaId: tec.id, nome: tec.nome, aprendizado: null }]));
             }
           } else {
             const r = rolas[seletor.rola];
             const mapa = { ...(r[seletor.lado] || {}) };
             const lista = mapa[seletor.ponto.id] || [];
-            mapa[seletor.ponto.id] = lista.includes(tec.nome)
-              ? lista.filter((n) => n !== tec.nome)
-              : [...lista, tec.nome];
-            setRola(seletor.rola, { [seletor.lado]: mapa });
+            const tirando = lista.includes(tec.nome);
+            mapa[seletor.ponto.id] = tirando ? lista.filter((n) => n !== tec.nome) : [...lista, tec.nome];
+            const aplicar = () => setRola(seletor.rola, { [seletor.lado]: mapa });
+            if (tirando || seletor.lado !== 'tecMeus') aplicar();
+            else checarTecnica(tec.nome, aplicar);
           }
         }}
       />
 
       <AntesDeCompetir aberto={antesDeCompetir} onClose={() => setAntesDeCompetir(false)} />
+
+      <Sheet aberto={!!aviso} onClose={() => setAviso(null)} titulo={ehCompeticao(s.tipo) ? 'Em campeonato, isso é falta' : 'Essa técnica tem regra'}>
+        {aviso && (
+          <>
+            <div className="valida atencao">
+              <ShieldAlert size={16} className="valida-ico" style={{ color: 'var(--roar)' }} />
+              <div>
+                <div className="tiny" style={{ fontWeight: 700 }}>{aviso.nome}</div>
+                <p className="micro muted" style={{ marginTop: 4, lineHeight: 1.6 }}>{aviso.motivo}</p>
+              </div>
+            </div>
+            <p className="tiny muted" style={{ lineHeight: 1.6 }}>
+              {ehCompeticao(s.tipo)
+                ? `Num campeonato da ${FONTE_DA_REGRA}, aplicar essa técnica desclassifica. Se foi isso mesmo que aconteceu, dá pra registrar.`
+                : 'Na academia o professor pode liberar. Quer registrar mesmo assim?'}
+            </p>
+            <div className="col" style={{ gap: 8 }}>
+              <Btn variant="primary" onClick={() => { aviso.aplicar(); setAviso(null); }}>Registrar mesmo assim</Btn>
+              {!ehCompeticao(s.tipo) && (
+                <Btn variant="contorno" onClick={() => { onLiberar?.(aviso.nome); aviso.aplicar(); setAviso(null); }}>
+                  Meu professor libera, não avisar mais
+                </Btn>
+              )}
+              <Btn variant="ghost" onClick={() => setAviso(null)}>Não registrar</Btn>
+            </div>
+          </>
+        )}
+      </Sheet>
 
       <Sheet aberto={parceirosAberto} onClose={() => setParceirosAberto(false)} titulo="Seus parceiros" subtitulo="cadastre e feche: o treino continua aqui">
         {parceirosAberto && (

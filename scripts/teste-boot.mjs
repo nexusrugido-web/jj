@@ -71,6 +71,10 @@ try {
     console.log('passando pelo onboarding...');
     escreverNome(); await esperar();
     clicar(acharBotao('continuar')); await esperar();
+    // a idade: o ano de nascimento
+    { const i = raiz.querySelector('input'); Object.getOwnPropertyDescriptor(w.HTMLInputElement.prototype, 'value').set.call(i, '1995'); i.dispatchEvent(new w.Event('input', { bubbles: true })); }
+    await esperar();
+    clicar(acharBotao('continuar')); await esperar();
     // uma pergunta por tela: faixa, tempo, ritmo, objetivo, trava, estilo, metas
     clicar(acharBotao('continuar')); await esperar();
     clicar(acharBotao('menos de 6 meses')); await esperar(600);

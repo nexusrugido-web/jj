@@ -4,7 +4,8 @@ import {
 } from 'lucide-react';
 import { Sheet, Btn, Busca, Field, Input, Select, useToast } from './UI';
 import { db } from '../db/db';
-import { podeUsar, buscaMatch } from '../lib/utils';
+import { buscaMatch } from '../lib/utils';
+import { avaliarTecnica } from '../lib/regras';
 import { casaApelido } from '../db/sinonimos';
 import { autopreencherTecnica } from '../lib/ai';
 
@@ -19,6 +20,9 @@ export function SeletorTecnica({
   aberto, onClose, onEscolher,
   techniques, categories, positions,
   faixa = 'branca',
+  idade = null,
+  modalidade = 'gi',
+  liberadas = [],
   categoriaFiltro = null,     // trava numa categoria (ex.: só quedas)
   titulo = 'Escolher técnica',
   recentes = [],
@@ -207,7 +211,7 @@ export function SeletorTecnica({
           <div className="col" style={{ gap: 5, maxHeight: '52vh', overflowY: 'auto', overscrollBehavior: 'contain' }}>
             {lista.map((t) => {
               const escolhida = jaEscolhidas.includes(t.nome);
-              const ilegal = !podeUsar(faixa, t.faixaMin);
+              const ilegal = !liberadas.includes(t.nome) && avaliarTecnica(t.nome, { faixa, idade, modalidade }) != null;
               return (
                 <button
                   key={t.id}

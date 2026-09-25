@@ -7,6 +7,8 @@ import { QUIZ, estiloDoQuiz, estiloPorId } from '../db/scoring';
 import { hoje } from '../lib/utils';
 import { podeVer, LIMITES } from '../lib/plano';
 import { EscolherDificuldades } from '../components/Dificuldades';
+import { idadeDe } from '../lib/regras';
+import { IDADE_MINIMA, IDADE_SEM_RESPONSAVEL } from '../lib/idade';
 
 /* ============================================================
    ONBOARDING
@@ -39,6 +41,8 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
   const [passo, setPasso] = useState(0);
   const [perfil, setPerfil] = useState({
     nome: settings.nome || '',
+    anoNascimento: settings.anoNascimento || '',
+    responsavel: !!settings.responsavelAutorizou,
     faixa: settings.faixa || 'branca',
     graus: settings.graus || 0,
     tempo: '',
@@ -54,6 +58,7 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
 
   const PASSOS = [
     { id: 'nome', rotulo: 'Quem é você' },
+    { id: 'idade', rotulo: 'Sua idade' },
     { id: 'faixa', rotulo: 'Sua faixa' },
     { id: 'tempo', rotulo: 'Seu tempo de tatame' },
     { id: 'frequencia', rotulo: 'Seu ritmo' },
@@ -111,6 +116,8 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
     try {
       await salvarSettings({
         nome: perfil.nome,
+        anoNascimento: Number(perfil.anoNascimento) || null,
+        responsavelAutorizou: perfil.responsavel ? 1 : 0,
         faixa: perfil.faixa,
         graus: perfil.graus,
         tempoTreino: perfil.tempo,
@@ -147,6 +154,10 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
 
   const podeAvancar =
     atual === 'nome' ? perfil.nome.trim().length > 0
+    : atual === 'idade' ? (() => {
+      const i = idadeDe(perfil.anoNascimento);
+      return i != null && i >= IDADE_MINIMA && i < 100 && (i >= IDADE_SEM_RESPONSAVEL || perfil.responsavel);
+    })()
     : atual === 'tempo' ? !!perfil.tempo
     : atual === 'frequencia' ? perfil.frequencia > 0
     : atual === 'objetivo' ? !!perfil.objetivo
@@ -178,6 +189,34 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
             />
           </div>
         )}
+
+        {atual === 'idade' && (() => {
+          const i = idadeDe(perfil.anoNascimento);
+          return (
+            <div className="col" style={{ gap: 16 }}>
+              <Pergunta
+                titulo="Em que ano você nasceu?"
+                texto="A regra do jiu-jitsu muda com a idade: tem técnica que só é liberada a partir de certa idade, e a divisão de campeonato também sai daqui. O app guarda só o ano."
+              />
+              <Input type="number" inputMode="numeric" value={perfil.anoNascimento} placeholder="Ex.: 1998"
+                onChange={(e) => setPerfil({ ...perfil, anoNascimento: e.target.value.slice(0, 4) })} autoFocus />
+              {i != null && i < IDADE_MINIMA && (
+                <p className="tiny" style={{ color: 'var(--roar)', lineHeight: 1.6 }}>
+                  O NeuroJitsu é pra quem tem {IDADE_MINIMA} anos ou mais.
+                </p>
+              )}
+              {i != null && i >= IDADE_MINIMA && i < IDADE_SEM_RESPONSAVEL && (
+                <button type="button" className={`opcao-meta ${perfil.responsavel ? 'on' : ''}`}
+                  onClick={() => setPerfil({ ...perfil, responsavel: !perfil.responsavel })}>
+                  <div className="tiny" style={{ fontWeight: 600 }}>{perfil.responsavel ? '✓ ' : ''}Um responsável acompanha e autoriza</div>
+                  <p className="micro muted" style={{ marginTop: 3, lineHeight: 1.6 }}>
+                    Pra quem tem menos de {IDADE_SEM_RESPONSAVEL} anos, o pai, a mãe ou quem cuida precisa estar de acordo com o uso do app.
+                  </p>
+                </button>
+              )}
+            </div>
+          );
+        })()}
 
         {atual === 'faixa' && (
           <div className="col" style={{ gap: 16 }}>

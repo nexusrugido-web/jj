@@ -118,7 +118,3 @@ export function buscaMatch(texto, termo) {
 }
 
 export const FAIXA_ORDEM = { branca: 0, azul: 1, roxa: 2, marrom: 3, preta: 4 };
-
-export function podeUsar(faixaUsuario, faixaMin) {
-  return (FAIXA_ORDEM[faixaUsuario] ?? 0) >= (FAIXA_ORDEM[faixaMin] ?? 0);
-}

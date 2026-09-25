@@ -21,6 +21,7 @@ export const ORGANIZACOES = [
 ];
 
 export const DIVISOES = [
+  { id: 'infantil', nome: 'Infantil (até 15)' },
   { id: 'juvenil', nome: 'Juvenil' },
   { id: 'adulto', nome: 'Adulto' },
   { id: 'master1', nome: 'Master 1 (30+)' },

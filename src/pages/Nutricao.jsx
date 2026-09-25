@@ -14,6 +14,7 @@ import {
   contasDaNutricao, paraFechar, todosOsAlimentos, somarDia, chaveDoAlimento, bateuODia,
 } from '../lib/nutricao';
 import { hoje, addDias, fmtData, relativo, mesNome } from '../lib/utils';
+import { idadeDe } from '../lib/regras';
 
 /* ============================================================
    COMBUSTÍVEL PRO JIU-JITSU
@@ -86,7 +87,7 @@ export default function Nutricao() {
           <MesDaProteina meta={contas.proteina.min} diaAberto={dia} onDia={(d) => { setDia(d); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
         </>
       )}
-      <Suplementos contas={contas} />
+      <Suplementos contas={contas} menor={(idadeDe(settings.anoNascimento) ?? 18) < 18} />
 
       <p className="micro muted" style={{ lineHeight: 1.6 }}>
         As contas seguem as recomendações de nutrição esportiva pra esporte de combate e servem pra quem é saudável.
@@ -492,7 +493,11 @@ function MesDaProteina({ meta, onDia, diaAberto }) {
    veredito de "vale ou não vale" e sem falar do que o app não
    recomenda. A dose sai do peso quando dá, e a fonte vai junto.
    ============================================================ */
-function Suplementos({ contas }) {
+/* antes dos 18, creatina, beta-alanina e cafeína de suplemento só com
+   quem acompanha a pessoa: o app mostra o que fazem, sem a dose */
+const SO_COM_NUTRI = new Set(['creatina', 'betaalanina', 'cafeina']);
+
+function Suplementos({ contas, menor = false }) {
   const [sanfona, setSanfona] = useState(false);
   const [aberto, setAberto] = useState('creatina');
   const cafe = contas?.cafeina;
@@ -581,7 +586,9 @@ function Suplementos({ contas }) {
                 <ChevronDown size={17} className="muted" style={{ transform: on ? 'rotate(180deg)' : undefined, transition: 'transform .2s' }} />
               </button>
               <p className="micro" style={{ lineHeight: 1.55 }}>{s.resumo}</p>
-              <div className="micro" style={{ fontWeight: 600, color: 'var(--accent)' }}>{s.dose}</div>
+              {menor && SO_COM_NUTRI.has(s.id)
+                ? <div className="micro" style={{ fontWeight: 600, color: 'var(--roar)' }}>Antes dos 18 anos, só com orientação de nutricionista ou médico.</div>
+                : <div className="micro" style={{ fontWeight: 600, color: 'var(--accent)' }}>{s.dose}</div>}
               {on && (
                 <div className="nutri-ciencia">
                   <div className="micro" style={{ fontWeight: 700 }}>No corpo</div>

@@ -166,6 +166,10 @@ export default function Ajustes() {
         <SalvaSozinho />
         <div className="grid g2" style={{ gap: 12 }}>
           <Field label="Nome"><Input value={settings.nome} onChange={(e) => set('nome', e.target.value)} placeholder="Como te chamam" /></Field>
+          <Field label="Ano de nascimento" hint="A regra das técnicas e a divisão de campeonato mudam com a idade.">
+            <Input type="number" inputMode="numeric" value={settings.anoNascimento || ''} placeholder="Ex.: 1998"
+              onChange={(e) => set('anoNascimento', Number(e.target.value.slice(0, 4)) || null)} />
+          </Field>
           <Field label="Academia padrão" hint="Cadastre em Parceiros → Academias.">
             <Select value={settings.academiaPadraoId || ''} onChange={(e) => {
               const id = e.target.value ? Number(e.target.value) : null;
@@ -191,6 +195,17 @@ export default function Ajustes() {
               {FAIXAS.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
             </Select>
           </Field>
+          {(settings.tecnicasLiberadas || []).length > 0 && (
+            <Field label="Liberadas pelo professor" hint="O app não avisa mais da regra delas. Toque pra voltar a avisar.">
+              <div className="row wrap" style={{ gap: 6 }}>
+                {settings.tecnicasLiberadas.map((n) => (
+                  <button key={n} className="chip on" onClick={() => set('tecnicasLiberadas', settings.tecnicasLiberadas.filter((x) => x !== n))}>
+                    {n} ✕
+                  </button>
+                ))}
+              </div>
+            </Field>
+          )}
           <Field label="Graus"><Stepper value={settings.graus} onChange={(v) => set('graus', v)} min={0} max={4} /></Field>
           <Field label="Comecei a treinar em"><EscolherData valor={settings.inicioTreino || ''} titulo="Quando você começou a treinar" onChange={(v) => set('inicioTreino', v)} /></Field>
           <Field label="Meta de treinos por semana"><Stepper value={settings.metaSemanal} onChange={(v) => set('metaSemanal', v)} min={1} max={14} /></Field>

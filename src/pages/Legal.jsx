@@ -105,6 +105,7 @@ export function Privacidade({ onVoltar }) {
           <li>Nome e e-mail, se você criar conta.</li>
           <li>O que você registra: treinos, rolas, técnicas, metas, lesões e aulas vistas.</li>
           <li>Faixa, academia e professor, se você preencher.</li>
+          <li>O ano em que você nasceu (só o ano): a regra das técnicas e a divisão de campeonato mudam com a idade.</li>
           <li>
             Como você usa o Estudo: que aulas o app te recomendou, quais você abriu e terminou. Serve pra
             melhorar as recomendações e saber que aula falta gravar, e a equipe só vê isso em números somados,
@@ -174,8 +175,8 @@ export function Privacidade({ onVoltar }) {
 
       <Bloco titulo="Menores de idade">
         <p>
-          O app é feito para maiores de dezesseis anos. Quem tiver menos precisa do consentimento de um
-          responsável.
+          Jiu-jitsu é pra criança também: o app pode ser usado a partir dos oito anos. Quem tiver menos de
+          dezesseis precisa que um responsável acompanhe e autorize, e o app pergunta isso no primeiro acesso.
         </p>
       </Bloco>
 

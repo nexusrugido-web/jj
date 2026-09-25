@@ -42,6 +42,9 @@ O que é grátis e o que é pago mora em `RECURSOS` (`src/lib/plano.js`) e só v
 - **Drill não é luta** em conta nenhuma.
 - **"O rola"**, no masculino. `npm run lint:copy` barra o feminino e o travessão.
 - **Nada de número que o aluno não consegue conferir na tela** (sem nota de 0 a 100, sem porcentagem de confiança).
+- **A regra da técnica avisa, nunca proíbe.** O que a IBJJF permite por faixa, idade e Gi/No-Gi mora só em `src/lib/regras.js` (`avaliarTecnica`). No treino, técnica fora da regra abre um popup: "Registrar mesmo assim", "Meu professor libera, não avisar mais" (`settings.tecnicasLiberadas`, desfaz em Ajustes → Perfil) ou "Não registrar". Em competição o aviso é de desclassificação.
+- **O nome da técnica muda, o uid não.** O uid vem do nome antigo (`antigo` no seed; a troca mora em `src/db/renomeios.js`), então aulas do acervo e dados da nuvem continuam ligados. Nenhuma técnica nova pode usar um nome antigo; `teste:renomeios` confere.
+- **Idade a partir de 8 anos**, só o ano de nascimento (`settings.anoNascimento`). Abaixo de 16, um responsável autoriza. A idade decide a regra das técnicas, a divisão de campeonato (`divisaoDaIdade`, `src/lib/idade.js`) e esconde a dose de creatina, beta-alanina e cafeína antes dos 18.
 
 ---
 
@@ -112,6 +115,9 @@ SQL do Supabase: os arquivos de `supabase/` são a versão sem segredo; os pront
 
 Só as últimas, pra saber o estado atual. O detalhe de cada dia fica em `Downloads/NEUROJITSU-RELATORIOS`.
 
+- **25/09/2026**
+  - Nomes das técnicas com o nome do tatame (Single leg, Arco e flecha, botinha, tesoura voadora, raspagem de pêndulo, katagatame...): 66 nomes antigos trocados, duplicadas viram uma só, o nome velho ainda acha a técnica e a migração troca o nome nos treinos, rolas e metas do aparelho. A lista inteira pra revisar: `NEUROJITSU-RELATORIOS/2026-09-25-tecnicas-para-revisar.csv`.
+  - Regra da IBJJF por faixa, idade e Gi/No-Gi (`regras.js`, `teste:regras`): o escudo no seletor e o popup no treino. Idade: passo "Sua idade" no primeiro acesso (9 etapas), pergunta única pra quem já usava (`PerguntaIdade`), campo em Ajustes → Perfil, divisão Infantil no campeonato, Privacidade atualizada (aceite de novo, versão 2026-09-25.1).
 - **24/09/2026**
   - Gráficos: "como você venceu/perdeu" com 2 linhas (tap e placar; vantagem entra no placar), verde nas vitórias e vermelho nas derrotas; o Painel mostra "Ganhou e perdeu". Teste `teste:resultados` prova que cada rola cai no balde certo e que gráfico, totais e resumo batem.
   - Gráficos: a linha é o padrão, com botão pra trocar pra barras (a escolha fica no aparelho, `graficoForma`). Nas barras, partes do mesmo todo empilham (como venceu, como perdeu) e lados opostos espelham (ganhou e perdeu, finalizações, pontos). Saiu "Variedade técnica"; o volume desenha só rolas, com as horas no número de cima.

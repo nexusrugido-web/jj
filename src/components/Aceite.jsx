@@ -14,7 +14,7 @@ import { Btn } from './UI';
    médico. Juntar os dois numa caixa só enfraquece os dois.
    ============================================================ */
 
-export const VERSAO_DOCS = '2026-09-24.3';
+export const VERSAO_DOCS = '2026-09-25.1';
 
 export default function Aceite({ onAceitar, onSair, irPara }) {
   const [contrato, setContrato] = useState(false);
