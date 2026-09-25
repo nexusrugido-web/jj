@@ -455,13 +455,15 @@ Toda vez que você marca um ponto, o app anota a posição que veio junto. Passa
       <Card>
         <div className="card-head">
           <div>
-            <div className="eyebrow">como você venceu</div>
+            <div className="eyebrow">ganhou e perdeu</div>
             <h2 className="h-sec">Evolução</h2>
           </div>
           <button className="btn ghost xs" onClick={() => irPara('analise')}>ver tudo <ArrowRight size={12} /></button>
         </div>
+        {/* no Painel, o resumo que mais diz: vitória sobe, derrota desce.
+            O detalhe (como venceu, como perdeu) fica no ver tudo */}
         <GraficoEvolucao
-          compacto periodoInicial="3m"
+          compacto periodoInicial="3m" metricaInicial="balanco"
           sessions={sessions} rolls={rolls} partners={partners} gradings={gradings}
         />
       </Card>

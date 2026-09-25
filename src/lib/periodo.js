@@ -71,12 +71,14 @@ export const METRICAS = [
     id: 'vitorias',
     nome: 'Como você venceu',
     pergunta: 'Dos rolas que você ganhou, o que decidiu',
-    desc: 'Só as vitórias. Cada cor é a forma como o rola terminou a seu favor.',
+    desc: 'Só as vitórias: as que acabaram em tap e as que você ganhou no placar.',
     eixoY: 'rolas vencidos',
+    /* pontos e vantagem num balde só: vitória na vantagem é rara no
+       treino, e a terceira linha ficava colada no zero, parecendo
+       dado que faltou. A pergunta que importa é tap ou placar. */
     chaves: [
       { k: 'porFinalizacao', nome: 'Finalizei', cor: 'var(--jade)', explica: 'Você encaixou uma finalização e o parceiro bateu.' },
-      { k: 'porPontos', nome: 'Venci nos pontos', cor: 'var(--roar)', explica: 'Ninguém finalizou, você terminou com mais pontos.' },
-      { k: 'porVantagem', nome: 'Venci na vantagem', cor: 'var(--ice)', explica: 'Empate nos pontos, decidido na vantagem.' },
+      { k: 'porPlacar', nome: 'No placar', cor: 'var(--jade-claro)', explica: 'Ninguém bateu: você terminou na frente nos pontos, ou empatou nos pontos e ganhou na vantagem.' },
     ],
   },
   {
@@ -87,14 +89,13 @@ export const METRICAS = [
     eixoY: 'rolas perdidos',
     chaves: [
       { k: 'fuiFinalizado', nome: 'Fui finalizado', cor: 'var(--blood)', explica: 'Você bateu.' },
-      { k: 'perdiPontos', nome: 'Perdi nos pontos', cor: 'var(--roar)', explica: 'Ninguém finalizou, ele terminou com mais pontos.' },
-      { k: 'perdiVantagem', nome: 'Perdi na vantagem', cor: 'var(--dim)', explica: 'Empate nos pontos, decidido na vantagem.' },
+      { k: 'perdiPlacar', nome: 'No placar', cor: 'var(--blood-claro)', explica: 'Ninguém bateu: ele terminou na frente nos pontos, ou empatou nos pontos e ganhou na vantagem.' },
     ],
   },
   {
     id: 'balanco',
     nome: 'Ganhou e perdeu',
-    pergunta: 'Quantos rolas você ganhou e quantas perdeu',
+    pergunta: 'Quantos rolas você ganhou e quantos perdeu',
     desc: 'As vitórias sobem, as derrotas descem. A linha do meio é o zero a zero.',
     eixoY: 'rolas',
     divergente: true,
@@ -236,8 +237,8 @@ export function serieDoPeriodo(sessions, rolls, partners, periodo) {
       rolas: rs.length,
       minutos,
       horas: Number((minutos / 60).toFixed(1)),
-      porFinalizacao, porPontos, porVantagem,
-      fuiFinalizado, perdiPontos, perdiVantagem,
+      porFinalizacao, porPlacar: porPontos + porVantagem,
+      fuiFinalizado, perdiPlacar: perdiPontos + perdiVantagem,
       derrotas, empates, vitorias,
       taxaVitoria: pct(vitorias, rs.length),
       ptsFeitos, ptsSofridos,

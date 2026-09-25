@@ -27,6 +27,10 @@
   --jade: #2ed3a0;
   --blood: #e2452f;
   --ice: #55b6ff;
+  /* o segundo tom da mesma cor: nos gráficos, vitória é verde e
+     derrota é vermelha, e o claro separa tap de placar */
+  --jade-claro: #7cf0c8;
+  --blood-claro: #ff9b8a;
 
   /* faixas */
   --b-branca: #edf2ef;
