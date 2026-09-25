@@ -48,7 +48,7 @@ function contar(tipo, d) {
   if (tipo === 'resumo') {
     return {
       titulo: `${d.horas || 0}h no tatame${d.periodo ? ` — ${d.periodo}` : ''}`,
-      texto: `${nome}: ${d.treinos || 0} treinos, ${d.rolas || 0} rolas registradas${
+      texto: `${nome}: ${d.treinos || 0} treinos, ${d.rolas || 0} rolas registrados${
         d.subiram?.length ? ` e ${d.subiram.length} técnicas que subiram de grau` : ''}.`,
       numero: d.horas || 0,
       rotulo: 'horas no tatame',

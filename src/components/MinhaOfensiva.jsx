@@ -148,7 +148,7 @@ function BtnCompartilhar({ o }) {
     <>
       <Btn size="sm" icon={Share2} onClick={() => setAberto(true)}>Compartilhar</Btn>
       <Figurinha
-        aberto={aberto} onClose={() => setAberto(false)}
+        aberto={aberto} onClose={() => setAberto(false)} tipo="ofensiva"
         dados={{ selo: 'ofensiva', grande: `${o.dias} dias seguidos`, sub: `no tatame · recorde de ${o.recorde}` }}
         link={{ tipo: 'ofensiva', dados: { dias: o.dias, recorde: o.recorde }, texto: `${o.dias} dias seguidos no tatame.` }}
       />

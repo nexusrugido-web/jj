@@ -255,7 +255,7 @@ export default function Metas() {
         )
       )}
 
-      <Figurinha aberto={!!story} onClose={() => setStory(null)} dados={story} />
+      <Figurinha aberto={!!story} onClose={() => setStory(null)} dados={story} tipo="meta" />
 
       {/* criar a própria meta, ou passar do limite, no grátis */}
       <Sheet aberto={convite} onClose={() => setConvite(false)} titulo="">

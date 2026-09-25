@@ -433,6 +433,16 @@ export default function App() {
       const saldoPesado = pesadas.length >= 5 &&
         pesadas.reduce((a, x) => a + somarPontos(x.ptsMeus) - somarPontos(x.ptsDele), 0) > 0;
 
+      /* o recorde do dia: mais rolas (drill não é luta) e mais tempo de tatame numa data só */
+      const rolasNoDia = new Map();
+      for (const x of rolls) {
+        if ((x.contexto || 'rola') === 'drill') continue;
+        const d = dataDe.get(x.sessionId);
+        if (d) rolasNoDia.set(d, (rolasNoDia.get(d) || 0) + 1);
+      }
+      const tatameNoDia = new Map();
+      for (const s of sessions) tatameNoDia.set(s.data, (tatameNoDia.get(s.data) || 0) + (Number(s.duracao) || 0));
+
       const novos = await sincronizarMarcos({
         matHoras: r.matHoras, rolas: r.rolas, sessoes: r.sessoes,
         dominadas: dom.g3 + dom.g4, primeiraFinalizacao: primeira,
@@ -444,6 +454,8 @@ export default function App() {
         saldoPositivoPesado: saldoPesado,
         taxaVitoria: jogo.taxaVitoria,
         rolasComPontos: jogo.rolas,
+        recordeRolasDia: Math.max(0, ...rolasNoDia.values()),
+        recordeTatameDia: Math.max(0, ...tatameNoDia.values()),
       });
 
       if (novos.length && settings.celebrar !== false && marcosChecados.current) {

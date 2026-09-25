@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
-  Trophy, Award, Clock, Swords, Flame, Sparkles, Check, Medal, Trash2, Share2,
+  Trophy, Award, Clock, Swords, Flame, Sparkles, Check, Medal, Trash2, Share2, Zap,
 } from 'lucide-react';
 import { useApp } from '../contexto';
 import { db } from '../db/db';
@@ -17,22 +17,42 @@ import { minhasTecnicas, resumoGraus, requisitosDaFaixa, grauPorN } from '../lib
 import { Ponteira } from '../components/Ponteira';
 import { proximaGraduacao, FAIXAS_ORDEM } from '../lib/milestones';
 import { hoje, fmtData, relativo, diasEntre, fmtDur } from '../lib/utils';
+import { periodoDeDados, dentroDoPeriodo } from '../lib/periodo';
 
 /* Abre a figurinha pro story (a imagem, com o @ do app). O card
    em link continua lá dentro, pra quem prefere mandar no grupo. */
-function Compartilhar({ tipo, dados, texto, variante, figura, soIcone = false }) {
+function Compartilhar({ tipo, dados, texto, variante, figura, frases, soIcone = false }) {
   const [aberto, setAberto] = useState(false);
   return (
     <>
       {soIcone
         ? <button type="button" className="btn ghost icon sm" aria-label="Compartilhar" onClick={() => setAberto(true)}><Share2 size={16} /></button>
         : <Btn size="sm" variant={variante} icon={Share2} onClick={() => setAberto(true)}>Compartilhar</Btn>}
-      <Figurinha aberto={aberto} onClose={() => setAberto(false)} dados={figura} link={{ tipo, dados, texto }} />
+      <Figurinha aberto={aberto} onClose={() => setAberto(false)} dados={figura} tipo={frases} link={{ tipo, dados, texto }} />
     </>
   );
 }
 
-const ICONES = { horas: Clock, rolas: Swords, dominio: Award, streak: Flame, tecnica: Sparkles, inicio: Check, pontos: Trophy };
+const ICONES = { horas: Clock, rolas: Swords, dominio: Award, streak: Flame, tecnica: Sparkles, inicio: Check, pontos: Trophy, recorde: Zap };
+
+/* qual lista de frases combina com cada marco */
+const frasesDoMarco = (tipo) => (tipo === 'streak' ? 'ofensiva' : tipo === 'recorde' ? 'recorde' : 'marco');
+const seloDoMarco = (tipo) => (tipo === 'recorde' ? 'recorde pessoal' : 'marco atingido');
+
+const nomeDaFaixa = (id) => FAIXAS.find((f) => f.id === id)?.nome || id;
+
+/* A figurinha da graduação: a faixa desenhada, com os graus, e
+   quantos treinos custou desde a graduação anterior. */
+function figuraDaGraduacao(g, sessions, desde) {
+  const nome = nomeDaFaixa(g.faixa).toLowerCase();
+  const ses = sessions.filter((s) => (!desde || s.data >= desde) && s.data <= g.data);
+  const minutos = ses.reduce((a, s) => a + (Number(s.duracao) || 0), 0);
+  const custou = ses.length ? `depois de ${ses.length} ${ses.length === 1 ? 'treino' : 'treinos'} e ${fmtDur(minutos)} de tatame` : '';
+  const faixa = { cor: FAIXAS.find((f) => f.id === g.faixa)?.cor, graus: g.tipo === 'faixa' ? 0 : Number(g.graus) || 0, preta: g.faixa === 'preta' };
+  return g.tipo === 'faixa'
+    ? { selo: 'faixa nova', grande: `Faixa ${nome}`, sub: custou, faixa }
+    : { selo: 'grau novo', grande: `${g.graus}º grau na ${nome}`, sub: custou, faixa };
+}
 
 export default function Conquistas() {
   const { sessions, rolls, partners, techniques, settings, salvarSettings } = useApp();
@@ -42,6 +62,7 @@ export default function Conquistas() {
   const [registrar, setRegistrar] = useState(null);
   const [faixaNova, setFaixaNova] = useState(null);
   const [excluir, setExcluir] = useState(null);
+  const [storyGrad, setStoryGrad] = useState(null);
 
   const r = useMemo(() => resumoGeral(sessions, rolls), [sessions, rolls]);
   const pontos = useLiveQuery(() => db.pontos.toArray(), [], []) || [];
@@ -71,14 +92,26 @@ export default function Conquistas() {
 
   async function salvarGraduacao() {
     const g = { ...registrar };
+    /* a figurinha conta os treinos desde a graduação anterior: calcula antes de salvar a nova */
+    const figura = figuraDaGraduacao(g, sessions, desde);
     await db.gradings.add({ ...g, criadoEm: Date.now() });
     await salvarSettings({ faixa: g.faixa, graus: g.tipo === 'faixa' ? 0 : g.graus });
     setRegistrar(null);
     toast('Parabéns! Graduação registrada 🥋');
     /* graduação sobe a régua das técnicas, de faixa ou de grau: quem vê
        o próximo grau mais longe precisa saber que não perdeu nada */
-    setFaixaNova({ tipo: g.tipo, faixa: g.faixa, graus: g.tipo === 'faixa' ? 0 : Number(g.graus) || 0, antes: settings.faixa });
+    setFaixaNova({ tipo: g.tipo, faixa: g.faixa, graus: g.tipo === 'faixa' ? 0 : Number(g.graus) || 0, antes: settings.faixa, figura });
   }
+
+  /* a semana de segunda até hoje, pro card da semana. "0 rolas"
+     não entra: semana só de drill não posta um zero */
+  const semana = useMemo(() => {
+    const ses = dentroDoPeriodo(sessions, periodoDeDados('semana-atual'));
+    const ids = new Set(ses.map((s) => s.id));
+    const s = resumoGeral(ses, rolls.filter((x) => ids.has(x.sessionId)));
+    const rolasTxt = s.rolas ? ` · ${s.rolas} ${s.rolas === 1 ? 'rola' : 'rolas'}` : '';
+    return { ...s, rolasTxt };
+  }, [sessions, rolls]);
 
   return (
     <div className="page">
@@ -152,17 +185,47 @@ export default function Conquistas() {
           <Compartilhar
             tipo="resumo"
             dados={{
-              periodo: 'desde o começo',
               horas: r.matHoras,
               treinos: r.sessoes,
               rolas: r.rolas,
               subiram: esteira.filter((t) => t.grau >= 3).map((t) => t.nome).slice(0, 6),
             }}
             texto={`${r.matHoras}h no tatame, ${r.sessoes} treinos e ${r.rolas} rolas.`}
-            figura={{ selo: 'desde o começo', grande: `${r.matHoras}h no tatame`, sub: `${r.sessoes} treinos · ${r.rolas} rolas` }}
+            figura={{
+              selo: `faixa ${nomeDaFaixa(settings.faixa).toLowerCase()}${settings.graus ? ` · ${settings.graus} ${settings.graus === 1 ? 'grau' : 'graus'}` : ''}`,
+              grande: `${r.matHoras}h no tatame`, sub: `${r.sessoes} treinos · ${r.rolas} rolas`,
+            }}
+            frases="marco"
             variante="primary"
           />
         </div>
+      )}
+
+      {/* ---- a semana: o que dá pra postar toda semana, não só no marco ---- */}
+      {semana.sessoes > 0 && (
+        <Card style={{ marginBottom: 14 }}>
+          <div className="row" style={{ gap: 12, alignItems: 'center' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="eyebrow">sua semana</div>
+              <div className="h-sec" style={{ marginTop: 5 }}>
+                {semana.sessoes} {semana.sessoes === 1 ? 'treino' : 'treinos'} · {fmtDur(semana.matMin)}{semana.rolasTxt}
+              </div>
+              <p className="micro muted" style={{ marginTop: 4 }}>De segunda até hoje. Fecha no domingo.</p>
+            </div>
+            <Compartilhar
+              soIcone
+              tipo="marco"
+              dados={{ titulo: `${semana.sessoes} treinos na semana`, texto: `${fmtDur(semana.matMin)} de tatame${semana.rolasTxt}.` }}
+              texto={`${semana.sessoes} treinos na semana.`}
+              figura={{
+                selo: 'minha semana',
+                grande: `${semana.sessoes} ${semana.sessoes === 1 ? 'treino' : 'treinos'}`,
+                sub: `${fmtDur(semana.matMin)} de tatame${semana.rolasTxt}`,
+              }}
+              frases="semana"
+            />
+          </div>
+        </Card>
       )}
 
       {/* ---- próximo marco de horas ---- */}
@@ -173,7 +236,7 @@ export default function Conquistas() {
         <Card style={{ marginBottom: 14 }} className="pad-0">
           <div style={{ padding: '16px 16px 8px' }}><h2 className="h-sec">Sua linha do tempo</h2></div>
           <div className="list">
-            {graduacoes.map((g) => (
+            {graduacoes.map((g, i) => (
               <div key={g.id} className="list-item">
                 <span className="stat-ico" style={{ color: 'var(--accent)' }}><Medal size={16} /></span>
                 <div className="grow">
@@ -185,6 +248,14 @@ export default function Conquistas() {
                   </div>
                   {g.notas && <p className="micro muted" style={{ marginTop: 4 }}>{g.notas}</p>}
                 </div>
+                <Compartilhar
+                  soIcone
+                  tipo="marco"
+                  dados={{ titulo: g.tipo === 'faixa' ? `Faixa ${nomeDaFaixa(g.faixa)}` : `${g.graus}º grau`, texto: 'Graduação registrada no NeuroJitsu.' }}
+                  texto={g.tipo === 'faixa' ? `Faixa ${nomeDaFaixa(g.faixa)}.` : `${g.graus}º grau.`}
+                  figura={figuraDaGraduacao(g, sessions, graduacoes[i + 1]?.data || settings.inicioTreino || null)}
+                  frases="graduacao"
+                />
                 <button className="btn ghost icon sm" onClick={() => setExcluir(g)}><Trash2 size={13} /></button>
               </div>
             ))}
@@ -218,7 +289,8 @@ export default function Conquistas() {
                   tipo="marco"
                   dados={{ titulo: m.titulo, texto: m.texto }}
                   texto={m.titulo}
-                  figura={{ selo: 'marco atingido', grande: m.titulo, sub: m.texto }}
+                  figura={{ selo: seloDoMarco(m.tipo), grande: m.titulo, sub: m.texto }}
+                  frases={frasesDoMarco(m.tipo)}
                 />
               </div>
             );
@@ -261,7 +333,11 @@ export default function Conquistas() {
         )}
       </Sheet>
 
-      <FaixaNova aviso={faixaNova} tecnica={esteira[0]} onClose={() => setFaixaNova(null)} />
+      <FaixaNova
+        aviso={faixaNova} tecnica={esteira[0]} onClose={() => setFaixaNova(null)}
+        onCompartilhar={() => { setStoryGrad(faixaNova.figura); setFaixaNova(null); }}
+      />
+      <Figurinha aberto={!!storyGrad} onClose={() => setStoryGrad(null)} dados={storyGrad} tipo="graduacao" />
 
       <Confirmar
         aberto={!!excluir} onClose={() => setExcluir(null)}
@@ -316,7 +392,7 @@ export function Celebracao({ marco, onFechar }) {
     <div className="celebra" onClick={onFechar}>
       <div className="celebra-card" onClick={(e) => e.stopPropagation()}>
         <div className="celebra-selo"><Ico size={34} /></div>
-        <div className="eyebrow">marco atingido</div>
+        <div className="eyebrow">{seloDoMarco(marco.tipo)}</div>
         <h2 style={{ fontSize: 26, fontWeight: 800, marginTop: 8, letterSpacing: '-0.03em' }}>{marco.titulo}</h2>
         <p className="tiny muted" style={{ marginTop: 10, maxWidth: 320, marginInline: 'auto' }}>{marco.texto}</p>
         <Btn variant="primary" onClick={onFechar} style={{ marginTop: 22, width: '100%', minHeight: 46 }}>Valeu</Btn>
@@ -326,7 +402,8 @@ export function Celebracao({ marco, onFechar }) {
       </div>
       <Figurinha
         aberto={story} onClose={() => setStory(false)}
-        dados={{ selo: 'marco atingido', grande: marco.titulo, sub: marco.texto }}
+        dados={{ selo: seloDoMarco(marco.tipo), grande: marco.titulo, sub: marco.texto }}
+        tipo={frasesDoMarco(marco.tipo)}
         link={{ tipo: 'marco', dados: { titulo: marco.titulo, texto: marco.texto }, texto: marco.titulo }}
       />
     </div>
@@ -340,7 +417,7 @@ export function Celebracao({ marco, onFechar }) {
    explicar, o aluno vê a barra andar pra trás no dia mais feliz do
    ano e acha que perdeu alguma coisa.
    ============================================================ */
-function FaixaNova({ aviso, tecnica, onClose }) {
+function FaixaNova({ aviso, tecnica, onClose, onCompartilhar }) {
   if (!aviso) return null;
   const nome = (id) => FAIXAS.find((f) => f.id === id)?.nome?.toLowerCase() || id;
   const deFaixa = aviso.tipo !== 'grau';
@@ -350,7 +427,10 @@ function FaixaNova({ aviso, tecnica, onClose }) {
   return (
     <Sheet
       aberto onClose={onClose} titulo={titulo}
-      footer={<Btn variant="primary" onClick={onClose} style={{ width: '100%' }}>Bora treinar</Btn>}
+      footer={<>
+        <Btn variant="contorno" icon={Share2} onClick={onCompartilhar} style={{ flex: 1 }}>Postar no story</Btn>
+        <Btn variant="primary" onClick={onClose} style={{ flex: 1 }}>Bora treinar</Btn>
+      </>}
     >
       <p className="tiny" style={{ lineHeight: 1.7 }}>
         Suas técnicas não perdem nada com {deFaixa ? 'a faixa nova' : 'o grau novo'}. Cada uma continua no grau

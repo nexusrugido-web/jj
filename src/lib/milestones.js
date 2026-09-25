@@ -1,5 +1,5 @@
 import { db } from '../db/db';
-import { hoje } from './utils';
+import { hoje, fmtDur } from './utils';
 
 /* ============================================================
    MARCOS, o lugar do XP.
@@ -11,7 +11,7 @@ import { hoje } from './utils';
 export const MARCOS_HORAS = [10, 25, 50, 100, 200, 300, 500, 750, 1000];
 export const MARCOS_ROLAS = [10, 50, 100, 250, 500, 1000];
 
-export function definirMarcos({ matHoras, rolas, sessoes, dominadas, primeiraFinalizacao, streakRecorde, pontos, primeiraRaspagemAcima, saldoPositivoPesado, taxaVitoria, rolasComPontos }) {
+export function definirMarcos({ matHoras, rolas, sessoes, dominadas, primeiraFinalizacao, streakRecorde, pontos, primeiraRaspagemAcima, saldoPositivoPesado, taxaVitoria, rolasComPontos, recordeRolasDia = 0, recordeTatameDia = 0 }) {
   const lista = [];
 
   for (const h of MARCOS_HORAS) {
@@ -45,6 +45,24 @@ export function definirMarcos({ matHoras, rolas, sessoes, dominadas, primeiraFin
   for (const s of [7, 14, 30, 60, 100]) {
     if (streakRecorde >= s) lista.push({ chave: `streak_${s}`, titulo: `${s} dias seguidos`, texto: 'Consistência é a técnica mais difícil do jiu-jitsu.', tipo: 'streak', valor: s });
   }
+
+  /* ---- o recorde do dia ----
+     Um marco por recorde batido: 5 rolas num dia, depois 6, depois
+     7... Dá motivo pra postar a cada dia bom, sem esperar o marco de
+     meses. Abaixo do piso não conta: o primeiro treino de todo mundo
+     seria "recorde". */
+  if (recordeRolasDia >= 5) lista.push({
+    chave: `recorde_rolas_dia_${recordeRolasDia}`,
+    titulo: `${recordeRolasDia} rolas num dia`,
+    texto: 'O máximo de rolas que você já fez num dia só.',
+    tipo: 'recorde', valor: recordeRolasDia,
+  });
+  if (recordeTatameDia >= 180) lista.push({
+    chave: `recorde_tatame_dia_${recordeTatameDia}`,
+    titulo: `${fmtDur(recordeTatameDia)} de tatame num dia`,
+    texto: 'O máximo de tempo que você já passou no tatame num dia só.',
+    tipo: 'recorde', valor: recordeTatameDia,
+  });
 
   /* ---- marcos de pontuação ---- */
   for (const p of [50, 100, 250, 500, 1000, 2500]) {
