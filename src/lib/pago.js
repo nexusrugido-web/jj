@@ -74,9 +74,9 @@ export function rotaDoVideo(aula, acesso, { cobrando, comprado, link }) {
       pode: false,
       motivo: 'assinatura',
       link: link || null,
-      titulo: 'Esta aula é do premium',
+      titulo: 'Esta aula é do Premium',
       texto: 'Ela faz parte da assinatura. Assinando, a biblioteca abre inteira.',
-      acao: 'Ver o premium',
+      acao: 'Ver o Premium',
     };
   }
 
@@ -95,9 +95,9 @@ export function rotaDoVideo(aula, acesso, { cobrando, comprado, link }) {
     pode: false,
     motivo: 'assinatura',
     link: link || null,
-    titulo: 'Esta aula é do premium',
+    titulo: 'Esta aula é do Premium',
     texto: 'Assinando, a biblioteca abre inteira e você para de esbarrar no limite do dia.',
-    acao: 'Ver o premium',
+    acao: 'Ver o Premium',
   };
 }
 

@@ -42,7 +42,7 @@ export default function Dominio() {
     [tecnicas, buracos, partners, sessions, rolls, faixa, feitas]
   );
 
-  /* no grátis "o que treinar agora" vira vitrine: sai dos rolas, é do premium */
+  /* no grátis "o que treinar agora" vira vitrine: sai dos rolas, é do Premium */
   const recsLivres = podeVer(acesso, 'recomendacoes');
   const recs = todasRecs;
   const adesao = useMemo(() => aderencia(feitas), [feitas]);

@@ -40,7 +40,14 @@ export default function TesteAviso({ email }) {
       p_email: alvo.trim(), p_tipo: a.tipo, p_dias: a.dias || 1, p_versao: versao,
     });
     setEnviando('');
-    if (error) { toast(String(error.message).includes('administrador') ? 'Esta conta não é admin no servidor.' : 'Não consegui mandar.', 'err'); return; }
+    if (error) {
+      /* é tela de admin: diz o motivo de verdade, que é o que resolve */
+      const msg = String(error.message || '');
+      toast(msg.includes('administrador') ? 'Esta conta não é admin no servidor.'
+        : error.code === 'PGRST202' ? 'O banco ainda não tem o teste de cada aviso: rode o SQL 17b.'
+          : `Não consegui mandar: ${msg}`, 'err');
+      return;
+    }
     setVezes((v) => ({ ...v, [a.id]: versao + 1 }));
     setResposta(`${a.nome}: ${data}`);
   }

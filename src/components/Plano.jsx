@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import {
-  Check, Lock, Sparkles, Gem, Ticket, Crown,
+  Check, Lock, Sparkles, Gem, Crown, Receipt, ExternalLink, RefreshCw,
 } from 'lucide-react';
-import { Card, Btn, Chip, Input, Field, Sheet, useToast } from './UI';
-import { RECURSOS, LIMITES, ativarCodigo, diasParaVencer } from '../lib/plano';
+import { Card, Btn, Chip, Sheet, useToast } from './UI';
+import { RECURSOS, LIMITES, diasParaVencer } from '../lib/plano';
+import { HOTMART_MINHAS_COMPRAS } from './Renovacao';
 import { MOTIVOS_PAUSA, ofertaDeSaida, pausar, pausaAtiva, retomar } from '../lib/retencao';
 import { fmtData } from '../lib/utils';
 import { abrirLink, linkDe } from '../lib/links';
@@ -12,12 +13,69 @@ import { abrirLink, linkDe } from '../lib/links';
    PLANO
    ============================================================ */
 
-export default function Plano({ acesso, recarregar, compacto = false }) {
+/* a forma de pagamento como a Hotmart manda, em português */
+const FORMA = {
+  'CREDIT_CARD': 'cartão', 'PIX': 'Pix', 'BILLET': 'boleto', 'PAYPAL': 'PayPal',
+  'HOTMART_BALANCE': 'saldo Hotmart', 'GOOGLE_PAY': 'Google Pay', 'SAMSUNG_PAY': 'Samsung Pay',
+};
+const reais = (v, moeda) => (v == null ? '' : Number(v).toLocaleString('pt-BR', { style: 'currency', currency: moeda || 'BRL' }));
+const abrirHotmart = () => window.open(HOTMART_MINHAS_COMPRAS, '_blank', 'noopener');
+
+/* O período pago: quanto já passou e quanto falta, numa barra.
+   Mensal conta 30 dias, anual 365, pelo nome do plano. */
+function DiasPagos({ acesso, dias }) {
+  if (dias === null || dias < 0) return null;
+  const total = /anual/i.test(acesso.plano || '') ? 365 : 30;
+  const pct = Math.max(3, Math.min(100, Math.round((dias / total) * 100)));
+  return (
+    <div style={{ marginTop: 12 }}>
+      <div className="row micro" style={{ marginBottom: 6 }}>
+        <span className="muted">{dias === 0 ? 'último dia pago' : `${dias} ${dias === 1 ? 'dia pago' : 'dias pagos'} pela frente`}</span>
+        <span className="spacer" />
+        <span className="num muted">{fmtData(String(acesso.venceEm).slice(0, 10))}</span>
+      </div>
+      <div className="bar"><i style={{ width: `${pct}%` }} /></div>
+    </div>
+  );
+}
+
+/* As cobranças que a Hotmart aprovou. Nota e recibo ficam lá. */
+function Faturas({ aberto, onClose, faturas }) {
+  return (
+    <Sheet aberto={aberto} onClose={onClose} titulo="Suas faturas">
+      {faturas.length === 0 ? (
+        <p className="tiny muted" style={{ lineHeight: 1.65 }}>
+          Nenhuma cobrança chegou por aqui ainda. As compras antigas continuam na Hotmart, em Minhas compras.
+        </p>
+      ) : (
+        <div className="list">
+          {faturas.map((x, i) => (
+            <div key={i} className="list-item">
+              <span className="stat-ico" style={{ color: 'var(--accent)' }}><Receipt size={16} /></span>
+              <div className="grow">
+                <div className="tiny" style={{ fontWeight: 600 }}>
+                  {reais(x.valor, x.moeda)}{x.parcelas > 1 ? ` em ${x.parcelas}x` : ''}
+                </div>
+                <div className="micro muted">
+                  {fmtData(String(x.data).slice(0, 10))}
+                  {x.pagamento ? ` · ${FORMA[x.pagamento] || x.pagamento.toLowerCase()}` : ''}
+                  {x.recorrencia > 1 ? ` · ${x.recorrencia}ª cobrança` : ''}
+                </div>
+              </div>
+              {x.reembolsada ? <Chip tone="warn">reembolsada</Chip> : <Chip tone="jade">paga</Chip>}
+            </div>
+          ))}
+        </div>
+      )}
+      <Btn variant="contorno" icon={ExternalLink} onClick={abrirHotmart}>Nota e recibo na Hotmart</Btn>
+    </Sheet>
+  );
+}
+
+export default function Plano({ acesso, compacto = false }) {
   const toast = useToast();
-  const [ativando, setAtivando] = useState(false);
-  const [codigo, setCodigo] = useState('');
-  const [enviando, setEnviando] = useState(false);
   const [saindo, setSaindo] = useState(false);
+  const [verFaturas, setVerFaturas] = useState(false);
   const [pausa, setPausa] = useState(null);
 
   React.useEffect(() => { pausaAtiva().then(setPausa); }, []);
@@ -26,16 +84,7 @@ export default function Plano({ acesso, recarregar, compacto = false }) {
   const gratis = Object.entries(RECURSOS).filter(([, r]) => !r.premium);
   const pagos = Object.entries(RECURSOS).filter(([, r]) => r.premium);
 
-  async function ativar() {
-    setEnviando(true);
-    try {
-      const r = await ativarCodigo(codigo);
-      toast(r.mensagem, r.ok ? '' : 'err');
-      if (r.ok) { setAtivando(false); setCodigo(''); recarregar?.(); }
-    } finally {
-      setEnviando(false);
-    }
-  }
+  const faturas = acesso?.faturas || [];
 
   if (acesso?.premium) {
     return (
@@ -46,14 +95,28 @@ export default function Plano({ acesso, recarregar, compacto = false }) {
             <div className="row wrap" style={{ gap: 7 }}>
               <h2 className="h-sec">Premium ativo</h2>
               {acesso.status === 'carencia' && <Chip tone="warn">pagamento pendente</Chip>}
+              {acesso.status !== 'carencia' && acesso.renova === false && <Chip tone="warn">não renova</Chip>}
             </div>
             <p className="tiny muted" style={{ marginTop: 6, lineHeight: 1.65 }}>
               {acesso.status === 'carencia'
-                ? acesso.motivo
-                : acesso.venceEm
-                  ? `Renova em ${fmtData(String(acesso.venceEm).slice(0, 10))}${dias !== null && dias <= 7 ? `, daqui a ${dias} dias` : ''}.`
-                  : 'Tudo liberado.'}
+                ? `${acesso.motivo} Atualize o cartão ou a forma de pagamento na Hotmart.`
+                : !acesso.venceEm
+                  ? 'Tudo liberado.'
+                  : acesso.renova === false
+                    ? `A renovação está desligada. O Premium fica até ${fmtData(String(acesso.venceEm).slice(0, 10))}, e depois as partes do Premium voltam a travar.`
+                    : `${acesso.plano ? `${acesso.plano}. ` : ''}Renova sozinho em ${fmtData(String(acesso.venceEm).slice(0, 10))}.`}
             </p>
+            {acesso.venceEm && <DiasPagos acesso={acesso} dias={dias} />}
+
+            <div className="row wrap" style={{ gap: 8, marginTop: 12 }}>
+              {acesso.status === 'carencia' && (
+                <Btn size="sm" variant="primary" icon={ExternalLink} onClick={abrirHotmart}>Atualizar o pagamento</Btn>
+              )}
+              {acesso.status !== 'carencia' && acesso.renova === false && (
+                <Btn size="sm" variant="primary" icon={RefreshCw} onClick={() => abrirLink('assinatura_mensal')}>Renovar o Premium</Btn>
+              )}
+              <Btn size="sm" variant="contorno" icon={Receipt} onClick={() => setVerFaturas(true)}>Faturas</Btn>
+            </div>
 
             {pausa ? (
               <div className="valida atencao" style={{ marginTop: 12 }}>
@@ -86,6 +149,7 @@ export default function Plano({ acesso, recarregar, compacto = false }) {
             toast(`Pausado até ${fmtData(p.ate)}`);
           }}
         />
+        <Faturas aberto={verFaturas} onClose={() => setVerFaturas(false)} faturas={faturas} />
       </Card>
     );
   }
@@ -98,7 +162,7 @@ export default function Plano({ acesso, recarregar, compacto = false }) {
             <div className="eyebrow">
               {acesso?.status === 'expirada' ? 'sua assinatura venceu' : 'você está no plano gratuito'}
             </div>
-            <h2 className="h-sec">O que muda com o premium</h2>
+            <h2 className="h-sec">O que muda com o Premium</h2>
           </div>
         </div>
 
@@ -131,7 +195,7 @@ export default function Plano({ acesso, recarregar, compacto = false }) {
         <div className="divider" />
 
         <div className="col" style={{ gap: 10 }}>
-          <div className="eyebrow">no premium</div>
+          <div className="eyebrow">no Premium</div>
           {pagos.map(([k, r]) => (
             <div key={k} className="row" style={{ gap: 10, alignItems: 'flex-start' }}>
               <Lock size={14} style={{ color: 'var(--accent)', flex: 'none', marginTop: 2 }} />
@@ -150,11 +214,12 @@ export default function Plano({ acesso, recarregar, compacto = false }) {
             disabled={!linkDe('assinatura_mensal')}
             onClick={() => abrirLink('assinatura_mensal')}
           >
-            {linkDe('assinatura_mensal') ? 'Assinar' : 'Assinatura ainda não abriu'}
+            {!linkDe('assinatura_mensal') ? 'Assinatura ainda não abriu'
+              : ['expirada', 'cancelada'].includes(acesso?.status) ? 'Renovar o Premium' : 'Assinar'}
           </Btn>
-          <Btn variant="ghost" icon={Ticket} onClick={() => setAtivando(true)}>
-            Já assinei
-          </Btn>
+          {faturas.length > 0 && (
+            <Btn variant="contorno" icon={Receipt} onClick={() => setVerFaturas(true)}>Faturas</Btn>
+          )}
         </div>
 
         <p className="micro muted" style={{ marginTop: 14, lineHeight: 1.65 }}>
@@ -163,36 +228,7 @@ export default function Plano({ acesso, recarregar, compacto = false }) {
         </p>
       </Card>
 
-      <Sheet
-        aberto={ativando}
-        onClose={() => setAtivando(false)}
-        titulo="Liberar o seu acesso"
-        footer={
-          <>
-            <Btn variant="ghost" onClick={() => setAtivando(false)}>Cancelar</Btn>
-            <Btn variant="primary" icon={Check} onClick={ativar} disabled={!codigo.trim() || enviando}>
-              Ativar
-            </Btn>
-          </>
-        }
-      >
-        <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-          Se você comprou com o mesmo e-mail da sua conta aqui, o acesso libera sozinho em alguns minutos.
-          Se comprou com outro e-mail, use o código que chegou junto com a confirmação da compra.
-        </p>
-        <Field label="Código de ativação">
-          <Input
-            value={codigo}
-            onChange={(e) => setCodigo(e.target.value.toUpperCase())}
-            placeholder="XXXXXXXX"
-            autoFocus
-            style={{ fontFamily: 'var(--mono)', fontSize: 18, letterSpacing: '0.14em', textAlign: 'center' }}
-          />
-        </Field>
-        <p className="micro muted">
-          Não achou o código? Fale com o suporte com o e-mail que você usou na compra.
-        </p>
-      </Sheet>
+      <Faturas aberto={verFaturas} onClose={() => setVerFaturas(false)} faturas={faturas} />
     </>
   );
 }
@@ -202,7 +238,7 @@ export default function Plano({ acesso, recarregar, compacto = false }) {
 
    A seção de verdade, com os números da própria pessoa, borrada
    atrás do convite. Ela vê que a resposta existe e é dela. Embaixo,
-   o resto do que o premium abre: ninguém assina por uma tela só.
+   o resto do que o Premium abre: ninguém assina por uma tela só.
    ============================================================ */
 const tambemAbre = (recurso) => Object.entries(RECURSOS)
   .filter(([id, r]) => r.premium && id !== recurso)
@@ -222,9 +258,9 @@ export function Vitrine({ recurso, fundo, titulo, texto, itens, onAssinar }) {
           {itens.map((x) => <li key={x}><Check size={15} /> {x}</li>)}
         </ul>
         <p className="micro muted" style={{ marginTop: 14, lineHeight: 1.6 }}>
-          O premium também abre: {tambemAbre(recurso)}.
+          O Premium também abre: {tambemAbre(recurso)}.
         </p>
-        <Btn variant="primary" onClick={onAssinar} style={{ marginTop: 14, width: '100%' }}>Liberar no premium</Btn>
+        <Btn variant="primary" onClick={onAssinar} style={{ marginTop: 14, width: '100%' }}>Liberar no Premium</Btn>
       </div>
     </div>
   );
@@ -245,8 +281,8 @@ export function Convite({ recurso, icone: Icone = Sparkles, marca = null, titulo
       <ul className="vitrine-lista" style={{ marginTop: 0 }}>
         {itens.map((x) => <li key={x}><Check size={15} /> {x}</li>)}
       </ul>
-      <p className="micro muted" style={{ lineHeight: 1.6 }}>O premium também abre: {tambemAbre(recurso)}.</p>
-      <Btn variant="primary" onClick={onAssinar} style={{ width: '100%' }}>Liberar no premium</Btn>
+      <p className="micro muted" style={{ lineHeight: 1.6 }}>O Premium também abre: {tambemAbre(recurso)}.</p>
+      <Btn variant="primary" onClick={onAssinar} style={{ width: '100%' }}>Liberar no Premium</Btn>
     </div>
   );
 }
@@ -265,15 +301,15 @@ export function Convite({ recurso, icone: Icone = Sparkles, marca = null, titulo
 const TEXTO_LIMITE = {
   aula: {
     feito: 'Você já viu a aula de hoje.',
-    premium: 'No premium a biblioteca abre inteira, com as aulas completas que puxam o seu assunto.',
+    premium: 'No Premium a biblioteca abre inteira, com as aulas completas que puxam o seu assunto.',
   },
   short: {
     feito: 'Você já viu a aula rápida de hoje.',
-    premium: 'No premium dá pra ver quantos quiser, e rever também conta ponto.',
+    premium: 'No Premium dá pra ver quantos quiser, e rever também conta ponto.',
   },
   quiz: {
     feito: 'Você já fez a rodada de quiz de hoje.',
-    premium: 'No premium o quiz não acaba, e ele puxa pergunta do que você anda errando.',
+    premium: 'No Premium o quiz não acaba, e ele puxa pergunta do que você anda errando.',
   },
 };
 
@@ -291,7 +327,7 @@ export function LimiteDoDia({ tipo, onAssinar }) {
             {t.premium} Amanhã libera de novo.
           </p>
         </div>
-        <Btn size="sm" variant="primary" onClick={onAssinar}>Ver o premium</Btn>
+        <Btn size="sm" variant="primary" onClick={onAssinar}>Ver o Premium</Btn>
       </div>
     </Card>
   );
@@ -308,7 +344,7 @@ export function HistoricoCortado({ cortados, onAssinar }) {
           Tem mais {cortados} {cortados === 1 ? 'registro' : 'registros'} antes disso. No plano gratuito o app
           mostra os últimos {LIMITES.historicoDias} dias, mas nada foi apagado.
         </p>
-        <button className="btn ghost xs" onClick={onAssinar} style={{ marginTop: 8 }}>Ver o premium</button>
+        <button className="btn ghost xs" onClick={onAssinar} style={{ marginTop: 8 }}>Ver o Premium</button>
       </div>
     </div>
   );

@@ -44,23 +44,65 @@ export function contasDaNutricao(pesoKg, treinosSemana = 3) {
 }
 
 /* ============================================================
-   A PROTEÍNA DO DIA A DIA
+   OS ALIMENTOS DE CASA
 
-   Porções de casa, com o valor aproximado de proteína (tabela TACO
-   e rótulos comuns). É o que o contador "bateu a proteína hoje?" usa.
+   Porções de casa, com proteína (p) e carboidrato (c) aproximados
+   (tabela TACO e rótulos comuns). A pessoa ainda cria os dela, que
+   moram na tabela foods: { nome, porcao, p, c }.
    ============================================================ */
-export const ALIMENTOS_PROTEINA = [
-  { id: 'frango', nome: 'Filé de frango', porcao: '1 filé médio (120 g)', g: 36 },
-  { id: 'carne', nome: 'Bife ou carne moída', porcao: '100 g, um bife médio', g: 26 },
-  { id: 'atum', nome: 'Atum', porcao: '1 lata escorrida', g: 28 },
-  { id: 'peixe', nome: 'Peixe', porcao: '1 filé (120 g)', g: 25 },
-  { id: 'ovo', nome: 'Ovo', porcao: '1 unidade', g: 6 },
-  { id: 'whey', nome: 'Whey', porcao: '1 scoop (30 g)', g: 24 },
-  { id: 'feijao', nome: 'Feijão', porcao: '1 concha', g: 7 },
-  { id: 'leite', nome: 'Leite ou kefir', porcao: '1 copo (200 ml)', g: 7 },
-  { id: 'iogurte', nome: 'Iogurte natural', porcao: '1 pote', g: 7 },
-  { id: 'queijo', nome: 'Queijo minas', porcao: '2 fatias', g: 10 },
+export const ALIMENTOS = [
+  { id: 'frango', nome: 'Filé de frango', porcao: '1 filé médio (120 g)', p: 36, c: 0 },
+  { id: 'carne', nome: 'Bife ou carne moída', porcao: '100 g, um bife médio', p: 26, c: 0 },
+  { id: 'ovo', nome: 'Ovo', porcao: '1 unidade', p: 6, c: 0 },
+  { id: 'atum', nome: 'Atum', porcao: '1 lata escorrida', p: 28, c: 0 },
+  { id: 'peixe', nome: 'Peixe', porcao: '1 filé (120 g)', p: 25, c: 0 },
+  { id: 'whey', nome: 'Whey', porcao: '1 scoop (30 g)', p: 24, c: 3 },
+  { id: 'feijao', nome: 'Feijão', porcao: '1 concha cheia', p: 7, c: 19 },
+  { id: 'leite', nome: 'Leite ou kefir', porcao: '1 copo (200 ml)', p: 7, c: 10 },
+  { id: 'iogurte', nome: 'Iogurte natural', porcao: '1 pote', p: 7, c: 8 },
+  { id: 'queijo', nome: 'Queijo minas', porcao: '2 fatias', p: 10, c: 2 },
+  { id: 'arroz', nome: 'Arroz', porcao: '4 colheres de sopa (100 g)', p: 3, c: 28 },
+  { id: 'macarrao', nome: 'Macarrão', porcao: '1 prato (150 g cozido)', p: 6, c: 42 },
+  { id: 'batatadoce', nome: 'Batata-doce', porcao: '1 média cozida (150 g)', p: 2, c: 28 },
+  { id: 'pao', nome: 'Pão francês', porcao: '1 unidade', p: 4, c: 29 },
+  { id: 'cuscuz', nome: 'Cuscuz', porcao: '1 fatia (100 g)', p: 2, c: 25 },
+  { id: 'tapioca', nome: 'Tapioca', porcao: '1 média', p: 0, c: 30 },
+  { id: 'aveia', nome: 'Aveia', porcao: '2 colheres de sopa (30 g)', p: 4, c: 17 },
+  { id: 'banana', nome: 'Banana', porcao: '1 média', p: 1, c: 22 },
 ];
+
+/* a chave de cada alimento no registro do dia: o de casa pelo id,
+   o que a pessoa criou por "c" + o id da tabela */
+export const chaveDoAlimento = (a) => (a.base ? a.id : `c${a.id}`);
+
+/* os dois juntos, os da pessoa primeiro */
+export const todosOsAlimentos = (meus = []) => [
+  ...meus.filter((f) => !f.arquivada).map((f) => ({ ...f, p: Number(f.p) || 0, c: Number(f.c) || 0 })),
+  ...ALIMENTOS.map((a) => ({ ...a, base: true })),
+];
+
+/* quanto deu o que está marcado: { chave: quantidade } */
+export function somarDia(comi = {}, alimentos = []) {
+  let p = 0;
+  let c = 0;
+  for (const a of alimentos) {
+    const n = Number(comi[chaveDoAlimento(a)]) || 0;
+    p += n * a.p;
+    c += n * a.c;
+  }
+  return { proteina: Math.round(p), carbo: Math.round(c) };
+}
+
+/* O dia bateu? O que a pessoa marcou na mão vale mais que a soma:
+   quem não anota comida marca "bati" e pronto. Sem nada, o dia não
+   aparece em lugar nenhum. */
+export function bateuODia(reg) {
+  if (!reg) return null;
+  if (reg.marcado === 'bati') return true;
+  if (reg.marcado === 'nao') return false;
+  if (!reg.proteina) return null;
+  return reg.proteina >= (reg.meta || Infinity);
+}
 
 /* o que comer pra fechar o que falta, com comida de verdade */
 export function paraFechar(falta) {

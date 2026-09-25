@@ -39,6 +39,9 @@ const PROIBIDOS = [
   { re: /\bexplor(ar|e|ando|amos)\b/gi, nome: 'voz de IA: explorar', soTela: true },
   { re: /\bpotencializ/gi, nome: 'voz corporativa: potencializar', soTela: true },
   { re: /\bdesbloque(ar|ie) (todo o )?(seu )?potencial/gi, nome: 'voz de IA: desbloquear potencial', soTela: true },
+
+  /* O plano pago é nome próprio: "Premium", sempre com maiúscula. */
+  { re: /\b([Oo]|[Nn]o|[Dd]o|[Pp]ro|[Aa]o|com o|ver o|liberar o|· ) ?premium\b(?!\s*[:=?(.])/g, nome: '"Premium" com minúscula' },
 ];
 
 const arquivos = [];

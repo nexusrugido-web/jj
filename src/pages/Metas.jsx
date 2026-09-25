@@ -263,7 +263,7 @@ export default function Metas() {
           recurso="metas"
           icone={Target}
           titulo="Metas do seu jeito"
-          texto={`No grátis você assume até ${LIMITES.metasAtivas} metas que o app sugere pelo seu momento. No premium você cria as suas e acompanha quantas quiser.`}
+          texto={`No grátis você assume até ${LIMITES.metasAtivas} metas que o app sugere pelo seu momento. No Premium você cria as suas e acompanha quantas quiser.`}
           itens={[
             'Crie a meta que você quiser, com o seu alvo',
             'Quantas metas ativas precisar',

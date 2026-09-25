@@ -25,7 +25,7 @@ Este arquivo é o **mapa vivo** do app: pra que serve cada parte, onde mora e qu
 | **Metas** | Metas que o aluno assumiu; as que zeram (defesa, frequência) mostram quando e por quê | até 2, só as sugeridas | próprias e sem limite |
 | **Conquistas** | Marcos e registro de graduação | tudo | igual ao grátis |
 | **Musculação (Força pro jiu-jitsu)** | Os exercícios de força, resistência e prevenção de lesão (40 hoje; os que entram ganham a etiqueta "novo" por 30 dias) que mais ajudam no tatame, cada um com o plano pra encaixar no treino de academia que o aluno já faz (séries × repetições, vezes por semana, descanso, carga, onde entra, a regra de progressão sem fim e o erro comum; o como fazer é o botão de buscar o vídeo). Não registra academia | vitrine | tudo |
-| **Nutrição (Combustível pro jiu-jitsu)** | Proteína, carboidrato e água pelo peso e pela semana de tatame, com a conta à vista (`src/lib/nutricao.js`, base ISSN); "Bateu a proteína hoje?" (contador de comida brasileira, zera à meia-noite, diz o que comer pra fechar); o prato em volta do treino com receita no YouTube; suplementação o que vale, com o que a ciência diz e a fonte (creatina, beta-alanina, cafeína pelo peso, whey, kefir, BCAA, termogênico) | pede o peso e mostra as contas dele na vitrine | tudo |
+| **Nutrição (Combustível pro jiu-jitsu)** | Proteína, carboidrato e água pelo peso e pela semana de tatame, com a conta à vista (`src/lib/nutricao.js`, base ISSN); o dia de comida (toca no que comeu e a barra enche até a meta; "bati / não bati" pra quem não anota; navega pelos dias), os alimentos da pessoa (tabela `foods`, com proteína e carboidrato por porção) e as refeições salvas (`dietPlans`), o mês de proteína num calendário (`meals`, um registro por dia); o dia que bateu ganha um ponto verde no calendário de presença; suplementação fechada numa sanfona no fim | pede o peso e mostra as contas dele na vitrine | tudo |
 | **Parceiros, Gás, Lesões** | Apoio | tudo | igual ao grátis |
 | **Ajustes** | Lista que abre popups: Perfil, Aparência, Como usar, App no celular, Avisos, Seus dados, Conta (sair e apagar a conta) | tudo | igual ao grátis |
 | **Painel do admin** | Chaves de recurso, acervo de vídeos, medição, contas, links, vendas e recuperação. "Ver o app como" grátis ou premium | só admin | igual ao grátis |
@@ -63,6 +63,13 @@ O que é grátis e o que é pago mora em `RECURSOS` (`src/lib/plano.js`) e só v
 - **Testar:** Painel do admin → Visão → "Testar avisos" manda um aviso real pro celular (mesmo caminho dos avisos do aluno) e mostra o diagnóstico elo por elo (`testar_aviso` e `diagnostico_de_aviso`, só admin desde o SQL 14). Tem um botão pra cada aviso que existe (teste, ofensiva de 1 dia, ofensiva de vários dias, liga, resultado, volta); tocar de novo manda a próxima versão do texto (`testar_aviso(email, tipo, dias, versao)` desde o SQL 17b; a função usa o `versao` no lugar da versão do dia, só no teste). Aviso novo no `sw.js` precisa entrar também na lista `AVISOS` de `src/components/TesteAviso.jsx`.
 - O **texto** que a pessoa lê mora em `public/sw.js` (função `aviso`): com a cara do tatame, com emoji e botões de ação, e se reveza por dia. Mudar texto é mexer lá, não no SQL.
 - "Toque para copiar o URL desse app" **não é aviso nosso**: é o Chrome avisando que o app foi instalado como atalho. Resolve reinstalando por ⋮ → Instalar app (no Xiaomi, liberar "Atalhos na tela inicial" pro Chrome).
+
+## Assinatura (Premium)
+
+- Quem compra com o e-mail da conta é reconhecido sozinho. Quem compra com outro e-mail recebe no WhatsApp um link `?ativar=CODIGO` que libera com um toque (`registrar_compra`, `guardarCodigoDaUrl`/`usarCodigoGuardado` em `src/lib/plano.js`). Não existe mais o botão "Já assinei".
+- O card do Premium (`src/components/Plano.jsx`) mostra se renova sozinho, os dias pagos numa barra, as faturas (`minha_assinatura()`, lendo `hotmart_evento`) e o botão de renovar quando a renovação foi cancelada. Pagamento que não entrou manda pra Hotmart (Minhas compras) atualizar o cartão.
+- O aviso de renovar (`src/components/Renovacao.jsx`) aparece no máximo uma vez por dia, só com a cobrança ligada: renovação cancelada e faltando 7 dias ou menos, pagamento pendente, ou acabou há menos de uma semana. Quem renova sozinho nunca vê.
+- "Premium" é sempre com maiúscula no texto; `npm run lint:copy` barra a minúscula.
 
 ## Compartilhar (figurinha do story)
 
@@ -106,6 +113,7 @@ SQL do Supabase: os arquivos de `supabase/` são a versão sem segredo; os pront
 Só as últimas, pra saber o estado atual. O detalhe de cada dia fica em `Downloads/NEUROJITSU-RELATORIOS`.
 
 - **24/09/2026**
+  - Assinatura: sai o "Já assinei" (link no WhatsApp libera sozinho), card com renovação, dias pagos e faturas, aviso de renovar. Nutrição: seu dia de comida com barra, alimentos e refeições próprios, mês de proteína, ponto verde no calendário de presença; sai o prato em volta do treino, suplementação vira sanfona. Sai o "Demorando?" da abertura.
   - Compartilhar: figurinha sem a pílula laranja, com frase de impacto (liga/desliga/troca), cores extras no premium, figurinha de graduação com a faixa desenhada, recorde do dia e card da semana. Sai o "desde o começo": o resumo mostra a faixa.
   - Admin: Testar avisos com um botão pra cada aviso.
   - Sincronização: acabou o ciclo infinito, a biblioteca não sobe mais, cada tabela sobe inteira, Sair não perde a fila, pontos voltam do servidor da Liga.

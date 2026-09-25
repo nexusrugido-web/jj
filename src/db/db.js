@@ -16,6 +16,8 @@ export const TABELAS_SYNC = [
   'academies', 'professors',
   'aulasVistas', 'quizRespostas', 'pontos',
   'recFeitas', 'videoEventos',
+  /* a comida da Nutrição: os alimentos da pessoa, o dia a dia e as refeições salvas */
+  'foods', 'meals', 'dietPlans',
 ];
 
 /* v1, original */

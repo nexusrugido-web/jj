@@ -1,46 +1,33 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import {
-  Info, Droplet, Beef, Salad, Calculator, Clock, Zap, Moon, Flame, Search, Minus, Plus, ChevronDown,
-  Check, X, CircleHelp,
+  Info, Droplet, Beef, Salad, Calculator, Clock, Zap, Flame, Minus, Plus, ChevronDown,
+  ChevronLeft, ChevronRight, Check, X, CircleHelp, Pencil, Save, Pill,
 } from 'lucide-react';
 import { useApp } from '../contexto';
-import { Card, Btn, Sheet, Field, NumeroInput, Stepper } from '../components/UI';
+import { db } from '../db/db';
+import { Card, Btn, Sheet, Field, Input, NumeroInput, Stepper, Chip, Busca, useToast } from '../components/UI';
 import Guia from '../components/Guia';
 import { Vitrine } from '../components/Plano';
 import { podeVer } from '../lib/plano';
-import { contasDaNutricao, ALIMENTOS_PROTEINA, paraFechar } from '../lib/nutricao';
-import { hoje } from '../lib/utils';
+import {
+  contasDaNutricao, paraFechar, todosOsAlimentos, somarDia, chaveDoAlimento, bateuODia,
+} from '../lib/nutricao';
+import { hoje, addDias, fmtData, relativo, mesNome } from '../lib/utils';
 
 /* ============================================================
    COMBUSTÍVEL PRO JIU-JITSU
 
-   Três coisas com valor de verdade, todas pelo peso da pessoa:
-   quanto comer (a calculadora), se bateu a proteína hoje (o
-   contador de comida brasileira) e o que vale e o que não vale de
-   suplemento. Em volta do treino, comida de verdade com receita no
-   YouTube. As contas moram em src/lib/nutricao.js.
+   Pelo peso da pessoa: quanto comer (a calculadora), o dia a dia
+   (toca no que comeu, a barra enche até a meta), os alimentos e as
+   refeições dela, e o mês de proteína num calendário. Suplementação
+   fica no fim, fechada. As contas moram em src/lib/nutricao.js.
    ============================================================ */
-
-const receita = (nome) => `https://www.youtube.com/results?search_query=${encodeURIComponent(`receita ${nome} fit`)}`;
-
-const EM_VOLTA_DO_TREINO = [
-  { quando: 'Almoço ou jantar', hora: '3 horas antes', icone: Clock,
-    diz: 'Prato de sempre, com pouca fritura: gordura demora pra sair do estômago.',
-    opcoes: ['Arroz, feijão e frango', 'Macarrão com carne moída', 'Batata-doce com ovo'] },
-  { quando: 'Lanche', hora: '30 a 60 min antes', icone: Zap,
-    diz: 'Leve e rápido de digerir, pra ter gás sem subir no estômago no rola.',
-    opcoes: ['Banana com mel', 'Tapioca com banana', 'Pão francês com geleia'] },
-  { quando: 'Pós-treino', hora: 'até 1 hora depois', icone: Flame,
-    diz: 'Carboidrato e proteína juntos: repõe o gás e começa a consertar o músculo.',
-    opcoes: ['Vitamina de banana com aveia', 'Sanduíche de frango', 'Iogurte com granola'] },
-  { quando: 'Antes de dormir', hora: 'se bater fome', icone: Moon,
-    diz: 'Proteína que digere devagar ajuda a recuperar enquanto você dorme.',
-    opcoes: ['Iogurte ou kefir', 'Omelete', 'Copo de leite'] },
-];
 
 export default function Nutricao() {
   const { settings, salvarSettings, acesso, irPara } = useApp();
   const [duvidas, setDuvidas] = useState(false);
+  const [dia, setDia] = useState(hoje());
   const livre = podeVer(acesso, 'nutricao');
   const treinosSemana = Number(settings.metaSemanal) || 3;
   const contas = useMemo(() => contasDaNutricao(settings.pesoKg, treinosSemana), [settings.pesoKg, treinosSemana]);
@@ -74,8 +61,9 @@ export default function Nutricao() {
             : 'Coloque o seu peso e o app faz a conta: quanto de proteína pra reconstruir o que o rola quebra, quanto de carboidrato pra ter gás até o último minuto e quanta água pra não apagar no terceiro round.'}
           itens={[
             'Proteína, carboidrato, água e cafeína pelo seu peso e pela sua semana de tatame',
-            'Bateu a proteína hoje? Toca no que comeu e o app diz quanto falta e o que comer',
-            'O que comer antes e depois do treino, com receita pronta no YouTube',
+            'Bateu a proteína hoje? Toca no que comeu e a barra enche até a sua meta',
+            'Seus alimentos e suas refeições salvas: o café da manhã entra com um toque',
+            'O mês de proteína num calendário, junto dos seus dias de tatame',
             'Suplementação com estudo: creatina, beta-alanina, cafeína pelo seu peso, e o que é só propaganda',
           ]}
           onAssinar={() => irPara('ajustes')}
@@ -92,8 +80,12 @@ export default function Nutricao() {
       </div>
 
       {calculadora}
-      {contas && <ProteinaDeHoje meta={contas.proteina.min} />}
-      <EmVoltaDoTreino contas={contas} />
+      {contas && (
+        <>
+          <SeuDia dia={dia} setDia={setDia} meta={contas.proteina.min} metaCarbo={contas.carboidrato.min} />
+          <MesDaProteina meta={contas.proteina.min} diaAberto={dia} onDia={(d) => { setDia(d); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
+        </>
+      )}
       <Suplementos contas={contas} />
 
       <p className="micro muted" style={{ lineHeight: 1.6 }}>
@@ -109,99 +101,308 @@ export default function Nutricao() {
 }
 
 /* ============================================================
-   BATEU A PROTEÍNA HOJE?
+   SEU DIA DE COMIDA
 
-   Toca no que comeu, vê quanto falta. Fica guardado neste
-   aparelho só até a meia-noite: é conta do dia, não histórico.
+   Toca no que comeu e a barra enche até a meta de proteína. Nada de
+   bronca: é a ferramenta pra saber se está batendo. Quem não quer
+   anotar comida marca "bati" ou "não bati" direto. Fica guardado na
+   conta (tabela meals, um registro por dia), e o dia aparece no
+   calendário daqui e no de presença do tatame.
+
+   As refeições salvas (dietPlans) são o atalho: "café da manhã" com
+   três ovos e um copo de leite entra inteiro com um toque.
    ============================================================ */
-function ProteinaDeHoje({ meta }) {
-  const chave = `proteina:${hoje()}`;
-  const [comi, setComi] = useState(() => { try { return JSON.parse(localStorage.getItem(chave) || '{}'); } catch { return {}; } });
-  useEffect(() => { try { localStorage.setItem(chave, JSON.stringify(comi)); } catch { /* sem armazenamento: vale até fechar */ } }, [chave, comi]);
+function SeuDia({ dia, setDia, meta, metaCarbo }) {
+  const toast = useToast();
+  const meus = useLiveQuery(() => db.foods.toArray(), [], []) || [];
+  const refeicoes = useLiveQuery(() => db.dietPlans.toArray(), [], []) || [];
+  const reg = useLiveQuery(() => db.meals.where('data').equals(dia).first(), [dia]);
+  const alimentos = useMemo(() => todosOsAlimentos(meus), [meus]);
+  const [busca, setBusca] = useState('');
+  const [verTodos, setVerTodos] = useState(false);
+  const [editar, setEditar] = useState(null);
+  const [salvarRefeicao, setSalvarRefeicao] = useState(false);
 
-  const total = ALIMENTOS_PROTEINA.reduce((a, x) => a + (comi[x.id] || 0) * x.g, 0);
-  const pct = Math.min(100, Math.round((total / meta) * 100));
-  const mudar = (id, passo) => setComi((c) => ({ ...c, [id]: Math.max(0, (c[id] || 0) + passo) }));
+  const comi = reg?.comi || {};
+  const soma = somarDia(comi, alimentos);
+  const pct = meta ? Math.min(100, Math.round((soma.proteina / meta) * 100)) : 0;
+  const pctC = metaCarbo ? Math.min(100, Math.round((soma.carbo / metaCarbo) * 100)) : 0;
+  const bateu = bateuODia({ ...reg, proteina: soma.proteina, meta });
+  const ehHoje = dia === hoje();
+  const marcados = alimentos.filter((a) => comi[chaveDoAlimento(a)] > 0);
+
+  /* toques rápidos em fila: cada gravação lê o dia de novo antes de mudar */
+  const fila = useRef(Promise.resolve());
+  const gravar = (mudar) => {
+    fila.current = fila.current.then(async () => {
+      const atual = await db.meals.where('data').equals(dia).first();
+      const novo = mudar({ comi: { ...(atual?.comi || {}) }, marcado: atual?.marcado ?? null });
+      const s = somarDia(novo.comi, alimentos);
+      const dados = { data: dia, comi: novo.comi, marcado: novo.marcado, proteina: s.proteina, carbo: s.carbo, meta };
+      if (atual?.id) await db.meals.update(atual.id, dados);
+      else await db.meals.add(dados);
+    }).catch((e) => console.error('[nutrição]', e));
+  };
+  const mudar = (chave, passo) => gravar((r) => {
+    r.comi[chave] = Math.max(0, (Number(r.comi[chave]) || 0) + passo);
+    if (!r.comi[chave]) delete r.comi[chave];
+    return r;
+  });
+  const marcar = (m) => gravar((r) => ({ ...r, marcado: r.marcado === m ? null : m }));
+  const usarRefeicao = (ref) => {
+    gravar((r) => {
+      for (const [k, n] of Object.entries(ref.itens || {})) r.comi[k] = (Number(r.comi[k]) || 0) + n;
+      return r;
+    });
+    toast(`${ref.nome} entrou no dia`);
+  };
+
+  const termo = busca.trim().toLowerCase();
+  /* a lista curta: os da pessoa, o que já está marcado e os de casa
+     mais comuns. O resto abre no "ver todos" ou na busca. */
+  const COMUNS = ['frango', 'ovo', 'carne', 'arroz', 'feijao', 'leite'];
+  const lista = termo ? alimentos.filter((a) => a.nome.toLowerCase().includes(termo))
+    : verTodos ? alimentos
+      : alimentos.filter((a) => !a.base || comi[chaveDoAlimento(a)] > 0 || COMUNS.includes(a.id));
 
   return (
     <Card style={{ marginBottom: 14 }}>
-      <div className="card-head">
-        <div>
-          <div className="eyebrow">Toca no que você comeu hoje</div>
-          <h2 className="h-sec">Bateu a proteína hoje?</h2>
+      <div className="nutri-dia-nav">
+        <button className="btn icon sm" aria-label="Dia anterior" onClick={() => setDia(addDias(dia, -1))}><ChevronLeft size={16} /></button>
+        <div style={{ flex: 1, textAlign: 'center' }}>
+          <div className="eyebrow">{ehHoje ? 'hoje' : relativo(dia)}</div>
+          <div className="tiny" style={{ fontWeight: 700 }}>{fmtData(dia)}</div>
         </div>
+        <button className="btn icon sm" aria-label="Próximo dia" disabled={ehHoje} onClick={() => setDia(addDias(dia, 1))}><ChevronRight size={16} /></button>
       </div>
 
       <div className="nutri-meta">
         <div className="row" style={{ alignItems: 'baseline', gap: 8 }}>
-          <span className="nutri-meta-num num" style={{ color: pct >= 100 ? 'var(--jade)' : 'var(--chalk)' }}>{total} g</span>
-          <span className="tiny muted">de {meta} g</span>
+          <span className="nutri-meta-num num" style={{ color: bateu ? 'var(--jade)' : 'var(--chalk)' }}>{soma.proteina} g</span>
+          <span className="tiny muted">de {meta} g de proteína</span>
+          {bateu && <Chip tone="jade" style={{ marginLeft: 'auto' }}><Check size={12} /> bateu</Chip>}
         </div>
-        <div className="bar"><i style={{ width: `${pct}%`, background: pct >= 100 ? 'var(--jade)' : 'var(--blood)' }} /></div>
-        <p className="tiny" style={{ lineHeight: 1.55 }}>{paraFechar(meta - total)}</p>
+        <div className="bar grossa"><i style={{ width: `${pct}%`, background: bateu ? 'var(--jade)' : 'var(--accent)' }} /></div>
+        <div className="row micro muted" style={{ gap: 8 }}>
+          <span>Carboidrato: <b className="num" style={{ color: 'var(--chalk)' }}>{soma.carbo} g</b> de {metaCarbo} g</span>
+        </div>
+        <div className="bar"><i style={{ width: `${pctC}%`, background: 'var(--ice)' }} /></div>
+        {ehHoje && soma.proteina > 0 && <p className="tiny" style={{ lineHeight: 1.55 }}>{paraFechar(meta - soma.proteina)}</p>}
       </div>
 
+      <p className="micro muted" style={{ marginBottom: 8 }}>Sem tempo de anotar? Marque direto:</p>
+      <div className="row" style={{ gap: 8, marginBottom: 16 }}>
+        <Chip on={reg?.marcado === 'bati'} onClick={() => marcar('bati')} tone={reg?.marcado === 'bati' ? 'jade' : ''}><Check size={12} /> Bati</Chip>
+        <Chip on={reg?.marcado === 'nao'} onClick={() => marcar('nao')}>Não bati</Chip>
+      </div>
+
+      <div className="card-head" style={{ marginBottom: 8 }}>
+        <h3 className="tiny" style={{ fontWeight: 700 }}>Minhas refeições</h3>
+        {marcados.length > 0 && (
+          <button className="btn ghost xs" onClick={() => setSalvarRefeicao(true)}><Save size={12} /> Salvar o que marquei</button>
+        )}
+      </div>
+      {refeicoes.filter((r) => !r.arquivada).length === 0 ? (
+        <p className="micro muted" style={{ marginBottom: 14, lineHeight: 1.6 }}>
+          Marque o que você come sempre junto (o café da manhã, o prato do almoço) e toque em "Salvar o que marquei".
+          Depois ele entra inteiro com um toque.
+        </p>
+      ) : (
+        <div className="row wrap" style={{ gap: 6, marginBottom: 14 }}>
+          {refeicoes.filter((r) => !r.arquivada).map((r) => (
+            <span key={r.id} className="nutri-refeicao">
+              <button type="button" onClick={() => usarRefeicao(r)}><Plus size={13} /> {r.nome}
+                <span className="micro muted num"> {somarDia(r.itens, alimentos).proteina} g</span></button>
+              <button type="button" aria-label={`Apagar ${r.nome}`} onClick={() => db.dietPlans.update(r.id, { arquivada: 1 })}><X size={12} /></button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="card-head" style={{ marginBottom: 8 }}>
+        <h3 className="tiny" style={{ fontWeight: 700 }}>O que você comeu</h3>
+        <button className="btn ghost xs" onClick={() => setEditar({ nome: '', porcao: '', p: '', c: '' })}><Plus size={12} /> Criar alimento</button>
+      </div>
+      <div style={{ display: 'flex', marginBottom: 10 }}><Busca value={busca} onChange={setBusca} placeholder="Buscar alimento" /></div>
       <div className="nutri-comidas">
-        {ALIMENTOS_PROTEINA.map((a) => {
-          const n = comi[a.id] || 0;
+        {lista.map((a) => {
+          const k = chaveDoAlimento(a);
+          const n = Number(comi[k]) || 0;
           return (
-            <div key={a.id} className={`nutri-comida${n ? ' on' : ''}`}>
+            <div key={k} className={`nutri-comida${n ? ' on' : ''}`}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="tiny" style={{ fontWeight: 700 }}>{a.nome}</div>
-                <div className="micro muted">{a.porcao} · {a.g} g</div>
+                <div className="tiny" style={{ fontWeight: 700 }}>
+                  {a.nome}
+                  {!a.base && (
+                    <button type="button" className="nutri-editar" aria-label={`Editar ${a.nome}`} onClick={() => setEditar(a)}><Pencil size={11} /></button>
+                  )}
+                </div>
+                <div className="micro muted">{a.porcao ? `${a.porcao} · ` : ''}{a.p} g prot{a.c ? ` · ${a.c} g carbo` : ''}</div>
               </div>
-              {n > 0 && (
-                <button type="button" className="nutri-mais" onClick={() => mudar(a.id, -1)} aria-label={`Tirar ${a.nome}`}><Minus size={15} /></button>
-              )}
+              {n > 0 && <button type="button" className="nutri-mais" onClick={() => mudar(k, -1)} aria-label={`Tirar ${a.nome}`}><Minus size={15} /></button>}
               {n > 0 && <span className="num tiny" style={{ minWidth: 18, textAlign: 'center', fontWeight: 700 }}>{n}</span>}
-              <button type="button" className="nutri-mais" onClick={() => mudar(a.id, 1)} aria-label={`Mais ${a.nome}`}><Plus size={15} /></button>
+              <button type="button" className="nutri-mais" onClick={() => mudar(k, 1)} aria-label={`Mais ${a.nome}`}><Plus size={15} /></button>
             </div>
           );
         })}
       </div>
-      <p className="micro muted" style={{ marginTop: 10 }}>Valores aproximados, pela tabela brasileira de alimentos. Zera à meia-noite.</p>
+      {!termo && lista.length < alimentos.length && (
+        <button className="btn ghost xs" style={{ marginTop: 8 }} onClick={() => setVerTodos(true)}>
+          Ver todos os alimentos ({alimentos.length}) <ChevronDown size={12} />
+        </button>
+      )}
+      {termo && lista.length === 0 && (
+        <p className="micro muted" style={{ marginTop: 8 }}>
+          Não achei "{busca}". <button className="btn ghost xs" onClick={() => setEditar({ nome: busca, porcao: '', p: '', c: '' })}>Criar "{busca}"</button>
+        </p>
+      )}
+      <p className="micro muted" style={{ marginTop: 10 }}>Os alimentos de casa seguem a tabela brasileira de alimentos, com valores aproximados.</p>
+
+      <CriarAlimento alimento={editar} onClose={() => setEditar(null)} />
+      <SalvarRefeicao
+        aberto={salvarRefeicao} onClose={() => setSalvarRefeicao(false)}
+        itens={comi} marcados={marcados}
+      />
     </Card>
   );
 }
 
-/* ---------- em volta do treino: comida de verdade, receita no YouTube ---------- */
-function EmVoltaDoTreino({ contas }) {
+/* O alimento da pessoa: nome, porção e quanto tem de proteína e
+   carboidrato nessa porção. "1 ovo, 6 g" e o app faz o resto. */
+function CriarAlimento({ alimento, onClose }) {
+  const toast = useToast();
+  const [f, setF] = useState(null);
+  useEffect(() => { setF(alimento ? { ...alimento } : null); }, [alimento]);
+  if (!f) return null;
+  const novo = !f.id;
+  const pronto = f.nome.trim() && Number(f.p) >= 0 && f.p !== '';
+
+  async function salvar() {
+    const dados = { nome: f.nome.trim(), porcao: f.porcao.trim(), p: Number(f.p) || 0, c: Number(f.c) || 0, grupo: 'meu', arquivada: 0 };
+    if (novo) await db.foods.add(dados); else await db.foods.update(f.id, dados);
+    toast(novo ? 'Alimento criado' : 'Alimento salvo');
+    onClose();
+  }
+
+  return (
+    <Sheet
+      aberto onClose={onClose} titulo={novo ? 'Criar alimento' : 'Editar alimento'}
+      footer={<>
+        {!novo && <Btn variant="ghost" onClick={async () => { await db.foods.update(f.id, { arquivada: 1 }); onClose(); }}>Apagar</Btn>}
+        <Btn variant="primary" icon={Check} disabled={!pronto} onClick={salvar}>Salvar</Btn>
+      </>}
+    >
+      <p className="tiny muted" style={{ lineHeight: 1.6 }}>
+        Olhe o rótulo ou a tabela e coloque quanto tem numa porção. Exemplo: 1 ovo tem uns 6 g de proteína; 1 pote de iogurte proteico, uns 15 g.
+      </p>
+      <Field label="Nome"><Input value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} placeholder="Iogurte proteico" autoFocus /></Field>
+      <Field label="Porção" hint="O que conta como 1 toque"><Input value={f.porcao} onChange={(e) => setF({ ...f, porcao: e.target.value })} placeholder="1 pote (160 g)" /></Field>
+      <div className="grid g2" style={{ gap: 10 }}>
+        <Field label="Proteína (g)"><NumeroInput valor={f.p} vazio="" onChange={(v) => setF({ ...f, p: v })} /></Field>
+        <Field label="Carboidrato (g)"><NumeroInput valor={f.c} vazio="" onChange={(v) => setF({ ...f, c: v })} /></Field>
+      </div>
+    </Sheet>
+  );
+}
+
+function SalvarRefeicao({ aberto, onClose, itens, marcados }) {
+  const toast = useToast();
+  const [nome, setNome] = useState('');
+  useEffect(() => { if (aberto) setNome(''); }, [aberto]);
+  const soma = somarDia(itens, marcados);
+  return (
+    <Sheet
+      aberto={aberto} onClose={onClose} titulo="Salvar como refeição"
+      footer={<Btn variant="primary" icon={Save} disabled={!nome.trim()} onClick={async () => {
+        await db.dietPlans.add({ nome: nome.trim(), itens: { ...itens }, ativo: 1, arquivada: 0 });
+        toast('Refeição salva');
+        onClose();
+      }}>Salvar</Btn>}
+    >
+      <Field label="Nome da refeição"><Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Café da manhã" autoFocus /></Field>
+      <ul className="nutri-itens">
+        {marcados.map((a) => <li key={chaveDoAlimento(a)} className="tiny">{itens[chaveDoAlimento(a)]}× {a.nome}</li>)}
+      </ul>
+      <p className="micro muted">Dá {soma.proteina} g de proteína e {soma.carbo} g de carboidrato.</p>
+    </Sheet>
+  );
+}
+
+/* ============================================================
+   O MÊS DA PROTEÍNA
+
+   Verde é dia que bateu; contorno é dia anotado que não bateu. Dia
+   sem nada fica vazio, sem cobrança. Tocar num dia abre ele em cima.
+   ============================================================ */
+function MesDaProteina({ meta, onDia, diaAberto }) {
+  const agora = new Date();
+  const [ano, setAno] = useState(agora.getFullYear());
+  const [mes, setMes] = useState(agora.getMonth());
+  const regs = useLiveQuery(() => db.meals.toArray(), [], []) || [];
+  const porDia = useMemo(() => new Map(regs.map((r) => [r.data, bateuODia(r)])), [regs]);
+
+  const ini = `${ano}-${String(mes + 1).padStart(2, '0')}-01`;
+  const total = new Date(ano, mes + 1, 0).getDate();
+  const vazio = (new Date(ano, mes, 1).getDay() + 6) % 7;
+  const dias = Array.from({ length: total }, (_, i) => addDias(ini, i));
+  const batidos = dias.filter((d) => porDia.get(d) === true).length;
+  const anotados = dias.filter((d) => porDia.get(d) != null).length;
+  const hj = hoje();
+
+  const irMes = (delta) => {
+    let m = mes + delta, a = ano;
+    if (m < 0) { m = 11; a--; }
+    if (m > 11) { m = 0; a++; }
+    if (a > agora.getFullYear() || (a === agora.getFullYear() && m > agora.getMonth())) return;
+    setMes(m); setAno(a);
+  };
+
   return (
     <Card style={{ marginBottom: 14 }}>
       <div className="card-head">
         <div>
-          <div className="eyebrow">Comida de verdade, sem mistério</div>
-          <h2 className="h-sec">O prato em volta do treino</h2>
+          <div className="eyebrow">Toque num dia pra abrir</div>
+          <h2 className="h-sec">Seu mês de proteína</h2>
         </div>
       </div>
-      <div className="col" style={{ gap: 10 }}>
-        {EM_VOLTA_DO_TREINO.map((m) => {
-          const I = m.icone;
-          return (
-            <div key={m.quando} className="nutri-momento">
-              <div className="row" style={{ gap: 10 }}>
-                <span className="stat-ico"><I size={15} /></span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="tiny" style={{ fontWeight: 700 }}>{m.quando}</div>
-                  <div className="micro" style={{ color: 'var(--accent)', fontWeight: 700 }}>{m.hora}</div>
-                </div>
-              </div>
-              <p className="micro muted" style={{ lineHeight: 1.55 }}>{m.diz}</p>
-              <div className="row wrap" style={{ gap: 6 }}>
-                {m.opcoes.map((o) => (
-                  <button key={o} type="button" className="chip" onClick={() => window.open(receita(o), '_blank', 'noopener')}>
-                    <Search size={12} /> {o}
-                  </button>
-                ))}
-              </div>
-            </div>
-          );
-        })}
+      <div className="cal-nav">
+        <button className="btn icon" onClick={() => irMes(-1)} aria-label="Mês anterior"><ChevronLeft size={16} /></button>
+        <div className="cal-nav-titulo">
+          <span className="cal-nav-mes">{mesNome(mes)}</span>
+          <span className="cal-nav-ano num">{ano}</span>
+        </div>
+        <button className="btn icon" onClick={() => irMes(1)} disabled={ano === agora.getFullYear() && mes >= agora.getMonth()} aria-label="Próximo mês"><ChevronRight size={16} /></button>
       </div>
-      <p className="micro muted" style={{ marginTop: 10, lineHeight: 1.6 }}>
-        Toque numa opção pra ver a receita no YouTube.
-        {contas && ` Pro seu peso, o pós-treino ideal tem uns ${contas.posTreino.carbo[0]} a ${contas.posTreino.carbo[1]} g de carboidrato e ${contas.posTreino.proteina[0]} a ${contas.posTreino.proteina[1]} g de proteína.`}
+      <p className="tiny muted" style={{ margin: '10px 0' }}>
+        {anotados
+          ? <>Bateu a proteína em <b style={{ color: 'var(--jade)' }}>{batidos} {batidos === 1 ? 'dia' : 'dias'}</b> de {anotados} anotados.</>
+          : `Nenhum dia anotado em ${mesNome(mes).toLowerCase()}.`}
+        {meta ? ` Meta de ${meta} g por dia.` : ''}
       </p>
+      <div className="cal-grade solo">
+        <div className="cal-mes">
+          <div className="cal-semana">{['S', 'T', 'Q', 'Q', 'S', 'S', 'D'].map((d, i) => <span key={i}>{d}</span>)}</div>
+          <div className="cal-dias">
+            {Array.from({ length: vazio }, (_, i) => <span key={`v${i}`} className="cal-vazio" />)}
+            {dias.map((d) => {
+              const b = porDia.get(d);
+              const futuro = d > hj;
+              return (
+                <button
+                  key={d}
+                  className={`cal-dia n0 prot ${b === true ? 'bateu' : b === false ? 'anotado' : ''} ${d === hj ? 'hoje' : ''} ${d === diaAberto ? 'aberto' : ''} ${futuro ? 'futuro' : ''}`}
+                  disabled={futuro}
+                  onClick={() => onDia(d)}
+                >{Number(d.slice(8))}</button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+      <div className="row" style={{ gap: 12, flexWrap: 'wrap', marginTop: 10 }}>
+        <span className="micro muted row" style={{ gap: 6 }}><span className="cal-dia prot bateu legenda" /> bateu</span>
+        <span className="micro muted row" style={{ gap: 6 }}><span className="cal-dia prot anotado legenda" /> anotado, não bateu</span>
+      </div>
     </Card>
   );
 }
@@ -214,6 +415,7 @@ function EmVoltaDoTreino({ contas }) {
    estudo, a dose pelo peso e o que é só propaganda.
    ============================================================ */
 function Suplementos({ contas }) {
+  const [sanfona, setSanfona] = useState(false);
   const [aberto, setAberto] = useState('creatina');
   const cafe = contas?.cafeina;
   const lista = [
@@ -268,13 +470,15 @@ function Suplementos({ contas }) {
   const ROTULO = { vale: 'Vale', depende: 'Depende', nao: 'Não vale' };
   return (
     <Card style={{ marginBottom: 14 }}>
-      <div className="card-head">
-        <div>
+      <button type="button" className="nutri-sanfona" onClick={() => setSanfona(!sanfona)} aria-expanded={sanfona}>
+        <span className="stat-ico"><Pill size={15} /></span>
+        <div style={{ flex: 1, textAlign: 'left' }}>
           <div className="eyebrow">Sem propaganda, com estudo</div>
           <h2 className="h-sec">Suplementação: o que vale</h2>
         </div>
-      </div>
-      <div className="col" style={{ gap: 8 }}>
+        <ChevronDown size={18} className="muted" style={{ transform: sanfona ? 'rotate(180deg)' : undefined, transition: 'transform .2s' }} />
+      </button>
+      {sanfona && <div className="col" style={{ gap: 8, marginTop: 12 }}>
         {lista.map((s) => {
           const I = ICONE[s.nota];
           const on = aberto === s.id;
@@ -299,7 +503,7 @@ function Suplementos({ contas }) {
             </div>
           );
         })}
-      </div>
+      </div>}
     </Card>
   );
 }
@@ -350,7 +554,7 @@ function Numero({ icone: Icone, tom, rotulo, valor, conta, texto }) {
 function Duvidas() {
   return (
     <Guia topicos={[
-      { id: 'caloria', icone: Calculator, titulo: 'Preciso contar caloria?', resumo: 'Não. O prato em três partes e as contas daqui resolvem',
+      { id: 'caloria', icone: Calculator, titulo: 'Preciso contar caloria?', resumo: 'Não. Bater a proteína já resolve a maior parte',
         conteudo: <p>Contar ao grama exige uns cinco minutos todo dia e quase ninguém mantém. Bater a proteína e não fugir do carboidrato em dia de treino já muda o jogo.</p> },
       { id: 'jejum', icone: Clock, titulo: 'Posso treinar em jejum?', resumo: 'Pode, mas o gás cai e o risco de lesão sobe',
         conteudo: <p>Se o treino é cedo, uma banana ou um pão meia hora antes já resolve. Jejum longo e rola forte não combinam.</p> },

@@ -37,7 +37,7 @@ export const LIMITES = {
 /* Quantas recomendações o app monta pra mostrar na tela. Não é
    limite de plano, é tamanho de lista: quanto mais a pessoa
    registra, mais o app tem o que apontar. No grátis elas ficam na
-   vitrine: é o premium que abre. */
+   vitrine: é o Premium que abre. */
 export const RECOMENDACOES_NA_TELA = 10;
 
 export const RECURSOS = {
@@ -60,7 +60,7 @@ export const RECURSOS = {
   musculacao:    { premium: true, nome: 'Força pro jiu-jitsu', desc: 'Os exercícios que mais ajudam no tatame, cada um com o plano pra encaixar no treino de academia que você já faz.' },
   nutricao:      { premium: true, nome: 'Combustível pro jiu-jitsu', desc: 'Proteína, carboidrato e água calculados pelo seu peso, e o que comer em volta do treino.' },
   temasFigurinha:{ premium: true, nome: 'Cores da figurinha', desc: 'A figurinha do story na cor da sua faixa ou em dourado. Na cor do app ela é de graça.' },
-  metas:         { premium: true, nome: 'Metas sem limite', desc: `No grátis você assume até ${LIMITES.metasAtivas} metas que o app sugere pra você. Criar as suas e ter mais ativas é do premium.` },
+  metas:         { premium: true, nome: 'Metas sem limite', desc: `No grátis você assume até ${LIMITES.metasAtivas} metas que o app sugere pra você. Criar as suas e ter mais ativas é do Premium.` },
 };
 
 const CHAVE = 'acesso';
@@ -85,7 +85,7 @@ export async function sincronizarAcesso() {
   try {
     const { data: sessao } = await supabase.auth.getSession();
     if (!sessao?.session) {
-      const a = { premium: false, status: 'sem_conta', motivo: 'Entre com a sua conta pra liberar o premium.' };
+      const a = { premium: false, status: 'sem_conta', motivo: 'Entre com a sua conta pra liberar o Premium.' };
       await setMeta(CHAVE, a);
       return a;
     }
@@ -94,6 +94,9 @@ export async function sincronizarAcesso() {
     if (error) throw error;
 
     const r = Array.isArray(data) ? data[0] : data;
+    /* se renova sozinha e as faturas: sem esta função no banco
+       (SQL 19 não rodou), o card só não mostra essa parte */
+    const { data: ass } = await supabase.rpc('minha_assinatura').then((x) => x, () => ({ data: null }));
     const a = {
       premium: !!r?.premium,
       status: r?.status || 'sem_assinatura',
@@ -101,6 +104,8 @@ export async function sincronizarAcesso() {
       venceEm: r?.vence_em || null,
       carenciaAte: r?.carencia_ate || null,
       motivo: r?.motivo || '',
+      renova: ass ? !!ass.renova : null,
+      faturas: ass?.faturas || [],
       checadoEm: new Date().toISOString(),
     };
     await setMeta(CHAVE, a);
@@ -119,6 +124,35 @@ export async function ativarCodigo(codigo) {
   const r = Array.isArray(data) ? data[0] : data;
   if (r?.ok) await sincronizarAcesso();
   return { ok: !!r?.ok, mensagem: r?.mensagem || '' };
+}
+
+/* ---------- o link que libera (?ativar=CODIGO) ----------
+   Quem compra com um e-mail e usa o app com outro recebe no
+   WhatsApp um link com o código. O app guarda o código ao abrir e
+   usa assim que tiver conta aberta, sem a pessoa digitar nada. */
+const CODIGO_PENDENTE = 'codigo_ativacao';
+
+export async function guardarCodigoDaUrl() {
+  try {
+    const url = new URL(window.location.href);
+    const c = url.searchParams.get('ativar');
+    if (!c) return;
+    await setMeta(CODIGO_PENDENTE, c.trim().toUpperCase());
+    url.searchParams.delete('ativar');
+    window.history.replaceState({}, '', url.pathname + (url.search || '') + url.hash);
+  } catch { /* url estranha: segue sem código */ }
+}
+
+/* devolve a mensagem pra mostrar, ou null se não tinha código */
+export async function usarCodigoGuardado() {
+  const c = await getMeta(CODIGO_PENDENTE, null);
+  if (!c || !supabase) return null;
+  const { data: s } = await supabase.auth.getSession();
+  if (!s?.session) return null;
+  const r = await ativarCodigo(c);
+  /* código usado ou inválido sai da fila; erro de rede fica pra próxima */
+  if (r.ok || !/agora/.test(r.mensagem)) await setMeta(CODIGO_PENDENTE, null);
+  return r;
 }
 
 /* ---------- os limites do plano grátis ---------- */

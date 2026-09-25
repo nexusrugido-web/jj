@@ -1,8 +1,11 @@
 import React, { useMemo, useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import {
   ChevronLeft, ChevronRight, Flame, Clock, Swords, CalendarDays, Medal,
-  ExternalLink, History,
+  ExternalLink, History, Beef,
 } from 'lucide-react';
+import { db } from '../db/db';
+import { bateuODia } from '../lib/nutricao';
 import { Sheet, Chip, Stat, Card, Btn, BeltTag } from './UI';
 import { janelaDoCalendario, mesDoCalendario, rotuloDoPeriodo } from '../lib/periodo';
 import { fmtDur, relativo, mesNome } from '../lib/utils';
@@ -47,6 +50,11 @@ export default function Calendario({
     for (const g of gradings) m.set(g.data, g);
     return m;
   }, [gradings]);
+
+  /* a proteína da Nutrição: só aparece no dia que a pessoa anotou */
+  const comida = useLiveQuery(() => db.meals.toArray(), [], []) || [];
+  const protPorDia = useMemo(() => new Map(comida.filter((r) => bateuODia(r) != null).map((r) => [r.data, r])), [comida]);
+  const temProt = vista.dias.some((d) => d && bateuODia(protPorDia.get(d.iso)) === true);
 
   const irMes = (delta) => {
     let m = mes + delta, a = ano;
@@ -115,16 +123,18 @@ export default function Calendario({
             {vista.dias.map((d, i) => {
               if (!d) return <span key={i} className="cal-vazio" />;
               const grad = gradPorDia.get(d.iso);
+              const prot = protPorDia.get(d.iso);
               return (
                 <button
                   key={i}
                   className={`cal-dia n${d.nivel} ${d.futuro ? 'futuro' : ''} ${d.hoje ? 'hoje' : ''} ${grad ? 'grad' : ''}`}
                   style={{ animationDelay: `${Math.min(500, i * 7)}ms` }}
-                  onClick={() => (d.info || grad) && setDia({ ...d, grad })}
-                  disabled={!d.info && !grad}
+                  onClick={() => (d.info || grad || prot) && setDia({ ...d, grad, prot })}
+                  disabled={!d.info && !grad && !prot}
                 >
                   {d.dia}
                   {grad && <span className="cal-grad-ponto" />}
+                  {bateuODia(prot) === true && <span className="cal-prot-ponto" />}
                 </button>
               );
             })}
@@ -136,6 +146,7 @@ export default function Calendario({
         <span className="micro muted">menos</span>
         {[0, 1, 2, 3, 4].map((n) => <span key={n} className={`cal-dia n${n} legenda`} />)}
         <span className="micro muted">mais</span>
+        {temProt && <span className="micro muted row" style={{ gap: 5, marginLeft: 6 }}><span className="cal-prot-ponto legenda" /> bateu a proteína</span>}
         <span className="spacer" />
         {umMes && aoVerTudo && (
           <button className="btn ghost xs" onClick={aoVerTudo}>ver na Análise <ChevronRight size={12} /></button>
@@ -182,6 +193,20 @@ function DetalheDia({ d, onClose, rolls, partners, aoAbrirTreino }) {
               {d.grad.tipo === 'faixa' ? `Ganhou a faixa ${d.grad.faixa}` : `Ganhou o ${d.grad.graus}º grau`}
             </div>
             {d.grad.notas && <p className="micro muted" style={{ marginTop: 3 }}>{d.grad.notas}</p>}
+          </div>
+        </div>
+      )}
+
+      {bateuODia(d.prot) != null && (
+        <div className={`valida ${bateuODia(d.prot) ? 'bom' : ''}`}>
+          <Beef size={16} className="valida-ico" style={{ color: bateuODia(d.prot) ? 'var(--jade)' : 'var(--dim)' }} />
+          <div>
+            <div className="tiny" style={{ fontWeight: 600 }}>
+              {bateuODia(d.prot) ? 'Bateu a proteína' : 'Não bateu a proteína'}
+            </div>
+            {d.prot.proteina > 0 && (
+              <p className="micro muted" style={{ marginTop: 3 }}>{d.prot.proteina} g de {d.prot.meta} g, e {d.prot.carbo} g de carboidrato.</p>
+            )}
           </div>
         </div>
       )}

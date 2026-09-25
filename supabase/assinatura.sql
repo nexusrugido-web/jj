@@ -121,6 +121,82 @@ revoke all on function public.meu_acesso() from public;
 grant execute on function public.meu_acesso() to authenticated;
 
 -- ------------------------------------------------------------
+-- 3b. A ASSINATURA POR DENTRO
+--
+-- O que o card do Premium mostra: se renova sozinha, ate quando
+-- esta pago e as faturas.
+--
+-- Renova: a Hotmart cobra de novo sozinha. Cada cobranca chega
+-- com uma transacao nova e vira linha nova; cancelar tambem vira
+-- linha nova (o aviso de cancelamento nao traz transacao). Entao
+-- a linha mais nova diz o estado: 'ativa' renova, 'cancelada'
+-- nao renova mais (mas o que ja foi pago continua ate vencer).
+--
+-- Faturas: as cobrancas aprovadas do livro de eventos da Hotmart,
+-- achadas pela transacao, pelo codigo de assinante ou pelo e-mail
+-- da compra.
+-- ------------------------------------------------------------
+create or replace function public.minha_assinatura()
+returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+declare
+  v_user   uuid := auth.uid();
+  v_ultima public.assinatura%rowtype;
+  v_faturas jsonb := '[]'::jsonb;
+begin
+  if v_user is null then return null; end if;
+
+  select * into v_ultima from public.assinatura
+  where user_id = v_user
+  order by criado_em desc, id desc
+  limit 1;
+
+  if v_ultima.id is null then
+    return jsonb_build_object('renova', false, 'faturas', '[]'::jsonb);
+  end if;
+
+  if to_regclass('public.hotmart_evento') is not null then
+    select coalesce(jsonb_agg(f order by f->>'data' desc), '[]'::jsonb) into v_faturas
+    from (
+      select jsonb_build_object(
+        'data', e.criado_em,
+        'valor', e.valor,
+        'moeda', e.moeda,
+        'pagamento', e.pagamento,
+        'parcelas', e.parcelas,
+        'recorrencia', e.recorrencia,
+        'produto', e.produto_nome,
+        'reembolsada', exists (
+          select 1 from public.hotmart_evento r
+          where r.transacao = e.transacao
+            and r.evento in ('PURCHASE_REFUNDED', 'PURCHASE_CHARGEBACK'))
+      ) as f
+      from public.hotmart_evento e
+      where e.evento = 'PURCHASE_APPROVED'
+        and (e.produto is null or e.produto not in (
+              select id from public.produto_hotmart where tipo = 'fora'))
+        and (e.transacao in (select a.transacao from public.assinatura a
+                             where a.user_id = v_user and a.transacao is not null)
+             or e.assinante in (select a.codigo_assinante from public.assinatura a
+                                where a.user_id = v_user and a.codigo_assinante is not null)
+             or lower(e.email) in (select lower(a.email_compra) from public.assinatura a
+                                   where a.user_id = v_user))
+      order by e.criado_em desc
+      limit 36
+    ) x;
+  end if;
+
+  return jsonb_build_object(
+    'renova',       v_ultima.status = 'ativa',
+    'cancelada_em', v_ultima.cancelada_em,
+    'faturas',      v_faturas
+  );
+end $$;
+
+revoke all on function public.minha_assinatura() from public, anon;
+grant execute on function public.minha_assinatura() to authenticated;
+
+-- ------------------------------------------------------------
 -- 4. GRAVAR O QUE VEIO DA HOTMART
 -- So o n8n chama, com a service_role. Nunca o app.
 -- ------------------------------------------------------------
@@ -140,6 +216,9 @@ declare
   v_status text;
   v_user uuid;
   v_carencia timestamptz;
+  v_codigo text;
+  v_tel text;
+  v_base text;
 begin
   v_status := case p_evento
     when 'PURCHASE_APPROVED' then 'ativa'
@@ -195,11 +274,29 @@ begin
     atualizado_em = now()
   returning id into v_id;
 
-  -- sem conta encontrada, gera codigo pra pessoa ativar depois
-  if v_user is null then
-    insert into public.ativacao (codigo, assinatura_id)
-    values (upper(substr(md5(random()::text || v_id::text), 1, 8)), v_id)
+  -- sem conta encontrada, gera codigo pra pessoa ativar depois.
+  -- Um so por compra: APPROVED e COMPLETE chegam pra mesma
+  -- transacao, e antes cada um gerava um codigo.
+  if v_user is null and v_status = 'ativa'
+     and not exists (select 1 from public.ativacao where assinatura_id = v_id) then
+    v_codigo := upper(substr(md5(random()::text || v_id::text), 1, 8));
+    insert into public.ativacao (codigo, assinatura_id) values (v_codigo, v_id)
     on conflict do nothing;
+
+    /* o codigo vai pro WhatsApp de quem comprou, dentro de um link:
+       um toque abre o app e libera, sem digitar nada. Quem ainda nao
+       tem conta so precisa criar com o e-mail da compra. */
+    v_tel := coalesce(
+      public.telefone_br(p_bruto #>> '{data,buyer,phone}'),
+      public.telefone_br(p_bruto #>> '{data,buyer,checkout_phone}', p_bruto #>> '{data,buyer,checkout_phone_code}'));
+    if v_tel is not null and to_regprocedure('public.responder_para(text,text)') is not null then
+      v_base := coalesce((select link_base from public.vendas_ajuste where id = 1), 'https://jj-theta-eight.vercel.app');
+      perform public.responder_para(v_tel,
+        'Sua assinatura do NeuroJitsu Premium entrou! 🥋' || chr(10) || chr(10)
+        || 'Se você já usa o app com outro e-mail, toque no link pra liberar o Premium na sua conta:' || chr(10)
+        || rtrim(v_base, '/') || '/?ativar=' || v_codigo || chr(10) || chr(10)
+        || 'Ainda não tem conta? É só criar com o e-mail da compra (' || lower(p_email) || ') que o Premium já vem ligado.');
+    end if;
   end if;
 
   return v_id;

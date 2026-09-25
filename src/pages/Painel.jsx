@@ -42,7 +42,7 @@ export default function Painel() {
   const [carregandoIa, setCarregandoIa] = useState(false);
   const [conviteIa, setConviteIa] = useState(false);
   const [ofensivaAberta, setOfensivaAberta] = useState(false);
-  /* no grátis ficam os números; os gráficos e o "o que treinar" são do premium */
+  /* no grátis ficam os números; os gráficos e o "o que treinar" são do Premium */
   const graficosLivres = podeVer(acesso, 'analise');
   const recsLivres = podeVer(acesso, 'recomendacoes');
   /* todo mundo entra na liga sozinho; o convite é pra quem saiu,

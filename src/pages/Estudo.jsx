@@ -493,7 +493,7 @@ function PontosDoEstudo({ aberto, onClose, cobrando }) {
         {itens.map((e) => (
           <Linha
             key={e.id}
-            nome={e.premium ? `${e.nome} · premium` : e.nome}
+            nome={e.premium ? `${e.nome} · Premium` : e.nome}
             valor={`+${e.xp}`}
             detalhe={`${e.desc} Até ${e.tetoDia} ${e.tetoDia === 1 ? 'vez' : 'vezes'} por dia.`}
           />

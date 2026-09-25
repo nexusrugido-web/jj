@@ -52,7 +52,7 @@ export const EVENTOS = {
     tetoDia: 3,
     familia: 'estudo',
     premium: true,
-    desc: 'Rever aula rápida vale um ponto, e só no premium. No grátis ela vale uma vez só.',
+    desc: 'Rever aula rápida vale um ponto, e só no Premium. No grátis ela vale uma vez só.',
   },
   short: {
     id: 'short',

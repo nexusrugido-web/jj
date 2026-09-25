@@ -17,7 +17,7 @@ import { compartilhar } from '../lib/card';
    A pessoa escolhe o fundo, se sai com frase de impacto (e troca
    por outra) e a cor. Tudo é de graça, porque cada post leva o
    NeuroJitsu pra quem ainda não conhece; só as cores extras são
-   do premium, e a prévia mostra elas antes de pedir pra assinar.
+   do Premium, e a prévia mostra elas antes de pedir pra assinar.
 
    dados  { selo, grande, sub, pct, faixa }
    tipo   qual lista de frases (graduacao, recorde, ofensiva,
@@ -117,9 +117,9 @@ export default function Figurinha({ aberto, onClose, dados, tipo = 'marco', link
       {travado ? (
         <div className="figurinha-premium">
           <p className="tiny" style={{ lineHeight: 1.6 }}>
-            <b>A cor da faixa e o dourado são do premium.</b> Na cor do app, a figurinha inteira continua de graça.
+            <b>A cor da faixa e o dourado são do Premium.</b> Na cor do app, a figurinha inteira continua de graça.
           </p>
-          <Btn variant="primary" onClick={() => { onClose(); irPara('ajustes'); }} style={{ width: '100%' }}>Liberar no premium</Btn>
+          <Btn variant="primary" onClick={() => { onClose(); irPara('ajustes'); }} style={{ width: '100%' }}>Liberar no Premium</Btn>
         </div>
       ) : (
         <div className="col" style={{ gap: 8 }}>

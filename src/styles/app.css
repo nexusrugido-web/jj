@@ -3322,7 +3322,24 @@ body::after {
 .nutri-comida { display: flex; align-items: center; gap: 8px; padding: 10px 10px 10px 12px; border-radius: var(--r-sm); background: var(--void); border: 1px solid var(--seam); }
 .nutri-comida.on { border-color: color-mix(in srgb, var(--jade) 40%, var(--seam)); background: color-mix(in srgb, var(--jade) 6%, var(--void)); }
 .nutri-mais { flex: none; width: 34px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; background: var(--mat-top); border: 1px solid var(--seam-hi); color: var(--chalk); }
-.nutri-momento { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: var(--r-sm); background: var(--void); border: 1px solid var(--seam); }
+.nutri-dia-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.bar.grossa { height: 12px; }
+.nutri-refeicao { display: inline-flex; align-items: stretch; border-radius: 99px; border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--seam)); background: color-mix(in srgb, var(--accent) 8%, var(--void)); overflow: hidden; }
+.nutri-refeicao button { display: inline-flex; align-items: center; gap: 5px; padding: 8px 10px 8px 12px; font: inherit; font-size: var(--fs-sec); font-weight: 700; color: var(--chalk); background: none; border: 0; }
+.nutri-refeicao button + button { padding: 8px 10px; color: var(--dim); border-left: 1px solid var(--seam); }
+.nutri-editar { display: inline-flex; margin-left: 6px; padding: 2px; vertical-align: middle; color: var(--dim); background: none; border: 0; }
+.nutri-itens { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.nutri-sanfona { display: flex; align-items: center; gap: 12px; width: 100%; color: inherit; font: inherit; background: none; border: 0; padding: 0; }
+/* o calendário da proteína: verde bateu, contorno anotado sem bater */
+.cal-dia.prot.bateu { background: color-mix(in srgb, var(--jade) 70%, var(--mat-top)); color: #06140f; box-shadow: 0 0 12px -5px var(--jade); }
+.cal-dia.prot.anotado { border-color: color-mix(in srgb, var(--jade) 55%, transparent); color: var(--chalk); }
+.cal-dia.prot.aberto { outline: 2px solid var(--chalk); outline-offset: 1px; }
+/* no calendário de presença, o dia em que bateu a proteína ganha um ponto verde embaixo */
+.cal-prot-ponto {
+  position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);
+  width: 5px; height: 5px; border-radius: 99px; background: var(--jade);
+}
+.cal-prot-ponto.legenda { position: static; transform: none; width: 7px; height: 7px; }
 .nutri-supl { display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: var(--r-sm); background: var(--void); border: 1px solid color-mix(in srgb, var(--cor) 30%, var(--seam)); --cor: var(--dim); }
 .nutri-supl.vale { --cor: var(--jade); } .nutri-supl.depende { --cor: var(--roar); } .nutri-supl.nao { --cor: var(--blood); }
 .nutri-supl-selo { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 800; padding: 2px 8px; border-radius: 99px; color: var(--cor); background: color-mix(in srgb, var(--cor) 14%, transparent); }

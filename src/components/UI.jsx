@@ -205,8 +205,8 @@ export function Empty({ icon: Icon, titulo, texto, acao }) {
   );
 }
 
-/* ---------------- o diamante do premium ----------------
-   Marca o que é do premium, na cor de destaque que a pessoa escolheu.
+/* ---------------- o diamante do Premium ----------------
+   Marca o que é do Premium, na cor de destaque que a pessoa escolheu.
    Só aparece com a cobrança ligada: sem cobrança, nada é premium. */
 export function Diamante({ size = 13 }) {
   const app = useApp();

@@ -11,7 +11,8 @@ import { supabase, supabaseConfigurado, sessaoAtual } from './lib/supabase';
 import { enfileirar, iniciarSync, onSync, garantirNuvem } from './lib/sync';
 import { resumo as calcResumo } from './lib/stats';
 import { minhasTecnicas, resumoGraus } from './lib/graus';
-import { sincronizarAcesso, acessoLocal } from './lib/plano';
+import { sincronizarAcesso, acessoLocal, guardarCodigoDaUrl } from './lib/plano';
+import Renovacao from './components/Renovacao';
 import { subirPerfil, mexeuNoPerfil } from './lib/perfil';
 import { acervoLocal, sincronizarAcervo, observarAcervo } from './lib/acervo';
 import { subirPraLiga, restaurarPontos } from './lib/liga';
@@ -208,6 +209,8 @@ export default function App() {
       };
 
       await passo('seed', ensureSeed);
+      /* o link do WhatsApp que libera o Premium (?ativar=): guarda antes de qualquer tela */
+      await passo('código de ativação', guardarCodigoDaUrl, 2000);
       /* a cópia local do acervo entra antes da primeira tela, senão
          o Estudo abre com o acervo velho e troca na cara da pessoa */
       await passo('acervo', acervoLocal);
@@ -472,13 +475,6 @@ export default function App() {
         <div className="col center" style={{ alignItems: 'center', gap: 14, textAlign: 'center' }}>
           <span className="brand-mark pulse" style={{ width: 54, height: 54, borderRadius: 16 }} />
           <span className="eyebrow">carregando o tatame</span>
-          <button
-            className="btn ghost xs"
-            style={{ marginTop: 18, opacity: 0.7 }}
-            onClick={() => setPronto(true)}
-          >
-            Demorando? Toque pra entrar assim mesmo
-          </button>
         </div>
       </div>
     );
@@ -599,6 +595,7 @@ export default function App() {
         )}
         <Tour aberto={tourAberto} onClose={() => setTourAberto(false)} onConcluir={() => salvarSettings({ tourVisto: 1 })} />
         <Celebracao marco={celebrar} onFechar={() => setCelebrar(null)} />
+        <Renovacao />
       </AppCtx.Provider>
     </ToastProvider>
   );

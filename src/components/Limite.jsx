@@ -20,7 +20,7 @@ import { comOrigemDoApp } from '../lib/links';
    falta ali não é cota, é compra.
 
    O aviso é uma folha e não um alerta do navegador, porque a
-   pessoa precisa conseguir ler o que ganha no premium e fechar
+   pessoa precisa conseguir ler o que ganha no Premium e fechar
    sem sair do lugar onde estava.
    ============================================================ */
 export function useLimite(acesso, irPara) {

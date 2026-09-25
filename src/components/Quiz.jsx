@@ -31,7 +31,7 @@ export default function Quiz({ faixa = 'branca', dor = null, tema = null, onSair
   }, [acesso]);
 
   const [fila, setFila] = useState(null);
-  /* no grátis a rodada é sorteada; a revisão do que você errou é do premium */
+  /* no grátis a rodada é sorteada; a revisão do que você errou é do Premium */
   const revisa = podeVer(acesso, 'quizIlimitado');
   const [sorteio] = useState(() => Math.random());
   const [i, setI] = useState(0);
@@ -140,7 +140,7 @@ export default function Quiz({ faixa = 'branca', dor = null, tema = null, onSair
             <p className="micro muted" style={{ lineHeight: 1.6 }}>
               {revisa
                 ? 'Próxima rodada já está pronta: ela começa pelas que você errou.'
-                : 'A próxima rodada abre amanhã, com perguntas novas. No premium o quiz não acaba e volta nas que você errou.'}
+                : 'A próxima rodada abre amanhã, com perguntas novas. No Premium o quiz não acaba e volta nas que você errou.'}
             </p>
           </div>
           <div className="row" style={{ gap: 9 }}>

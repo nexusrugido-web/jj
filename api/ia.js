@@ -53,7 +53,7 @@ async function barrar(acao, req) {
     if (chave?.[0]?.ligada) {
       const acesso = await (await doSupabase('/rest/v1/rpc/meu_acesso', token, {})).json().catch(() => null);
       const r = Array.isArray(acesso) ? acesso[0] : acesso;
-      if (!r?.premium) return { status: 402, erro: 'A Análise IA é do premium.' };
+      if (!r?.premium) return { status: 402, erro: 'A Análise IA é do Premium.' };
     }
   }
   return null;
