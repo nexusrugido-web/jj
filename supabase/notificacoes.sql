@@ -366,7 +366,15 @@ begin
 end $$;
 
 
-create or replace function public.testar_aviso(p_email text)
+/* a versao antiga so tinha o email. Sem derrubar ela, o Postgres
+   fica com as duas e a chamada so com email nao sabe qual usar. */
+drop function if exists public.testar_aviso(text);
+
+/* p_tipo: teste, ofensiva, liga, resultado ou volta. p_dias e a
+   ofensiva que aparece no aviso. p_versao escolhe qual das versoes
+   do texto sai (o sw.js tem mais de uma por tipo). */
+create or replace function public.testar_aviso(p_email text, p_tipo text default 'teste',
+                                               p_dias int default 1, p_versao int default 0)
 returns text language plpgsql security definer set search_path = public as $$
 declare
   v_user uuid;
@@ -395,7 +403,7 @@ begin
       'Content-Type',  'application/json',
       'apikey',        (select decrypted_secret from vault.decrypted_secrets where name = 'chave_notificar')
     ),
-    body    := jsonb_build_object('teste', v_user)
+    body    := jsonb_build_object('teste', v_user, 'tipo', p_tipo, 'dias', p_dias, 'versao', p_versao)
   );
 
   return 'mandei pra ' || v_n || ' aparelho(s). Chega em segundos. Se nao chegar, veja os logs da funcao notificar no painel.';
@@ -404,9 +412,9 @@ end $$;
 
 
 revoke all on function public.diagnostico_de_aviso(text) from public, anon;
-revoke all on function public.testar_aviso(text) from public, anon;
+revoke all on function public.testar_aviso(text, text, int, int) from public, anon;
 grant execute on function public.diagnostico_de_aviso(text) to authenticated;
-grant execute on function public.testar_aviso(text) to authenticated;
+grant execute on function public.testar_aviso(text, text, int, int) to authenticated;
 
 -- ------------------------------------------------------------
 -- 6. MARCAR O QUE SAIU, E LIMPAR O QUE MORREU

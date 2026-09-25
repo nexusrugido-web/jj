@@ -66,25 +66,28 @@ const ROTA = {
 
 /* Com a cara do tatame: brinca, mas cobra. Cada tipo tem algumas
    versões, e o dia escolhe qual sai, pra não virar papel de parede. */
-const doDia = (lista) => lista[Math.floor(Date.now() / 86400000) % lista.length];
+const doDia = (lista, versao) =>
+  lista[(Number.isInteger(versao) ? versao : Math.floor(Date.now() / 86400000)) % lista.length];
 
 function aviso(n) {
+  /* o teste do admin escolhe a versão; o aviso de verdade usa a do dia */
+  const qual = (lista) => doDia(lista, n.versao);
   const dias = Number(String(n.title || '').match(/^\d+/)?.[0]) || 0;
   const tipo = n.tag || '';
   if (tipo === 'ofensiva') {
     return {
       titulo: dias > 1
-        ? doDia([
+        ? qual([
           `🔥 ${dias} dias sem bater. Não vai dar os três tapinhas justo hoje, né?`,
           `🥋 ${dias} dias seguidos. Faixa preta é só uma faixa branca que não faltou, lembra?`,
           `🔥 ${dias} dias de ofensiva. Não deixa ela te raspar logo agora.`,
           `💪 ${dias} dias seguidos. O tatame lembra de quem aparece, e ele tem boa memória.`,
         ])
-        : doDia([
+        : qual([
           '🔥 Sua ofensiva fecha hoje. Não deixa ela te bater, hein?',
           '🥋 O primeiro dia é o mais fácil de largar. Segura esse, que o segundo já fica leve.',
         ]),
-      corpo: doDia([
+      corpo: qual([
         'Uma aula rápida de um minuto já segura a posição. Dá pra ver até na fila do mercado.',
         'Nem precisa rolar hoje: uma aula rápida já fecha o dia e mantém a sequência de pé.',
         'Disciplina é aparecer justo no dia em que o corpo pede pra bater. Um minuto resolve.',
@@ -97,7 +100,7 @@ function aviso(n) {
   }
   if (tipo === 'liga') {
     return {
-      ...doDia([
+      ...qual([
         { titulo: '🏆 A liga fecha hoje. Ainda dá pra finalizar no último minuto.', corpo: 'Uns pontos a mais e você sobe no grupo antes da meia-noite. Um treino ou uma aula já mexem no placar.' },
         { titulo: '⏱️ Último round da liga. Hora de apertar o estrangulamento.', corpo: 'A semana fecha à meia-noite, e quem aparece hoje passa na frente de quem deixou pra amanhã.' },
       ]),
@@ -106,7 +109,7 @@ function aviso(n) {
   }
   if (tipo === 'resultado') {
     return {
-      ...doDia([
+      ...qual([
         { titulo: '📊 O árbitro levantou a mão. Saiu o resultado da liga.', corpo: 'Vem ver onde você terminou e com quem você vai correr nesta semana.' },
         { titulo: '📊 A liga fechou. Foi pódio ou repescagem?', corpo: 'Entra pra ver onde você terminou e quem caiu no seu grupo agora.' },
       ]),
@@ -115,7 +118,7 @@ function aviso(n) {
   }
   if (tipo === 'volta') {
     return {
-      ...doDia([
+      ...qual([
         { titulo: '🥋 Seu kimono tá sentindo sua falta (e ele já até secou).', corpo: 'Seu jogo está do jeito que você deixou. Volta com uma aula rápida, sem pressa e sem culpa.' },
         { titulo: '🥋 O tatame continua aí. Ninguém pegou o seu lugar, mas também ninguém guardou.', corpo: 'Uma aula rápida hoje, e amanhã voltar já fica bem mais fácil.' },
       ]),

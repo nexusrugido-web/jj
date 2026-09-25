@@ -83,9 +83,12 @@ Deno.serve(async (req) => {
 
   /* {"teste": "<user_id>"} pula todas as regras e manda um aviso
      pros aparelhos daquela pessoa. E o que o testar_aviso() do
-     banco usa pra a gente ver a notificacao sem esperar a hora. */
-  let teste: string | null = null;
-  try { teste = (await req.json())?.teste ?? null; } catch { teste = null; }
+     banco usa pra a gente ver a notificacao sem esperar a hora.
+     Com "tipo", "dias" e "versao", o teste sai com a cara de um
+     aviso de verdade (ofensiva, liga...), pro admin ver cada um. */
+  let pedido: { teste?: string; tipo?: string; dias?: number; versao?: number } = {};
+  try { pedido = (await req.json()) ?? {}; } catch { pedido = {}; }
+  const teste = pedido.teste ?? null;
 
   const { data: fila, error } = await db.rpc('fila_de_notificacao', { p_teste: teste });
   if (error) {
@@ -98,6 +101,11 @@ Deno.serve(async (req) => {
 
   const resultados = await Promise.all(
     fila.map(async (l: Record<string, string | number>) => {
+      /* o teste de um tipo: o sw.js escolhe o texto pelo tag, e na
+         ofensiva lê os dias no começo do título */
+      if (teste && pedido.tipo) {
+        l = { ...l, tipo: pedido.tipo, titulo: pedido.tipo === 'ofensiva' ? `${pedido.dias ?? 1} dias` : l.titulo };
+      }
       const corpo = JSON.stringify({
         web_push: 8030,
         notification: {
@@ -113,6 +121,8 @@ Deno.serve(async (req) => {
           /* o tag faz a nova substituir a anterior do mesmo tipo
              em vez de empilhar duas na bandeja */
           tag: String(l.tipo),
+          /* só no teste: qual versão do texto sair, em vez da do dia */
+          ...(teste && pedido.versao != null ? { versao: pedido.versao } : {}),
         },
       });
 
