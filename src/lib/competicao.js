@@ -9,6 +9,7 @@
    ano. O que fica registrado é a categoria que você lutou e o
    peso que deu na balança no dia.
    ============================================================ */
+import { placarDaRola } from './game';
 
 export const ORGANIZACOES = [
   'IBJJF / CBJJ',
@@ -67,9 +68,13 @@ export function resumoDeCompeticoes(sessoes, rolasPorSessao) {
   for (const s of sessoes) {
     const rs = rolasPorSessao.get(s.id) || [];
     lutas += rs.length || Number(s.competicao?.lutas) || 0;
-    vitorias += rs.length
-      ? rs.filter((r) => (r.subsAplicadas || []).length > 0 || r.resultado === 'finalizei' || r.resultado === 'venci_pontos' || r.resultado === 'venci_vantagem').length
-      : Number(s.competicao?.vitorias) || 0;
+    /* a mesma regra do resto do app: quem finalizou mais, depois pontos e
+       vantagem. Antes, qualquer luta com finalização contava como vitória,
+       até a que terminou 1 a 2 nas finalizações. A luta registrada antes do
+       placar (sem v2) ainda vale pelo resultado que foi marcado nela. */
+    const ganhou = (r) => placarDaRola(r).ganhou
+      || (!r.v2 && ['finalizei', 'venci_pontos', 'venci_vantagem'].includes(r.resultado));
+    vitorias += rs.length ? rs.filter(ganhou).length : Number(s.competicao?.vitorias) || 0;
     if (ehPodio(s.competicao?.resultado)) podios++;
   }
   return { campeonatos: sessoes.length, lutas, vitorias, podios };

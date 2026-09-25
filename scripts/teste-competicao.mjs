@@ -72,6 +72,22 @@ const rolasPorSessao = new Map([[treinos[1].id, [
 ]]]);
 ok('o resumo conta as lutas registradas e soma as antigas',
   C.resumoDeCompeticoes(treinos, rolasPorSessao), { campeonatos: 2, lutas: 5, vitorias: 4, podios: 2 });
+/* finalizou 1 e levou 2: perdeu, mesmo tendo finalizado */
+const perdeuMesmoFinalizando = new Map([[treinos[1].id, [
+  { v2: 1, subsAplicadas: ['Armlock'], subsSofridas: ['Americana', 'Mata-leão'] },
+]]]);
+ok('luta com finalização que terminou perdida não conta como vitória',
+  C.resumoDeCompeticoes([treinos[1]], perdeuMesmoFinalizando).vitorias, 0);
+
+/* ---------- o padrão de cada tipo de treino ---------- */
+const { padraoDoTipo } = await import('../src/lib/padraoTreino.js');
+const ajustes = { academiaPadraoId: 7, professorPadraoId: 3, duracaoTreinoPadrao: 90 };
+ok('Gi usa a academia, o professor e a duração de sempre', padraoDoTipo(ajustes, 'gi'), { academiaId: 7, professorId: 3, duracao: 90 });
+ok('competição não herda a academia nem o professor', padraoDoTipo(ajustes, 'competicao'), { academiaId: null, professorId: null, duracao: null });
+ok('open mat fica na academia, sem professor', padraoDoTipo(ajustes, 'openmat'), { academiaId: 7, professorId: null, duracao: 90 });
+ok('o padrão salvo de um tipo vale só pra ele',
+  [padraoDoTipo({ ...ajustes, padroesTreino: { drill: { academiaId: 9, professorId: null, duracao: 60 } } }, 'drill').academiaId,
+    padraoDoTipo({ ...ajustes, padroesTreino: { drill: { academiaId: 9, professorId: null, duracao: 60 } } }, 'gi').academiaId], [9, 7]);
 
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

@@ -2828,6 +2828,37 @@ button.liga-linha:hover { border-color: var(--seam-hi); }
 }
 .figurinha-previa img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .figurinha-opcoes { display: flex; flex-direction: column; gap: 8px; }
+/* ---------- o resumo de cada tipo de treino ---------- */
+.tipo-hero {
+  --cor: var(--accent);
+  display: flex; flex-direction: column; gap: 14px; margin-bottom: 14px; padding: 16px;
+  border-radius: var(--r); border: 1px solid color-mix(in srgb, var(--cor) 35%, var(--seam));
+  background:
+    radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--cor) 18%, transparent), transparent 60%),
+    linear-gradient(170deg, var(--mat-hi), var(--mat));
+}
+.tipo-hero-ico {
+  flex: none; width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center;
+  color: var(--cor); background: color-mix(in srgb, var(--cor) 16%, var(--void));
+  box-shadow: 0 0 22px -8px var(--cor);
+}
+.tipo-hero-nome { font-family: var(--display); font-weight: 800; font-size: 19px; letter-spacing: -0.02em; }
+.tipo-numeros { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+@media (max-width: 420px) { .tipo-numeros { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tipo-numeros > div { display: flex; flex-direction: column; gap: 2px; padding: 10px; border-radius: 10px; background: color-mix(in srgb, var(--void) 80%, transparent); border: 1px solid var(--seam); }
+.tipo-numeros b { font-size: 21px; font-weight: 800; line-height: 1.05; color: var(--chalk); }
+.tipo-numeros > div:first-child b { color: var(--cor); }
+.tipo-numeros span { font-size: 11.5px; color: var(--dim); }
+.tipo-destaque { display: flex; align-items: center; gap: 10px; }
+.tipo-destaque-barra { flex: 0 0 38%; height: 7px; border-radius: 99px; background: var(--seam); overflow: hidden; }
+.tipo-destaque-barra > i { display: block; height: 100%; border-radius: 99px; background: var(--cor); }
+.tipo-proximo {
+  display: flex; align-items: center; gap: 12px; padding: 12px 13px; border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--cor) 10%, var(--void)); border: 1px dashed color-mix(in srgb, var(--cor) 50%, transparent);
+  color: var(--cor);
+}
+.tipo-proximo .tiny { color: var(--chalk); }
+
 /* o convite do Estudo: "O que mais te trava hoje?" pisca de leve até a
    pessoa responder */
 .trava-convite {

@@ -2,8 +2,8 @@ import React, { useMemo, useState, useEffect, Suspense } from 'react';
 import { lazy } from '../lib/lazy';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
-  Plus, Trash2, Pencil, Swords, NotebookPen, Timer, ChevronDown, ChevronRight, Copy, Check,
-  MessageSquare, Building2, GraduationCap, Trophy, Weight, Mic, Users,
+  Plus, Trash2, Pencil, NotebookPen, Timer, ChevronDown, ChevronRight, Copy, Check,
+  MessageSquare, Building2, GraduationCap, Trophy, Weight, Mic, Users, History,
 } from 'lucide-react';
 import { useApp } from '../contexto';
 import { db } from '../db/db';
@@ -16,15 +16,18 @@ import { darXp, checarConsistencia } from '../lib/xp';
 import { SeletorTecnica, ListaFoco, APRENDIZADO } from '../components/SeletorTecnica';
 import {
   Card, Btn, Field, Input, NumeroInput, EscolherData, Textarea, Select, Sheet, Chip, Stepper,
-  Empty, Stat, Confirmar, useToast, SubsInput, Busca, PontosInput, EscolhaChips, ParceiroRapido,
+  Empty, Confirmar, useToast, SubsInput, Busca, PontosInput, EscolhaChips, ParceiroRapido, Seg,
 } from '../components/UI';
+import Calendario from '../components/Calendario';
+import ResumoDoTipo from '../components/ResumoDoTipo';
 import { hoje, fmtDur, relativo, buscaMatch, mesPorExtenso } from '../lib/utils';
 import { recortarHistorico } from '../lib/plano';
 import { HistoricoCortado } from '../components/Plano';
 import AntesDeCompetir from '../components/AntesDeCompetir';
+import { padraoDoTipo } from '../lib/padraoTreino';
 import {
   ORGANIZACOES, DIVISOES, CATEGORIAS_PESO, RESULTADOS, resultadoPorId, ehPodio,
-  competicaoVazia, resumoDeCompeticoes,
+  competicaoVazia,
 } from '../lib/competicao';
 
 const TIPOS = [
@@ -40,12 +43,12 @@ const TIPOS = [
    o adversário é desconhecido e o resultado conta de outro jeito. */
 const ehCompeticao = (tipo) => tipo === 'competicao';
 
-const novaSessao = (settings) => ({
+const novaSessao = (settings, tipo = 'gi') => ({
   data: hoje(),
-  tipo: 'gi',
-  duracao: settings.duracaoTreinoPadrao || 90,
-  academiaId: settings.academiaPadraoId || null,
-  professorId: settings.professorPadraoId || null,
+  tipo,
+  duracao: padraoDoTipo(settings, tipo).duracao || 90,
+  academiaId: padraoDoTipo(settings, tipo).academiaId,
+  professorId: padraoDoTipo(settings, tipo).professorId,
   foco: '',
   focoTecnicas: [],
   nota: '',
@@ -113,6 +116,8 @@ const AbaParceiros = lazy(() => import('./Parceiros').then((m) => ({ default: m.
 
 /* o histórico é a própria tela: carrega de 20 em 20, agrupado por mês */
 const POR_VEZ = 20;
+/* na tela ficam os 10 mais recentes; o resto abre no popup, em lista ou calendário */
+const NA_TELA = 10;
 
 export default function Treinos() {
   const { sessions, rolls, partners, positions, techniques, categories, settings, salvarSettings, ligada, acesso, irPara } = useApp();
@@ -130,6 +135,8 @@ export default function Treinos() {
   const [cronoAberto, setCronoAberto] = useState(false);
   const [vozAberta, setVozAberta] = useState(false);
   const [mostrar, setMostrar] = useState(POR_VEZ);
+  /* 'lista' ou 'calendario': o popup com todos os treinos */
+  const [todosAberto, setTodosAberto] = useState(null);
 
   useEffect(() => {
     const q = new URLSearchParams(location.search);
@@ -142,6 +149,7 @@ export default function Treinos() {
       /* o treino pedido pode estar depois dos primeiros 20 */
       const i = sessions.findIndex((s) => s.id === id);
       if (i >= 0) setMostrar((m) => Math.max(m, Math.ceil((i + 1) / POR_VEZ) * POR_VEZ));
+      if (i >= NA_TELA) setTodosAberto('lista');
       // rola até o cartão depois que a lista renderiza
       const t = setTimeout(() => {
         const el = document.getElementById(`treino-${id}`);
@@ -221,7 +229,6 @@ export default function Treinos() {
   /* no plano grátis, com a cobrança ligada, o histórico mostra os
      últimos 30 dias e avisa quantos ficaram antes */
   const { itens: lista, cortados } = useMemo(() => recortarHistorico(filtrados, acesso), [filtrados, acesso]);
-  const resumoComp = useMemo(() => resumoDeCompeticoes(lista, rolasPorSessao), [lista, rolasPorSessao]);
 
   /* o que a IA entendeu vira um treino aberto pra você conferir.
      Nada é salvo antes de você olhar. */
@@ -405,6 +412,200 @@ export default function Treinos() {
     toast('Treino excluído');
   }
 
+  /* o cartão de um treino: o mesmo na tela e no popup de todos */
+  const cartao = (s, i, visiveis) => {
+      const rs = rolasPorSessao.get(s.id) || [];
+      const abertaAqui = aberta === s.id;
+      const fin = rs.flatMap((r) => r.subsAplicadas || []).length;
+      const taps = rs.flatMap((r) => r.subsSofridas || []).length;
+      const ptsM = rs.reduce((a, r) => a + somarPontos(r.ptsMeus), 0);
+      const ptsD = rs.reduce((a, r) => a + somarPontos(r.ptsDele), 0);
+      const nota = notaDaSessao(s);
+      const comNotas = rs.filter((r) => r.notas?.trim()).length;
+      const acad = acadById[s.academiaId]?.nome || s.academia;
+      const prof = profById[s.professorId]?.nome || s.professor;
+      const nomeTipo = TIPOS.find((t) => t.id === s.tipo)?.nome || s.tipo;
+
+      const mes = (s.data || '').slice(0, 7);
+      const novoMes = mes && (i === 0 || mes !== (visiveis[i - 1].data || '').slice(0, 7));
+
+      return (
+        <React.Fragment key={s.id}>
+        {novoMes && <div className="eyebrow" style={{ marginTop: i ? 10 : 0 }}>{mesPorExtenso(mes)}</div>}
+        <Card id={`treino-${s.id}`} className="pad-0 hover">
+          <button
+            className="list-item"
+            style={{ borderBottom: abertaAqui ? '1px solid var(--seam)' : 0, padding: 15, alignItems: 'flex-start' }}
+            onClick={() => setAberta(abertaAqui ? null : s.id)}
+          >
+            {/* registro de treino: a data num bloco, o que foi em cima,
+                e os números do dia em destaque, sem virar tabela */}
+            <span className="treino-data">
+              <span className="treino-dia num">{String(s.data || '').slice(8, 10)}</span>
+              <span className="treino-mes">{s.data ? new Date(`${s.data}T12:00:00`).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '') : ''}</span>
+            </span>
+            <div className="grow">
+              <div className="row" style={{ gap: 8, alignItems: 'baseline' }}>
+                <span className="treino-titulo">{s.competicao?.evento || s.foco || nomeTipo || 'Treino'}</span>
+                {s.rpe != null && <span className="treino-rpe num" title="esforço percebido, de 0 a 10">RPE {s.rpe}</span>}
+              </div>
+              <div className="micro muted" style={{ marginTop: 3 }}>
+                {[(s.competicao?.evento || s.foco) && nomeTipo, s.duracao ? fmtDur(s.duracao) : null, relativo(s.data), prof, acad].filter(Boolean).join(' · ')}
+              </div>
+              {(rs.length > 0 || ptsM > 0 || ptsD > 0 || fin > 0 || taps > 0 || comNotas > 0) && (
+                <div className="treino-numeros">
+                  {rs.length > 0 && <span><b className="num">{rs.length}</b> {ehCompeticao(s.tipo) ? (rs.length > 1 ? 'lutas' : 'luta') : (rs.length > 1 ? 'rolas' : 'rola')}</span>}
+                  {(ptsM > 0 || ptsD > 0) && <span><b className="num">{ptsM}×{ptsD}</b> pontos</span>}
+                  {fin > 0 && <span className="bom"><b className="num">{fin}</b> {fin > 1 ? 'finalizações' : 'finalização'}</span>}
+                  {taps > 0 && <span className="ruim"><b className="num">{taps}</b> {taps > 1 ? 'taps' : 'tap'}</span>}
+                  {comNotas > 0 && <span><MessageSquare size={13} /> {comNotas}</span>}
+                </div>
+              )}
+              {(s.competicao?.resultado || s.competicao?.categoria) && (
+                <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+                  {s.competicao?.resultado && (
+                    <Chip tone={resultadoPorId(s.competicao.resultado)?.tone || ''}>
+                      {ehPodio(s.competicao.resultado) && <Trophy size={11} />} {resultadoPorId(s.competicao.resultado)?.nome}
+                    </Chip>
+                  )}
+                  {s.competicao?.categoria && (
+                    <Chip>{s.competicao.categoria}{s.competicao.absoluto ? ' + absoluto' : ''}</Chip>
+                  )}
+                </div>
+              )}
+            </div>
+            <span style={{ marginTop: 4 }}>
+              {abertaAqui ? <ChevronDown size={17} className="muted" /> : <ChevronRight size={17} className="muted" />}
+            </span>
+          </button>
+
+          {abertaAqui && (
+            <div style={{ padding: 15 }}>
+              {nota && (
+                <div className="card" style={{ background: 'var(--void)', marginBottom: 12 }}>
+                  <div className="eyebrow" style={{ marginBottom: 6 }}>anotação da aula</div>
+                  <p className="tiny" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>{nota}</p>
+                </div>
+              )}
+
+              {(s.focoTecnicas || []).length > 0 && (
+                <div style={{ marginBottom: 12 }}>
+                  <div className="eyebrow" style={{ marginBottom: 8 }}>técnicas da aula</div>
+                  <div className="row wrap" style={{ gap: 6 }}>
+                    {s.focoTecnicas.map((f, k) => {
+                      const a = APRENDIZADO.find((x) => x.id === f.aprendizado);
+                      return (
+                        <Chip key={k} tone={a?.cor || ''}>
+                          {f.nome}{a && <span className="micro" style={{ opacity: .8 }}> · {a.nome}</span>}
+                        </Chip>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {(s.tecnicasDoDia || []).length > 0 && (
+                <div className="row wrap" style={{ gap: 6, marginBottom: 12 }}>
+                  {s.tecnicasDoDia.map((t) => <Chip key={t}>{t}</Chip>)}
+                </div>
+              )}
+
+              {rs.length > 0 && (
+                <div className="col" style={{ gap: 9, marginBottom: 12 }}>
+                  <span className="eyebrow">os rolas</span>
+                  {rs.map((r, i) => {
+                    const pl = placarDaRola(r);
+                    const parceiro = partById[r.partnerId];
+                    return (
+                      <div key={i} className="card" style={{ background: 'var(--void)', padding: 13 }}>
+                        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+                          <span className="num micro muted">#{i + 1}</span>
+                          <span className="tiny" style={{ fontWeight: 600 }}>{parceiro?.nome || 'Sem parceiro'}</span>
+                          {parceiro?.faixa && <Chip>{parceiro.faixa}</Chip>}
+                          {r.pesoRel && <Chip>{pesoRelPorId[r.pesoRel]?.icone} {r.pesoRel === 'similar' ? 'peso igual' : r.pesoRel}</Chip>}
+                          <Chip tone={TOM_RESULTADO[pl.resultado] || ''}>{ROTULO_RESULTADO[pl.resultado]}</Chip>
+                          <span className="spacer" />
+                          <span className="micro muted num">{r.duracao}min</span>
+                        </div>
+
+                        {(pl.meus > 0 || pl.dele > 0 || (r.vantMinhas || 0) > 0 || (r.vantDele || 0) > 0) && (
+                          <div className="row wrap" style={{ gap: 9, marginTop: 10, alignItems: 'center' }}>
+                            <span className="num" style={{ fontSize: 20, fontWeight: 700, color: 'var(--jade)' }}>{pl.meus}</span>
+                            <span className="micro muted">×</span>
+                            <span className="num" style={{ fontSize: 20, fontWeight: 700, color: 'var(--blood)' }}>{pl.dele}</span>
+                            <span className="micro muted">pontos</span>
+                            {((r.vantMinhas || 0) > 0 || (r.vantDele || 0) > 0) && (
+                              <span className="micro muted num">· vant {r.vantMinhas || 0}×{r.vantDele || 0}</span>
+                            )}
+                            {r.posInicial && <span className="micro muted">· de {posInicialPorId[r.posInicial]?.nome}</span>}
+                          </div>
+                        )}
+
+                        {((r.ptsMeus || []).length > 0 || (r.ptsDele || []).length > 0) && (
+                          <div className="row wrap" style={{ gap: 5, marginTop: 8 }}>
+                            {agruparPontos(r.ptsMeus).map((x) => {
+                              const tecs = (r.tecMeus || {})[x.id] || [];
+                              return (
+                                <Chip key={'pm' + x.id} tone="jade">
+                                  ▲ {tecs.length ? tecs.join(' + ') : x.nome}
+                                  {x.n > 1 && <b className="num"> ×{x.n}</b>}
+                                </Chip>
+                              );
+                            })}
+                            {agruparPontos(r.ptsDele).map((x) => {
+                              const tecs = (r.tecDele || {})[x.id] || [];
+                              return (
+                                <Chip key={'pd' + x.id} tone="blood">
+                                  ▼ {tecs.length ? tecs.join(' + ') : x.nome}
+                                  {x.n > 1 && <b className="num"> ×{x.n}</b>}
+                                </Chip>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {((r.subsAplicadas || []).length > 0 || (r.subsSofridas || []).length > 0) && (
+                          <div className="row wrap" style={{ gap: 5, marginTop: 9 }}>
+                            {agrupar(r.subsAplicadas).map(([x, n]) => <Chip key={'a' + x} tone="jade">▲ {x}{n > 1 && <b className="num"> ×{n}</b>}</Chip>)}
+                            {agrupar(r.subsSofridas).map(([x, n]) => <Chip key={'s' + x} tone="blood">▼ {x}{n > 1 && <b className="num"> ×{n}</b>}</Chip>)}
+                          </div>
+                        )}
+
+                        {((r.posDominadas || []).length > 0 || (r.posSofridas || []).length > 0) && (
+                          <div className="row wrap" style={{ gap: 5, marginTop: 7 }}>
+                            {(r.posDominadas || []).map((id) => posById[id] && <Chip key={'pd' + id} tone="jade">{posById[id].nome}</Chip>)}
+                            {(r.posSofridas || []).map((id) => posById[id] && <Chip key={'ps' + id} tone="blood">{posById[id].nome}</Chip>)}
+                          </div>
+                        )}
+
+                        {r.notas?.trim() && (
+                          <div style={{ marginTop: 11, paddingTop: 10, borderTop: '1px solid var(--seam)' }}>
+                            <p className="tiny" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{r.notas}</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="row wrap" style={{ gap: 8 }}>
+                <Btn size="sm" icon={Pencil} onClick={() => abrirEdicao(s)}>Editar</Btn>
+                <Btn size="sm" icon={Copy} onClick={() => {
+                  const { id, uid, updatedAt, ...rest } = s;
+                  setEditando({ ...rest, data: hoje(), nota: notaDaSessao(s) });
+                  setRolasEdit((rolasPorSessao.get(s.id) || []).map(({ id: _i, uid: _u, updatedAt: _up, sessionId, ...rr }) => ({ ...rr })));
+                }}>Duplicar</Btn>
+                <span className="spacer" />
+                <Btn size="sm" variant="danger" icon={Trash2} onClick={() => setExcluir(s)}>Excluir</Btn>
+              </div>
+            </div>
+          )}
+        </Card>
+        </React.Fragment>
+      );
+  };
+
   return (
     <div className="page">
       <div className="page-head">
@@ -428,14 +629,9 @@ export default function Treinos() {
         ))}
       </div>
 
-      {/* o resumo dos campeonatos, que era a tela de Competições */}
-      {filtroTipo === 'competicao' && lista.length > 0 && (
-        <div className="grid g4" style={{ marginBottom: 14 }}>
-          <Card><Stat icon={Trophy} valor={resumoComp.campeonatos} label="campeonatos" /></Card>
-          <Card><Stat icon={Swords} valor={resumoComp.lutas} label="lutas" /></Card>
-          <Card><Stat icon={Check} valor={resumoComp.vitorias} label="vitórias" tone="jade" /></Card>
-          <Card><Stat icon={Trophy} valor={resumoComp.podios} label="pódios" tone="roar" /></Card>
-        </div>
+      {/* cada tipo com o seu resumo: o que importa pra ele, na cor dele */}
+      {filtroTipo !== 'todos' && (
+        <ResumoDoTipo tipo={filtroTipo} lista={lista} rolasPorSessao={rolasPorSessao} partners={partners} professores={professores} />
       )}
 
       {lista.length === 0 ? (
@@ -450,206 +646,36 @@ export default function Treinos() {
         </Card>
       ) : (
         <div className="col" style={{ gap: 10 }}>
-          {lista.slice(0, mostrar).map((s, i, visiveis) => {
-            const rs = rolasPorSessao.get(s.id) || [];
-            const abertaAqui = aberta === s.id;
-            const fin = rs.flatMap((r) => r.subsAplicadas || []).length;
-            const taps = rs.flatMap((r) => r.subsSofridas || []).length;
-            const ptsM = rs.reduce((a, r) => a + somarPontos(r.ptsMeus), 0);
-            const ptsD = rs.reduce((a, r) => a + somarPontos(r.ptsDele), 0);
-            const nota = notaDaSessao(s);
-            const comNotas = rs.filter((r) => r.notas?.trim()).length;
-            const acad = acadById[s.academiaId]?.nome || s.academia;
-            const prof = profById[s.professorId]?.nome || s.professor;
-            const nomeTipo = TIPOS.find((t) => t.id === s.tipo)?.nome || s.tipo;
-
-            const mes = (s.data || '').slice(0, 7);
-            const novoMes = mes && (i === 0 || mes !== (visiveis[i - 1].data || '').slice(0, 7));
-
-            return (
-              <React.Fragment key={s.id}>
-              {novoMes && <div className="eyebrow" style={{ marginTop: i ? 10 : 0 }}>{mesPorExtenso(mes)}</div>}
-              <Card id={`treino-${s.id}`} className="pad-0 hover">
-                <button
-                  className="list-item"
-                  style={{ borderBottom: abertaAqui ? '1px solid var(--seam)' : 0, padding: 15, alignItems: 'flex-start' }}
-                  onClick={() => setAberta(abertaAqui ? null : s.id)}
-                >
-                  {/* registro de treino: a data num bloco, o que foi em cima,
-                      e os números do dia em destaque, sem virar tabela */}
-                  <span className="treino-data">
-                    <span className="treino-dia num">{String(s.data || '').slice(8, 10)}</span>
-                    <span className="treino-mes">{s.data ? new Date(`${s.data}T12:00:00`).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '') : ''}</span>
-                  </span>
-                  <div className="grow">
-                    <div className="row" style={{ gap: 8, alignItems: 'baseline' }}>
-                      <span className="treino-titulo">{s.competicao?.evento || s.foco || nomeTipo || 'Treino'}</span>
-                      {s.rpe != null && <span className="treino-rpe num" title="esforço percebido, de 0 a 10">RPE {s.rpe}</span>}
-                    </div>
-                    <div className="micro muted" style={{ marginTop: 3 }}>
-                      {[(s.competicao?.evento || s.foco) && nomeTipo, s.duracao ? fmtDur(s.duracao) : null, relativo(s.data), prof, acad].filter(Boolean).join(' · ')}
-                    </div>
-                    {(rs.length > 0 || ptsM > 0 || ptsD > 0 || fin > 0 || taps > 0 || comNotas > 0) && (
-                      <div className="treino-numeros">
-                        {rs.length > 0 && <span><b className="num">{rs.length}</b> {ehCompeticao(s.tipo) ? (rs.length > 1 ? 'lutas' : 'luta') : (rs.length > 1 ? 'rolas' : 'rola')}</span>}
-                        {(ptsM > 0 || ptsD > 0) && <span><b className="num">{ptsM}×{ptsD}</b> pontos</span>}
-                        {fin > 0 && <span className="bom"><b className="num">{fin}</b> {fin > 1 ? 'finalizações' : 'finalização'}</span>}
-                        {taps > 0 && <span className="ruim"><b className="num">{taps}</b> {taps > 1 ? 'taps' : 'tap'}</span>}
-                        {comNotas > 0 && <span><MessageSquare size={13} /> {comNotas}</span>}
-                      </div>
-                    )}
-                    {(s.competicao?.resultado || s.competicao?.categoria) && (
-                      <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
-                        {s.competicao?.resultado && (
-                          <Chip tone={resultadoPorId(s.competicao.resultado)?.tone || ''}>
-                            {ehPodio(s.competicao.resultado) && <Trophy size={11} />} {resultadoPorId(s.competicao.resultado)?.nome}
-                          </Chip>
-                        )}
-                        {s.competicao?.categoria && (
-                          <Chip>{s.competicao.categoria}{s.competicao.absoluto ? ' + absoluto' : ''}</Chip>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <span style={{ marginTop: 4 }}>
-                    {abertaAqui ? <ChevronDown size={17} className="muted" /> : <ChevronRight size={17} className="muted" />}
-                  </span>
-                </button>
-
-                {abertaAqui && (
-                  <div style={{ padding: 15 }}>
-                    {nota && (
-                      <div className="card" style={{ background: 'var(--void)', marginBottom: 12 }}>
-                        <div className="eyebrow" style={{ marginBottom: 6 }}>anotação da aula</div>
-                        <p className="tiny" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>{nota}</p>
-                      </div>
-                    )}
-
-                    {(s.focoTecnicas || []).length > 0 && (
-                      <div style={{ marginBottom: 12 }}>
-                        <div className="eyebrow" style={{ marginBottom: 8 }}>técnicas da aula</div>
-                        <div className="row wrap" style={{ gap: 6 }}>
-                          {s.focoTecnicas.map((f, k) => {
-                            const a = APRENDIZADO.find((x) => x.id === f.aprendizado);
-                            return (
-                              <Chip key={k} tone={a?.cor || ''}>
-                                {f.nome}{a && <span className="micro" style={{ opacity: .8 }}> · {a.nome}</span>}
-                              </Chip>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {(s.tecnicasDoDia || []).length > 0 && (
-                      <div className="row wrap" style={{ gap: 6, marginBottom: 12 }}>
-                        {s.tecnicasDoDia.map((t) => <Chip key={t}>{t}</Chip>)}
-                      </div>
-                    )}
-
-                    {rs.length > 0 && (
-                      <div className="col" style={{ gap: 9, marginBottom: 12 }}>
-                        <span className="eyebrow">os rolas</span>
-                        {rs.map((r, i) => {
-                          const pl = placarDaRola(r);
-                          const parceiro = partById[r.partnerId];
-                          return (
-                            <div key={i} className="card" style={{ background: 'var(--void)', padding: 13 }}>
-                              <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-                                <span className="num micro muted">#{i + 1}</span>
-                                <span className="tiny" style={{ fontWeight: 600 }}>{parceiro?.nome || 'Sem parceiro'}</span>
-                                {parceiro?.faixa && <Chip>{parceiro.faixa}</Chip>}
-                                {r.pesoRel && <Chip>{pesoRelPorId[r.pesoRel]?.icone} {r.pesoRel === 'similar' ? 'peso igual' : r.pesoRel}</Chip>}
-                                <Chip tone={TOM_RESULTADO[pl.resultado] || ''}>{ROTULO_RESULTADO[pl.resultado]}</Chip>
-                                <span className="spacer" />
-                                <span className="micro muted num">{r.duracao}min</span>
-                              </div>
-
-                              {(pl.meus > 0 || pl.dele > 0 || (r.vantMinhas || 0) > 0 || (r.vantDele || 0) > 0) && (
-                                <div className="row wrap" style={{ gap: 9, marginTop: 10, alignItems: 'center' }}>
-                                  <span className="num" style={{ fontSize: 20, fontWeight: 700, color: 'var(--jade)' }}>{pl.meus}</span>
-                                  <span className="micro muted">×</span>
-                                  <span className="num" style={{ fontSize: 20, fontWeight: 700, color: 'var(--blood)' }}>{pl.dele}</span>
-                                  <span className="micro muted">pontos</span>
-                                  {((r.vantMinhas || 0) > 0 || (r.vantDele || 0) > 0) && (
-                                    <span className="micro muted num">· vant {r.vantMinhas || 0}×{r.vantDele || 0}</span>
-                                  )}
-                                  {r.posInicial && <span className="micro muted">· de {posInicialPorId[r.posInicial]?.nome}</span>}
-                                </div>
-                              )}
-
-                              {((r.ptsMeus || []).length > 0 || (r.ptsDele || []).length > 0) && (
-                                <div className="row wrap" style={{ gap: 5, marginTop: 8 }}>
-                                  {agruparPontos(r.ptsMeus).map((x) => {
-                                    const tecs = (r.tecMeus || {})[x.id] || [];
-                                    return (
-                                      <Chip key={'pm' + x.id} tone="jade">
-                                        ▲ {tecs.length ? tecs.join(' + ') : x.nome}
-                                        {x.n > 1 && <b className="num"> ×{x.n}</b>}
-                                      </Chip>
-                                    );
-                                  })}
-                                  {agruparPontos(r.ptsDele).map((x) => {
-                                    const tecs = (r.tecDele || {})[x.id] || [];
-                                    return (
-                                      <Chip key={'pd' + x.id} tone="blood">
-                                        ▼ {tecs.length ? tecs.join(' + ') : x.nome}
-                                        {x.n > 1 && <b className="num"> ×{x.n}</b>}
-                                      </Chip>
-                                    );
-                                  })}
-                                </div>
-                              )}
-
-                              {((r.subsAplicadas || []).length > 0 || (r.subsSofridas || []).length > 0) && (
-                                <div className="row wrap" style={{ gap: 5, marginTop: 9 }}>
-                                  {agrupar(r.subsAplicadas).map(([x, n]) => <Chip key={'a' + x} tone="jade">▲ {x}{n > 1 && <b className="num"> ×{n}</b>}</Chip>)}
-                                  {agrupar(r.subsSofridas).map(([x, n]) => <Chip key={'s' + x} tone="blood">▼ {x}{n > 1 && <b className="num"> ×{n}</b>}</Chip>)}
-                                </div>
-                              )}
-
-                              {((r.posDominadas || []).length > 0 || (r.posSofridas || []).length > 0) && (
-                                <div className="row wrap" style={{ gap: 5, marginTop: 7 }}>
-                                  {(r.posDominadas || []).map((id) => posById[id] && <Chip key={'pd' + id} tone="jade">{posById[id].nome}</Chip>)}
-                                  {(r.posSofridas || []).map((id) => posById[id] && <Chip key={'ps' + id} tone="blood">{posById[id].nome}</Chip>)}
-                                </div>
-                              )}
-
-                              {r.notas?.trim() && (
-                                <div style={{ marginTop: 11, paddingTop: 10, borderTop: '1px solid var(--seam)' }}>
-                                  <p className="tiny" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{r.notas}</p>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    <div className="row wrap" style={{ gap: 8 }}>
-                      <Btn size="sm" icon={Pencil} onClick={() => abrirEdicao(s)}>Editar</Btn>
-                      <Btn size="sm" icon={Copy} onClick={() => {
-                        const { id, uid, updatedAt, ...rest } = s;
-                        setEditando({ ...rest, data: hoje(), nota: notaDaSessao(s) });
-                        setRolasEdit((rolasPorSessao.get(s.id) || []).map(({ id: _i, uid: _u, updatedAt: _up, sessionId, ...rr }) => ({ ...rr })));
-                      }}>Duplicar</Btn>
-                      <span className="spacer" />
-                      <Btn size="sm" variant="danger" icon={Trash2} onClick={() => setExcluir(s)}>Excluir</Btn>
-                    </div>
-                  </div>
-                )}
-              </Card>
-              </React.Fragment>
-            );
-          })}
-          {lista.length > mostrar && (
-            <Btn variant="ghost" onClick={() => setMostrar((m) => m + POR_VEZ)} style={{ alignSelf: 'center' }}>
-              Mostrar mais ({lista.length - mostrar})
+          {lista.slice(0, NA_TELA).map(cartao)}
+          {lista.length > NA_TELA && (
+            <Btn variant="contorno" icon={History} onClick={() => setTodosAberto('lista')} style={{ alignSelf: 'center' }}>
+              Ver todos os {lista.length} treinos
             </Btn>
           )}
-          {lista.length <= mostrar && <HistoricoCortado cortados={cortados} onAssinar={() => irPara('ajustes')} />}
+          {lista.length <= NA_TELA && <HistoricoCortado cortados={cortados} onAssinar={() => irPara('ajustes')} />}
         </div>
       )}
+
+      <Sheet aberto={!!todosAberto} onClose={() => setTodosAberto(null)} titulo="Todos os treinos" subtitulo={`${lista.length} ${lista.length === 1 ? 'treino' : 'treinos'}${filtroTipo !== 'todos' ? ` de ${TIPOS.find((x) => x.id === filtroTipo)?.nome}` : ''}`} wide>
+        <Seg value={todosAberto || 'lista'} onChange={setTodosAberto} options={[{ id: 'lista', nome: 'Lista' }, { id: 'calendario', nome: 'Calendário' }]} />
+        {todosAberto === 'calendario' ? (
+          <Calendario
+            modo="mes"
+            sessions={lista} rolls={rolls} partners={partners} gradings={[]}
+            aoAbrirTreino={(ses) => { setAberta(ses.id); setTodosAberto('lista'); setTimeout(() => document.getElementById(`treino-${ses.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 250); }}
+          />
+        ) : (
+          <div className="col" style={{ gap: 10 }}>
+            {lista.slice(0, mostrar).map(cartao)}
+            {lista.length > mostrar && (
+              <Btn variant="ghost" onClick={() => setMostrar((m) => m + POR_VEZ)} style={{ alignSelf: 'center' }}>
+                Mostrar mais ({lista.length - mostrar})
+              </Btn>
+            )}
+            {lista.length <= mostrar && <HistoricoCortado cortados={cortados} onAssinar={() => irPara('ajustes')} />}
+          </div>
+        )}
+      </Sheet>
 
       <Sheet
         aberto={!!editando}
@@ -674,8 +700,15 @@ export default function Treinos() {
             faixa={settings.faixa}
             academias={academias} professores={professores}
             duracaoPadrao={settings.duracaoRolaPadrao || 5}
-            padrao={{ academiaId: settings.academiaPadraoId || null, professorId: settings.professorPadraoId || null }}
-            onSalvarPadrao={async (p) => { await salvarSettings(p); toast('Pronto: o próximo treino já vem assim'); }}
+            padraoDe={(tipo) => padraoDoTipo(settings, tipo)}
+            onSalvarPadrao={async (tipo, p) => {
+              /* o de Gi continua sendo o padrão geral (graduação, Ajustes) */
+              await salvarSettings({
+                padroesTreino: { ...(settings.padroesTreino || {}), [tipo]: p },
+                ...(tipo === 'gi' ? { academiaPadraoId: p.academiaId, professorPadraoId: p.professorId, duracaoTreinoPadrao: p.duracao } : {}),
+              });
+              toast(`Pronto: o próximo treino de ${TIPOS.find((x) => x.id === tipo)?.nome || tipo} já vem assim`);
+            }}
           />
         )}
       </Sheet>
@@ -832,9 +865,10 @@ function BlocoCompeticao({ s, setS, onAbrirRegras }) {
   );
 }
 
-function EditorTreino({ s, setS, rolas, setRolas, partners, positions, techniques, categories, finalizacoes, maisUsadas, recentesPorPonto, recentesFoco, faixa, academias, professores, duracaoPadrao, padrao, onSalvarPadrao }) {
+function EditorTreino({ s, setS, rolas, setRolas, partners, positions, techniques, categories, finalizacoes, maisUsadas, recentesPorPonto, recentesFoco, faixa, academias, professores, duracaoPadrao, padraoDe, onSalvarPadrao }) {
+  const padrao = padraoDe(s.tipo);
   const set = (k, v) => setS({ ...s, [k]: v });
-  const ehPadrao = !!padrao.academiaId && s.academiaId === padrao.academiaId && (s.professorId || null) === padrao.professorId;
+  const ehPadrao = !!padrao.academiaId && s.academiaId === padrao.academiaId && (s.professorId || null) === (padrao.professorId || null);
   const [trocando, setTrocando] = useState(false);
   const [rolaAberta, setRolaAberta] = useState(rolas.length ? 0 : null);
   const [seletor, setSeletor] = useState(null);
@@ -858,7 +892,18 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
         <Field label="Quando foi"><EscolherData valor={s.data} onChange={(v) => set('data', v)} titulo="Quando foi o treino" /></Field>
         <Field label="Duração (min)"><NumeroInput valor={s.duracao} onChange={(v) => set('duracao', v)} /></Field>
         <Field label="Tipo">
-          <Select value={s.tipo} onChange={(e) => set('tipo', e.target.value)}>
+          <Select value={s.tipo} onChange={(e) => {
+            /* trocou o tipo: se academia, professor e duração ainda eram o
+               padrão do tipo anterior, vêm os do tipo novo */
+            const novo = e.target.value;
+            const antes = padraoDe(s.tipo);
+            const intocado = (s.academiaId || null) === (antes.academiaId || null)
+              && (s.professorId || null) === (antes.professorId || null)
+              && (!antes.duracao || Number(s.duracao) === Number(antes.duracao));
+            if (!intocado) { set('tipo', novo); return; }
+            const p = padraoDe(novo);
+            setS({ ...s, tipo: novo, academiaId: p.academiaId || null, professorId: p.professorId || null, duracao: p.duracao || s.duracao });
+          }}>
             {TIPOS.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
           </Select>
         </Field>
@@ -925,11 +970,11 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
             <button
               type="button" className="btn ghost xs" style={{ alignSelf: 'flex-start' }}
               onClick={() => {
-                onSalvarPadrao({ academiaPadraoId: s.academiaId, professorPadraoId: s.professorId || null, duracaoTreinoPadrao: Number(s.duracao) || 90 });
+                onSalvarPadrao(s.tipo, { academiaId: s.academiaId, professorId: s.professorId || null, duracao: Number(s.duracao) || 90 });
                 setTrocando(false);
               }}
             >
-              <Check size={13} /> Usar sempre esta academia, professor e duração
+              <Check size={13} /> Usar sempre esta academia, professor e duração no {TIPOS.find((x) => x.id === s.tipo)?.nome || 'treino'}
             </button>
           )}
         </>
