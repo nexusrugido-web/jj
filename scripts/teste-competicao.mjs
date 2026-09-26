@@ -86,9 +86,32 @@ ok('bronze entra no 3º lugar que está vago', podioComEu({ bronze: ['Leo', ''] 
 ok('mudar de vice pra campeão não te deixa em dois lugares', podioComEu({ prata: EU }, 'ouro'), { ouro: EU, prata: '', bronze: ['', ''] });
 ok('sem pódio, você sai do pódio', podioComEu({ ouro: EU, prata: 'Rafa' }, 'participou'), { ouro: '', prata: 'Rafa', bronze: ['', ''] });
 ok('a colocação sai do pódio', [resultadoDoPodio({ prata: EU }), resultadoDoPodio({ bronze: ['x', EU] }), resultadoDoPodio({ ouro: 'Rafa' })], ['prata', 'bronze', null]);
-ok('os nomes da chave e dos seus adversários viram sugestão, sem repetir',
+ok('os nomes dos seus adversários e da chave viram sugestão, sem repetir',
   atletasDaChave([{ a: 'Rafa', b: 'Leo', venceu: 'a' }, { a: 'Rafa', b: 'Caio' }], [{ adversario: 'Duda' }, { adversario: 'Leo' }]),
-  ['Rafa', 'Leo', 'Caio', 'Duda']);
+  ['Duda', 'Leo', 'Rafa', 'Caio']);
+ok('"Emilio" e "emílio" são a mesma pessoa', atletasDaChave([{ a: 'emílio', b: 'Paulo' }], [{ adversario: 'Emilio' }]), ['Emilio', 'Paulo']);
+
+/* ---------- o campeonato em etapas ---------- */
+const { situacaoDoCampeonato, tempoDaLuta, podioSugerido, colocarNoPodio, lugarNoPodio } = C;
+ok('campeonato novo: nada pronto', situacaoDoCampeonato({ competicao: { evento: '', andamento: true } }, []), { campeonato: false, lutas: 0, chave: 0, podio: false });
+ok('no meio do dia: campeonato e lutas contam, o pódio ainda não',
+  situacaoDoCampeonato({ competicao: { evento: 'Copa', andamento: true, podio: { ouro: 'Rafa' }, chave: [{ a: 'Rafa', b: '' }] } }, [{ adversario: 'Pedro' }, { adversario: ' ' }]),
+  { campeonato: true, lutas: 1, chave: 1, podio: false });
+ok('categoria acabou: o pódio conta, até sem medalha',
+  [situacaoDoCampeonato({ competicao: { evento: 'Copa', andamento: false, resultado: 'participou' } }, []).podio,
+    situacaoDoCampeonato({ competicao: { evento: 'Copa', podio: { ouro: EU } } }, []).podio], [true, true]);
+ok('tempo oficial: azul adulto 6, preta adulto 10, master 1 roxa 6, master 3 5, juvenil 5, infantil 4',
+  [tempoDaLuta('azul', 'adulto'), tempoDaLuta('preta', 'adulto'), tempoDaLuta('roxa', 'master1'), tempoDaLuta('preta', 'master3'), tempoDaLuta('marrom', 'juvenil'), tempoDaLuta('branca', 'infantil')],
+  [6, 10, 6, 5, 5, 4]);
+const venceu = { v2: 1, subsAplicadas: ['Armlock'] };
+ok('venceu todas: sugere você campeão e o último adversário vice',
+  podioSugerido([{ ...venceu, adversario: 'Pedro' }, { ...venceu, adversario: 'Emilio' }]), { ouro: EU, prata: 'Emilio', bronze: ['', ''] });
+ok('perdeu uma: o app não chuta o pódio', podioSugerido([{ ...venceu, adversario: 'Pedro' }, { v2: 1, subsSofridas: ['Americana'], adversario: 'Emilio' }]), null);
+ok('pôr no 1º tira a pessoa do lugar em que estava', colocarNoPodio({ ouro: 'Rafa', prata: 'Leo', bronze: ['', ''] }, 'Leo', 'ouro'), { ouro: 'Leo', prata: '', bronze: ['', ''] });
+ok('3º lugar tem duas vagas', colocarNoPodio({ bronze: ['Paulo', ''] }, 'Caio', 'bronze').bronze, ['Paulo', 'Caio']);
+ok('a mesma pessoa não ocupa os dois 3º lugares', colocarNoPodio({ bronze: ['Paulo', ''] }, 'paulo', 'bronze').bronze, ['paulo', '']);
+ok('tirar do pódio', colocarNoPodio({ ouro: EU, prata: 'Leo' }, 'Leo', null), { ouro: EU, prata: '', bronze: ['', ''] });
+ok('o lugar de cada um, sem ligar pra acento', [lugarNoPodio({ prata: 'Emílio' }, 'emilio'), lugarNoPodio({ bronze: ['', EU] }, EU), lugarNoPodio({}, 'Rafa')], ['prata', 'bronze', null]);
 
 /* ---------- o padrão de cada tipo de treino ---------- */
 const { padraoDoTipo } = await import('../src/lib/padraoTreino.js');

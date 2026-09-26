@@ -116,7 +116,74 @@ export function podioComEu(podio = {}, resultado) {
 
 /* os nomes que já apareceram na chave e nas suas lutas, pra escolher no pódio */
 export function atletasDaChave(chave = [], lutas = []) {
-  const nomes = [...chave.flatMap((l) => [l.a, l.b]), ...lutas.map((r) => r.adversario)]
+  const nomes = [...lutas.map((r) => r.adversario), ...chave.flatMap((l) => [l.a, l.b])]
     .map((x) => String(x || '').trim()).filter(Boolean);
-  return [...new Set(nomes)];
+  /* "Emilio" e "emílio" são a mesma pessoa: fica a primeira grafia */
+  const vistos = new Map();
+  for (const n of nomes) if (!vistos.has(chaveDoNome(n))) vistos.set(chaveDoNome(n), n);
+  return [...vistos.values()];
+}
+const chaveDoNome = (n) => String(n || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+
+/* ============================================================
+   O CAMPEONATO, NA ORDEM DO DIA
+
+   A pessoa registra no campeonato, enquanto ele acontece: primeiro
+   onde está lutando, depois cada luta quando ela acaba (ninguém sabe
+   de manhã quantas vai ter), as lutas dos outros se quiser, e o pódio
+   quando a categoria termina. Cada etapa grava sozinha. O pódio só
+   aceita nomes que já apareceram, e tempo não se pergunta: a luta
+   vale o tempo oficial da faixa.
+   ============================================================ */
+export function situacaoDoCampeonato(s, lutas = []) {
+  const c = s?.competicao || {};
+  const p = c.podio || {};
+  return {
+    campeonato: !!String(c.evento || '').trim(),
+    lutas: lutas.filter((r) => String(r.adversario || '').trim()).length,
+    chave: (c.chave || []).filter((l) => String(l.a || '').trim() || String(l.b || '').trim()).length,
+    podio: !c.andamento && (!!(p.ouro || p.prata || (p.bronze || []).some(Boolean)) || !!c.resultado),
+  };
+}
+
+/* 1ª, 2ª, 3ª luta */
+export const ordinal = (n) => `${n}ª`;
+
+/* o tempo oficial da luta na IBJJF: só pra conta de horas no tatame */
+const TEMPO_ADULTO = { branca: 5, azul: 6, roxa: 7, marrom: 8, preta: 10 };
+const TEMPO_MASTER1 = { branca: 5, azul: 5, roxa: 6, marrom: 6, preta: 6 };
+export function tempoDaLuta(faixa, divisao) {
+  if (divisao === 'infantil') return 4;
+  if (divisao === 'juvenil') return 5;
+  if (divisao === 'master1') return TEMPO_MASTER1[faixa] || 5;
+  if (String(divisao || '').startsWith('master')) return 5;
+  return TEMPO_ADULTO[faixa] || 5;
+}
+
+/* venceu todas as lutas: o app já sugere você campeão e o último
+   adversário vice (dá pra mudar) */
+export function podioSugerido(lutas = []) {
+  if (!lutas.length || !lutas.every((r) => placarDaRola(r).ganhou)) return null;
+  return { ouro: EU, prata: String(lutas[lutas.length - 1].adversario || '').trim(), bronze: ['', ''] };
+}
+
+/* põe alguém num lugar do pódio (ou tira, com lugar null). Cada
+   pessoa ocupa um lugar só; o 3º lugar tem duas vagas. */
+export function colocarNoPodio(podio = {}, nome, lugar) {
+  const mesmo = (x) => x && chaveDoNome(x) === chaveDoNome(nome);
+  const novo = {
+    ouro: mesmo(podio.ouro) ? '' : podio.ouro || '',
+    prata: mesmo(podio.prata) ? '' : podio.prata || '',
+    bronze: [...(podio.bronze || []), '', ''].slice(0, 2).map((x) => (mesmo(x) ? '' : x || '')),
+  };
+  if (lugar === 'ouro' || lugar === 'prata') novo[lugar] = nome;
+  if (lugar === 'bronze') novo.bronze[novo.bronze[0] ? 1 : 0] = nome;
+  return novo;
+}
+export function lugarNoPodio(podio = {}, nome) {
+  const mesmo = (x) => x && chaveDoNome(x) === chaveDoNome(nome);
+  if (mesmo(podio.ouro)) return 'ouro';
+  if (mesmo(podio.prata)) return 'prata';
+  if ((podio.bronze || []).some(mesmo)) return 'bronze';
+  return null;
 }

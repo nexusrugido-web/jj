@@ -2855,6 +2855,36 @@ button.liga-linha:hover { border-color: var(--seam-hi); }
 .podio-cat .podio-avatar { width: 46px; height: 46px; }
 .podio-cat .podio-lugar.p1 .podio-avatar { width: 56px; height: 56px; }
 
+/* ---------- o campeonato em etapas ---------- */
+.camp-etapa {
+  display: flex; flex-direction: column; gap: 10px; padding: 12px;
+  border-radius: var(--r-sm); background: var(--void); border: 1px solid var(--seam);
+}
+.camp-etapa-cab { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; color: inherit; }
+.camp-etapa-n {
+  flex: none; width: 30px; height: 30px; border-radius: 99px; display: grid; place-items: center;
+  font-size: 13px; font-weight: 800; color: var(--dim); border: 1.5px solid var(--seam-hi);
+}
+.camp-etapa.feito .camp-etapa-n { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
+.camp-luta {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 8px 10px;
+  border-radius: var(--r-sm); background: var(--mat); border: 1px solid var(--seam); color: inherit;
+}
+.podio-linha {
+  display: flex; align-items: center; gap: 6px; min-height: 52px; padding: 6px 8px 6px 12px;
+  border-radius: var(--r-sm); background: var(--void); border: 1px solid var(--seam);
+}
+.podio-linha.eu { border-color: color-mix(in srgb, var(--accent) 45%, var(--seam)); }
+.podio-pos {
+  --c: var(--dim);
+  flex: none; width: 42px; height: 40px; border-radius: 10px; font-weight: 800; font-size: 13px;
+  color: var(--dim); background: var(--mat); border: 1.5px solid var(--seam-hi);
+}
+.podio-pos.ouro { --c: #e3b04b; }
+.podio-pos.prata { --c: #c9ced6; }
+.podio-pos.bronze { --c: #b8793f; }
+.podio-pos.on { color: #14100c; background: var(--c); border-color: var(--c); }
+
 /* ---------- o resumo de cada tipo de treino ---------- */
 .tipo-hero {
   --cor: var(--accent);
