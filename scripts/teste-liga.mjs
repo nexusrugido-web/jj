@@ -9,7 +9,7 @@ register('./como-vite.mjs', import.meta.url);
    mesmas contas, e o nome que a pessoa vê antes de salvar é o
    mesmo que o servidor monta.
    ============================================================ */
-const { corteDoGrupo, nomeCurto } = await import('../src/lib/liga.js');
+const { corteDoGrupo, nomeCurto, relogioDaLiga, faltaTexto, resultadoEmPalavras, praDivisao, naDivisao } = await import('../src/lib/liga.js');
 const { hoje, addDias, dataLocal } = await import('../src/lib/utils.js');
 const { semanaDe } = await import('../src/lib/xp.js');
 
@@ -39,6 +39,28 @@ ok('somar dias não escorrega de fuso', addDias('2026-09-19', 1), '2026-09-20');
 ok('virada de mês', addDias('2026-09-30', 1), '2026-10-01');
 ok('a semana começa na segunda', semanaDe('2026-09-20'), '2026-09-14');
 ok('segunda é o começo dela mesma', semanaDe('2026-09-14'), '2026-09-14');
+
+/* ---------- o relógio da semana (Brasília) ---------- */
+const quarta = relogioDaLiga(new Date('2026-09-23T13:00:00Z')); // quarta 10h em Brasília
+ok('quarta: fecha na segunda seguinte ao meio-dia de Brasília (15h UTC)', [quarta.fecha.toISOString(), quarta.apurando], ['2026-09-28T15:00:00.000Z', false]);
+const domingoTarde = relogioDaLiga(new Date('2026-09-28T01:30:00Z')); // domingo 22h30 em Brasília
+ok('domingo à noite ainda é a mesma semana', [domingoTarde.fecha.toISOString(), domingoTarde.diaDaSemana], ['2026-09-28T15:00:00.000Z', 6]);
+const segundaCedo = relogioDaLiga(new Date('2026-09-28T11:00:00Z')); // segunda 8h em Brasília
+ok('segunda de manhã: apurando, resultado ao meio-dia, e a semana nova fecha na outra segunda',
+  [segundaCedo.apurando, segundaCedo.resultadoDaPassada?.toISOString(), segundaCedo.fecha.toISOString()],
+  [true, '2026-09-28T15:00:00.000Z', '2026-10-05T15:00:00.000Z']);
+ok('segunda depois do meio-dia não está mais apurando', relogioDaLiga(new Date('2026-09-28T16:00:00Z')).apurando, false);
+ok('quanto falta, em palavras', [faltaTexto(2 * 864e5 + 5 * 36e5), faltaTexto(5 * 36e5 + 20 * 6e4), faltaTexto(12 * 6e4), faltaTexto(3e4)], ['2d 5h', '5h 20min', '12min', 'menos de 1min']);
+
+/* ---------- o resultado em palavras ---------- */
+ok('a divisão com o artigo certo', [praDivisao('branca'), praDivisao('roxa'), naDivisao('branca'), naDivisao('azul')], ['pra Academia', 'pro Nacional', 'na Academia', 'no Estadual']);
+const base = { fechada: true, posicao: 1, total: 4, xp: 250, divisao_antes: 'azul' };
+ok('subiu', resultadoEmPalavras({ ...base, resultado: 'subiu', divisao_depois: 'roxa' }).titulo, 'Você subiu pro Nacional');
+ok('desceu pra Academia', resultadoEmPalavras({ ...base, posicao: 4, resultado: 'desceu', divisao_depois: 'branca' }).titulo, 'Você desceu pra Academia');
+ok('ficou', resultadoEmPalavras({ ...base, posicao: 2, resultado: 'ficou', divisao_depois: 'azul' }).titulo, 'Você continua no Estadual');
+ok('sozinho não correu', resultadoEmPalavras({ ...base, total: 1, resultado: 'sozinho', divisao_depois: 'azul' }).titulo, 'Ninguém correu com você');
+ok('semana ainda aberta: apurando, com a posição parcial', resultadoEmPalavras({ ...base, fechada: false, posicao: 3, xp: 90 }).texto.startsWith('Você está em 3º de 4, com 90 pontos.'), true);
+ok('semana fechada antes do resultado ser guardado: só o lugar', resultadoEmPalavras({ ...base, resultado: null, posicao: 2 }).titulo, 'Você terminou em 2º');
 
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

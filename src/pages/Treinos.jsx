@@ -16,7 +16,7 @@ import { darXp, checarConsistencia } from '../lib/xp';
 import { SeletorTecnica, ListaFoco, APRENDIZADO } from '../components/SeletorTecnica';
 import {
   Card, Btn, Field, Input, NumeroInput, EscolherData, Textarea, Select, Sheet, Chip, Stepper,
-  Empty, Confirmar, useToast, SubsInput, Busca, PontosInput, EscolhaChips, ParceiroRapido, Seg,
+  Empty, Confirmar, useToast, SubsInput, Busca, PontosInput, EscolhaChips, ParceiroRapido, Seg, Diamante,
 } from '../components/UI';
 import Calendario from '../components/Calendario';
 import ResumoDoTipo, { PodioCategoria } from '../components/ResumoDoTipo';
@@ -789,7 +789,7 @@ export default function Treinos() {
         <div className="row" style={{ gap: 8 }}>
           {ligada('timer') && <Btn icon={Timer} onClick={() => setCronoAberto(true)}>Cronômetro</Btn>}
           {temVoz() && ligada('voz') && (
-            <Btn icon={Mic} onClick={() => (podeVer(acesso, 'voz') ? setVozAberta(true) : setConviteVoz(true))}>Falar</Btn>
+            <Btn icon={Mic} onClick={() => (podeVer(acesso, 'voz') ? setVozAberta(true) : setConviteVoz(true))}>Falar <Diamante size={12} /></Btn>
           )}
           <Btn variant="primary" icon={Plus} onClick={() => abrirNova()}>Novo treino</Btn>
         </div>

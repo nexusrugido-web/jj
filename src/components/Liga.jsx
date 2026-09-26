@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Trophy, Check, Eye, EyeOff, RefreshCw, Flame, Hourglass, LogOut, UserRound, Undo2, Dumbbell, Crown, Camera, Trash2, UserPlus,
+  Trophy, Check, Eye, EyeOff, RefreshCw, Flame, LogOut, UserRound, Undo2, Dumbbell, Crown, Camera, Trash2, UserPlus,
+  Flag, ArrowUp, ArrowDown, Minus,
 } from 'lucide-react';
 import { useApp } from '../contexto';
 import { supabase } from '../lib/supabase';
@@ -8,9 +9,11 @@ import {
   Card, Btn, Chip, Empty, Stat, Sheet, Field, Input, BeltTag, useToast,
 } from './UI';
 import { ajusteDe } from '../lib/ajustes';
-import { subirPraLiga, corteDoGrupo, nomeCurto, DIVISOES_LIGA, nomeDivisao } from '../lib/liga';
-import { fmtData, hoje, addDias, emQuanto } from '../lib/utils';
-import { inicioSemana } from '../lib/stats';
+import {
+  subirPraLiga, corteDoGrupo, nomeCurto, DIVISOES_LIGA, nomeDivisao, relogioDaLiga, faltaTexto, resultadoEmPalavras,
+} from '../lib/liga';
+import { getMeta, setMeta } from '../db/db';
+import { fmtData } from '../lib/utils';
 import { enviarFoto, removerFoto } from '../lib/perfil';
 import { pedirAmizade } from '../lib/amigos';
 import Avatar from './Avatar';
@@ -68,6 +71,120 @@ export function Podio({ tres, marca, onVer }) {
   );
 }
 
+/* ============================================================
+   O RELÓGIO DA SEMANA
+
+   Quanto falta pra fechar, em letra grande, e a semana desenhada:
+   os dias que já foram, o de hoje, e a bandeira de segunda ao
+   meio-dia, que é quando sai o resultado.
+   ============================================================ */
+const DIAS = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
+
+function RelogioDaSemana() {
+  const [agora, setAgora] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setAgora(new Date()), 30000);
+    return () => clearInterval(t);
+  }, []);
+  const r = relogioDaLiga(agora);
+  return (
+    <div className="liga-relogio">
+      <div className="liga-relogio-topo">
+        <span className="micro muted">A semana fecha em</span>
+        <span className="liga-contagem num">{faltaTexto(r.fecha - agora)}</span>
+      </div>
+      <div className="liga-dias" aria-hidden="true">
+        {DIAS.map((d, i) => (
+          <span key={i} className={`liga-dia${i < r.diaDaSemana ? ' foi' : ''}${i === r.diaDaSemana ? ' hoje' : ''}`}>{d}</span>
+        ))}
+        <span className="liga-dia fim"><Flag size={11} /> seg 12h</span>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   O RESULTADO DA SEMANA PASSADA
+
+   Em que lugar você terminou, se subiu, desceu ou ficou, pra qual
+   divisão, e o pódio do grupo. Segunda de manhã, antes do
+   fechamento, mostra a posição parcial e a hora do resultado.
+   ============================================================ */
+const ICONE_DO_RESULTADO = { subiu: ArrowUp, desceu: ArrowDown, ficou: Minus };
+
+function ResultadoDaSemana({ r, grande = false }) {
+  const { settings } = useApp();
+  const p = resultadoEmPalavras(r);
+  if (!p) return null;
+  /* no popup do fechamento, o pódio de verdade: foto, coroa e degrau */
+  const podioGrande = grande && (r.podio || []).length >= 3;
+  const Icone = ICONE_DO_RESULTADO[r.resultado];
+  const mudou = r.fechada && r.divisao_antes && r.divisao_depois && r.divisao_antes !== r.divisao_depois;
+  return (
+    <div className={`liga-resultado ${p.tom}${grande ? ' grande' : ''}`}>
+      {!grande && <div className="eyebrow">{r.fechada ? 'resultado da semana passada' : 'a semana passada'}</div>}
+      <div className="row" style={{ gap: 14, alignItems: 'center' }}>
+        <span className="liga-resultado-pos num">{r.posicao}º</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="h-sec row" style={{ gap: 6 }}>{Icone && <Icone size={17} />} {p.titulo}</div>
+          <p className="micro muted" style={{ marginTop: 4, lineHeight: 1.6 }}>{p.texto}</p>
+        </div>
+      </div>
+      {mudou && (
+        <div className="liga-degrau">
+          <DivisaoTag id={r.divisao_antes} /> <span className="muted">→</span> <DivisaoTag id={r.divisao_depois} />
+        </div>
+      )}
+      {podioGrande && (
+        <Podio
+          tres={r.podio.slice(0, 3).map((x) => ({ ...x, user_id: `p${x.posicao}`, xp_semana: x.xp }))}
+          marca={() => ({})}
+          onVer={() => {}}
+        />
+      )}
+      {!podioGrande && (r.podio || []).length > 1 && (
+        <div className="liga-podio-mini">
+          {r.podio.map((x) => (
+            <div key={x.posicao + x.nome} className={`liga-podio-mini-linha p${x.posicao}${x.sou_eu ? ' eu' : ''}`}>
+              <span className="liga-podio-mini-n num">{x.posicao}º</span>
+              <Avatar nome={x.sou_eu ? (settings?.nome || x.nome) : x.nome} foto={x.foto} className="liga-avatar" />
+              <span className="tiny" style={{ flex: 1, minWidth: 0, fontWeight: x.sou_eu ? 700 : 500 }}>{x.nome}{x.sou_eu ? ' (você)' : ''}</span>
+              <span className="num micro">{x.xp} pts</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   O GRUPO ENCHENDO
+
+   O grupo recebe gente a semana toda, até o tamanho do painel:
+   quem pontua pela primeira vez na semana cai num grupo com vaga.
+   Aqui aparece quem já está (com a foto) e as vagas que ainda
+   estão procurando alguém.
+   ============================================================ */
+function VagasDoGrupo({ linhas, tamanho }) {
+  const vagas = Math.max(0, tamanho - linhas.length);
+  if (!vagas) return null;
+  return (
+    <div className="liga-vagas">
+      <div className="liga-vagas-fila">
+        {linhas.map((l) => (
+          <Avatar key={l.user_id} nome={l.nome} foto={l.foto} className={`liga-vaga-cheia${l.sou_eu ? ' eu' : ''}`} />
+        ))}
+        {Array.from({ length: Math.min(vagas, 6) }, (_, i) => <span key={i} className="liga-vaga" style={{ animationDelay: `${i * 0.3}s` }} />)}
+      </div>
+      <p className="micro muted" style={{ lineHeight: 1.6 }}>
+        {linhas.length} de até {tamanho} no grupo. Quem treinar no seu ritmo e pontuar pela primeira vez esta semana
+        ocupa uma vaga, até domingo.
+      </p>
+    </div>
+  );
+}
+
 function DivisaoTag({ id, prefixo = '' }) {
   const d = DIVISOES_LIGA[id] || DIVISOES_LIGA.branca;
   return <Chip tone={d.tom}><Trophy size={11} /> {prefixo}{d.nome}</Chip>;
@@ -82,6 +199,9 @@ export default function Liga({ compacto = false }) {
   const [perfil, setPerfil] = useState(null);
   const [aparencia, setAparencia] = useState(false);
   const [vendo, setVendo] = useState(null);
+  /* a semana passada (supabase/liga-resultado.sql) e o popup de quando ela fecha */
+  const [passada, setPassada] = useState(null);
+  const [anuncio, setAnuncio] = useState(false);
 
   const ativa = ligada?.('liga');
 
@@ -92,12 +212,21 @@ export default function Liga({ compacto = false }) {
       /* o que ainda está só no aparelho sobe antes: é o primeiro
          ponto da semana que coloca a pessoa no grupo */
       if (subir) await subirPraLiga().catch(() => {});
-      const [r, p] = await Promise.all([
+      const [r, p, sp] = await Promise.all([
         supabase.rpc('minha_liga'),
         supabase.from('perfil').select('participa_liga, anonimo, apelido, avatar_url').eq('user_id', sessao.user.id).single(),
+        /* antes do SQL do resultado rodar, a função não existe: fica sem */
+        supabase.rpc('minha_semana_passada').then((x) => x, () => ({ data: null })),
       ]);
       setLinhas(r.data || []);
       setPerfil(p.data || null);
+      const ultima = (Array.isArray(sp?.data) ? sp.data[0] : sp?.data) || null;
+      setPassada(ultima);
+      /* a semana fechou e a pessoa ainda não viu: o resultado abre sozinho, uma vez */
+      if (!compacto && ultima?.fechada && ultima.resultado && ultima.resultado !== 'sozinho'
+        && (await getMeta('liga_resultado_visto', null)) !== ultima.semana) {
+        setAnuncio(true);
+      }
     } catch (e) {
       console.error('[liga]', e);
     } finally {
@@ -140,6 +269,26 @@ export default function Liga({ compacto = false }) {
     );
   }
 
+  const viuResultado = () => { setAnuncio(false); setMeta('liga_resultado_visto', passada.semana); };
+  const semanaPassada = !compacto && passada && (
+    <>
+      <Card style={{ marginBottom: 14 }}>
+        <ResultadoDaSemana r={passada} />
+      </Card>
+      <Sheet
+        aberto={anuncio}
+        onClose={viuResultado}
+        titulo="A semana da liga fechou"
+        footer={<Btn variant="primary" onClick={viuResultado} style={{ flex: 1 }}>Bora pra semana nova</Btn>}
+      >
+        <ResultadoDaSemana r={passada} grande />
+        <p className="micro muted" style={{ lineHeight: 1.6 }}>
+          A semana nova já começou, com os pontos zerados e um grupo novo. O primeiro ponto te coloca na corrida.
+        </p>
+      </Sheet>
+    </>
+  );
+
   const comoAparece = (
     <ComoAparece
       aberto={aparencia}
@@ -155,6 +304,8 @@ export default function Liga({ compacto = false }) {
   /* ---------- fora da liga ---------- */
   if (perfil && !perfil.participa_liga && !linhas.length) {
     return (
+      <>
+      {semanaPassada}
       <Card style={{ marginBottom: compacto ? 0 : 14 }}>
         <div className="card-head">
           <h2 className="h-sec row" style={{ gap: 8 }}><Trophy size={16} /> Liga entre praticantes</h2>
@@ -169,22 +320,34 @@ export default function Liga({ compacto = false }) {
         </div>
         {comoAparece}
       </Card>
+      </>
     );
   }
 
   /* ---------- ainda sem grupo esta semana ---------- */
   if (!linhas.length) {
     return (
+      <>
+      {semanaPassada}
       <Card style={{ marginBottom: compacto ? 0 : 14 }}>
         <div className="card-head">
-          <h2 className="h-sec row" style={{ gap: 8 }}><Trophy size={16} /> Sua liga</h2>
-          <Btn size="sm" variant="ghost" icon={RefreshCw} onClick={() => buscar({ subir: true })} disabled={carregando}>Atualizar</Btn>
+          <h2 className="h-sec row" style={{ gap: 8 }}><Trophy size={16} /> Sua liga desta semana</h2>
+          <Btn size="sm" variant="ghost" icon={RefreshCw} onClick={() => buscar({ subir: true })} disabled={carregando} aria-label="Atualizar" />
         </div>
-        <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-          {carregando
-            ? 'Buscando o seu grupo.'
-            : 'Registre um treino e você entra na corrida desta semana, num grupo com gente que treina mais ou menos o mesmo tanto que você.'}
-        </p>
+        {carregando ? (
+          <p className="tiny muted">Buscando o seu grupo.</p>
+        ) : (
+          <>
+            <p className="tiny muted" style={{ lineHeight: 1.7 }}>Você ainda não entrou na corrida desta semana. É assim:</p>
+            <ol className="liga-passos">
+              <li><b>Registre um treino</b> (ou veja uma aula, ou responda o quiz). O primeiro ponto te coloca na corrida.</li>
+              <li><b>O app acha o seu grupo</b>, com gente que treina no mesmo ritmo que você.</li>
+              <li><b>Corrida até domingo:</b> cada treino, rola e aula soma pontos.</li>
+              <li><b>Segunda ao meio-dia sai o resultado:</b> quem termina em cima sobe de divisão, quem termina embaixo desce.</li>
+            </ol>
+            {!compacto && <RelogioDaSemana />}
+          </>
+        )}
         {!carregando && (
           <div className="row wrap" style={{ gap: 8, marginTop: 14 }}>
             <Btn variant="primary" icon={Dumbbell} onClick={() => irPara('treinos')}>Registrar treino</Btn>
@@ -193,6 +356,7 @@ export default function Liga({ compacto = false }) {
         )}
         {comoAparece}
       </Card>
+      </>
     );
   }
 
@@ -217,6 +381,8 @@ export default function Liga({ compacto = false }) {
   const podio = !compacto && comecou && linhas.length >= 3;
 
   return (
+    <>
+    {semanaPassada}
     <Card style={{ marginBottom: compacto ? 0 : 14 }}>
       <div className="card-head" style={{ marginBottom: 4 }}>
         <h2 className="h-sec row" style={{ gap: 8, flexWrap: 'wrap' }}>
@@ -225,8 +391,10 @@ export default function Liga({ compacto = false }) {
         <Btn size="sm" variant="ghost" icon={RefreshCw} onClick={() => buscar({ subir: true })} disabled={carregando} aria-label="Atualizar" />
       </div>
       <p className="micro muted row" style={{ gap: 6, marginBottom: 12 }}>
-        <Hourglass size={12} /> {total} {total === 1 ? 'pessoa' : 'pessoas'} no grupo · termina {emQuanto(addDias(inicioSemana(hoje()), 6))}
+        <UserRound size={12} /> {total} {total === 1 ? 'pessoa' : 'pessoas'} no grupo
       </p>
+      {!compacto && <RelogioDaSemana />}
+      {!compacto && !linhas[0]?.em_sala && <VagasDoGrupo linhas={linhas} tamanho={Math.max(2, ajusteDe('liga_tamanho', 10))} />}
 
       {eu?.saindo && (
         <div className="valida atencao" style={{ marginBottom: 12, alignItems: 'center' }}>
@@ -239,16 +407,17 @@ export default function Liga({ compacto = false }) {
       )}
 
       {!comecou ? (
-        <div className="liga-eu">
-          <Hourglass size={18} style={{ color: 'var(--accent)', flex: 'none' }} />
-          <div style={{ flex: 1 }}>
-            <div className="tiny" style={{ fontWeight: 600 }}>Esperando adversário</div>
-            <div className="micro muted" style={{ lineHeight: 1.6 }}>
-              Você já está na liga desta semana. A corrida começa quando mais alguém registrar treino, e seus
-              pontos já estão contando.
-            </div>
+        <div className="liga-procurando">
+          <div className="liga-radar" aria-hidden="true">
+            <span className="liga-radar-onda" />
+            <span className="liga-radar-onda dois" />
+            <Avatar nome={eu?.nome} foto={eu?.foto} className="liga-radar-eu" />
           </div>
-          <span className="num" style={{ fontSize: 19, fontWeight: 700, color: 'var(--accent)' }}>{eu?.xp_semana ?? 0}</span>
+          <div className="tiny" style={{ fontWeight: 700, marginTop: 4 }}>Procurando adversários</div>
+          <p className="micro muted" style={{ lineHeight: 1.6, maxWidth: 320, textAlign: 'center' }}>
+            Você já está na corrida desta semana, com <b className="num" style={{ color: 'var(--accent)' }}>{eu?.xp_semana ?? 0}</b> pontos
+            contando. Quem treina no seu ritmo e pontuar esta semana cai no seu grupo, e a disputa começa na hora.
+          </p>
         </div>
       ) : eu && (
         <div className="liga-eu">
@@ -271,7 +440,8 @@ export default function Liga({ compacto = false }) {
 
       {podio && <Podio tres={linhas.slice(0, 3)} marca={marca} onVer={setVendo} />}
 
-      <div className="col" style={{ gap: 6, marginTop: 12 }}>
+      {/* sozinho, a lista só repetiria você: o radar já diz tudo */}
+      {comecou && <div className="col" style={{ gap: 6, marginTop: 12 }}>
         {linhas.slice(podio ? 3 : 0, compacto ? 5 : undefined).map((l) => {
           const div = l.divisao_pessoa || divisao;
           const { sobe, desce } = marca(l);
@@ -294,7 +464,7 @@ export default function Liga({ compacto = false }) {
             </button>
           );
         })}
-      </div>
+      </div>}
 
       {!compacto && (
         <p className="micro muted" style={{ marginTop: 12, lineHeight: 1.65 }}>
@@ -309,7 +479,7 @@ export default function Liga({ compacto = false }) {
                   : '. Com o grupo deste tamanho, ninguém desce.'}
                 {misturado ? ' Cada um sobe ou desce a partir da própria divisão.' : ''}
               </>}
-          {' '}Toque em alguém pra ver o perfil.
+          {comecou && ' Toque em alguém pra ver o perfil.'}
         </p>
       )}
 
@@ -322,6 +492,7 @@ export default function Liga({ compacto = false }) {
       {comoAparece}
       <PerfilDoColega linha={vendo} onClose={() => setVendo(null)} />
     </Card>
+    </>
   );
 }
 

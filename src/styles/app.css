@@ -1586,6 +1586,69 @@ button.liga-linha:hover { border-color: var(--seam-hi); }
 .liga-nome { flex: 1; min-width: 0; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .perfil-avatar { width: 72px; height: 72px; font-size: 24px; box-shadow: 0 0 0 2px var(--seam-hi); }
 
+/* ---------- a liga: o relógio, o grupo enchendo, a busca e o resultado ---------- */
+.liga-relogio {
+  display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; margin-bottom: 12px;
+  border-radius: var(--r-sm); background: var(--void); border: 1px solid var(--seam);
+}
+.liga-relogio-topo { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.liga-contagem { font-size: 22px; font-weight: 800; color: var(--accent); }
+.liga-dias { display: flex; align-items: center; gap: 5px; }
+.liga-dia {
+  flex: 1; height: 26px; border-radius: 7px; display: grid; place-items: center;
+  font-size: 11px; font-weight: 700; color: var(--dim); background: var(--mat); border: 1px solid var(--seam);
+}
+.liga-dia.foi { color: var(--dimmer); background: color-mix(in srgb, var(--accent) 12%, var(--mat)); border-color: transparent; }
+.liga-dia.hoje { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
+.liga-dia.fim { flex: 1.8; display: flex; gap: 4px; justify-content: center; color: var(--chalk); border-style: dashed; }
+
+.liga-vagas { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.liga-vagas-fila { display: flex; flex-wrap: wrap; gap: 6px; }
+.liga-vaga-cheia { width: 34px; height: 34px; box-shadow: 0 0 0 2px var(--seam-hi); }
+.liga-vaga-cheia.eu { box-shadow: 0 0 0 2px var(--accent); }
+.liga-vaga {
+  width: 34px; height: 34px; border-radius: 99px; border: 2px dashed var(--seam-hi);
+  animation: vagaPisca 1.8s ease-in-out infinite;
+}
+@keyframes vagaPisca { 50% { border-color: var(--accent); opacity: .55; } }
+
+.liga-procurando { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 0 4px; }
+.liga-radar { position: relative; width: 116px; height: 116px; display: grid; place-items: center; }
+.liga-radar-onda {
+  position: absolute; inset: 0; border-radius: 99px; border: 2px solid var(--accent);
+  animation: radar 2.4s ease-out infinite; opacity: 0;
+}
+.liga-radar-onda.dois { animation-delay: 1.2s; }
+@keyframes radar { 0% { transform: scale(.45); opacity: .7; } 100% { transform: scale(1); opacity: 0; } }
+.liga-radar-eu { width: 56px; height: 56px; font-size: 18px; box-shadow: 0 0 0 3px var(--accent); }
+
+.liga-passos { margin: 10px 0 14px; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+.liga-passos li { font-size: 13px; line-height: 1.55; color: var(--dim); }
+.liga-passos li b { color: var(--chalk); }
+
+.liga-resultado { --cor: var(--seam-hi); display: flex; flex-direction: column; gap: 12px; }
+.liga-resultado.jade { --cor: var(--jade); }
+.liga-resultado.blood { --cor: var(--blood); }
+.liga-resultado.accent { --cor: var(--accent); }
+.liga-resultado-pos {
+  flex: none; width: 58px; height: 58px; border-radius: 16px; display: grid; place-items: center;
+  font-size: 22px; font-weight: 800; color: var(--cor);
+  background: color-mix(in srgb, var(--cor) 14%, var(--void)); border: 1.5px solid color-mix(in srgb, var(--cor) 45%, var(--seam));
+}
+.liga-resultado .h-sec svg { color: var(--cor); }
+.liga-resultado.grande .liga-resultado-pos { width: 70px; height: 70px; font-size: 28px; }
+.liga-degrau { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.liga-podio-mini { display: flex; flex-direction: column; gap: 6px; }
+.liga-podio-mini-linha {
+  display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 10px;
+  background: var(--void); border: 1px solid var(--seam);
+}
+.liga-podio-mini-linha.eu { border-color: color-mix(in srgb, var(--accent) 45%, var(--seam)); }
+.liga-podio-mini-n { width: 26px; font-weight: 800; font-size: 13px; }
+.liga-podio-mini-linha.p1 .liga-podio-mini-n { color: #e3b04b; }
+.liga-podio-mini-linha.p2 .liga-podio-mini-n { color: #c9ced6; }
+.liga-podio-mini-linha.p3 .liga-podio-mini-n { color: #b8793f; }
+
 .amigo-aviso {
   display: flex; align-items: center; gap: 10px; padding: 10px 11px; border-radius: 10px;
   background: color-mix(in srgb, var(--accent) 9%, var(--void));

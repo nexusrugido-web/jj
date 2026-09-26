@@ -64,7 +64,8 @@ for (const a of arquivos) {
     /* texto escrito entre tags é conteúdo, não código: em
        ">tabela da IBJJF<" a sigla é palavra, não variável */
     .replace(/>[^<>{}]*</g, '><');
-  for (const m of semComentario.matchAll(/\b([A-Z][A-Z0-9_]{2,})\b/g)) {
+  /* depois de ponto é propriedade (Date.UTC), não variável */
+  for (const m of semComentario.matchAll(/(?<!\.)\b([A-Z][A-Z0-9_]{2,})\b/g)) {
     /* variável de ambiente vem do build, não de import */
     if (m[1].startsWith('VITE_')) continue;
     usados.add(m[1]);

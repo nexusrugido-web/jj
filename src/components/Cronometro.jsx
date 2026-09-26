@@ -101,8 +101,9 @@ export default function Cronometro({ aberto, onClose, onRegistrar }) {
           setFase('rola');
           return preset.rola * 60;
         }
-        /* dez segundos pro fim, avisa baixinho */
-        if (r === 11 && fase === 'rola' && som) apito('aviso');
+        /* um minuto e dez segundos pro fim, o mesmo apito: no tatame
+           alguém grita "1 minuto" e todo mundo acelera o que falta */
+        if ((r === 61 || r === 11) && fase === 'rola' && som) apito('aviso');
         return r - 1;
       });
     }, 1000);
