@@ -139,9 +139,21 @@ export default function Acervo() {
     const faltam = lista.filter((a) => a.vertical == null).map((a) => a.id);
     completouProporcao.current = true;
     if (!faltam.length) return;
+    /* diz o que aconteceu: antes a falha passava em silêncio e os 680
+       continuavam sem proporção sem ninguém saber por quê */
     gravarYoutube(faltam)
-      .then(() => { toast(`Proporção de ${faltam.length} ${faltam.length === 1 ? 'vídeo conferida' : 'vídeos conferida'} no YouTube`); buscar(); })
-      .catch(() => {});
+      .then((r) => {
+        const com = [...r.values()].filter((x) => x.vertical != null);
+        const emPe = com.filter((x) => x.vertical).length;
+        toast(com.length
+          ? `Proporção de ${com.length} vídeos conferida no YouTube: ${emPe} em pé, ${com.length - emPe} deitados`
+          : `O YouTube não mandou a proporção de nenhum dos ${faltam.length} vídeos`, com.length ? '' : 'err');
+        buscar();
+      })
+      .catch((e) => {
+        console.error('[acervo] proporção', e);
+        toast(`Não consegui conferir a proporção no YouTube: ${String(e?.message || e).slice(0, 120)}`, 'err');
+      });
   }, [carregando, lista.length]);
 
   /* ------------------------------------------------------------
