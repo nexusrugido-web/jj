@@ -8,6 +8,7 @@ import Figurinha from './Figurinha';
 import { semanaDe } from '../lib/xp';
 import { ofensiva, textoOfensiva, diasFechados, diasParadosPorLesao, MAX_ESCUDOS } from '../lib/ofensiva';
 import { hoje, addDias } from '../lib/utils';
+import { escudosDaDivisao, useMinhaDivisao } from '../lib/liga';
 
 /* ============================================================
    SUA OFENSIVA
@@ -20,7 +21,9 @@ export default function MinhaOfensiva({ aberto, onClose }) {
   const { irPara } = useApp();
   const pontos = useLiveQuery(() => db.pontos.toArray(), [], []) || [];
   const lesoes = useLiveQuery(() => db.injuries.toArray(), [], []) || [];
-  const ofa = useMemo(() => ofensiva(pontos, undefined, lesoes), [pontos, lesoes]);
+  /* do Nacional pra cima a ofensiva guarda 3 escudos */
+  const minhaDivisao = useMinhaDivisao();
+  const ofa = useMemo(() => ofensiva(pontos, undefined, lesoes, { maxEscudos: escudosDaDivisao(minhaDivisao?.divisao) }), [pontos, lesoes, minhaDivisao]);
 
   const semanas = useMemo(() => {
     const soma = (f) => pontos.filter(f).reduce((a, x) => a + (x.xp || 0), 0);
@@ -114,7 +117,7 @@ function BlocoOfensiva({ o, pontos, lesoes, irPara }) {
 
       <div className="ofa-pe">
         <div className="escudos">
-          {Array.from({ length: MAX_ESCUDOS }).map((_, i) => (
+          {Array.from({ length: ofa.maxEscudos || MAX_ESCUDOS }).map((_, i) => (
             <span key={i} className={`escudo ${i < o.escudos ? 'cheio' : ''}`}>
               <ShieldCheck size={12} />
             </span>

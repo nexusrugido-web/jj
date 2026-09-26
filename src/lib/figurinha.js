@@ -189,7 +189,7 @@ function desenharFaixa(ctx, x, y, largura, { cor: corFaixa, graus = 0, preta = f
  * desenho id de DESENHOS, ou vazio: vai no canto de cima, à direita
  * fundo   false = PNG transparente, true = cartão escuro
  */
-export async function desenharFigurinha({ selo, grande, sub = '', pct = null, frase = '', autor = '', faixa = null, tema = 'app', corFaixa = null, desenho = '', fundo = false }) {
+export async function desenharFigurinha({ selo, grande, sub = '', pct = null, frase = '', autor = '', faixa = null, tema = 'app', corFaixa = null, desenho = '', fundo = false, divisao = '' }) {
   /* fonte que só o canvas usa o navegador não baixa sozinho */
   try {
     await Promise.all([
@@ -300,6 +300,14 @@ export async function desenharFigurinha({ selo, grande, sub = '', pct = null, fr
   ctx.font = `700 52px ${DISPLAY}`;
   ctx.textBaseline = 'middle';
   ctx.fillText('NeuroJitsu', MARGEM + (logo ? 110 : 0), 156);
+  /* o selo da divisão da liga, embaixo da marca (Estadual em diante) */
+  if (divisao) {
+    ctx.fillStyle = acento;
+    ctx.font = `700 24px ${MONO}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '4px';
+    ctx.fillText(`DIVISÃO ${String(divisao).toUpperCase()}`, MARGEM + (logo ? 112 : 0), 200);
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  }
 
   /* o desenho, no canto de cima à direita, sem sombra (o contorno
      preto dele já segura a leitura em cima de foto) */

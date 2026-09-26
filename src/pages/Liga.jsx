@@ -136,7 +136,8 @@ function Cabecalho({ onComo }) {
 
 function ComoFunciona({ aberto, onClose }) {
   const { irPara } = useApp();
-  const eventos = Object.values(EVENTOS).filter((e) => !e.antigo).sort((a, b) => b.xp - a.xp);
+  /* o bônus de subir de divisão nasce no servidor: aparece no tópico das divisões */
+  const eventos = Object.values(EVENTOS).filter((e) => !e.antigo && !e.doServidor).sort((a, b) => b.xp - a.xp);
   const divisoes = Object.values(DIVISOES_LIGA);
 
   return (
@@ -209,7 +210,8 @@ function ComoFunciona({ aberto, onClose }) {
                     <span key={d.nome} className="guia-degrau"><span className="num micro muted">{i + 1}</span> {d.nome}</span>
                   ))}
                 </div>
-                <p>A divisão é só da liga e muda toda semana. A sua faixa continua sendo a do tatame, e quem gradua é o seu professor.</p>
+                <p>Cada divisão dá alguma coisa: do Estadual em diante, a moldura na foto e o selo na figurinha do story; do Nacional pra cima, a ofensiva guarda 3 escudos em vez de 2; no Mundial, a coroa. Subir vale +30 pontos no total, uma vez. Na Liga, toque na sua divisão pra ver a escada inteira e quanto falta.</p>
+                <p>Descer tira o que a divisão de cima dava. A sua melhor divisão fica guardada como recorde. A divisão é só da liga: a sua faixa continua sendo a do tatame, e quem gradua é o seu professor.</p>
               </>
             ),
           },

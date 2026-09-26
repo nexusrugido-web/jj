@@ -1,6 +1,7 @@
+import { useLiveQuery } from 'dexie-react-hooks';
 import { supabase } from './supabase';
 import { db, getMeta, setMeta } from '../db/db';
-import { semanaDe } from './xp';
+import { semanaDe, EVENTOS } from './xp';
 import { hoje, addDias } from './utils';
 import { ofensiva } from './ofensiva';
 
@@ -35,12 +36,81 @@ import { ofensiva } from './ofensiva';
    que todo mundo que treina reconhece e ninguém confunde com faixa.
    ============================================================ */
 export const DIVISOES_LIGA = {
-  branca: { nome: 'Academia', tom: '' },
-  azul: { nome: 'Estadual', tom: '' },
-  roxa: { nome: 'Nacional', tom: 'jade' },
-  marrom: { nome: 'Pan', tom: 'on' },
-  preta: { nome: 'Mundial', tom: 'warn' },
+  branca: { nome: 'Academia', tom: '', escudos: 2, cor: 'var(--dim)' },
+  azul: { nome: 'Estadual', tom: '', escudos: 2, cor: '#c9ced6' },
+  roxa: { nome: 'Nacional', tom: 'jade', escudos: 3, cor: 'var(--jade)' },
+  marrom: { nome: 'Pan', tom: 'on', escudos: 3, cor: '#e8843c' },
+  preta: { nome: 'Mundial', tom: 'warn', escudos: 3, cor: '#e3b04b' },
 };
+export const ORDEM_DIVISOES = ['branca', 'azul', 'roxa', 'marrom', 'preta'];
+const ordemDa = (id) => Math.max(0, ORDEM_DIVISOES.indexOf(id));
+
+/* ============================================================
+   O QUE CADA DIVISÃO DÁ
+
+   Decidido pelo usuário em 25/09/2026. Status, não vantagem na
+   corrida: a liga compara pontos, e dar mais ponto pra quem está em
+   cima deixaria ele impossível de alcançar.
+     moldura   a foto ganha um anel na cor da divisão (Estadual em diante)
+     selo      a figurinha do story mostra a divisão (Estadual em diante)
+     escudo    a ofensiva guarda 3 escudos em vez de 2 (Nacional em diante)
+     coroa     no Mundial
+   Subir dá +30 pontos no total, uma vez (evento "divisao", do servidor).
+   Descer tira os benefícios da divisão de cima. O recorde fica.
+   ============================================================ */
+export const BONUS_DE_SUBIR = 30;
+export const escudosDaDivisao = (id) => DIVISOES_LIGA[id]?.escudos ?? 2;
+
+export function beneficiosDa(id) {
+  const n = ordemDa(id);
+  const lista = [];
+  if (n === 0) return ['O começo de todo mundo. Termine em 1º do grupo com o mínimo de pontos pra subir.'];
+  lista.push(`Moldura ${['', 'prata', 'verde', 'laranja', 'dourada'][n]} na sua foto, na liga e no perfil`);
+  lista.push(`Selo "Divisão ${nomeDivisao(id)}" na figurinha do story`);
+  if (escudosDaDivisao(id) > 2) lista.push(`Ofensiva com ${escudosDaDivisao(id)} escudos em vez de 2`);
+  if (id === 'preta') lista.push('A coroa do Mundial do lado do nome');
+  return lista;
+}
+
+/* ============================================================
+   QUANTO FALTA PRA SUBIR
+
+   As três condições do fechamento, uma por uma: grupo com 3 ou
+   mais, terminar em 1º e fazer o mínimo de pontos da divisão.
+   ============================================================ */
+export function progressoPraSubir({ divisao = 'branca', xp = 0, posicao = null, total = 0 }) {
+  const proxima = ORDEM_DIVISOES[ordemDa(divisao) + 1] || null;
+  const minimo = MINIMO_PRA_SUBIR[divisao] ?? null;
+  if (!proxima || !minimo) return { proxima: null, topo: true };
+  const falta = Math.max(0, minimo - xp);
+  return {
+    proxima,
+    minimo,
+    falta,
+    pct: Math.min(100, Math.round((xp / minimo) * 100)),
+    grupoOk: total >= MINIMO_DO_GRUPO,
+    lugarOk: posicao === 1,
+    pontosOk: falta === 0,
+  };
+}
+
+/* a moldura da foto na cor da divisão (Estadual em diante) */
+export const molduraDe = (id) => (id && id !== 'branca' && DIVISOES_LIGA[id] ? ` moldura-${id}` : '');
+
+/* a minha divisão e o recorde, que o aparelho guardou da última vez */
+export function useMinhaDivisao() {
+  return useLiveQuery(() => getMeta('liga_divisao', null), [], null);
+}
+
+/* ---------- a minha divisão e o recorde, guardados no aparelho ---------- */
+export async function buscarMinhaDivisao() {
+  if (!supabase) return null;
+  const { data, error } = await supabase.rpc('minha_divisao');
+  if (error) return null; /* antes do SQL 24 a função não existe */
+  const r = (Array.isArray(data) ? data[0] : data) || null;
+  if (r) await setMeta('liga_divisao', { divisao: r.divisao, melhor: r.melhor_divisao });
+  return r;
+}
 export const nomeDivisao = (id) => (DIVISOES_LIGA[id] || DIVISOES_LIGA.branca).nome;
 const ACIMA_DE = { branca: 'azul', azul: 'roxa', roxa: 'marrom', marrom: 'preta', preta: 'preta' };
 
@@ -72,7 +142,8 @@ async function subir() {
   const marca = `${uid}:${semanas[0]}:${linhas.length}:${Math.max(0, ...linhas.map((l) => l.criadoEm || 0))}`;
   if (linhas.length && (await getMeta('liga_marca', null)) !== marca) {
     const { error } = await supabase.rpc('subir_pontos', {
-      p_linhas: linhas.map((l) => ({
+      /* o bônus de subir de divisão veio do servidor: não volta pra lá */
+      p_linhas: linhas.filter((l) => !EVENTOS[l.evento]?.doServidor).map((l) => ({
         evento: l.evento,
         refId: l.refId || `local:${l.uid || l.id}`,
         detalhe: l.detalhe,
@@ -87,8 +158,11 @@ async function subir() {
     else await setMeta('liga_marca', marca);
   }
 
+  /* a divisão e o recorde, pro selo, a moldura e os escudos */
+  const div = await buscarMinhaDivisao().catch(() => null);
+
   /* a ofensiva sobe junto: é ela que o ranking e o grupo mostram */
-  const dias = ofensiva(await db.pontos.toArray()).dias;
+  const dias = ofensiva(await db.pontos.toArray(), undefined, [], { maxEscudos: escudosDaDivisao(div?.divisao) }).dias;
   const chaveSeq = `${uid}:${dias}`;
   if ((await getMeta('liga_sequencia', null)) !== chaveSeq) {
     const { error } = await supabase.from('perfil').update({ sequencia: dias }).eq('user_id', uid);

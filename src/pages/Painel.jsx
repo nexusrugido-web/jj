@@ -33,6 +33,7 @@ import { Sheet, useToast, Diamante } from '../components/UI';
 import { podeVer } from '../lib/plano';
 import { Convite, Vitrine } from '../components/Plano';
 import { supabase } from '../lib/supabase';
+import { escudosDaDivisao, useMinhaDivisao } from '../lib/liga';
 
 export default function Painel() {
   const [ajudaTec, setAjudaTec] = useState(false);
@@ -75,7 +76,9 @@ export default function Painel() {
   const lesoes = useLiveQuery(() => db.injuries.toArray(), [], []) || [];
   /* a lesão que tira do tatame congela a ofensiva: sem isso,
      quem operou o joelho perde tudo enquanto está de molho */
-  const ofa = useMemo(() => ofensiva(pontos, undefined, lesoes), [pontos, lesoes]);
+  /* do Nacional pra cima a ofensiva guarda 3 escudos */
+  const minhaDivisao = useMinhaDivisao();
+  const ofa = useMemo(() => ofensiva(pontos, undefined, lesoes, { maxEscudos: escudosDaDivisao(minhaDivisao?.divisao) }), [pontos, lesoes, minhaDivisao]);
 
   const esteira = useMemo(() => minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa, gradings, settings.graus || 0), [rolls, partners, sessions, techniques, settings.faixa, gradings, settings.graus]);
   const recap = useMemo(() => resumoSemana(sessions, rolls, esteira, { faixa: settings.faixa }), [sessions, rolls, esteira, settings.faixa]);

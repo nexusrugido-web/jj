@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Trophy, Check, Eye, EyeOff, RefreshCw, Flame, LogOut, UserRound, Undo2, Dumbbell, Crown, Camera, Trash2, UserPlus,
-  Flag, ArrowUp, ArrowDown, Minus,
+  Flag, ArrowUp, ArrowDown, Minus, ChevronRight, Shield, Info,
 } from 'lucide-react';
 import { useApp } from '../contexto';
 import { supabase } from '../lib/supabase';
@@ -11,7 +11,8 @@ import {
 import { ajusteDe } from '../lib/ajustes';
 import {
   subirPraLiga, corteDoGrupo, nomeCurto, DIVISOES_LIGA, relogioDaLiga, faltaTexto, resultadoEmPalavras,
-  MINIMO_DO_GRUPO, minimoPraSubir, praDivisao,
+  MINIMO_DO_GRUPO, minimoPraSubir, praDivisao, naDivisao, nomeDivisao, ORDEM_DIVISOES, MINIMO_PRA_SUBIR,
+  beneficiosDa, progressoPraSubir, buscarMinhaDivisao, useMinhaDivisao, molduraDe, BONUS_DE_SUBIR,
 } from '../lib/liga';
 import { getMeta, setMeta } from '../db/db';
 import { fmtData } from '../lib/utils';
@@ -174,7 +175,7 @@ function VagasDoGrupo({ linhas, tamanho }) {
     <div className="liga-vagas">
       <div className="liga-vagas-fila">
         {linhas.map((l) => (
-          <Avatar key={l.user_id} nome={l.nome} foto={l.foto} className={`liga-vaga-cheia${l.sou_eu ? ' eu' : ''}`} />
+          <Avatar key={l.user_id} nome={l.nome} foto={l.foto} className={`liga-vaga-cheia${l.sou_eu ? ' eu' : ''}${molduraDe(l.divisao_pessoa)}`} />
         ))}
         {Array.from({ length: Math.min(vagas, 6) }, (_, i) => <span key={i} className="liga-vaga" style={{ animationDelay: `${i * 0.3}s` }} />)}
       </div>
@@ -183,6 +184,121 @@ function VagasDoGrupo({ linhas, tamanho }) {
         ocupa uma vaga, até domingo.
       </p>
     </div>
+  );
+}
+
+/* ============================================================
+   QUANTO FALTA PRA SUBIR
+
+   As três condições do fechamento, uma embaixo da outra, e a barra
+   dos pontos. Tocar abre as divisões.
+   ============================================================ */
+function BarraPraSubir({ divisao, xp = 0, posicao = null, total = 0, onAbrir }) {
+  const p = progressoPraSubir({ divisao, xp, posicao, total });
+  if (p.topo) {
+    return (
+      <button type="button" className="liga-subir" onClick={onAbrir}>
+        <span className="tiny row" style={{ gap: 6, fontWeight: 700 }}><Crown size={14} style={{ color: '#e3b04b' }} /> Você está no topo: o Mundial</span>
+        <span className="micro muted">Termine a semana em cima pra não descer.</span>
+      </button>
+    );
+  }
+  const cond = [
+    { ok: p.pontosOk, sim: `${p.minimo} pontos`, nao: `faltam ${p.falta} pts` },
+    { ok: p.lugarOk, sim: 'em 1º', nao: 'terminar em 1º' },
+    { ok: p.grupoOk, sim: 'grupo valendo', nao: `grupo de ${MINIMO_DO_GRUPO}+` },
+  ];
+  return (
+    <button type="button" className="liga-subir" onClick={onAbrir}>
+      <span className="row" style={{ justifyContent: 'space-between', gap: 8, width: '100%' }}>
+        <span className="tiny" style={{ fontWeight: 700 }}>Pra subir {praDivisao(p.proxima)}</span>
+        <span className="micro num muted">{xp} de {p.minimo} pts</span>
+      </span>
+      <span className="liga-subir-barra"><i style={{ width: `${Math.max(3, p.pct)}%`, background: DIVISOES_LIGA[p.proxima].cor }} /></span>
+      <span className="liga-subir-checks">
+        {cond.map((c) => (
+          <span key={c.sim} className={`liga-subir-check${c.ok ? ' ok' : ''}`}>
+            {c.ok ? <Check size={11} /> : <span className="liga-subir-bola" />} {c.ok ? c.sim : c.nao}
+          </span>
+        ))}
+      </span>
+    </button>
+  );
+}
+
+/* ============================================================
+   AS DIVISÕES
+
+   O popup que explica o que é o "Estadual": a escada inteira, do
+   Mundial à Academia, onde você está, o seu recorde, o que cada
+   uma dá, o que precisa pra subir e o que acontece ao descer.
+   ============================================================ */
+function AsDivisoes({ aberto, onClose, atual = 'branca', melhor = null, xp = 0, posicao = null, total = 0 }) {
+  const topoPrimeiro = [...ORDEM_DIVISOES].reverse();
+  return (
+    <Sheet aberto={aberto} onClose={onClose} titulo="As divisões da liga" subtitulo="o que cada uma dá e como subir" wide>
+      <div className="row wrap" style={{ gap: 8 }}>
+        <span className="tiny muted">Você está no</span> <DivisaoTag id={atual} />
+        {melhor && melhor !== atual && (
+          <span className="micro muted row" style={{ gap: 5 }}>· sua melhor: <DivisaoTag id={melhor} /></span>
+        )}
+      </div>
+      <BarraPraSubir divisao={atual} xp={xp} posicao={posicao} total={total} />
+
+      <div className="divisoes-escada">
+        {topoPrimeiro.map((id) => {
+          const i = ORDEM_DIVISOES.indexOf(id);
+          const anterior = ORDEM_DIVISOES[i - 1];
+          const aqui = id === atual;
+          const recorde = id === melhor && melhor !== atual;
+          return (
+            <div key={id} className={`divisao-degrau${aqui ? ' aqui' : ''}`} style={{ '--cor': DIVISOES_LIGA[id].cor }}>
+              <div className="row" style={{ gap: 10, alignItems: 'center' }}>
+                <span className="divisao-degrau-n num">{i + 1}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="tiny row" style={{ gap: 6, fontWeight: 800 }}>
+                    {id === 'preta' && <Crown size={13} style={{ color: '#e3b04b' }} />}
+                    {nomeDivisao(id)}
+                    {aqui && <span className="divisao-voce">você está aqui</span>}
+                    {recorde && <span className="divisao-voce recorde">sua melhor</span>}
+                  </div>
+                  <div className="micro muted" style={{ marginTop: 2 }}>
+                    {anterior ? `Chega quem termina em 1º ${naDivisao(anterior)} com ${MINIMO_PRA_SUBIR[anterior]} pontos ou mais` : 'Onde todo mundo começa'}
+                  </div>
+                </div>
+              </div>
+              <ul className="divisao-beneficios">
+                {beneficiosDa(id).map((b) => <li key={b}>{b}</li>)}
+              </ul>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="col" style={{ gap: 10 }}>
+        <div className="valida bom">
+          <ArrowUp size={15} className="valida-ico" style={{ color: 'var(--jade)' }} />
+          <p className="micro muted" style={{ lineHeight: 1.6 }}>
+            <b style={{ color: 'var(--chalk)' }}>Subiu?</b> +{BONUS_DE_SUBIR} pontos no seu total, uma vez, e os benefícios da divisão nova na hora.
+            O bônus não entra na corrida da semana, pra ninguém largar na frente.
+          </p>
+        </div>
+        <div className="valida atencao">
+          <ArrowDown size={15} className="valida-ico" style={{ color: 'var(--roar)' }} />
+          <p className="micro muted" style={{ lineHeight: 1.6 }}>
+            <b style={{ color: 'var(--chalk)' }}>E se eu descer?</b> Quem termina em último num grupo de {MINIMO_DO_GRUPO} ou mais desce um degrau
+            e perde o que a divisão de cima dava: a moldura, o selo e o escudo extra. A sua faixa, os graus, os pontos e o seu recorde não mudam.
+            A divisão é da liga, não do seu jiu-jitsu.
+          </p>
+        </div>
+        <div className="valida">
+          <Shield size={15} className="valida-ico" style={{ color: 'var(--dim)' }} />
+          <p className="micro muted" style={{ lineHeight: 1.6 }}>
+            Grupo de 2 não sobe nem desce ninguém, e terminar em 1º sem o mínimo de pontos mantém você onde está.
+          </p>
+        </div>
+      </div>
+    </Sheet>
   );
 }
 
@@ -200,6 +316,9 @@ export default function Liga({ compacto = false }) {
   const [perfil, setPerfil] = useState(null);
   const [aparencia, setAparencia] = useState(false);
   const [vendo, setVendo] = useState(null);
+  /* a escada das divisões, e a minha divisão com o recorde */
+  const [divisoesAberto, setDivisoesAberto] = useState(false);
+  const minhaDivisao = useMinhaDivisao();
   /* a semana passada (supabase/liga-resultado.sql) e o popup de quando ela fecha */
   const [passada, setPassada] = useState(null);
   const [anuncio, setAnuncio] = useState(false);
@@ -218,6 +337,7 @@ export default function Liga({ compacto = false }) {
         supabase.from('perfil').select('participa_liga, anonimo, apelido, avatar_url').eq('user_id', sessao.user.id).single(),
         /* antes do SQL do resultado rodar, a função não existe: fica sem */
         supabase.rpc('minha_semana_passada').then((x) => x, () => ({ data: null })),
+        buscarMinhaDivisao().catch(() => null),
       ]);
       setLinhas(r.data || []);
       setPerfil(p.data || null);
@@ -290,7 +410,24 @@ export default function Liga({ compacto = false }) {
     </>
   );
 
+  const divisoes = (
+    <AsDivisoes
+      aberto={divisoesAberto}
+      onClose={() => setDivisoesAberto(false)}
+      atual={linhas.find((l) => l.sou_eu)?.divisao_pessoa || minhaDivisao?.divisao || 'branca'}
+      melhor={minhaDivisao?.melhor || null}
+      xp={linhas.find((l) => l.sou_eu)?.xp_semana || 0}
+      posicao={linhas.find((l) => l.sou_eu)?.posicao || null}
+      total={Number(linhas[0]?.total) || linhas.length}
+    />
+  );
+  const botaoDivisoes = (
+    <Btn size="xs" variant="ghost" icon={Info} onClick={() => setDivisoesAberto(true)}>As divisões</Btn>
+  );
+
   const comoAparece = (
+    <>
+    {divisoes}
     <ComoAparece
       aberto={aparencia}
       onClose={() => setAparencia(false)}
@@ -299,7 +436,9 @@ export default function Liga({ compacto = false }) {
       userId={sessao.user.id}
       onSalvo={() => { setAparencia(false); buscar(); }}
       onFoto={() => buscar()}
+      divisao={minhaDivisao?.divisao}
     />
+    </>
   );
 
   /* ---------- fora da liga ---------- */
@@ -318,6 +457,7 @@ export default function Liga({ compacto = false }) {
         <div className="row wrap" style={{ gap: 8, marginTop: 14 }}>
           <Btn variant="primary" icon={Undo2} onClick={voltar}>Voltar pra liga</Btn>
           <Btn variant="ghost" icon={UserRound} onClick={() => setAparencia(true)}>Como eu apareço</Btn>
+            {botaoDivisoes}
         </div>
         {comoAparece}
       </Card>
@@ -353,6 +493,7 @@ export default function Liga({ compacto = false }) {
           <div className="row wrap" style={{ gap: 8, marginTop: 14 }}>
             <Btn variant="primary" icon={Dumbbell} onClick={() => irPara('treinos')}>Registrar treino</Btn>
             <Btn variant="ghost" icon={UserRound} onClick={() => setAparencia(true)}>Como eu apareço</Btn>
+            {botaoDivisoes}
           </div>
         )}
         {comoAparece}
@@ -392,7 +533,10 @@ export default function Liga({ compacto = false }) {
     <Card style={{ marginBottom: compacto ? 0 : 14 }}>
       <div className="card-head" style={{ marginBottom: 4 }}>
         <h2 className="h-sec row" style={{ gap: 8, flexWrap: 'wrap' }}>
-          <Trophy size={16} /> {linhas[0]?.em_sala ? 'Sua sala' : 'Divisão'} <DivisaoTag id={minhaDiv} />
+          <Trophy size={16} /> {linhas[0]?.em_sala ? 'Sua sala' : 'Divisão'}
+          <button type="button" className="divisao-botao" onClick={() => setDivisoesAberto(true)} aria-label="Ver as divisões">
+            <DivisaoTag id={minhaDiv} /> <ChevronRight size={14} className="muted" />
+          </button>
         </h2>
         <Btn size="sm" variant="ghost" icon={RefreshCw} onClick={() => buscar({ subir: true })} disabled={carregando} aria-label="Atualizar" />
       </div>
@@ -445,6 +589,9 @@ export default function Liga({ compacto = false }) {
           <span className="num" style={{ fontSize: 19, fontWeight: 700, color: 'var(--accent)' }}>{eu.xp_semana}</span>
         </div>
       )}
+      {!compacto && eu && (
+        <BarraPraSubir divisao={minhaDiv} xp={eu.xp_semana} posicao={eu.posicao} total={total} onAbrir={() => setDivisoesAberto(true)} />
+      )}
 
       {comecou && !valendo && (
         <div className="valida atencao" style={{ marginTop: 12 }}>
@@ -466,8 +613,9 @@ export default function Liga({ compacto = false }) {
           return (
             <button key={l.user_id} type="button" className={`liga-linha ${l.sou_eu ? 'eu' : ''}`} onClick={() => setVendo(l)}>
               <span className="liga-pos num">{l.posicao}</span>
-              <Avatar nome={l.nome} foto={l.foto} className="liga-avatar" />
+              <Avatar nome={l.nome} foto={l.foto} className={`liga-avatar${molduraDe(div)}`} />
               <span className="tiny liga-nome" style={{ fontWeight: l.sou_eu ? 600 : 400 }}>
+                {div === 'preta' && <Crown size={12} style={{ color: '#e3b04b', marginRight: 4, verticalAlign: -1 }} />}
                 {l.nome}{l.sou_eu ? ' (você)' : ''}
               </span>
               {div !== minhaDiv && <DivisaoTag id={div} />}
@@ -507,6 +655,7 @@ export default function Liga({ compacto = false }) {
       {!compacto && (
         <div className="row wrap" style={{ gap: 8, marginTop: 14 }}>
           <Btn size="xs" variant="ghost" icon={UserRound} onClick={() => setAparencia(true)}>Como eu apareço</Btn>
+          {botaoDivisoes}
         </div>
       )}
 
@@ -520,7 +669,7 @@ export default function Liga({ compacto = false }) {
 /* ============================================================
    COMO VOCÊ APARECE PROS OUTROS
    ============================================================ */
-function ComoAparece({ aberto, onClose, perfil, nome, userId, onSalvo, onFoto }) {
+function ComoAparece({ aberto, onClose, perfil, nome, userId, onSalvo, onFoto, divisao }) {
   const toast = useToast();
   const modoAtual = perfil?.anonimo ? (perfil?.apelido ? 'apelido' : 'anonimo') : 'nome';
   const [modo, setModo] = useState(modoAtual);
@@ -593,7 +742,7 @@ function ComoAparece({ aberto, onClose, perfil, nome, userId, onSalvo, onFoto })
       }
     >
       <div className="row" style={{ gap: 14, alignItems: 'center' }}>
-        <Avatar nome={modo === 'apelido' && apelido.trim() ? apelido : nomeCurto(nome)} foto={modo === 'anonimo' ? null : foto} className="perfil-avatar" />
+        <Avatar nome={modo === 'apelido' && apelido.trim() ? apelido : nomeCurto(nome)} foto={modo === 'anonimo' ? null : foto} className={`perfil-avatar${molduraDe(divisao)}`} />
         <div className="col" style={{ gap: 8, flex: 1 }}>
           <label className={`btn sm ${mandando ? 'disabled' : ''}`} style={{ alignSelf: 'flex-start' }}>
             <Camera size={14} /> {mandando ? 'Mandando…' : foto ? 'Trocar foto' : 'Colocar foto'}
@@ -675,7 +824,7 @@ function PerfilDoColega({ linha, onClose }) {
         <p className="tiny muted">Não deu pra abrir este perfil agora.</p>
       ) : (
         <div className="col" style={{ gap: 16 }}>
-          <Avatar nome={linha?.nome} foto={p.foto} className="perfil-avatar" />
+          <Avatar nome={linha?.nome} foto={p.foto} className={`perfil-avatar${molduraDe(p.divisao)}`} />
           <div className="row wrap" style={{ gap: 8 }}>
             <BeltTag faixa={p.faixa} graus={p.graus || 0}>Faixa {p.faixa}</BeltTag>
             <DivisaoTag id={p.divisao} prefixo="Divisão " />

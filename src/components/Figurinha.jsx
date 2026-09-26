@@ -8,6 +8,7 @@ import {
   desenharFigurinha, paraPNG, INSTAGRAM, FRASES, TEMAS, DESENHOS, DESENHO_PADRAO, urlDoDesenho, lerFrase,
 } from '../lib/figurinha';
 import { compartilhar } from '../lib/card';
+import { useMinhaDivisao, nomeDivisao } from '../lib/liga';
 
 /* ============================================================
    A FOLHA DA FIGURINHA
@@ -47,12 +48,15 @@ export default function Figurinha({ aberto, onClose, dados, tipo = 'marco', link
   const frase = comFrase ? lerFrase(frases[qualFrase % frases.length]) : { t: '', autor: '' };
   const travado = !!TEMAS.find((t) => t.id === tema)?.premium && !podeVer(acesso, 'temasFigurinha');
 
+  /* a divisão da liga vai como selo embaixo da marca */
+  const minhaDivisao = useMinhaDivisao();
   useEffect(() => {
     if (!aberto) return undefined;
     let vivo = true;
     desenharFigurinha({
       ...JSON.parse(chave), selo: comSelo ? dados?.selo : '', frase: frase.t, autor: frase.autor,
       tema, corFaixa, desenho, fundo: fundo === 'com',
+      divisao: minhaDivisao?.divisao && minhaDivisao.divisao !== 'branca' ? nomeDivisao(minhaDivisao.divisao) : '',
     })
       .then(paraPNG)
       .then((b) => {
@@ -62,7 +66,7 @@ export default function Figurinha({ aberto, onClose, dados, tipo = 'marco', link
       })
       .catch((e) => console.error('[figurinha]', e));
     return () => { vivo = false; };
-  }, [aberto, fundo, chave, comSelo, frase.t, frase.autor, tema, corFaixa, desenho]);
+  }, [aberto, fundo, chave, comSelo, frase.t, frase.autor, tema, corFaixa, desenho, minhaDivisao?.divisao]);
 
   const arquivo = () => new File([blob.current], 'neurojitsu.png', { type: 'image/png' });
   const podeCompartilhar = (() => {

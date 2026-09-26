@@ -19,6 +19,7 @@ import { Ponteira } from '../components/Ponteira';
 import { proximaGraduacao, FAIXAS_ORDEM } from '../lib/milestones';
 import { hoje, fmtData, relativo, diasEntre, fmtDur } from '../lib/utils';
 import { periodoDeDados, dentroDoPeriodo } from '../lib/periodo';
+import { escudosDaDivisao, useMinhaDivisao } from '../lib/liga';
 
 /* Abre a figurinha pro story (a imagem, com o @ do app). O card
    em link continua lá dentro, pra quem prefere mandar no grupo. */
@@ -68,7 +69,9 @@ export default function Conquistas() {
   const r = useMemo(() => resumoGeral(sessions, rolls), [sessions, rolls]);
   const pontos = useLiveQuery(() => db.pontos.toArray(), [], []) || [];
   const lesoes = useLiveQuery(() => db.injuries.toArray(), [], []) || [];
-  const ofa = useMemo(() => ofensiva(pontos, undefined, lesoes), [pontos, lesoes]);
+  /* do Nacional pra cima a ofensiva guarda 3 escudos */
+  const minhaDivisao = useMinhaDivisao();
+  const ofa = useMemo(() => ofensiva(pontos, undefined, lesoes, { maxEscudos: escudosDaDivisao(minhaDivisao?.divisao) }), [pontos, lesoes, minhaDivisao]);
   const esteira = useMemo(() => minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa, graduacoes, settings.graus || 0), [rolls, partners, sessions, techniques, settings.faixa, graduacoes, settings.graus]);
   const dom = useMemo(() => resumoGraus(esteira), [esteira]);
 

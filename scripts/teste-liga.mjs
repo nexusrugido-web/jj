@@ -9,7 +9,7 @@ register('./como-vite.mjs', import.meta.url);
    mesmas contas, e o nome que a pessoa vê antes de salvar é o
    mesmo que o servidor monta.
    ============================================================ */
-const { corteDoGrupo, nomeCurto, relogioDaLiga, faltaTexto, resultadoEmPalavras, praDivisao, naDivisao } = await import('../src/lib/liga.js');
+const { corteDoGrupo, nomeCurto, relogioDaLiga, faltaTexto, resultadoEmPalavras, praDivisao, naDivisao, progressoPraSubir, beneficiosDa, escudosDaDivisao } = await import('../src/lib/liga.js');
 const { hoje, addDias, dataLocal } = await import('../src/lib/utils.js');
 const { semanaDe } = await import('../src/lib/xp.js');
 
@@ -64,6 +64,16 @@ ok('1º sem o mínimo: a tela explica quanto faltou', resultadoEmPalavras({ ...b
   'Terminou em 1º, com 100 pontos, mas pra subir pro Nacional precisava de 120. Faltaram 20.');
 ok('grupo de 2: explica que não vale subida', resultadoEmPalavras({ ...base, total: 2, resultado: 'poucos', divisao_depois: 'azul' }).titulo, 'Grupo de 2 não vale subida');
 ok('semana fechada antes do resultado ser guardado: só o lugar', resultadoEmPalavras({ ...base, resultado: null, posicao: 2 }).titulo, 'Você terminou em 2º');
+
+/* ---------- quanto falta pra subir, e o que cada divisão dá ---------- */
+const p1 = progressoPraSubir({ divisao: 'azul', xp: 90, posicao: 1, total: 4 });
+ok('Estadual com 90 de 120: falta 30, 75%, em 1º num grupo que vale', [p1.proxima, p1.minimo, p1.falta, p1.pct, p1.grupoOk, p1.lugarOk, p1.pontosOk], ['roxa', 120, 30, 75, true, true, false]);
+const p2 = progressoPraSubir({ divisao: 'branca', xp: 100, posicao: 2, total: 2 });
+ok('Academia com 100: pontos ok, mas em 2º e grupo de 2', [p2.pontosOk, p2.lugarOk, p2.grupoOk, p2.pct], [true, false, false, 100]);
+ok('no Mundial não tem pra onde subir', progressoPraSubir({ divisao: 'preta', xp: 500 }).topo, true);
+ok('escudos: 2 até o Estadual, 3 do Nacional pra cima', ['branca', 'azul', 'roxa', 'preta', undefined].map(escudosDaDivisao), [2, 2, 3, 3, 2]);
+ok('Nacional: moldura, selo e o escudo extra', beneficiosDa('roxa'), ['Moldura verde na sua foto, na liga e no perfil', 'Selo "Divisão Nacional" na figurinha do story', 'Ofensiva com 3 escudos em vez de 2']);
+ok('Mundial tem a coroa', beneficiosDa('preta').some((b) => b.includes('coroa')), true);
 
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

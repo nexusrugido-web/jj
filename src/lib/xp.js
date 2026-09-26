@@ -15,6 +15,16 @@ import { hoje, dataLocal } from './utils';
    ============================================================ */
 
 export const EVENTOS = {
+  /* nasce no servidor, no fechamento da semana (supabase/liga-divisoes.sql):
+     o app só mostra, não dá nem envia */
+  divisao: {
+    id: 'divisao',
+    nome: 'Subiu de divisão na liga',
+    xp: 30,
+    tetoDia: 1,
+    doServidor: true,
+    desc: 'Uma vez a cada subida. Soma no total, não na corrida da semana.',
+  },
   treino: {
     id: 'treino',
     nome: 'Treino registrado com reflexão',

@@ -174,5 +174,12 @@ ok('quebrada nao tem inicio', o(seguidos(14, addDias(HOJE, -2))).desde, null);
 ok('escudo segurou: o inicio nao muda', salvou.desde, addDias(HOJE, -16));
 ok('lesao congelou: o inicio nao muda', oL(comLesao, lesao5).desde, addDias(HOJE, -15));
 
+/* ---------- a divisão da liga (25/09) ---------- */
+const longa = seguidos(60);
+ok('até o Estadual, a ofensiva guarda 2 escudos', ofensiva(longa, HOJE).escudos, 2);
+ok('do Nacional pra cima, guarda 3', ofensiva(longa, HOJE, [], { maxEscudos: 3 }).escudos, 3);
+ok('o bônus de subir de divisão não é dia de presença',
+  o([{ data: addDias(HOJE, -1), xp: 12, evento: 'rola' }, { data: HOJE, xp: 30, evento: 'divisao' }]).fechouHoje, false);
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

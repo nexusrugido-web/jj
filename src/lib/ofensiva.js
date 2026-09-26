@@ -77,7 +77,8 @@ export const DIAS_QUE_O_TREINO_PAGA = 2;
    depois do estrago. Hoje em aberto não é dia perdido: é o dia
    que ainda dá pra fechar. */
 
-export function ofensiva(pontos = [], hojeIso = hoje(), lesoes = []) {
+/* maxEscudos: 2, e 3 do Nacional pra cima (escudosDaDivisao, em liga.js) */
+export function ofensiva(pontos = [], hojeIso = hoje(), lesoes = [], { maxEscudos = MAX_ESCUDOS } = {}) {
   const dias = diasFechados(pontos, hojeIso);
   const congelados = diasParados(lesoes, hojeIso);
 
@@ -115,7 +116,7 @@ export function ofensiva(pontos = [], hojeIso = hoje(), lesoes = []) {
 
   const creditar = () => {
     if (corrente > 0 && corrente % DIAS_POR_ESCUDO === 0) {
-      ganhos = Math.min(MAX_ESCUDOS + gastos, ganhos + 1);
+      ganhos = Math.min(maxEscudos + gastos, ganhos + 1);
     }
     recorde = Math.max(recorde, corrente);
   };
@@ -164,9 +165,10 @@ export function ofensiva(pontos = [], hojeIso = hoje(), lesoes = []) {
        está de molho não está em risco: a contagem está parada. */
     emRisco: viva && parados >= 1 && !congelados.has(hojeIso),
     congelada: congelados.has(hojeIso),
-    escudos: viva ? Math.max(0, Math.min(MAX_ESCUDOS, ganhos - gastos)) : 0,
+    escudos: viva ? Math.max(0, Math.min(maxEscudos, ganhos - gastos)) : 0,
+    maxEscudos,
     gastos,
-    faltaProEscudo: faltaPro(viva ? corrente : 0, viva ? Math.max(0, ganhos - gastos) : 0),
+    faltaProEscudo: faltaPro(viva ? corrente : 0, viva ? Math.max(0, ganhos - gastos) : 0, maxEscudos),
     ultimoDia,
     diasParados: parados,
     desde: viva ? inicio : null,
@@ -188,6 +190,9 @@ export function diasFechados(pontos = [], ate = hoje()) {
   const set = new Set();
   for (const p of pontos) {
     if (!p.data) continue;
+    /* o bônus de subir de divisão nasce no servidor, no fechamento:
+       não é a pessoa aparecendo naquele dia */
+    if (p.evento === 'divisao') continue;
     set.add(p.data);
     if (p.evento === 'treino') {
       for (let i = 1; i <= DIAS_QUE_O_TREINO_PAGA; i += 1) {
@@ -228,8 +233,8 @@ function diasParados(lesoes, ate) {
   return set;
 }
 
-function faltaPro(corrente, emMao) {
-  if (emMao >= MAX_ESCUDOS) return 0;
+function faltaPro(corrente, emMao, maxEscudos = MAX_ESCUDOS) {
+  if (emMao >= maxEscudos) return 0;
   const resto = corrente % DIAS_POR_ESCUDO;
   return resto === 0 && corrente > 0 ? DIAS_POR_ESCUDO : DIAS_POR_ESCUDO - resto;
 }

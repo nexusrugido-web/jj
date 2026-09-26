@@ -1645,6 +1645,49 @@ button.liga-linha:hover { border-color: var(--seam-hi); }
 .liga-resultado-pos.p2 { --cor: #c9ced6; }
 .liga-resultado-pos.p3 { --cor: #b8793f; }
 .liga-degrau { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* ---------- as divisões: moldura, barra de subir e a escada ---------- */
+.avatar.moldura-azul { box-shadow: 0 0 0 2px #c9ced6; }
+.avatar.moldura-roxa { box-shadow: 0 0 0 2px var(--jade); }
+.avatar.moldura-marrom { box-shadow: 0 0 0 2px #e8843c; }
+.avatar.moldura-preta { box-shadow: 0 0 0 2px #e3b04b, 0 0 14px -2px #e3b04b; }
+.divisao-botao { display: inline-flex; align-items: center; gap: 2px; }
+
+.liga-subir {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px; width: 100%; margin-top: 12px;
+  padding: 12px 14px; border-radius: var(--r-sm); background: var(--void); border: 1px solid var(--seam);
+  color: inherit; text-align: left;
+}
+.liga-subir-barra { position: relative; width: 100%; height: 8px; border-radius: 99px; background: var(--mat); overflow: hidden; }
+.liga-subir-barra i { position: absolute; inset: 0 auto 0 0; border-radius: 99px; transition: width .5s var(--ease); }
+.liga-subir-checks { display: flex; flex-wrap: wrap; gap: 6px; }
+.liga-subir-check {
+  display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 99px;
+  font-size: 11.5px; font-weight: 600; color: var(--dim); background: var(--mat); border: 1px solid var(--seam);
+}
+.liga-subir-check.ok { color: var(--jade); border-color: color-mix(in srgb, var(--jade) 40%, var(--seam)); }
+.liga-subir-bola { width: 8px; height: 8px; border-radius: 99px; border: 1.5px solid var(--dim); }
+
+.divisoes-escada { display: flex; flex-direction: column; gap: 8px; }
+.divisao-degrau {
+  display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-radius: var(--r-sm);
+  background: var(--void); border: 1px solid var(--seam); border-left: 3px solid var(--cor);
+}
+.divisao-degrau.aqui {
+  background: color-mix(in srgb, var(--cor) 9%, var(--void));
+  border-color: color-mix(in srgb, var(--cor) 55%, var(--seam)); border-left-width: 3px;
+}
+.divisao-degrau-n {
+  flex: none; width: 30px; height: 30px; border-radius: 99px; display: grid; place-items: center;
+  font-weight: 800; font-size: 13px; color: var(--cor); border: 2px solid var(--cor);
+}
+.divisao-voce {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 99px; color: var(--accent-ink); background: var(--accent);
+}
+.divisao-voce.recorde { color: var(--chalk); background: transparent; border: 1px solid var(--seam-hi); }
+.divisao-beneficios { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+.divisao-beneficios li { font-size: 12.5px; line-height: 1.5; color: var(--dim); }
+
 /* o lugar do pódio que ninguém ocupou (grupo de 2) */
 .podio-lugar.vazio .podio-avatar { opacity: .4; }
 .podio-lugar.vazio .podio-base { opacity: .55; }
