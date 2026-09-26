@@ -42,15 +42,25 @@ const acima = (d) => ACIMA[d] || 'azul';
 /* ============================================================
    O PÓDIO
 
-   Os três primeiros como num pódio de campeonato: o líder no meio
-   e mais alto, o segundo à esquerda, o terceiro à direita. Sem
-   foto, a inicial basta, e ninguém precisa subir foto pra aparecer.
+   Os três primeiros como num pódio de campeonato, o mesmo desenho
+   do pódio da Competição: o líder no meio e mais alto, o segundo à
+   esquerda, o terceiro à direita, cada um com a foto no anel da
+   medalha. Sem foto, a inicial basta. Grupo de 2 mostra o 3º lugar
+   vazio, pra não parecer que falta alguém.
    ============================================================ */
-export function Podio({ tres, marca, onVer }) {
+export function Podio({ tres, marca = () => ({}), onVer = () => {} }) {
   const ordem = [[tres[1], 2], [tres[0], 1], [tres[2], 3]];
   return (
-    <div className="podio">
+    <div className="podio podio-cat">
       {ordem.map(([l, lugar]) => {
+        if (!l) {
+          return (
+            <div key={`vazio${lugar}`} className={`podio-lugar p${lugar} vazio`}>
+              <span className="avatar podio-avatar"><span className="podio-n num">{lugar}</span></span>
+              <span className="podio-base"><span className="podio-nome muted">ninguém</span></span>
+            </div>
+          );
+        }
         const m = marca(l);
         return (
           <button key={l.user_id} type="button" className={`podio-lugar p${lugar} ${l.sou_eu ? 'eu' : ''}`} onClick={() => onVer(l)}>
@@ -113,19 +123,18 @@ function RelogioDaSemana() {
    ============================================================ */
 const ICONE_DO_RESULTADO = { subiu: ArrowUp, desceu: ArrowDown, ficou: Minus };
 
-function ResultadoDaSemana({ r, grande = false }) {
+function ResultadoDaSemana({ r, grande = false, minhaFoto = null }) {
   const { settings } = useApp();
   const p = resultadoEmPalavras(r);
   if (!p) return null;
-  /* no popup do fechamento, o pódio de verdade: foto, coroa e degrau */
-  const podioGrande = grande && (r.podio || []).length >= 3;
+  const tres = (r.podio || []).slice(0, 3).map((x) => ({ ...x, user_id: `p${x.posicao}`, xp_semana: x.xp }));
   const Icone = ICONE_DO_RESULTADO[r.resultado];
   const mudou = r.fechada && r.divisao_antes && r.divisao_depois && r.divisao_antes !== r.divisao_depois;
   return (
     <div className={`liga-resultado ${p.tom}${grande ? ' grande' : ''}`}>
       {!grande && <div className="eyebrow">{r.fechada ? 'resultado da semana passada' : 'a semana passada'}</div>}
       <div className="row" style={{ gap: 14, alignItems: 'center' }}>
-        <span className="liga-resultado-pos num">{r.posicao}º</span>
+        <span className={`liga-resultado-pos num${r.posicao <= 3 ? ` p${r.posicao}` : ''}`}>{r.posicao}º</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="h-sec row" style={{ gap: 6 }}>{Icone && <Icone size={17} />} {p.titulo}</div>
           <p className="micro muted" style={{ marginTop: 4, lineHeight: 1.6 }}>{p.texto}</p>
@@ -136,23 +145,14 @@ function ResultadoDaSemana({ r, grande = false }) {
           <DivisaoTag id={r.divisao_antes} /> <span className="muted">→</span> <DivisaoTag id={r.divisao_depois} />
         </div>
       )}
-      {podioGrande && (
-        <Podio
-          tres={r.podio.slice(0, 3).map((x) => ({ ...x, user_id: `p${x.posicao}`, xp_semana: x.xp }))}
-          marca={() => ({})}
-          onVer={() => {}}
-        />
-      )}
-      {!podioGrande && (r.podio || []).length > 1 && (
-        <div className="liga-podio-mini">
-          {r.podio.map((x) => (
-            <div key={x.posicao + x.nome} className={`liga-podio-mini-linha p${x.posicao}${x.sou_eu ? ' eu' : ''}`}>
-              <span className="liga-podio-mini-n num">{x.posicao}º</span>
-              <Avatar nome={x.sou_eu ? (settings?.nome || x.nome) : x.nome} foto={x.foto} className="liga-avatar" />
-              <span className="tiny" style={{ flex: 1, minWidth: 0, fontWeight: x.sou_eu ? 700 : 500 }}>{x.nome}{x.sou_eu ? ' (você)' : ''}</span>
-              <span className="num micro">{x.xp} pts</span>
-            </div>
-          ))}
+      {tres.length > 1 && <Podio tres={tres} />}
+      {/* fora do pódio: você logo abaixo, no seu lugar */}
+      {r.posicao > 3 && (
+        <div className="liga-podio-mini-linha eu">
+          <span className="liga-podio-mini-n num">{r.posicao}º</span>
+          <Avatar nome={settings?.nome || 'Você'} foto={minhaFoto} className="liga-avatar" />
+          <span className="tiny" style={{ flex: 1, minWidth: 0, fontWeight: 700 }}>Você</span>
+          <span className="num micro">{r.xp} pts</span>
         </div>
       )}
     </div>
@@ -274,7 +274,7 @@ export default function Liga({ compacto = false }) {
   const semanaPassada = !compacto && passada && (
     <>
       <Card style={{ marginBottom: 14 }}>
-        <ResultadoDaSemana r={passada} />
+        <ResultadoDaSemana r={passada} minhaFoto={perfil?.anonimo ? null : perfil?.avatar_url} />
       </Card>
       <Sheet
         aberto={anuncio}
@@ -282,7 +282,7 @@ export default function Liga({ compacto = false }) {
         titulo="A semana da liga fechou"
         footer={<Btn variant="primary" onClick={viuResultado} style={{ flex: 1 }}>Bora pra semana nova</Btn>}
       >
-        <ResultadoDaSemana r={passada} grande />
+        <ResultadoDaSemana r={passada} grande minhaFoto={perfil?.anonimo ? null : perfil?.avatar_url} />
         <p className="micro muted" style={{ lineHeight: 1.6 }}>
           A semana nova já começou, com os pontos zerados e um grupo novo. O primeiro ponto te coloca na corrida.
         </p>
@@ -384,7 +384,7 @@ export default function Liga({ compacto = false }) {
     };
   };
   const meuMinimo = minimoPraSubir(minhaDiv);
-  const podio = !compacto && comecou && linhas.length >= 3;
+  const podio = !compacto && comecou && linhas.length >= 2;
 
   return (
     <>

@@ -1640,8 +1640,14 @@ button.liga-linha:hover { border-color: var(--seam-hi); }
 }
 .liga-resultado .h-sec svg { color: var(--cor); }
 .liga-resultado.grande .liga-resultado-pos { width: 70px; height: 70px; font-size: 28px; }
+/* no pódio, o quadrado da posição tem a cor da medalha */
+.liga-resultado-pos.p1 { --cor: #e3b04b; }
+.liga-resultado-pos.p2 { --cor: #c9ced6; }
+.liga-resultado-pos.p3 { --cor: #b8793f; }
 .liga-degrau { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.liga-podio-mini { display: flex; flex-direction: column; gap: 6px; }
+/* o lugar do pódio que ninguém ocupou (grupo de 2) */
+.podio-lugar.vazio .podio-avatar { opacity: .4; }
+.podio-lugar.vazio .podio-base { opacity: .55; }
 .liga-podio-mini-linha {
   display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 10px;
   background: var(--void); border: 1px solid var(--seam);
