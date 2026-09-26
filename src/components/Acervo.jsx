@@ -130,6 +130,20 @@ export default function Acervo() {
 
   useEffect(() => { buscar(); }, []);
 
+  /* vídeo sem a proporção (em pé ou deitado): pergunta ao YouTube uma
+     vez, em silêncio. Os 680 custam umas 14 perguntas. Antes do SQL
+     23 a coluna não existe e nada acontece. */
+  const completouProporcao = useRef(false);
+  useEffect(() => {
+    if (carregando || completouProporcao.current || !lista.length || !('vertical' in lista[0])) return;
+    const faltam = lista.filter((a) => a.vertical == null).map((a) => a.id);
+    completouProporcao.current = true;
+    if (!faltam.length) return;
+    gravarYoutube(faltam)
+      .then(() => { toast(`Proporção de ${faltam.length} ${faltam.length === 1 ? 'vídeo conferida' : 'vídeos conferida'} no YouTube`); buscar(); })
+      .catch(() => {});
+  }, [carregando, lista.length]);
+
   /* ------------------------------------------------------------
      A ESTEIRA
 

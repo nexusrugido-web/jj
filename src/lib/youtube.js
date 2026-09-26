@@ -46,7 +46,9 @@ export async function buscarNoYoutube(ids) {
   for (let i = 0; i < unicos.length; i += 50) {
     const lote = unicos.slice(i, i + 50);
     const url = 'https://www.googleapis.com/youtube/v3/videos'
-      + `?part=snippet,contentDetails,status&id=${lote.join(',')}&key=${encodeURIComponent(k)}`;
+      /* o player com altura máxima volta na proporção do vídeo: é assim
+         que se sabe se ele é em pé (o short e a aula gravada em pé) */
+      + `?part=snippet,contentDetails,status,player&maxHeight=360&id=${lote.join(',')}&key=${encodeURIComponent(k)}`;
     const resp = await fetch(url);
     const corpo = await resp.json();
     if (!resp.ok) throw new Error(corpo?.error?.message || `YouTube respondeu ${resp.status}`);
@@ -58,6 +60,8 @@ export async function buscarNoYoutube(ids) {
         descricao: it.snippet?.description || '',
         tags: it.snippet?.tags || [],
         status: it.status?.embeddable === false ? 'sem_embed' : 'ok',
+        vertical: it.player?.embedHeight && it.player?.embedWidth
+          ? Number(it.player.embedHeight) > Number(it.player.embedWidth) : null,
       });
     }
     for (const id of lote) if (!r.has(id)) r.set(id, { status: 'sumiu' });

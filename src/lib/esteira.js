@@ -36,7 +36,7 @@ export async function gravarYoutube(ids) {
   const yt = await buscarNoYoutube(ids);
   const linhas = ids.map((id) => {
     const v = yt.get(id) || { status: 'sumiu' };
-    return { id, descricao: v.descricao || null, tags: v.tags || null, status: v.status };
+    return { id, descricao: v.descricao || null, tags: v.tags || null, status: v.status, vertical: v.vertical ?? null };
   });
   for (let i = 0; i < linhas.length; i += 50) {
     const { error } = await supabase.rpc('aula_youtube', { p_lote: linhas.slice(i, i + 50) });

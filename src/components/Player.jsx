@@ -47,8 +47,9 @@ export default function Player({ aula, onClose, onConcluir }) {
   const [ate, setAte] = useState(0);          // até onde já foi assistido
   const [legendas, setLegendas] = useState(false);
 
-  /* aula rápida (short) é gravada em pé: a janela e a tela cheia também */
-  const vertical = aula?.k === 'short';
+  /* vídeo em pé fica em pé, na janela e na tela cheia. A proporção vem
+     do YouTube (a esteira grava); sem ela ainda, vale o short. */
+  const vertical = aula?.vertical ?? aula?.k === 'short';
 
   const player = useRef(null);
   const timer = useRef(null);
@@ -200,10 +201,18 @@ export default function Player({ aula, onClose, onConcluir }) {
   function virarLegendas() {
     const pt = player.current;
     if (!pt) return;
+    /* vale o que está na tela, não o que o app lembra: a conta do
+       YouTube liga legenda sozinha, e o primeiro toque "ligava" o que
+       já estava ligado (precisava de dois pra tirar) */
+    let ligada = legendas;
     try {
-      if (legendas) { pt.unloadModule('captions'); pt.unloadModule('cc'); }
+      const faixa = pt.getOption?.('captions', 'track');
+      if (faixa && typeof faixa === 'object') ligada = Object.keys(faixa).length > 0;
+    } catch { /* sem o módulo carregado: fica o que o app lembra */ }
+    try {
+      if (ligada) { pt.unloadModule('captions'); pt.unloadModule('cc'); }
       else { pt.loadModule('captions'); pt.loadModule('cc'); }
-      setLegendas(!legendas);
+      setLegendas(!ligada);
     } catch { /* o video pode nao ter legenda */ }
     acordarControles();
   }

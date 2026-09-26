@@ -786,7 +786,7 @@ export default function Treinos() {
         <div>
           <h1 className="h-page">Treinos e rolas</h1>
         </div>
-        <div className="row" style={{ gap: 8 }}>
+        <div className="row treinos-acoes" style={{ gap: 8 }}>
           {ligada('timer') && <Btn icon={Timer} onClick={() => setCronoAberto(true)}>Cronômetro</Btn>}
           {temVoz() && ligada('voz') && (
             <Btn icon={Mic} onClick={() => (podeVer(acesso, 'voz') ? setVozAberta(true) : setConviteVoz(true))}>Falar <Diamante size={12} /></Btn>

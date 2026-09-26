@@ -45,6 +45,8 @@ function daTabela(l) {
     formato: l.formato || null,
     nivel: l.nivel || null,
     classificacao: l.classificacao || 'legado',
+    /* em pé ou deitado (a esteira pergunta ao YouTube): o player segue */
+    vertical: l.vertical ?? null,
   };
 }
 

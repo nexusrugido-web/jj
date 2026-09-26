@@ -685,6 +685,9 @@ button.chip:not(.on):hover { color: var(--chalk); border-color: var(--dimmer); }
   .page-head { flex-direction: column; align-items: stretch; gap: 10px; margin-bottom: 12px; }
   .page-head > .row { width: 100%; }
   .page-head > .row > .btn { flex: 1; }
+  /* Treinos: Cronômetro e Falar dividem a linha, e o Novo treino fica embaixo, inteiro */
+  .treinos-acoes { flex-wrap: wrap; }
+  .treinos-acoes > .btn.primary { flex-basis: 100%; }
 
   /* cards com muitos selos: mantém em linha sem empilhar */
   .card .row.wrap { row-gap: 6px; }
