@@ -10,15 +10,35 @@
 --
 -- Agora o fechamento guarda, pra cada um do grupo:
 --   posicao_final   em que lugar terminou
---   resultado       subiu | desceu | ficou | sozinho (grupo de 1
---                   nao corre)
+--   resultado       subiu | desceu | ficou | sozinho (grupo de 1)
+--                   | poucos (grupo de 2: corre pelos pontos, mas
+--                   ninguem sobe nem desce)
 --   divisao_antes   a divisao com que entrou na semana
 --   divisao_depois  a divisao com que sai
 --
 -- E minha_semana_passada() entrega isso pra tela, com o podio do
 -- grupo. Segunda de manha, antes do fechamento, ela devolve a
 -- semana ainda aberta (fechada = false) com a posicao parcial.
+--
+-- SUBIR FICOU MAIS DIFICIL (decisao do usuario, 25/09/2026):
+--   1. a subida e a descida so valem com 3 ou mais no grupo. Com 2,
+--      se o outro some, o primeiro subia com qualquer ponto
+--   2. alem de terminar entre os que sobem, precisa de uma semana de
+--      verdade, e o minimo cresce com a divisao (minimo_pra_subir).
+--      Uma semana cheia rende uns 260 pontos.
 -- ============================================================
+
+create or replace function public.minimo_pra_subir(p_divisao text)
+returns int language sql immutable as $$
+  select case p_divisao
+    when 'branca' then 80   -- Academia -> Estadual
+    when 'azul'   then 120  -- Estadual -> Nacional
+    when 'roxa'   then 170  -- Nacional -> Pan
+    when 'marrom' then 220  -- Pan -> Mundial
+    else null               -- Mundial: nao tem pra onde subir
+  end
+$$;
+grant execute on function public.minimo_pra_subir(text) to authenticated;
 
 alter table public.liga_membro add column if not exists posicao_final  int;
 alter table public.liga_membro add column if not exists resultado      text;
@@ -62,7 +82,7 @@ begin
         posicao_final = r.pos,
         divisao_antes = r.divisao,
         divisao_depois = r.divisao,
-        resultado = case when v_n < 2 then 'sozinho' else 'ficou' end
+        resultado = case when v_n < 2 then 'sozinho' when v_n < 3 then 'poucos' else 'ficou' end
       from (
         select x.user_id, coalesce(t.divisao, 'branca') as divisao,
                row_number() over (order by x.xp_semana desc, x.entrou_em, x.user_id) as pos
@@ -72,10 +92,11 @@ begin
       ) r
       where m.liga_id = v_liga and m.user_id = r.user_id;
 
-      continue when v_n < 2;
+      continue when v_n < 3;
       v_g := v_g + 1;
       v_c := greatest(1, least(v_corte, v_n / 3));
 
+      /* os que terminaram na frente, e so os que fizeram o minimo da divisao deles */
       for v_linha in
         select m.user_id from public.liga_membro m
         where m.liga_id = v_liga and m.xp_semana > 0
@@ -83,7 +104,9 @@ begin
         limit v_c
       loop
         update public.total_xp set divisao = public.divisao_acima(divisao), atualizado = now()
-        where user_id = v_linha.user_id and divisao <> 'preta';
+        where user_id = v_linha.user_id and divisao <> 'preta'
+          and (select x.xp_semana from public.liga_membro x where x.liga_id = v_liga and x.user_id = v_linha.user_id)
+              >= coalesce(public.minimo_pra_subir(divisao), 2147483647);
         if found then
           v_sobe := v_sobe + 1;
           update public.liga_membro set resultado = 'subiu' where liga_id = v_liga and user_id = v_linha.user_id;

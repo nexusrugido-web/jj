@@ -10,7 +10,8 @@ import {
 } from './UI';
 import { ajusteDe } from '../lib/ajustes';
 import {
-  subirPraLiga, corteDoGrupo, nomeCurto, DIVISOES_LIGA, nomeDivisao, relogioDaLiga, faltaTexto, resultadoEmPalavras,
+  subirPraLiga, corteDoGrupo, nomeCurto, DIVISOES_LIGA, relogioDaLiga, faltaTexto, resultadoEmPalavras,
+  MINIMO_DO_GRUPO, minimoPraSubir, praDivisao,
 } from '../lib/liga';
 import { getMeta, setMeta } from '../db/db';
 import { fmtData } from '../lib/utils';
@@ -364,20 +365,25 @@ export default function Liga({ compacto = false }) {
   const divisao = linhas[0]?.divisao || 'branca';
   const total = Number(linhas[0]?.total) || linhas.length;
   const comecou = total >= 2 && linhas[0]?.comecou !== false;
+  /* subir e descer só vale com 3 ou mais no grupo */
+  const valendo = total >= MINIMO_DO_GRUPO;
   const { sobem, descem } = corteDoGrupo(total, ajusteDe('liga_corte', 3));
   /* o grupo pode juntar divisões vizinhas quando falta gente: o
      cabeçalho mostra a sua, e a etiqueta só aparece em quem é de outra */
   const minhaDiv = eu?.divisao_pessoa || divisao;
   const misturado = linhas.some((l) => (l.divisao_pessoa || divisao) !== minhaDiv);
   const acimaDeMim = eu ? linhas.filter((l) => l.xp_semana > eu.xp_semana) : [];
-  /* quem está na zona de subir ou de descer, igual no pódio e na lista */
+  /* quem está na zona de subir ou de descer, igual no pódio e na lista.
+     Subir pede também o mínimo de pontos da divisão da pessoa. */
   const marca = (l) => {
     const div = l.divisao_pessoa || divisao;
+    const min = minimoPraSubir(div);
     return {
-      sobe: comecou && l.posicao <= sobem && l.xp_semana > 0 && div !== 'preta',
-      desce: comecou && descem > 0 && l.posicao > total - descem && div !== 'branca',
+      sobe: valendo && l.posicao <= sobem && min != null && l.xp_semana >= min,
+      desce: valendo && descem > 0 && l.posicao > total - descem && div !== 'branca',
     };
   };
+  const meuMinimo = minimoPraSubir(minhaDiv);
   const podio = !compacto && comecou && linhas.length >= 3;
 
   return (
@@ -425,7 +431,9 @@ export default function Liga({ compacto = false }) {
           <div style={{ flex: 1 }}>
             <div className="tiny" style={{ fontWeight: 600 }}>Você</div>
             <div className="micro muted">
-              {eu.posicao === 1
+              {valendo && eu.posicao <= sobem && meuMinimo && eu.xp_semana < meuMinimo
+                ? `Na frente, mas pra subir ${praDivisao(acima(minhaDiv))} precisa de ${meuMinimo} pontos. Faltam ${meuMinimo - eu.xp_semana}.`
+                : eu.posicao === 1
                 ? 'Na frente do grupo esta semana.'
                 : eu.posicao <= sobem
                   ? 'Na zona de subir de divisão.'
@@ -435,6 +443,16 @@ export default function Liga({ compacto = false }) {
             </div>
           </div>
           <span className="num" style={{ fontSize: 19, fontWeight: 700, color: 'var(--accent)' }}>{eu.xp_semana}</span>
+        </div>
+      )}
+
+      {comecou && !valendo && (
+        <div className="valida atencao" style={{ marginTop: 12 }}>
+          <UserRound size={15} className="valida-ico" style={{ color: 'var(--roar)' }} />
+          <p className="micro muted" style={{ lineHeight: 1.6 }}>
+            <b style={{ color: 'var(--chalk)' }}>Grupo de 2 ainda não vale subida.</b> A corrida conta os pontos, mas
+            ninguém sobe nem desce de divisão com menos de {MINIMO_DO_GRUPO} pessoas. Quando a {MINIMO_DO_GRUPO}ª entrar, passa a valer.
+          </p>
         </div>
       )}
 
@@ -470,14 +488,17 @@ export default function Liga({ compacto = false }) {
         <p className="micro muted" style={{ marginTop: 12, lineHeight: 1.65 }}>
           {!comecou
             ? 'Grupo de uma pessoa só não corre: ninguém sobe nem desce enquanto você estiver sozinho.'
+            : !valendo
+            ? 'A semana fecha segunda ao meio-dia, e o treino de domingo registrado até lá ainda conta.'
             : <>
                 A semana fecha segunda ao meio-dia, e o treino de domingo registrado até lá ainda conta.{' '}
-                {sobem === 1 ? 'O primeiro que pontuou sobe' : `Os ${sobem} primeiros que pontuaram sobem`} de divisão
-                {minhaDiv === 'preta' || misturado ? '' : `, pra ${nomeDivisao(acima(minhaDiv))}`}
+                {sobem === 1 ? 'O 1º sobe' : `Os ${sobem} primeiros sobem`} de divisão
+                {minhaDiv === 'preta' || misturado ? '' : ` ${praDivisao(acima(minhaDiv))}`}
+                {meuMinimo && !misturado ? `, se fizer pelo menos ${meuMinimo} pontos` : ''}
                 {descem
                   ? (descem === 1 ? ', e o último desce.' : `, e os ${descem} últimos descem.`)
                   : '. Com o grupo deste tamanho, ninguém desce.'}
-                {misturado ? ' Cada um sobe ou desce a partir da própria divisão.' : ''}
+                {misturado ? ' Cada um sobe ou desce a partir da própria divisão, com o mínimo de pontos dela.' : ''}
               </>}
           {comecou && ' Toque em alguém pra ver o perfil.'}
         </p>

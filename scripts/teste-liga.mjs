@@ -21,7 +21,7 @@ const ok = (nome, real, esperado) => {
 };
 
 ok('sozinho não corre', corteDoGrupo(1), { sobem: 0, descem: 0 });
-ok('dois: o primeiro sobe, ninguém desce', corteDoGrupo(2), { sobem: 1, descem: 0 });
+ok('dois: ninguém sobe nem desce (só vale com 3 ou mais)', corteDoGrupo(2), { sobem: 0, descem: 0 });
 ok('três: um sobe, um desce', corteDoGrupo(3), { sobem: 1, descem: 1 });
 ok('cinco: um sobe, um desce', corteDoGrupo(5), { sobem: 1, descem: 1 });
 ok('seis: dois sobem, dois descem', corteDoGrupo(6), { sobem: 2, descem: 2 });
@@ -60,6 +60,9 @@ ok('desceu pra Academia', resultadoEmPalavras({ ...base, posicao: 4, resultado: 
 ok('ficou', resultadoEmPalavras({ ...base, posicao: 2, resultado: 'ficou', divisao_depois: 'azul' }).titulo, 'Você continua no Estadual');
 ok('sozinho não correu', resultadoEmPalavras({ ...base, total: 1, resultado: 'sozinho', divisao_depois: 'azul' }).titulo, 'Ninguém correu com você');
 ok('semana ainda aberta: apurando, com a posição parcial', resultadoEmPalavras({ ...base, fechada: false, posicao: 3, xp: 90 }).texto.startsWith('Você está em 3º de 4, com 90 pontos.'), true);
+ok('1º sem o mínimo: a tela explica quanto faltou', resultadoEmPalavras({ ...base, resultado: 'ficou', xp: 100, divisao_antes: 'azul', divisao_depois: 'azul' }).texto,
+  'Terminou em 1º, com 100 pontos, mas pra subir pro Nacional precisava de 120. Faltaram 20.');
+ok('grupo de 2: explica que não vale subida', resultadoEmPalavras({ ...base, total: 2, resultado: 'poucos', divisao_depois: 'azul' }).titulo, 'Grupo de 2 não vale subida');
 ok('semana fechada antes do resultado ser guardado: só o lugar', resultadoEmPalavras({ ...base, resultado: null, posicao: 2 }).titulo, 'Você terminou em 2º');
 
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');

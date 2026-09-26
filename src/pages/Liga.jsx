@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Flame, Info, Swords, ChevronRight, UsersRound, Trophy, LogIn, Flag, Layers, Zap, CalendarCheck,
-  Timer, Eye,
+  Timer, Eye, TrendingUp,
 } from 'lucide-react';
 import { db } from '../db/db';
 import { useApp } from '../contexto';
@@ -12,7 +12,7 @@ import Liga from '../components/Liga';
 import RankingOfensivas from '../components/RankingOfensivas';
 import ListaResumida from '../components/ListaResumida';
 import { EVENTOS } from '../lib/xp';
-import { DIVISOES_LIGA } from '../lib/liga';
+import { DIVISOES_LIGA, MINIMO_PRA_SUBIR, MINIMO_DO_GRUPO, nomeDivisao } from '../lib/liga';
 import { ofensiva, MAX_ESCUDOS, DIAS_POR_ESCUDO } from '../lib/ofensiva';
 import { relativo, fmtData } from '../lib/utils';
 
@@ -162,8 +162,9 @@ function ComoFunciona({ aberto, onClose }) {
             conteudo: (
               <Passos itens={[
                 'Registre qualquer coisa que dê ponto: um treino, uma aula, uma pergunta do quiz.',
-                'O app te coloca num grupo com quem treina no mesmo ritmo que você marcou no cadastro.',
-                'Sozinho no grupo, ninguém sobe nem desce. A disputa começa quando chega a segunda pessoa.',
+                'O app te coloca num grupo com quem treina no mesmo ritmo que você marcou no cadastro. Enquanto você está sozinho, ele fica procurando adversários.',
+                'O grupo recebe gente a semana toda, até domingo: quem pontua pela primeira vez na semana ocupa uma vaga.',
+                `A subida e a descida só valem com ${MINIMO_DO_GRUPO} ou mais no grupo. Com 2, a corrida conta os pontos, mas ninguém sobe nem desce.`,
               ]} />
             ),
           },
@@ -172,10 +173,31 @@ function ComoFunciona({ aberto, onClose }) {
             conteudo: (
               <Passos itens={[
                 'A semana vai de segunda a domingo e fecha na segunda ao meio-dia, no horário de Brasília.',
-                'Quem termina em cima sobe de divisão. Quem termina embaixo desce.',
+                'Quem termina em 1º, com o mínimo de pontos da divisão, sobe. Quem termina em último desce.',
+                'O resultado aparece na Liga: em que lugar você ficou, se subiu, e o pódio do grupo.',
                 'Na mesma hora começa a semana nova, com os pontos zerados e um grupo novo.',
                 'Quem entrou fica até domingo: dá pra sair, mas só vale na semana seguinte.',
               ]} />
+            ),
+          },
+          {
+            id: 'subir', icone: TrendingUp, titulo: 'Como subir de divisão', resumo: 'Terminar em 1º e fazer o mínimo de pontos',
+            conteudo: (
+              <>
+                <Passos itens={[
+                  `O grupo precisa ter ${MINIMO_DO_GRUPO} pessoas ou mais. Com 2, ninguém sobe nem desce, pra ninguém subir só porque o outro sumiu.`,
+                  'Em grupo de 3 a 5, só o 1º sobe e só o último desce. De 6 a 8, sobem os 2 primeiros e descem os 2 últimos.',
+                  'Além de terminar na frente, precisa de uma semana de verdade: o mínimo de pontos cresce a cada divisão.',
+                ]} />
+                <div className="col" style={{ gap: 6 }}>
+                  {Object.entries(MINIMO_PRA_SUBIR).map(([de, min]) => {
+                    const ordem = Object.keys(DIVISOES_LIGA);
+                    const pra = ordem[ordem.indexOf(de) + 1];
+                    return <Linha key={de} nome={`${nomeDivisao(de)} → ${nomeDivisao(pra)}`} valor={`${min} pts`} />;
+                  })}
+                </div>
+                <p>Uma semana cheia (3 treinos com rolas, 2 aulas e o quiz) rende uns 260 pontos. Terminou em 1º sem o mínimo? Você fica na divisão, e a Liga mostra quanto faltou.</p>
+              </>
             ),
           },
           {

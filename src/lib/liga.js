@@ -42,6 +42,7 @@ export const DIVISOES_LIGA = {
   preta: { nome: 'Mundial', tom: 'warn' },
 };
 export const nomeDivisao = (id) => (DIVISOES_LIGA[id] || DIVISOES_LIGA.branca).nome;
+const ACIMA_DE = { branca: 'azul', azul: 'roxa', roxa: 'marrom', marrom: 'preta', preta: 'preta' };
 
 let emCurso = null;
 let espera = null;
@@ -100,15 +101,24 @@ async function subir() {
 /* ============================================================
    AS REGRAS QUE A TELA ESPELHA
 
-   Iguais às do fechamento no servidor: o corte do painel, mas
-   nunca mais que um terço do grupo. Com 2, um sobe e ninguém
-   desce. Com 3, um sobe e um desce. Sozinho, não correu.
+   Iguais às do fechamento no servidor (supabase/liga-resultado.sql):
+   o corte do painel, mas nunca mais que um terço do grupo. A subida
+   e a descida só valem com 3 ou mais: com 2, se o outro sumia, o
+   primeiro subia com qualquer ponto. Com 3 a 5, um sobe e um desce.
    ============================================================ */
+export const MINIMO_DO_GRUPO = 3;
+
 export function corteDoGrupo(n, corte = 3) {
-  if (n < 2) return { sobem: 0, descem: 0 };
+  if (n < MINIMO_DO_GRUPO) return { sobem: 0, descem: 0 };
   const c = Math.max(1, Math.min(corte, Math.floor(n / 3)));
   return { sobem: c, descem: n >= c * 2 + 1 ? c : 0 };
 }
+
+/* pra subir, além de terminar na frente, uma semana de verdade: o
+   mínimo cresce com a divisão (o mesmo do servidor, minimo_pra_subir).
+   Uma semana cheia rende uns 260 pontos. */
+export const MINIMO_PRA_SUBIR = { branca: 80, azul: 120, roxa: 170, marrom: 220 };
+export const minimoPraSubir = (div) => MINIMO_PRA_SUBIR[div] ?? null;
 
 /* "pra Academia", "pro Estadual": a divisão com o artigo certo */
 export const praDivisao = (id) => (id === 'branca' || !DIVISOES_LIGA[id] ? 'pra Academia' : `pro ${nomeDivisao(id)}`);
@@ -169,7 +179,18 @@ export function resultadoEmPalavras(r) {
   switch (r.resultado) {
     case 'subiu': return { tom: 'jade', titulo: `Você subiu ${praDivisao(r.divisao_depois)}`, texto: `Terminou em ${lugar}, com ${pts}. Nesta semana você corre num grupo da nova divisão.` };
     case 'desceu': return { tom: 'blood', titulo: `Você desceu ${praDivisao(r.divisao_depois)}`, texto: `Terminou em ${lugar}, com ${pts}. Uma semana boa e você volta.` };
-    case 'ficou': return { tom: '', titulo: `Você continua ${naDivisao(r.divisao_depois)}`, texto: `Terminou em ${lugar}, com ${pts}. Pra subir, é terminar entre os primeiros do grupo.` };
+    case 'ficou': {
+      const min = minimoPraSubir(r.divisao_antes);
+      const faltou = r.posicao === 1 && min && r.xp < min;
+      return {
+        tom: '',
+        titulo: `Você continua ${naDivisao(r.divisao_depois)}`,
+        texto: faltou
+          ? `Terminou em 1º, com ${pts}, mas pra subir ${praDivisao(ACIMA_DE[r.divisao_antes])} precisava de ${min}. Faltaram ${min - r.xp}.`
+          : `Terminou em ${lugar}, com ${pts}. Pra subir, é terminar em 1º com pelo menos ${min || 0} pontos.`,
+      };
+    }
+    case 'poucos': return { tom: '', titulo: 'Grupo de 2 não vale subida', texto: `O seu grupo teve só 2 pessoas, e a subida e a descida só valem com 3 ou mais. Você terminou em ${lugar}, com ${pts}, e continua ${naDivisao(r.divisao_depois)}.` };
     case 'sozinho': return { tom: '', titulo: 'Ninguém correu com você', texto: `Ninguém do seu ritmo pontuou na semana passada, então não teve corrida: ninguém sobe nem desce sozinho. Os seus ${pts} continuam no seu total.` };
     default: return { tom: '', titulo: `Você terminou em ${r.posicao}º`, texto: `De ${r.total} no grupo, com ${pts}.` };
   }
