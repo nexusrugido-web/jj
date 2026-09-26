@@ -10,7 +10,7 @@ import { useApp } from '../contexto';
 import { Card, Btn, Chip, Empty, Stat, Sheet, Busca, Bar } from '../components/UI';
 import {
   minhasTecnicas, meusBuracos, resumoGraus, jogoPrincipal,
-  GRAUS, grauPorN, TENDENCIAS, contextoPorId, requisitosDaFaixa,
+  GRAUS, grauPorN, TENDENCIAS, contextoPorId, requisitosDaFaixa, vezesNaPosicao,
 } from '../lib/graus';
 import { Ponteira } from '../components/Ponteira';
 import { faltaPara, recomendacoesDoAluno, aderencia } from '../lib/recomendar';
@@ -197,6 +197,8 @@ export default function Dominio() {
           const falta = faltaPara(t, faixa);
           const cat = catById[t.categoriaId];
           const tend = TENDENCIAS[t.tendencia];
+          /* posição (100kg, montada): no rola conta quando um ponto te levou até ela */
+          const naPosicao = t.soDrill ? vezesNaPosicao(t.nome, rolls, sessions) : null;
           return (
             <button key={t.nome} className="trilha-item" onClick={() => setDetalhe(t)}>
               <span className="trilha-selo" style={{ color: `var(--${g.cor})` }}>
@@ -211,7 +213,9 @@ export default function Dominio() {
                   )}
                 </div>
                 <div className="micro muted" style={{ marginTop: 3 }}>
-                  {t.soDrill
+                  {naPosicao > 0
+                    ? `${t.usosDrill} ${t.usosDrill === 1 ? 'vez' : 'vezes'} no drill, e no rola você chegou nela ${naPosicao} ${naPosicao === 1 ? 'vez' : 'vezes'}`
+                    : t.soDrill
                     ? `${t.usosDrill} ${t.usosDrill === 1 ? 'vez' : 'vezes'} no drill, nenhuma no rola`
                     : `${t.usosResistencia} ${t.usosResistencia === 1 ? 'vez' : 'vezes'} no rola, em ${t.transferencia} ${t.transferencia === 1 ? 'pessoa' : 'pessoas'}`}
                   {t.ultima && `, ${relativo(t.ultima)}`}

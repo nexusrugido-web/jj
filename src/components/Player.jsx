@@ -47,6 +47,9 @@ export default function Player({ aula, onClose, onConcluir }) {
   const [ate, setAte] = useState(0);          // até onde já foi assistido
   const [legendas, setLegendas] = useState(false);
 
+  /* aula rápida (short) é gravada em pé: a janela e a tela cheia também */
+  const vertical = aula?.k === 'short';
+
   const player = useRef(null);
   const timer = useRef(null);
   const assistido = useRef(0);   // segundos de aula que passaram de verdade
@@ -215,6 +218,7 @@ export default function Player({ aula, onClose, onConcluir }) {
      Tenta a de verdade do navegador e, dentro dela, deita o
      aparelho. Vídeo de aula é 16 por 9: em pé ele vira uma tira
      no meio da tela preta, que era o que estava acontecendo.
+     Short é o contrário: é em pé, então fica em pé.
 
      O iPhone não deixa um elemento qualquer entrar em tela cheia
      nem deitar a tela na marra. Lá a classe do CSS estica o vídeo
@@ -237,7 +241,7 @@ export default function Player({ aula, onClose, onConcluir }) {
       const p = alvo.requestFullscreen?.({ navigationUI: 'hide' });
       /* deitar a tela só é permitido depois que a tela cheia entrou */
       Promise.resolve(p)
-        .then(() => screen.orientation?.lock?.('landscape'))
+        .then(() => screen.orientation?.lock?.(vertical ? 'portrait' : 'landscape'))
         .catch(() => { /* iPhone e computador não deitam, e tudo bem */ });
     } catch { /* fica com a classe do CSS */ }
   }
@@ -289,9 +293,13 @@ export default function Player({ aula, onClose, onConcluir }) {
 
   if (!aula) return null;
 
-  /* a mesma barra serve pra tela cheia e pra janela */
-  const barra = (
-    <div className="player-linha">
+  /* a mesma linha do tempo serve pra tela cheia e pra janela */
+  const tempo = (
+    <span className="micro num muted player-tempo">
+      {duracaoTexto(Math.round(agora))} de {duracaoTexto(aula.d)}
+    </span>
+  );
+  const linha = (
       <input
         className="player-range"
         type="range"
@@ -307,11 +315,8 @@ export default function Player({ aula, onClose, onConcluir }) {
           '--agulha': Math.min(100, (agora / Math.max(1, aula.d)) * 100) + '%',
         }}
       />
-      <span className="micro num muted" style={{ minWidth: 78, textAlign: 'right' }}>
-        {duracaoTexto(Math.round(agora))} de {duracaoTexto(aula.d)}
-      </span>
-    </div>
   );
+  const barra = <div className="player-linha">{linha}{tempo}</div>;
 
   const vistos = Math.round((progresso / 100) * aula.d);
 
@@ -338,7 +343,7 @@ export default function Player({ aula, onClose, onConcluir }) {
     >
       {/* o vídeo fica sozinho, sem nada por cima dele. O YouTube
           exige isso. Os controles ficam embaixo, fora da área. */}
-      <div ref={caixa} className={`player-caixa ${cheio ? 'cheio' : ''}`}>
+      <div ref={caixa} className={`player-caixa${vertical ? ' vertical' : ''}${cheio ? ' cheio' : ''}`}>
         {semApi ? (
           <iframe
             src={embed(aula.id)}
@@ -355,22 +360,28 @@ export default function Player({ aula, onClose, onConcluir }) {
                 sem precisar tocar em cima do vídeo */}
             <button className="player-toque" aria-label="Mostrar controles" onClick={acordarControles} />
 
+            {/* no rodapé do vídeo: a linha do tempo em cima, os botões embaixo */}
             <div className={`player-barra ${controles ? '' : 'sumiu'}`}>
-              {!semApi && (
-                <button className="btn ghost xs" onClick={() => { virarPlay(); acordarControles(); }} disabled={!pronto}>
-                  {rodando ? <Pause size={13} /> : <Play size={13} />}
-                  {rodando ? 'Pausar' : 'Tocar'}
+              {!semApi && <div className="player-linha">{linha}</div>}
+              <div className="player-botoes">
+                {!semApi && (
+                  <button type="button" className="player-bt play" onClick={() => { virarPlay(); acordarControles(); }} disabled={!pronto}
+                    aria-label={rodando ? 'Pausar' : 'Tocar'}>
+                    {rodando ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />}
+                  </button>
+                )}
+                {!semApi && tempo}
+                <span style={{ flex: 1 }} />
+                {!semApi && (
+                  <button type="button" className={`player-bt${legendas ? ' on' : ''}`} onClick={virarLegendas} disabled={!pronto}
+                    aria-label={legendas ? 'Tirar legenda' : 'Legenda'}>
+                    <Subtitles size={18} />
+                  </button>
+                )}
+                <button type="button" className="player-bt" onClick={virarCheio} aria-label="Sair da tela cheia">
+                  <Minimize size={18} />
                 </button>
-              )}
-              {barra}
-              {!semApi && (
-                <button className="btn ghost xs" onClick={virarLegendas} disabled={!pronto}>
-                  <Subtitles size={13} /> {legendas ? 'Tirar legenda' : 'Legenda'}
-                </button>
-              )}
-              <button className="btn ghost xs" onClick={virarCheio}>
-                <Minimize size={13} /> Sair
-              </button>
+              </div>
             </div>
           </>
         )}

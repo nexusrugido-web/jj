@@ -12,7 +12,7 @@ register('./como-vite.mjs', import.meta.url);
    ============================================================ */
 
 const { aulasPara } = await import('../src/lib/motor.js');
-const { pedidoDaRec, DIFICULDADES, PEDIDO_DO_ESTILO } = await import('../src/lib/necessidades.js');
+const { pedidoDaRec, DIFICULDADES, PEDIDO_DO_ESTILO, rotuloDaAula } = await import('../src/lib/necessidades.js');
 const { gerarRecomendacoes, chaveDaRec, contraMaisPesado } = await import('../src/lib/recomendar.js');
 const V = await import('../src/lib/vocab.js');
 const { SEED } = await import('../src/db/seed.js');
@@ -58,7 +58,7 @@ const acervoTecnica = [
   v('defesa-geral', { habilidades: ['defesa'] }),
 ];
 const tomaArmlock = pedidoDaRec({ intencao: 'corrigir', alvo: 'Chave de braço, armlock' });
-ok('finalização que te pega vira técnica da biblioteca e defesa', [tomaArmlock.tecnicas, tomaArmlock.habilidades], [[ARMLOCK], ['defesa']]);
+ok('finalização que te pega vira técnica da biblioteca e defesa', [tomaArmlock.tecnicas, tomaArmlock.habilidades, tomaArmlock.defesa], [[ARMLOCK], ['defesa', 'escapada'], true]);
 const achou = ids(aulasPara(tomaArmlock, { lista: acervoTecnica, quantidade: 5 }));
 ok('classificado com a técnica vem antes do que só cita no título', achou.slice(0, 2), ['defesa-classificada', 'Como defender o ARM LOCK']);
 ok('vídeo de outra técnica não aparece como resposta', achou.includes('Defesa de kimura na guarda'), false);
@@ -84,13 +84,36 @@ const acervoAmericana = [
 const semAulaDaAmericana = aulasPara(pedidoAmericana, { lista: acervoAmericana, quantidade: 4, soAula: true });
 ok('defesa de estrangulamento nunca responde defesa contra Americana',
   ids(semAulaDaAmericana).filter((x) => x.startsWith('defesa-estrang')), []);
-ok('o short da Americana ganha da aula longa de defesa em geral', ids(semAulaDaAmericana)[0], 'americana-short');
-ok('a defesa em geral entra depois, marcada como geral', semAulaDaAmericana.find((a) => a.id === 'defesa-geral')?.generico, true);
-ok('o vídeo da técnica não é geral', semAulaDaAmericana[0].generico, false);
+ok('a aula de aplicar a Americana não responde "defesa contra Americana"', ids(semAulaDaAmericana).includes('americana-short'), false);
+ok('sem defesa da técnica, a defesa em geral responde, marcada como geral', [ids(semAulaDaAmericana)[0], semAulaDaAmericana[0].generico], ['defesa-geral', true]);
+ok('e a tela diz que falta a aula de defesa da técnica', rotuloDaAula(semAulaDaAmericana[0], pedidoAmericana, 'Americana'), 'ainda não há aula de defesa de Americana · esta é de defesa em geral');
 
 const comDefesaDaAmericana = [...acervoAmericana, v('defesa-americana', { tecnicas: [AMERICANA], habilidades: ['defesa'] })];
-ok('com aula de defesa da própria técnica, ela vem primeiro',
-  ids(aulasPara(pedidoAmericana, { lista: comDefesaDaAmericana, quantidade: 1, soAula: true })), ['defesa-americana']);
+const certa = aulasPara(pedidoAmericana, { lista: comDefesaDaAmericana, quantidade: 1, soAula: true });
+ok('com aula de defesa da própria técnica, ela vem primeiro', ids(certa), ['defesa-americana']);
+ok('e a tela diz que ela ensina a defesa', rotuloDaAula(certa[0], pedidoAmericana, 'Americana'), 'ensina a defesa de Americana');
+
+/* ---------- katagatame: o caso do Painel (25/09) ----------
+   A sugestão "Defesa contra Katagatame" trazia "O katagatame que
+   apaga", que ensina a aplicar. Sem aula de defesa dele, a resposta
+   é sair da posição de onde ele sai (100kg, montada), com aviso. */
+const KATA = CATALOGO_KATA();
+function CATALOGO_KATA() { return uid('Katagatame, braço e cabeça'); }
+const pedidoKata = pedidoDaRec({ intencao: 'corrigir', alvo: 'Katagatame (triângulo de braço)' });
+ok('a defesa do katagatame procura a saída de baixo das posições de onde ele sai', pedidoKata.posicoes.sort(), ['cem:baixo', 'montada:baixo']);
+const acervoKata = [
+  v('O katagatame que apaga', { tecnicas: [KATA], habilidades: ['estrangulamento', 'finalizacao'] }),
+  v('defesa-geral', { habilidades: ['defesa'] }),
+  v('Como sair de baixo na 100kg', { posicaoLado: ['cem:baixo'], habilidades: ['escapada'] }),
+  v('segurar-100kg', { posicaoLado: ['cem:cima'], habilidades: ['controle'] }),
+];
+const kata = aulasPara(pedidoKata, { lista: acervoKata, quantidade: 3, soAula: true });
+ok('a aula de aplicar o katagatame não aparece', ids(kata).includes('O katagatame que apaga'), false);
+ok('a saída do 100kg vem antes da defesa em geral', ids(kata), ['Como sair de baixo na 100kg', 'defesa-geral']);
+ok('e a tela explica por que essa aula', rotuloDaAula(kata[0], pedidoKata, 'Katagatame (triângulo de braço)'),
+  'ainda não há aula de defesa de Katagatame (triângulo de braço) · esta ensina a sair do 100kg, de onde ela costuma sair');
+const comDefesaDoKata = aulasPara(pedidoKata, { lista: [...acervoKata, v('Defesa do katagatame', { tecnicas: [KATA], habilidades: ['defesa'] })], quantidade: 1, soAula: true });
+ok('quando a aula de defesa do katagatame entrar, ela ganha', ids(comDefesaDoKata), ['Defesa do katagatame']);
 
 const mesmaFamilia = [
   v('Defesa de chaves no ombro', { tecnicas: [KIMURA], habilidades: ['defesa'] }),
@@ -108,6 +131,17 @@ ok('só com aula geral: ela vem, marcada, pra tela dizer que falta a da técnica
 
 const naoTecnico = aulasPara({ habilidades: ['passagem'] }, { lista: [v('p-short', { k: 'short', habilidades: ['passagem'] }), v('p-aula', { habilidades: ['passagem'] })], soAula: true });
 ok('pedido que não é de técnica continua só com aula longa', ids(naoTecnico), ['p-aula']);
+
+/* ---------- posição que já chega no rola (o 100kg do Painel, 25/09) ---------- */
+const { vezesNaPosicao } = await import('../src/lib/graus.js');
+const rolasCom100kg = [{ sessionId: 1, contexto: 'rola', ptsMeus: ['passagem'] }, { sessionId: 1, contexto: 'rola', ptsMeus: ['queda'] }, { sessionId: 2, contexto: 'drill', ptsMeus: ['passagem'] }];
+const treinosDoTeste = [{ id: 1, tipo: 'gi', data: '2026-09-20' }, { id: 2, tipo: 'drill', data: '2026-09-21' }];
+ok('passagem e queda te levam pro 100kg: conta como rola, drill não', vezesNaPosicao('100kg (side control)', rolasCom100kg, treinosDoTeste), 2);
+ok('técnica que não é posição fica fora dessa conta', vezesNaPosicao('Americana', rolasCom100kg, treinosDoTeste), null);
+const soNoDrill = [{ nome: '100kg (side control)', soDrill: true, usos: 3, usosDrill: 3, usosResistencia: 0, grau: 1, progresso: 50 }];
+ok('100kg que já aparece no rola não vira "levar pro rola"',
+  gerarRecomendacoes({ tecnicas: soNoDrill, rolls: rolasCom100kg, sessions: treinosDoTeste }).some((r) => r.intencao === 'consolidar'), false);
+ok('sem chegar lá no rola, a sugestão continua', gerarRecomendacoes({ tecnicas: soNoDrill, rolls: [], sessions: [] }).some((r) => r.intencao === 'consolidar'), true);
 
 /* ---------- ordem ---------- */
 const iguais = [v('visto', { habilidades: ['passagem'] }), v('novo', { habilidades: ['passagem'] })];

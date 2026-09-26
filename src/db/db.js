@@ -4,7 +4,7 @@ import { PLANOS_ATAQUE } from './attackPlans';
 import { uidEstavel, chaveNome } from '../lib/uid';
 import { resultadoDoTexto } from '../lib/competicao';
 import { dataLocal } from '../lib/utils';
-import { RENOMEAR as NOMES_NOVOS, nomeAtual } from './renomeios';
+import { nomeAtual } from './renomeios';
 
 export const db = new Dexie('tatame_os');
 
@@ -216,15 +216,18 @@ export const DEFAULT_SETTINGS = {
    depois, pelo limparDuplicados.
    ============================================================ */
 export async function renomearTecnicas() {
-  if (await getMeta('renomeou_v1', false)) return;
-  const troca = (n) => nomeAtual(n);
+  /* v2: a v1 não conhecia os nomes da lista antiga (RENOMEAR, mais
+     abaixo), e o "Katagatame (braço-cabeça)" dos rolas ficou pra trás */
+  if (await getMeta('renomeou_v2', false)) return;
+  const troca = (n) => nomeFinal(n);
   const trocaLista = (l) => (Array.isArray(l) ? l.map(troca) : l);
   const mudou = (a, b) => JSON.stringify(a) !== JSON.stringify(b);
 
   for (const t of await db.techniques.toArray()) {
     /* a biblioteca é igual em todo aparelho: a troca fica só aqui (__local),
        sem subir. Cada aparelho faz a sua. */
-    if (NOMES_NOVOS[t.nome]) await db.techniques.update(t.id, { nome: NOMES_NOVOS[t.nome], __local: Math.random() });
+    const novo = nomeFinal(t.nome);
+    if (novo !== t.nome) await db.techniques.update(t.id, { nome: novo, __local: Math.random() });
   }
   for (const s of await db.sessions.toArray()) {
     const foco = (s.focoTecnicas || []).map((f) => ({ ...f, nome: troca(f.nome) }));
@@ -247,9 +250,9 @@ export async function renomearTecnicas() {
     }
   }
   for (const g of await db.goals.toArray()) {
-    if (typeof g.alvo === 'string' && NOMES_NOVOS[g.alvo]) await db.goals.update(g.id, { alvo: NOMES_NOVOS[g.alvo] });
+    if (typeof g.alvo === 'string' && nomeFinal(g.alvo) !== g.alvo) await db.goals.update(g.id, { alvo: nomeFinal(g.alvo) });
   }
-  await setMeta('renomeou_v1', true);
+  await setMeta('renomeou_v2', true);
 }
 
 /* ---------- seed ---------- */
@@ -372,6 +375,18 @@ const RENOMEAR = [
   ['Passagem em toureio', 'Passagem toureando'],
 ];
 
+/* o nome de hoje de qualquer nome que a técnica já teve. A lista
+   acima é mais velha que a varredura de nomes (renomeios.js) e aponta
+   pra nomes que a varredura trocou de novo: "Katagatame (braço-cabeça)"
+   ia pra "Katagatame, braço e cabeça", que hoje é "Katagatame
+   (triângulo de braço)". E "Chave de braço (armlock)", que ela trocava
+   por "Chave de braço, armlock", voltou a ser o nome certo: essa troca
+   não acontece mais, senão desfazia a varredura a cada abertura. */
+export function nomeFinal(nome) {
+  const velho = RENOMEAR.find(([de]) => de === nome);
+  return nomeAtual(velho ? velho[1] : nome);
+}
+
 /* qualquer falha aqui custa o histórico da pessoa, então
    vale saber exatamente onde quebrou */
 async function reportar(erro, onde) {
@@ -391,7 +406,9 @@ export async function renomearAntigos() {
       let nome = l.nome;
       let posicao = l.posicao;
       let mudou = false;
-      for (const [de, para] of RENOMEAR) {
+      for (const [de] of RENOMEAR) {
+        const para = nomeFinal(de);
+        if (para === de) continue;
         /* só troca quando o nome inteiro bate. Trocar por pedaço
            estragaria "Chave de braço dos 100kg". */
         if (nome === de) { nome = para; mudou = true; }

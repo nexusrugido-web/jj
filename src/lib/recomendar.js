@@ -1,4 +1,4 @@
-import { grauPorN, requisitosDaFaixa, posicoesSofridas, NOME_POSICAO_SOFRIDA, TITULO_POSICAO_SOFRIDA } from './graus';
+import { grauPorN, requisitosDaFaixa, posicoesSofridas, NOME_POSICAO_SOFRIDA, TITULO_POSICAO_SOFRIDA, vezesNaPosicao } from './graus';
 import { placarDaRola } from './game';
 import { ultimosDias } from './periodo';
 
@@ -232,8 +232,9 @@ export function gerarRecomendacoes({
     });
   }
 
-  /* 3. CONSOLIDAR: está no drill e não chegou no rola */
-  const paraConsolidar = tecnicas.find((t) => t.soDrill && t.usos >= 2);
+  /* 3. CONSOLIDAR: está no drill e não chegou no rola. Posição
+     conta como "chegou" quando um ponto seu te levou até ela. */
+  const paraConsolidar = tecnicas.find((t) => t.soDrill && t.usos >= 2 && !vezesNaPosicao(t.nome, rolls, sessions));
   if (paraConsolidar) {
     out.push({
       intencao: 'consolidar',

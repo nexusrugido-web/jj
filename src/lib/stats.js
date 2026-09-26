@@ -34,11 +34,12 @@ export function inicioSemana(iso = hoje()) {
   return addDias(iso, -dow);
 }
 
+/* conta treinos, não dias: é o mesmo número da meta "Treinar 5x por
+   semana" e do resumo da semana (dois treinos no mesmo dia são dois) */
 export function treinosNaSemana(sessions, ref = hoje()) {
   const ini = inicioSemana(ref);
   const fim = addDias(ini, 6);
-  const dias = new Set(sessions.filter((s) => s.data >= ini && s.data <= fim).map((s) => s.data));
-  return { qtd: dias.size, ini, fim };
+  return { qtd: sessions.filter((s) => s.data >= ini && s.data <= fim).length, ini, fim };
 }
 
 const teveFin = (r) => (r.subsAplicadas || []).length > 0 || r.resultado === 'finalizei' || r.resultado === 'ambos';

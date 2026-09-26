@@ -1,7 +1,7 @@
 import { acharTecnicas } from './classificar';
-import { INDICE_TECNICAS, TECNICA_POR_UID } from './tecnicas';
+import { INDICE_TECNICAS, TECNICA_POR_UID, CATALOGO_TECNICAS } from './tecnicas';
 import {
-  DE_POSICAO_SOFRIDA, HABILIDADES, SITUACOES, FORMATOS, nomeDe, nomePosicaoLado,
+  DE_POSICAO_SOFRIDA, HABILIDADES, SITUACOES, FORMATOS, POSICOES, nomeDe, nomePosicaoLado, separar,
 } from './vocab';
 
 /* ============================================================
@@ -49,13 +49,22 @@ export function pedidoDaRec(rec) {
   }
 
   if (rec.alvo) {
-    const tecnicas = acharTecnicas([rec.alvo], INDICE_TECNICAS);
-    const t = TECNICA_POR_UID.get(tecnicas[0]);
+    const achadas = acharTecnicas([rec.alvo], INDICE_TECNICAS);
+    const t = TECNICA_POR_UID.get(achadas[0]);
+    /* técnicas que viraram uma só (o Katagatame da montada e o do
+       100kg) continuam com um uid cada: o pedido leva todos */
+    const tecnicas = [...new Set([...achadas, ...CATALOGO_TECNICAS.filter((x) => t && x.nome === t.nome).map((x) => x.uid)])];
     /* a família (articular, estrangulamento...) é o que impede o motor
        de responder "defesa contra Americana" com defesa de outra coisa */
     const familia = t?.cat || null;
     if (rec.intencao === 'corrigir') {
-      return { tecnicas, nomes: [rec.alvo], familia, habilidades: ['defesa'], formatos };
+      /* defesa é defesa: a aula que ensina a aplicar a técnica não
+         responde "defesa contra ela". Sem aula de defesa da técnica,
+         a melhor resposta é sair da posição de onde ela costuma sair,
+         vista do lado de quem está sendo atacado. */
+      const saidas = [...new Set(tecnicas.map((u) => TECNICA_POR_UID.get(u)?.de).filter(Boolean)
+        .map((de) => { const { posicao, lado } = separar(de); return `${posicao}:${lado === 'cima' ? 'baixo' : 'cima'}`; }))];
+      return { tecnicas, nomes: [rec.alvo], familia, habilidades: ['defesa', 'escapada'], defesa: true, posicoes: saidas, formatos };
     }
     return {
       tecnicas,
@@ -69,6 +78,26 @@ export function pedidoDaRec(rec) {
 
   /* sem alvo (repertório concentrado, por exemplo): o porquê */
   return { formatos, formatoEhAssunto: true };
+}
+
+/* "sair do 100kg", "sair da montada": o aviso quando a aula é da saída da posição */
+const SAIR_DE = {
+  cem: 'do 100kg', montada: 'da montada', costas: 'das costas', joelho_barriga: 'do joelho na barriga',
+  norte_sul: 'do norte-sul', tartaruga: 'da tartaruga', guarda_fechada: 'da guarda fechada',
+  guarda_aberta: 'da guarda aberta', meia_guarda: 'da meia-guarda', perna: 'do jogo de perna', em_pe: 'em pé',
+};
+export const sairDe = (posicao) => SAIR_DE[posicao] || `de ${nomeDe(POSICOES, posicao)}`;
+
+/* o que a tela diz da aula escolhida: o que ela ensina, ou, quando o
+   acervo ainda não tem a aula certa, o que ela é de verdade */
+export function rotuloDaAula(aula, pedido, alvo) {
+  if (pedido?.defesa && alvo) {
+    if (!aula.generico) return `ensina a defesa de ${alvo}`;
+    if (aula.saidaDe) return `ainda não há aula de defesa de ${alvo} · esta ensina a sair ${sairDe(aula.saidaDe)}, de onde ela costuma sair`;
+    return `ainda não há aula de defesa de ${alvo} · esta é de defesa em geral`;
+  }
+  if (aula.generico && alvo) return `ainda não há aula de ${alvo} · esta é de ${String(aula.porque?.[0] || 'defesa').toLowerCase()} em geral`;
+  return aula.porque?.length ? `ensina ${aula.porque.join(' · ')}` : 'aula sobre isso';
 }
 
 /* o assunto no título, enquanto a IA não classificou tudo */
@@ -119,6 +148,9 @@ export const PEDIDO_DO_ESTILO = {
    "100kg por baixo · Escapada", "Contra mais pesado".
    ------------------------------------------------------------ */
 export function descreverPedido(pedido = {}) {
+  /* na defesa, a pauta é uma só: a defesa daquela técnica (as saídas
+     de posição são só o plano B do motor) */
+  if (pedido.defesa) return [...(pedido.nomes || []), nomeDe(HABILIDADES, 'defesa')].join(' · ');
   const partes = [
     ...(pedido.nomes || []),
     ...(pedido.posicoes || []).map(nomePosicaoLado),

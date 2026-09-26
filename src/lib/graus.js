@@ -1,5 +1,7 @@
 import { FAIXA_ORDEM, hoje, diasEntre, addDias } from './utils';
 import { periodoDeDados, dentroDoPeriodo } from './periodo';
+import { SEED } from '../db/seed';
+import { pontosPorId } from '../db/scoring';
 
 /* ============================================================
    GRAUS POR TÉCNICA
@@ -457,6 +459,28 @@ export function grauGuardado(usos, faixaAtual = 'branca', gradings = [], grausAt
     g = Math.max(g, calcularAtaque(u, faixaNaData(vespera, gradings, faixaAtual), opcoes).grau);
   }
   return g;
+}
+
+/* ============================================================
+   A TÉCNICA QUE É UMA POSIÇÃO
+
+   "100kg (side control)", "Montada", "Pegada nas costas": ninguém
+   marca a posição como técnica no rola. O que fica registrado é o
+   ponto que te levou até ela (a passagem te põe no 100kg), e é
+   isso que a escada de posições conta. Sem olhar pra isso, o app
+   dizia "100kg ainda não apareceu no rola" com a escada mostrando
+   14 vezes. null quando a técnica não é uma posição.
+   ============================================================ */
+const POSICAO_DA_TECNICA = new Map(SEED.techniques
+  .filter((t) => t.from === t.to && (t.tags || []).includes('posicao'))
+  .map((t) => [t.pt, t.from]));
+
+export function vezesNaPosicao(nome, rolls = [], sessions = []) {
+  const slug = POSICAO_DA_TECNICA.get(nome);
+  if (!slug) return null;
+  const drill = new Set(sessions.filter((s) => s.tipo === 'drill').map((s) => s.id));
+  return rolls.filter((r) => r.contexto !== 'drill' && !drill.has(r.sessionId)
+    && (r.ptsMeus || []).some((p) => pontosPorId[p]?.posicaoDestino === slug)).length;
 }
 
 /* ---------- a lista completa das suas técnicas ---------- */

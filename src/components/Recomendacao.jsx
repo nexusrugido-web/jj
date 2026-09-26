@@ -6,7 +6,7 @@ import { Chip, useToast } from './UI';
 import { INTENCOES, chaveDaRec, respostaAoMarcar } from '../lib/recomendar';
 import { capa, duracaoTexto, registrarAulaVista } from '../lib/aulas';
 import { aulasPara } from '../lib/motor';
-import { pedidoDaRec, descreverPedido } from '../lib/necessidades';
+import { pedidoDaRec, descreverPedido, rotuloDaAula } from '../lib/necessidades';
 import { medir, origem as origemDe } from '../lib/medir';
 import Player from './Player';
 import { hoje } from '../lib/utils';
@@ -115,9 +115,7 @@ export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFei
               <div className="micro" style={{ color: 'var(--roar)', fontWeight: 700, marginBottom: 3 }}>Você já viu esta aula. Vale reforçar.</div>
             )}
             <div className="micro" style={{ color: 'var(--dimmer)' }}>
-              {aulas[0].generico && rec.alvo
-                ? `ainda não há aula de ${rec.alvo} · esta é de ${String(aulas[0].porque?.[0] || 'defesa').toLowerCase()} em geral`
-                : aulas[0].porque?.length ? `ensina ${aulas[0].porque.join(' · ')}` : 'aula sobre isso'}
+              {rotuloDaAula(aulas[0], pedido, rec.alvo)}
             </div>
             <div className="tiny" style={{ fontWeight: 600, marginTop: 3, lineHeight: 1.35 }}>{aulas[0].t}</div>
           </div>

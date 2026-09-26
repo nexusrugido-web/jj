@@ -12,7 +12,7 @@ import 'fake-indexeddb/auto';
    do Estudo e a nuvem continuam ligadas) e o nome velho ainda acha
    a técnica.
    ============================================================ */
-const { db, renomearTecnicas } = await import('../src/db/db.js');
+const { db, renomearTecnicas, renomearAntigos } = await import('../src/db/db.js');
 const { RENOMEAR } = await import('../src/db/renomeios.js');
 const { SEED } = await import('../src/db/seed.js');
 const { CATALOGO_TECNICAS, INDICE_TECNICAS } = await import('../src/lib/tecnicas.js');
@@ -40,7 +40,7 @@ ok('o nome novo acha a mesma técnica', acharTecnicas(['Single leg'], INDICE_TEC
 /* ---------- o que já estava gravado no aparelho ---------- */
 await db.techniques.add({ nome: 'Solo (single leg)', uid: uidEstavel(chaveNome('techniques', 'Solo (single leg)')), arquivada: 0, criadoEm: Date.now(), __local: 1 });
 const sid = await db.sessions.add({ data: '2026-09-10', focoTecnicas: [{ nome: 'Estrangulamento de laço (bow and arrow)', aprendizado: 'peguei' }] });
-await db.rolls.add({ sessionId: sid, subsAplicadas: ['Chave de braço, armlock', 'Americana'], subsSofridas: ['Katagatame, braço e cabeça'],
+await db.rolls.add({ sessionId: sid, subsAplicadas: ['Chave de braço, armlock', 'Americana'], subsSofridas: ['Katagatame, braço e cabeça', 'Katagatame (braço-cabeça)'],
   tecMeus: { queda: ['Solo (single leg)'], raspagem: ['Raspagem de gancho (hip bump)'] }, tecDele: {} });
 await db.goals.add({ tipo: 'tecnica', alvo: 'Chave de pé reta', status: 'ativa' });
 await renomearTecnicas();
@@ -50,7 +50,15 @@ ok('a técnica guardada ganha o nome novo e mantém o uid', tec.nome, 'Single le
 ok('a biblioteca renomeada continua sendo biblioteca (não sobe pra nuvem)', sementeIntacta('techniques', { ...tec, updatedAt: tec.criadoEm }), true);
 ok('o treino troca o nome da técnica da aula', (await db.sessions.get(sid)).focoTecnicas[0].nome, 'Arco e flecha (bow and arrow)');
 const rola = (await db.rolls.toArray())[0];
-ok('as finalizações do rola trocam de nome', [rola.subsAplicadas, rola.subsSofridas], [['Chave de braço (armlock)', 'Americana'], ['Katagatame (triângulo de braço)']]);
+ok('as finalizações do rola trocam de nome, até as da lista mais antiga', [rola.subsAplicadas, rola.subsSofridas], [['Chave de braço (armlock)', 'Americana'], ['Katagatame (triângulo de braço)', 'Katagatame (triângulo de braço)']]);
+
+/* a lista antiga roda a cada abertura: não pode desfazer a varredura */
+const arm = await db.techniques.add({ nome: 'Chave de braço (armlock)', arquivada: 0, criadoEm: Date.now(), __local: 1 });
+const kat = await db.techniques.add({ nome: 'Katagatame (braço-cabeça)', arquivada: 0, criadoEm: Date.now(), __local: 1 });
+await renomearAntigos();
+await renomearAntigos();
+ok('abrir o app de novo não volta pro "Chave de braço, armlock"', (await db.techniques.get(arm)).nome, 'Chave de braço (armlock)');
+ok('o nome da lista mais antiga vai direto pro nome de hoje', (await db.techniques.get(kat)).nome, 'Katagatame (triângulo de braço)');
 ok('as técnicas dos pontos trocam de nome', rola.tecMeus, { queda: ['Single leg'], raspagem: ['Raspagem de sentar (hip bump)'] });
 ok('a meta troca o alvo', (await db.goals.toArray())[0].alvo, 'Chave de pé reta (botinha)');
 

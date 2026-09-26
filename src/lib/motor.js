@@ -120,6 +120,11 @@ function deOutraTecnica(a, pedido) {
      formatos   do mais desejado pro menos; com formatoEhAssunto,
                 o formato conta como assunto ("entender o porquê")
    ------------------------------------------------------------ */
+/* aula de defesa: marcada assim pela esteira, ou dizendo no título */
+const PALAVRAS_DE_DEFESA = /(^| )(defesa|defender|defendendo|escapar|escapada|escape|sair|saida|fuga|fugir|evitar)( |$)/;
+const ensinaDefesa = (a) => (a.habilidades || []).some((h) => h === 'defesa' || h === 'escapada')
+  || PALAVRAS_DE_DEFESA.test(semAcento(a.t));
+
 function relevancia(a, pedido) {
   const porque = [];
   let r = 0;
@@ -129,10 +134,14 @@ function relevancia(a, pedido) {
   const tecnico = tecnicas.length > 0 || nomes.length > 0;
   if (tecnico && deOutraTecnica(a, pedido)) return { r: 0, porque: [] };
   if (nomes.length && tituloDeOutraTecnica(a.t, nomes)) return { r: 0, porque: [] };
+  /* "Defesa contra Katagatame" não se responde com a aula de aplicar
+     o katagatame: vídeo que não ensina defesa nem saída não entra */
+  if (pedido.defesa && !ensinaDefesa(a)) return { r: 0, porque: [] };
 
   /* especifico: o vídeo é da técnica pedida, ou ao menos da família
      dela. Sem isso, num pedido de técnica, ele é resposta geral. */
   let especifico = false;
+  let saidaDe = null;
   if (tecnicas.some((u) => (a.tecnicas || []).includes(u))) {
     r += 30;
     especifico = true;
@@ -162,6 +171,7 @@ function relevancia(a, pedido) {
     if (doVideo.some((x) => x.lado === lado)) {
       r += 14;
       porque.push(nomePosicaoLado(pl));
+      if (pedido.defesa && !saidaDe) saidaDe = posicao;
     } else if (lado === 'neutro' || doVideo.some((x) => x.lado === 'neutro')) {
       r += 8;
       porque.push(nomeDe(POSICOES, posicao));
@@ -192,7 +202,7 @@ function relevancia(a, pedido) {
     porque.push(nomeDe(FORMATOS, a.formato));
   }
 
-  return { r, porque: [...new Set(porque)], generico: tecnico && !especifico };
+  return { r, porque: [...new Set(porque)], generico: tecnico && !especifico, saidaDe };
 }
 
 /* embaralhamento estável da semana: dentro da mesma nota, a ordem
@@ -245,7 +255,7 @@ export function aulasPara(pedido, {
   const notadas = lista
     .filter((a) => !fora.has(a.id) && (!soAula || preferirAula || a.k === 'aula'))
     .map((a) => {
-      const { r, porque, generico } = relevancia(a, pedido);
+      const { r, porque, generico, saidaDe } = relevancia(a, pedido);
       if (r <= 0) return null;
       let nota = r * (PESO_DA_CLASSIFICACAO[a.classificacao] ?? 0.85);
       if (preferirAula && a.k !== 'aula') nota -= 6;
@@ -254,7 +264,7 @@ export function aulasPara(pedido, {
       else if (i > 0) nota += 2;
       nota += ajusteDoNivel(a.nivel, faixa);
       if (a.ordem != null) nota += 1;
-      return { ...a, nota, porque, generico, sorteio: semente(`${a.id}:${chave}`) };
+      return { ...a, nota, porque, generico, saidaDe, sorteio: semente(`${a.id}:${chave}`) };
     })
     .filter(Boolean);
 
@@ -281,6 +291,13 @@ export function aulasPara(pedido, {
     .sort((a, b) => (querCurto ? a.d - b.d : b.d - a.d));
   const longe = resto.filter((a) => !perto.includes(a));
 
-  return [melhor, ...perto, ...longe].slice(0, quantidade)
+  /* na defesa, a saída da posição de onde a técnica sai vem antes da
+     defesa em geral: ela responde ao caso da pessoa */
+  const final = [melhor, ...perto, ...longe];
+  if (pedido.defesa) {
+    const lugar = (a) => (!a.generico ? 0 : a.saidaDe ? 1 : 2);
+    final.sort((a, b) => lugar(a) - lugar(b));
+  }
+  return final.slice(0, quantidade)
     .map(({ nota: _n, sorteio: _s, ...a }) => a);
 }
