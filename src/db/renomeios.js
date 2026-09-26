@@ -78,6 +78,8 @@ export const RENOMEAR = {
   'Estica-braço do joelho na barriga': 'Chave de braço do joelho na barriga',
   'Chave de ombro do norte-sul': 'Kimura do norte-sul',
   'Chave de pé reta': 'Chave de pé reta (botinha)',
+  /* como o curso chama: o mesmo nome da posição na escada */
+  '100kg (side control)': 'Controle lateral, 100kg',
   'Chave de dedão do pé (toe hold)': 'Toe hold (chave de dedão)',
   'Heel hook interno': 'Heel hook interno (chave de calcanhar)',
   'Heel hook externo': 'Heel hook externo (chave de calcanhar)',

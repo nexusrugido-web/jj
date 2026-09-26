@@ -136,9 +136,9 @@ ok('pedido que não é de técnica continua só com aula longa', ids(naoTecnico)
 const { vezesNaPosicao } = await import('../src/lib/graus.js');
 const rolasCom100kg = [{ sessionId: 1, contexto: 'rola', ptsMeus: ['passagem'] }, { sessionId: 1, contexto: 'rola', ptsMeus: ['queda'] }, { sessionId: 2, contexto: 'drill', ptsMeus: ['passagem'] }];
 const treinosDoTeste = [{ id: 1, tipo: 'gi', data: '2026-09-20' }, { id: 2, tipo: 'drill', data: '2026-09-21' }];
-ok('passagem e queda te levam pro 100kg: conta como rola, drill não', vezesNaPosicao('100kg (side control)', rolasCom100kg, treinosDoTeste), 2);
+ok('passagem e queda te levam pro 100kg: conta como rola, drill não', vezesNaPosicao('Controle lateral, 100kg', rolasCom100kg, treinosDoTeste), 2);
 ok('técnica que não é posição fica fora dessa conta', vezesNaPosicao('Americana', rolasCom100kg, treinosDoTeste), null);
-const soNoDrill = [{ nome: '100kg (side control)', soDrill: true, usos: 3, usosDrill: 3, usosResistencia: 0, grau: 1, progresso: 50 }];
+const soNoDrill = [{ nome: 'Controle lateral, 100kg', soDrill: true, usos: 3, usosDrill: 3, usosResistencia: 0, grau: 1, progresso: 50 }];
 ok('100kg que já aparece no rola não vira "levar pro rola"',
   gerarRecomendacoes({ tecnicas: soNoDrill, rolls: rolasCom100kg, sessions: treinosDoTeste }).some((r) => r.intencao === 'consolidar'), false);
 ok('sem chegar lá no rola, a sugestão continua', gerarRecomendacoes({ tecnicas: soNoDrill, rolls: [], sessions: [] }).some((r) => r.intencao === 'consolidar'), true);

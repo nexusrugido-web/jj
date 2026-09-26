@@ -464,7 +464,7 @@ export function grauGuardado(usos, faixaAtual = 'branca', gradings = [], grausAt
 /* ============================================================
    A TÉCNICA QUE É UMA POSIÇÃO
 
-   "100kg (side control)", "Montada", "Pegada nas costas": ninguém
+   "Controle lateral, 100kg", "Montada", "Pegada nas costas": ninguém
    marca a posição como técnica no rola. O que fica registrado é o
    ponto que te levou até ela (a passagem te põe no 100kg), e é
    isso que a escada de posições conta. Sem olhar pra isso, o app

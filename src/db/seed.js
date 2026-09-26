@@ -457,7 +457,7 @@ const techniques = [
   {"pt": "Body lock guard", "en": "Body lock guard", "cat": "guarda", "from": "guarda_aberta", "to": "guarda_aberta", "modo": "nogi", "faixaMin": "branca", "tags": ["posicao"], "nivel_sugerido": "roxa"},
   {"pt": "Single leg guard", "en": "Single leg guard", "cat": "guarda", "from": "guarda_aberta", "to": "guarda_aberta", "modo": "ambos", "faixaMin": "branca", "tags": ["posicao"], "nivel_sugerido": "azul"},
   {"pt": "Butterfly ascension", "en": "Butterfly ascension", "cat": "guarda", "from": "borboleta", "to": "borboleta", "modo": "nogi", "faixaMin": "branca", "tags": ["posicao"], "nivel_sugerido": "roxa"},
-  {"pt": "100kg (side control)", "en": "Side control", "cat": "guarda", "from": "cem_quilos", "to": "cem_quilos", "modo": "ambos", "faixaMin": "branca", "tags": ["posicao"], "nivel_sugerido": "branca"},
+  {"pt": "Controle lateral, 100kg", "antigo": "100kg (side control)", "en": "Side control", "cat": "guarda", "from": "cem_quilos", "to": "cem_quilos", "modo": "ambos", "faixaMin": "branca", "tags": ["posicao"], "nivel_sugerido": "branca"},
   {"pt": "Kesa gatame (gravata)", "en": "Kesa gatame / scarf hold", "cat": "guarda", "from": "kesa", "to": "kesa", "modo": "ambos", "faixaMin": "branca", "tags": ["posicao"], "nivel_sugerido": "branca"},
   {"pt": "Kesa gatame invertido", "en": "Reverse kesa gatame", "cat": "guarda", "from": "kesa", "to": "kesa", "modo": "ambos", "faixaMin": "branca", "tags": ["posicao"], "nivel_sugerido": "azul"},
   {"pt": "Norte-sul", "en": "North-south", "cat": "guarda", "from": "norte_sul", "to": "norte_sul", "modo": "ambos", "faixaMin": "branca", "tags": ["posicao"], "nivel_sugerido": "branca"},
