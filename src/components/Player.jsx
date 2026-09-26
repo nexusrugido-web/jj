@@ -246,11 +246,18 @@ export default function Player({ aula, onClose, onConcluir }) {
     setCheio(true);
     acordarControles();
 
+    /* Vídeo em pé não pede a tela cheia do navegador. Nela, o Chrome do
+       Android trava a rotação pelo vídeo por conta própria, por cima da
+       trava do app, e o short abria em pé e deitava logo depois. Sem
+       ela, o CSS estica o vídeo na tela inteira e o celular fica como
+       a pessoa está segurando: em pé. */
+    if (vertical) return;
+
     try {
       const p = alvo.requestFullscreen?.({ navigationUI: 'hide' });
       /* deitar a tela só é permitido depois que a tela cheia entrou */
       Promise.resolve(p)
-        .then(() => screen.orientation?.lock?.(vertical ? 'portrait' : 'landscape'))
+        .then(() => screen.orientation?.lock?.('landscape'))
         .catch(() => { /* iPhone e computador não deitam, e tudo bem */ });
     } catch { /* fica com a classe do CSS */ }
   }
