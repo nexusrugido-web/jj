@@ -1,0 +1,30 @@
+
+> neurojitsu@12.7.0 teste:telas
+> node scripts/teste-telas.mjs
+
+banco: 111 rolas em 4 parceiros
+ok    painel
+ok    treinos
+ok    estudo
+ok    liga
+ok    amigos
+ok    jornada
+ok    dominio
+ok    meujogo
+ok    analise
+ok    conquistas
+ok    metas
+ok    parceiros
+ok    academia
+ok    nutricao
+ok    lesoes
+ok    ajustes
+ok    termos
+ok    privacidade
+ok    menu sem módulo Gás
+ok    link antigo de Gás abre Painel
+ok    painel mostra a melhor arma com dados
+ok    meta de posição com nome, não código
+ok    drill antigo virou drill: Meu jogo conta 99 lutas, não 111
+
+tudo certo

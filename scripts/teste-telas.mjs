@@ -173,7 +173,7 @@ if (raiz.innerHTML.includes('login-card') || raiz.innerHTML.includes('entrada-ca
 
 /* ---------- todas as telas ---------- */
 const telas = ['painel', 'treinos', 'estudo', 'liga', 'amigos', 'jornada', 'dominio', 'meujogo', 'analise', 'conquistas',
-  'metas', 'parceiros', 'academia', 'nutricao', 'respiracao', 'lesoes', 'ajustes', 'termos', 'privacidade'];
+  'metas', 'parceiros', 'academia', 'nutricao', 'lesoes', 'ajustes', 'termos', 'privacidade'];
 let falhas = 0;
 for (const t of telas) {
   const antes = erros.length;
@@ -212,6 +212,9 @@ const painel = () => { w.history.pushState({}, '', '/?go=painel'); w.dispatchEve
 painel(); await esperar(1500);
 const txt = raiz.textContent;
 const confere = (nome, bom) => { if (!bom) falhas++; console.log(`${bom ? 'ok   ' : 'FALHA'} ${nome}`); };
+confere('menu sem módulo Gás', ![...raiz.querySelectorAll('.navlink')].some((b) => b.textContent.trim() === 'Gás'));
+w.history.pushState({}, '', '/?go=respiracao'); w.dispatchEvent(new w.PopStateEvent('popstate')); await esperar(1500);
+confere('link antigo de Gás abre Painel', raiz.querySelector('.sidebar .navlink.on')?.textContent.trim() === 'Painel' && !raiz.textContent.includes('Gás no jiu-jitsu'));
 confere('painel mostra a melhor arma com dados', !/Registre uma finalização pra descobrir/.test(txt));
 w.history.pushState({}, '', '/?go=metas'); w.dispatchEvent(new w.PopStateEvent('popstate')); await esperar(1500);
 confere('meta de posição com nome, não código', raiz.textContent.includes('Trabalhar Guarda fechada (por baixo)'));

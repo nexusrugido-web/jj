@@ -1,0 +1,1077 @@
+
+> neurojitsu@12.7.0 check
+> npm run lint:copy && npm run lint:simbolos && npm run lint:ciclos && npm run build && npm run lint:chunks && npm run teste:boot && npm run teste:limites && npm run teste:categorias && npm run teste:estudo && npm run teste:vocab && npm run teste:classificar && npm run teste:motor && npm run teste:grafico && npm run teste:liga && npm run teste:medir && npm run teste:periodo && npm run teste:competicao && npm run teste:ofensiva && npm run teste:placar && npm run teste:coerencia && npm run teste:telas && npm run teste:login && npm run teste:graus && npm run teste:meujogo && npm run teste:sync && npm run teste:ia && npm run teste:quiz && npm run teste:marcos && npm run teste:nutricao && npm run teste:resultados && npm run teste:renomeios && npm run teste:regras && npm run teste:voz && npm run teste:campeonato
+
+
+> neurojitsu@12.7.0 lint:copy
+> node scripts/lint-copy.mjs
+
+copy limpa
+
+> neurojitsu@12.7.0 lint:simbolos
+> node scripts/simbolos.mjs
+
+132 arquivos, nenhum símbolo solto
+
+> neurojitsu@12.7.0 lint:ciclos
+> node scripts/ciclos.mjs
+
+132 arquivos, nenhum ciclo de importação
+
+> neurojitsu@12.7.0 build
+> vite build
+
+vite v6.4.3 building for production...
+transforming...
+✓ 2142 modules transformed.
+rendering chunks...
+node.exe : [plugin vite:reporter] 
+No linha:1 caractere:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([plugin vite:reporter] :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+(!) C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/db/db.js is dynamically imported by 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/UI.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/aulas.js, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/aulas.js, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/aulas.js but also statically imported by 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/App.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/AcademiaProfessor.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/Calendario.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/Liga.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/MinhaOfensiva.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/Quiz.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/Recomendacao.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/Renovacao.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/ResumoDoTipo.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/SeletorTecnica.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/acervo.js, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/ajustes.js, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/chaves.js, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/liga.js, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/links.js, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/milestones.js, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/pago.js, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/plano.js, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/retencao.js, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/sync.js, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/xp.js, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Ajustes.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Analise.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Conquistas.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Dominio.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Estudo.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Lesoes.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Liga.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Metas.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Nutricao.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Onboarding.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Painel.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Parceiros.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Treinos.jsx, dynamic import will not move module into another 
+chunk.
+
+[plugin vite:reporter] 
+(!) C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/pwa.js is dynamically imported by 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/main.jsx but also statically imported by 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/App.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/InstallPrompt.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/push.js, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Ajustes.jsx, dynamic import will not move module into another 
+chunk.
+
+[plugin vite:reporter] 
+(!) C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/chaves.js is dynamically imported by 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/xp.js but also statically imported by 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/App.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/pago.js, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/plano.js, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Admin.jsx, dynamic import will not move module into another 
+chunk.
+
+[plugin vite:reporter] 
+(!) C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/plano.js is dynamically imported by 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/xp.js but also statically imported by 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/App.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/Figurinha.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/Limite.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/Plano.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/Quiz.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/Renovacao.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Academia.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Analise.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Dominio.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Estudo.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Metas.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/MeuJogo.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Nutricao.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Onboarding.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Painel.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Treinos.jsx, dynamic import will not move module into another 
+chunk.
+
+[plugin vite:reporter] 
+(!) C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/xp.js is dynamically imported by 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/aulas.js but also statically imported by 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/MinhaOfensiva.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/Quiz.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/liga.js, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/semana.js, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Academia.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Estudo.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Liga.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Treinos.jsx, dynamic import will not move module into another 
+chunk.
+
+[plugin vite:reporter] 
+(!) C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/liga.js is dynamically imported by 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/xp.js but also statically imported by 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/App.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/Contas.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/Figurinha.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/Liga.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/MinhaOfensiva.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Conquistas.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Liga.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Painel.jsx, dynamic import will not move module into another 
+chunk.
+
+[plugin vite:reporter] 
+(!) C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/medir.js is dynamically imported by 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/aulas.js but also statically imported by 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/App.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/Limite.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/Recomendacao.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Estudo.jsx, dynamic import will not move module into another 
+chunk.
+
+[plugin vite:reporter] 
+(!) C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/monitor.js is dynamically imported by 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/db/db.js, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/main.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/main.jsx but also statically imported by 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/App.jsx, dynamic import will not move module into another chunk.
+
+[plugin vite:reporter] 
+(!) C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/aulas.js is dynamically imported by 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/plano.js but also statically imported by 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/Capa.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/Limite.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/ParadoEstudando.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/Player.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/components/Recomendacao.jsx, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/lib/motor.js, 
+C:/Users/Batista/Downloads/neurojitsu-v12_7/jj/src/pages/Estudo.jsx, dynamic import will not move module into another 
+chunk.
+
+computing gzip size...
+dist/index.html                          6.03 kB │ gzip:   2.23 kB
+dist/assets/index-ntwobFyB.css         129.37 kB │ gzip:  23.86 kB
+dist/assets/map-pin-tNnoxx8z.js          0.42 kB │ gzip:   0.32 kB
+dist/assets/list-checks-CSrstNzt.js      0.45 kB │ gzip:   0.29 kB
+dist/assets/ListaResumida-KsZGeMq5.js    0.48 kB │ gzip:   0.34 kB
+dist/assets/Admin-CYMI7X-f.js            0.65 kB │ gzip:   0.41 kB
+dist/assets/calculator-BuvdC1m-.js       0.70 kB │ gzip:   0.39 kB
+dist/assets/brain-CilUselX.js            0.90 kB │ gzip:   0.46 kB
+dist/assets/Avatar-C-GhTpGE.js           1.68 kB │ gzip:   0.90 kB
+dist/assets/Legal-BL1QHjdV.js            7.26 kB │ gzip:   2.86 kB
+dist/assets/Amigos-DWhKNAEY.js          12.79 kB │ gzip:   4.28 kB
+dist/assets/Lesoes-Bi-Ub0B6.js          12.95 kB │ gzip:   4.64 kB
+dist/assets/Parceiros-CjGTHpLD.js       13.65 kB │ gzip:   3.56 kB
+dist/assets/Dominio-DklYcxDK.js         17.46 kB │ gzip:   5.80 kB
+dist/assets/MeuJogo-DuVpMYOd.js         17.59 kB │ gzip:   5.47 kB
+dist/assets/Metas-CChDfwjc.js           17.78 kB │ gzip:   5.88 kB
+dist/assets/Analise-B8304sAu.js         18.08 kB │ gzip:   5.56 kB
+dist/assets/Academia-Dy-3I8mK.js        26.95 kB │ gzip:   9.13 kB
+dist/assets/Nutricao-BoQxYIZz.js        27.22 kB │ gzip:   9.46 kB
+dist/assets/Liga-B9xGkT8f.js            40.12 kB │ gzip:  12.43 kB
+dist/assets/Estudo-BGgGllD_.js          44.53 kB │ gzip:  15.44 kB
+dist/assets/index-Br9FH1-Z.js          939.86 kB │ gzip: 287.57 kB
+
+(!) Some chunks are larger than 700 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: 
+https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 30.59s
+
+> neurojitsu@12.7.0 lint:chunks
+> node scripts/chunks.mjs
+
+20 pedaços, nenhum ciclo
+
+> neurojitsu@12.7.0 teste:boot
+> node scripts/teste-boot.mjs
+
+executando index-Br9FH1-Z.js
+aceitando os termos...
+passando pelo onboarding...
+(sem aula recomendada neste cenário)
+  aula em estudo: player abriu
+settings no banco: {"onboardingFeito":1,"nome":"Teste"}
+sessions: 0 | rolls: 0
+
+=== RESULTADO ===
+MONTOU (21482 chars)
+trecho: <div class="shell"><aside class="sidebar"><button class="brand" title="Como o app funciona"><span class="brand-mark"></span><div><div class="brand-name">NeuroJitsu</div><div class=
+
+> neurojitsu@12.7.0 teste:limites
+> node scripts/teste-limites.mjs
+
+ok    rola nao entra em limite do dia: 0 (esperado 0)
+ok    aula vista hoje: 1 (esperado 1)
+ok    short nao entra na conta de aula: 1 (esperado 1)
+ok    rever aula antiga hoje conta: 2 (esperado 2)
+ok    aula so de ontem nao conta: 2 (esperado 2)
+ok    quiz de hoje conta 2, treino nao entra: 2 (esperado 2)
+
+ok    um segundo normal soma um segundo: 1 (esperado 1)
+ok    assistir em 2x soma os dois segundos: 2 (esperado 2)
+ok    rede travada, passo de 1.5s ainda soma: 1.5 (esperado 1.5)
+ok    pulo de 5 minutos pra frente nao soma: 0 (esperado 0)
+ok    pulo curto pra frente nao soma: 0 (esperado 0)
+ok    voltar a barra nao soma: 0 (esperado 0)
+ok    parado no mesmo lugar nao soma: 0 (esperado 0)
+ok    em 2x, pulo de 10s continua sem somar: 0 (esperado 0)
+ok    abrir e arrastar pro fim nao conclui: 0 (esperado 0)
+
+limites do gratuito: rola sem limite, aula 1, short 1, quiz 5
+
+ok    volta pro comeco: 0 (esperado 0)
+ok    volta pra um ponto ja assistido: 120 (esperado 120)
+ok    para na marca do que ja foi assistido: 300 (esperado 300)
+ok    nao aceita numero negativo: 0 (esperado 0)
+ok    sem nada assistido, nao sai do lugar: 0 (esperado 0)
+ok    lixo no lugar do numero nao move a agulha: 0 (esperado 0)
+
+tudo certo
+
+> neurojitsu@12.7.0 teste:categorias
+> node scripts/teste-categorias.mjs
+
+ok    le titulo, link e duracao: qMr-tps8s70, 127s
+ok    classifica 2:07 como short
+ok    acha raspagem e guarda no titulo: guarda,raspagem
+ok    acha a guarda laco como posicao: guarda_aberta
+ok    duracao em horas
+ok    duracao em segundos crus
+ok    id de link de short
+ok    linha sem link reclama
+ok    linha sem duracao reclama
+ok    classifica 54 min como aula
+ok    titulo sem assunto levanta a mao
+
+680 videos do acervo, comparando a regra com a etiqueta da mao
+
+  conjunto de temas identico:        586 (86%)
+  a regra nao achou tema:            180 (26%)
+     destes, ja eram "geral":        155 de 180
+
+  logica       acerto  98%  cobertura  90%
+ok      logica marca errado menos de 20% das vezes: 98%
+ok      logica cobre mais da metade do que e dele: 90%
+  competicao   acerto  93%  cobertura  92%
+ok      competicao marca errado menos de 20% das vezes: 93%
+ok      competicao cobre mais da metade do que e dele: 92%
+  guarda       acerto  90%  cobertura  99%
+ok      guarda marca errado menos de 20% das vezes: 90%
+ok      guarda cobre mais da metade do que e dele: 99%
+  controle     acerto  99%  cobertura  95%
+ok      controle marca errado menos de 20% das vezes: 99%
+ok      controle cobre mais da metade do que e dele: 95%
+  finalizacao  acerto  96%  cobertura  96%
+ok      finalizacao marca errado menos de 20% das vezes: 96%
+ok      finalizacao cobre mais da metade do que e dele: 96%
+  fisico       acerto  90%  cobertura  94%
+ok      fisico marca errado menos de 20% das vezes: 90%
+ok      fisico cobre mais da metade do que e dele: 94%
+  queda        acerto  90%  cobertura  84%
+ok      queda marca errado menos de 20% das vezes: 90%
+ok      queda cobre mais da metade do que e dele: 84%
+  defesa       acerto  91%  cobertura  94%
+ok      defesa marca errado menos de 20% das vezes: 91%
+ok      defesa cobre mais da metade do que e dele: 94%
+  passagem     acerto  86%  cobertura 100%
+ok      passagem marca errado menos de 20% das vezes: 86%
+ok      passagem cobre mais da metade do que e dele: 100%
+  raspagem     acerto  90%  cobertura 100%
+ok      raspagem marca errado menos de 20% das vezes: 90%
+ok      raspagem cobre mais da metade do que e dele: 100%
+  drill        acerto 100%  cobertura 100%
+ok      drill marca errado menos de 20% das vezes: 100%
+ok      drill cobre mais da metade do que e dele: 100%
+ok    a maioria do que nao bateu ja era geral: 86%
+
+ok    sem copia local, vale o acervo que veio no codigo: 680 videos
+ok    com copia local, o app passa a ler dela: 2 videos
+ok    o formato curto das telas foi mantido
+
+ok    video de todos toca pra qualquer um
+ok    video sem acesso definido conta como de todos
+ok    cobranca desligada libera ate o video pago
+ok    assinante abre o video de assinante
+ok    gratuito nao abre o video de assinante
+ok    e vai pro link da assinatura: https://pay.hotmart.com/assinatura
+ok    gratuito nao toca video avulso
+ok    gratuito vai pro link da assinatura: https://pay.hotmart.com/assinatura
+ok    assinante tambem nao toca video vendido a parte
+ok    assinante vai pro link de compra avulsa daquele video: https://pay.hotmart.com/avulso
+ok    quem comprou toca
+ok    quem comprou toca mesmo sem assinar
+ok    video avulso sem link cadastrado nao inventa link
+
+ok    sem nada marcado, o app ainda tem o que mostrar: 1 aulas
+ok    nenhuma delas passa de trinta minutos
+ok    todas sao aula longa e nao short
+ok    manda o que o painel marcou: e1,e2
+ok    nao mistura o que nao foi marcado
+ok    o ja visto desce pro fim: e2,e1
+
+tudo certo
+
+> neurojitsu@12.7.0 teste:estudo
+> node scripts/teste-estudo.mjs
+
+ok    carga completa substitui a lista inteira, nada do codigo sobra: ["n1","n2"]
+ok    video tirado do ar sai, video novo entra: ["a","c","d"]
+ok    o que saiu vem listado pra apagar do aparelho: ["b"]
+ok    resposta do servidor antigo, sem o campo ativo, conta como no ar: true
+ok    embaixo do 100kg vira recomendacao com nome de verdade: true
+ok    costas entregues tem titulo: true
+ok    comecar na propria guarda nao e posicao ruim: false
+ok    nenhum titulo "Sair de nessa posicao": false
+ok    o que foi marcado como feito sai da lista: false
+ok    marcado como "nao saiu" continua: true
+ok    abrir sem concluir ja conta no limite: 1
+ok    reabrir o mesmo video no mesmo dia nao gasta de novo: 1
+ok    aula e short contam separado: [2,1]
+ok    o aberto ontem nao conta hoje: false
+ok    a abertura guarda de onde a pessoa veio: "estudo:temas"
+ok    chamada errada nao grava objeto nos segundos: 600
+ok    rever guarda o maior numero: 900
+ok    concluir vira evento: true
+ok    rever a aula paga o mesmo que a primeira vez: [["aula",15],["aula",15]]
+ok    rever o mesmo vídeo de novo no mesmo dia não paga outra vez: 2
+ok    registro antigo com objeto vira a duracao da aula: 420
+ok    registro certo nao e mexido: 250
+
+tudo certo
+
+> neurojitsu@12.7.0 teste:vocab
+> node scripts/teste-vocab.mjs
+
+ok    posição inicial do rola: nenhuma sem mapa: []
+ok    posição inicial do rola: todas caem num id válido: []
+ok    posição inicial: o lado bate com o que o rola diz: []
+ok    biblioteca: nenhuma posição sem mapa: []
+ok    biblioteca: todas caem num id válido: []
+ok    biblioteca: posição "inferior" é sempre por baixo: []
+ok    biblioteca: posição "dominante" é sempre por cima: []
+ok    cadastro de vídeo: nenhuma posição sem mapa: []
+ok    cadastro de vídeo: todas caem numa posição que existe: []
+ok    posição sofrida: todas as que a leitura do jogo nomeia têm destino: []
+ok    posição sofrida: sempre por baixo: []
+ok    toda categoria da biblioteca é habilidade: []
+ok    toda técnica da biblioteca tem habilidade: []
+ok    tema antigo: nenhum sem mapa: []
+ok    tema antigo: só vira habilidade que existe: []
+ok    tema antigo: só vira formato que existe: []
+ok    vídeo de defesa no 100kg: {"posicaoLado":["cem:neutro"],"habilidades":["escapada","defesa"],"formato":null,"nivel":"fundamento"}
+ok    conceito ganha de drill: "conceito"
+ok    "competicao" e "geral" não viram nada: []
+ok    posição desconhecida é ignorada, não inventada: []
+ok    vídeo sem nada: {"posicaoLado":[],"habilidades":[],"formato":null,"nivel":null}
+ok    todo tema antigo sobrevive à ida e volta: []
+ok    toda habilidade tem tema: []
+ok    volta só pra tema que existe: []
+ok    posição volta pro nome antigo, sem o lado: ["cem_quilos","montada"]
+ok    quem vai competir acha o tema de competição: ["competicao"]
+ok    posição que o cadastro antigo não tinha não inventa nome: []
+ok    posição e lado no banco = no app: ["cem:baixo","cem:cima","cem:neutro","costas:baixo","costas:cima","costas:neutro","em_pe:baixo","em_pe:cima","em_pe:neutro","guarda_aberta:baixo","guarda_aberta:cima","guarda_aberta:neutro","guarda_fechada:baixo","guarda_fechada:cima","guarda_fechada:neutro","joelho_barriga:baixo","joelho_barriga:cima","joelho_barriga:neutro","meia_guarda:baixo","meia_guarda:cima","meia_guarda:neutro","montada:baixo","montada:cima","montada:neutro","norte_sul:baixo","norte_sul:cima","norte_sul:neutro","perna:baixo","perna:cima","perna:neutro","tartaruga:baixo","tartaruga:cima","tartaruga:neutro"]
+ok    habilidades no banco = no app: ["articular","base","controle","defesa","escapada","estrangulamento","finalizacao","fisico","guarda","passagem","pegada","perna","queda","raspagem","retencao","transicao"]
+ok    formatos no banco = no app: ["analise","conceito","drill","mentalidade","tecnica"]
+ok    níveis no banco = no app: ["avancado","fundamento","intermediario"]
+ok    classificações no banco = no app: ["automatica","legado","revisada","revisar"]
+ok    situações no banco = no app: ["competir","contra_pesado","esquece_tecnica","menos_forca","perdido_no_rola","sem_gas"]
+ok    juntar e separar voltam ao mesmo lugar: {"posicao":"cem","lado":"baixo"}
+ok    sem lado é neutro: {"posicao":"montada","lado":"neutro"}
+ok    nome com lado: "100kg por baixo"
+ok    nome sem lado: "Jogo de perna"
+ok    finalização acha as três: ["finalizacao","estrangulamento","articular","perna"]
+ok    estrangulamento acha finalização: ["estrangulamento","finalizacao"]
+ok    habilidade solta é ela mesma: ["queda"]
+ok    33 combinações de posição e lado: 33
+
+tudo certo
+
+> neurojitsu@12.7.0 teste:classificar
+> node scripts/teste-classificar.mjs
+
+ok    posição inventada some, e o neutro da mesma posição com lado também: ["cem:baixo","montada:baixo"]
+ok    habilidade inventada some, repetida conta uma vez: ["escapada"]
+ok    situação inventada some: ["contra_pesado"]
+ok    formato inventado vira nada: null
+ok    nível válido passa: "intermediario"
+ok    certeza acima de 1 vira 1: 1
+ok    sem certeza é zero, não 100%: 0
+ok    resposta vazia não quebra: []
+ok    nome exato: ["Kimura"]
+ok    sem acento e minúsculo: ["Triângulo"]
+ok    sem o parêntese: ["Fuga de quadril (shrimp)"]
+ok    pelo nome em inglês: ["Baiana (double leg)"]
+ok    pelo que está no parêntese: true
+ok    nome solto fica com a técnica mais geral: ["Chave de braço (armlock)"]
+ok    nome que não existe some: []
+ok    nome curto demais não arrisca: []
+ok    a mesma técnica por dois nomes conta uma vez: ["Kimura"]
+ok    IA concorda com o que já existia: automática: "automatica"
+ok    sem motivo quando é automática: null
+ok    o lado da IA substitui o neutro antigo: ["cem:baixo"]
+ok    o que a IA trouxe soma com o que existia: ["escapada","controle"]
+ok    tema que alguém etiquetou continua, o novo entra: ["logica","controle","competicao","defesa"]
+ok    a situação vem da IA: ["contra_pesado"]
+ok    IA discorda do que alguém etiquetou: revisar: "revisar"
+ok    o motivo diz a briga: "estava em controle e a IA disse queda"
+ok    na briga nada que existia se perde: ["queda","controle"]
+ok    estrangulamento concorda com finalização: "automatica"
+ok    "controle" antigo e "escapada" da IA são os dois lados do 100kg: automática: "automatica"
+ok    "guarda" antigo e "passagem" da IA: automática: "automatica"
+ok    IA em dúvida: revisar, com a dúvida dela: ["revisar","a IA ficou em dúvida: não sei se é por cima ou por baixo"]
+ok    IA não achou nada: revisar: "a IA não achou o que o vídeo ensina"
+ok    e o que existia continua: ["logica","controle","competicao"]
+ok    título que é uma data e sem descrição: revisar, mesmo a IA achando que sabe: ["revisar","título genérico e quase sem descrição"]
+ok    e o "geral" dá lugar ao tema que a IA achou: ["passagem"]
+ok    título sem palavra da lista, mas a IA bem segura: automática: "automatica"
+ok    título genérico, mas a descrição explica: automática: "automatica"
+ok    título que diz o que é: automática mesmo sem descrição: "automatica"
+ok    e ganha o lado que o título não dizia: ["cem:baixo"]
+ok    IA discorda das regras do título: revisar: "revisar"
+ok    vídeo novo sem etiqueta, descrição clara: automática: "automatica"
+ok    e ganha tema e posição pro Estudo: [["guarda"],["guarda_aberta"]]
+ok    título de Americana marcado como Triângulo: revisar: "revisar"
+ok    e diz por quê: "o título fala de americana e a técnica marcada é outra"
+ok    marcado como Americana: sem conflito: null
+ok    sem técnica marcada: sem conflito: null
+ok    grafia do título diferente do nome da técnica: sem conflito: null
+
+tudo certo
+
+> neurojitsu@12.7.0 teste:motor
+> node scripts/teste-motor.mjs
+
+ok    preso embaixo do 100kg vira pedido com lado: ["cem:baixo"]
+ok    o vídeo do lado certo vem primeiro, depois o antigo sem lado, depois outra posição de escapada: ["sair-100kg","100kg-antigo","sair-montada"]
+ok    a aula de segurar por cima não entra pra quem quer sair de baixo: false
+ok    cada vídeo diz por que foi escolhido: ["100kg por baixo","Escapada"]
+ok    finalização que te pega vira técnica da biblioteca e defesa: [["12e4ca7c-af5a-4051-a512-653f198534b4"],["defesa","escapada"],true]
+ok    classificado com a técnica vem antes do que só cita no título: ["defesa-classificada","Como defender o ARM LOCK"]
+ok    vídeo de outra técnica não aparece como resposta: false
+ok    defesa geral ainda entra, depois: "defesa-geral"
+ok    técnica sua puxa a habilidade e a posição de onde ela sai: [["estrangulamento"],true]
+ok    repetir pede drill primeiro: "drill"
+ok    o pedido leva a família da técnica: "articular"
+ok    defesa de estrangulamento nunca responde defesa contra Americana: []
+ok    a aula de aplicar a Americana não responde "defesa contra Americana": false
+ok    sem defesa da técnica, a defesa em geral responde, marcada como geral: ["defesa-geral",true]
+ok    e a tela diz que falta a aula de defesa da técnica: "ainda não há aula de defesa de Americana · esta é de defesa em geral"
+ok    com aula de defesa da própria técnica, ela vem primeiro: ["defesa-americana"]
+ok    e a tela diz que ela ensina a defesa: "ensina a defesa de Americana"
+ok    a defesa do katagatame procura a saída de baixo das posições de onde ele sai: ["cem:baixo","montada:baixo"]
+ok    a aula de aplicar o katagatame não aparece: false
+ok    a saída do 100kg vem antes da defesa em geral: ["Como sair de baixo na 100kg","defesa-geral"]
+ok    e a tela explica por que essa aula: "ainda não há aula de defesa de Katagatame (triângulo de braço) · esta ensina a sair do 100kg, de onde ela costuma sair"
+ok    quando a aula de defesa do katagatame entrar, ela ganha: ["Defesa do katagatame"]
+ok    defesa da mesma família (chave articular) vem antes da geral: ["Defesa de chaves no ombro","Proteja os braços","defesa-geral"]
+ok    e diz a família: true
+ok    título que fala de outra técnica da família não responde: []
+ok    só com aula geral: ela vem, marcada, pra tela dizer que falta a da técnica: [["defesa-geral"],true]
+ok    pedido que não é de técnica continua só com aula longa: ["p-aula"]
+ok    passagem e queda te levam pro 100kg: conta como rola, drill não: 2
+ok    técnica que não é posição fica fora dessa conta: null
+ok    100kg que já aparece no rola não vira "levar pro rola": false
+ok    sem chegar lá no rola, a sugestão continua: true
+ok    visto vai pro fim: ["novo","visto"]
+ok    conferido na mão ganha do que a IA ficou em dúvida: "conferido"
+ok    faixa branca recebe fundamento antes de avançado: "fundamento"
+ok    faixa preta recebe avançado antes de fundamento: "avancado"
+ok    o formato que o momento pede vem antes: "drill"
+ok    vídeo novo que ensina melhor passa na frente do antigo: "novo"
+ok    aula curta e fraca não passa na frente da certa: 2
+ok    sem vídeo do assunto, cai no porquê das coisas: ["conceito"]
+ok    e não inventa motivo: []
+ok    sem aula longa do assunto, um short do assunto certo: ["short-certo"]
+ok    lista excluída não volta: ["visto"]
+ok    "contra mais pesado" acha o classificado e o do título antigo: ["pesado-classificado","Como raspar sendo leve e fraco"]
+ok    toda dificuldade pede só o que existe no vocabulário: []
+ok    todo estilo pede só o que existe no vocabulário: []
+ok    as dificuldades novas do formulário estão lá: true
+ok    perde bem mais contra mais pesado: aparece: {"n":5,"perdas":4,"outros":25}
+ok    poucos rolas contra pesado: não tira conclusão: null
+ok    perde igual contra todo mundo: não é o peso: null
+ok    vira recomendação com nome: "Contra quem é mais pesado"
+ok    com chave própria, que não se confunde com a da posição: "corrigir:contra_pesado"
+ok    e puxa vídeo pela situação: ["contra_pesado"]
+
+tudo certo
+
+> neurojitsu@12.7.0 teste:grafico
+> node scripts/teste-grafico.mjs
+
+ok    uma barra por valor que existe: 3
+ok    a barra fica na altura exata: [[3,"vitorias",2],[3,"derrotas",1],[7,"derrotas",3]]
+ok    dia sem treino não tem barra: false
+ok    valor zero não vira barra: false
+ok    série vazia, nenhuma barra: 0
+ok    variedade técnica saiu: false
+ok    volume desenha só rolas: ["rolas"]
+ok    as horas ficam no número de cima: ["horas"]
+ok    toda série de gráfico tem cor: true
+ok    um treino sozinho: o pico fica na altura exata: 2
+ok    e se abre pros dias vizinhos, em vez de voltar ao zero: true
+ok    bem longe do treino a linha é zero: [0,0]
+ok    a curva nunca passa do maior valor: 2
+ok    dias seguidos iguais viram platô na mesma altura, sem inflar: true
+ok    tudo zero é tudo zero: true
+ok    um balde só vira um ponto só: [[0,4]]
+ok    amostras suficientes pra curva lisa: 233
+ok    sino mais largo quando há mais pontos, com limite: [0.8,1.3636363636363635,1.6]
+
+tudo certo
+
+> neurojitsu@12.7.0 teste:liga
+> node scripts/teste-liga.mjs
+
+ok    sozinho não corre: {"sobem":0,"descem":0}
+ok    dois: ninguém sobe nem desce (só vale com 3 ou mais): {"sobem":0,"descem":0}
+ok    três: um sobe, um desce: {"sobem":1,"descem":1}
+ok    cinco: um sobe, um desce: {"sobem":1,"descem":1}
+ok    seis: dois sobem, dois descem: {"sobem":2,"descem":2}
+ok    dez: o corte do painel (3): {"sobem":3,"descem":3}
+ok    o corte do painel é o teto: {"sobem":2,"descem":2}
+ok    nome e sobrenome: "Ana S."
+ok    um nome só: "Bia"
+ok    sem nome: "Praticante"
+ok    hoje é o dia local: "2026-09-27"
+ok    somar dias não escorrega de fuso: "2026-09-20"
+ok    virada de mês: "2026-10-01"
+ok    a semana começa na segunda: "2026-09-14"
+ok    segunda é o começo dela mesma: "2026-09-14"
+ok    quarta: fecha na segunda seguinte ao meio-dia de Brasília (15h UTC): ["2026-09-28T15:00:00.000Z",false]
+ok    domingo à noite ainda é a mesma semana: ["2026-09-28T15:00:00.000Z",6]
+ok    segunda de manhã: apurando, resultado ao meio-dia, e a semana nova fecha na outra segunda: [true,"2026-09-28T15:00:00.000Z","2026-10-05T15:00:00.000Z"]
+ok    segunda depois do meio-dia não está mais apurando: false
+ok    quanto falta, em palavras: ["2d 5h","5h 20min","12min","menos de 1min"]
+ok    a divisão com o artigo certo: ["pra Academia","pro Nacional","na Academia","no Estadual"]
+ok    subiu: "Você subiu pro Nacional"
+ok    desceu pra Academia: "Você desceu pra Academia"
+ok    ficou: "Você continua no Estadual"
+ok    sozinho não correu: "Ninguém correu com você"
+ok    semana ainda aberta: apurando, com a posição parcial: true
+ok    1º sem o mínimo: a tela explica quanto faltou: "Terminou em 1º, com 100 pontos, mas pra subir pro Nacional precisava de 120. Faltaram 20."
+ok    grupo de 2: explica que não vale subida: "Grupo de 2 não vale subida"
+ok    semana fechada antes do resultado ser guardado: só o lugar: "Você terminou em 2º"
+ok    Estadual com 90 de 120: falta 30, 75%, em 1º num grupo que vale: ["roxa",120,30,75,true,true,false]
+ok    Academia com 100: pontos ok, mas em 2º e grupo de 2: [true,false,false,100]
+ok    no Mundial não tem pra onde subir: true
+ok    escudos: 2 até o Estadual, 3 do Nacional pra cima: [2,2,3,3,2]
+ok    Nacional: moldura, selo e o escudo extra: ["Moldura verde na sua foto, na liga e no perfil","Selo \"Divisão Nacional\" na figurinha do story","Ofensiva com 3 escudos em vez de 2"]
+ok    Mundial tem a coroa: true
+
+tudo certo
+
+> neurojitsu@12.7.0 teste:medir
+> node scripts/teste-medir.mjs
+
+ok    a origem vai e volta: {"tela":"estudo","tipo":"rec","alvo":"corrigir:Chave de braço, armlock"}
+ok    origem vazia não quebra: {"tela":null,"tipo":null,"alvo":null}
+ok    mostrar o mesmo vídeo no mesmo lugar conta uma vez: 2
+ok    abrir conta toda vez: 2
+ok    faltar vídeo conta uma vez por dia: 1
+ok    a medida leva o dia e a origem aberta em partes: ["string","estudo","dificuldade","pesado"]
+ok    pedido de posição vira frase: "Costas por baixo · Escapada"
+ok    pedido de técnica vira frase: "Chave de braço, armlock · Defesa de finalização"
+ok    pedido de dificuldade vira frase: "Contra mais pesado"
+ok    sem vídeo do assunto, a lista vem marcada como reserva: true
+ok    com vídeo do assunto, não é reserva: false
+
+tudo certo
+
+> neurojitsu@12.7.0 teste:periodo
+> node scripts/teste-periodo.mjs
+
+America/Sao_Paulo (-3h): ok
+UTC (+0h): ok
+Pacific/Kiritimati (+14h): ok
+America/Santiago (-3h): ok
+
+tudo certo nos 4 fusos
+
+> neurojitsu@12.7.0 teste:competicao
+> node scripts/teste-competicao.mjs
+
+ok    ouro, campeão e 1º são a mesma coisa: ["ouro","ouro","ouro","ouro"]
+ok    prata e vice: ["prata","prata","prata"]
+ok    bronze e 3º: ["bronze","bronze"]
+ok    qualquer outra coisa escrita vira sem pódio: "participou"
+ok    em branco fica em branco: ""
+ok    pódio é só até o terceiro: [true,true,true,false]
+ok    migrou os dois campeonatos: 2
+ok    a tabela antiga fica vazia: 0
+ok    viraram treinos do tipo competição: ["competicao","competicao"]
+ok    o campeonato vira o nome do treino: "Copa Bahia"
+ok    a colocação vira medalha: "prata"
+ok    categoria e peso vêm junto: ["Pena","70","gi"]
+ok    as lutas somadas do registro antigo ficam guardadas: [3,2,1]
+ok    o que aprendeu e as notas viram a anotação da aula: "Aprendi: preciso puxar pra guarda mais cedo\nchave com 16"
+ok    sem RPE inventado: null
+ok    o mesmo campeonato não vira um segundo treino: 0
+ok    continua com dois treinos: 2
+ok    sem campeonato guardado, a migração não faz nada: 0
+ok    o resumo conta as lutas registradas e soma as antigas: {"campeonatos":2,"lutas":5,"vitorias":4,"podios":2}
+ok    luta com finalização que terminou perdida não conta como vitória: 0
+ok    campeão no "Como terminou" põe você no 1º lugar: {"ouro":"__eu","prata":"Rafa","bronze":["Leo",""]}
+ok    bronze entra no 3º lugar que está vago: ["Leo","__eu"]
+ok    mudar de vice pra campeão não te deixa em dois lugares: {"ouro":"__eu","prata":"","bronze":["",""]}
+ok    sem pódio, você sai do pódio: {"ouro":"","prata":"Rafa","bronze":["",""]}
+ok    a colocação sai do pódio: ["prata","bronze",null]
+ok    os nomes dos seus adversários e da chave viram sugestão, sem repetir: ["Duda","Leo","Rafa","Caio"]
+ok    "Emilio" e "emílio" são a mesma pessoa: ["Emilio","Paulo"]
+ok    campeonato novo: nada pronto: {"campeonato":false,"lutas":0,"chave":0,"podio":false}
+ok    no meio do dia: campeonato e lutas contam, o pódio ainda não: {"campeonato":true,"lutas":1,"chave":1,"podio":false}
+ok    categoria acabou: o pódio conta, até sem medalha: [true,true]
+ok    tempo oficial: azul adulto 6, preta adulto 10, master 1 roxa 6, master 3 5, juvenil 5, infantil 4: [6,10,6,5,5,4]
+ok    venceu todas: sugere você campeão e o último adversário vice: {"ouro":"__eu","prata":"Emilio","bronze":["",""]}
+ok    perdeu uma: o app não chuta o pódio: null
+ok    pôr no 1º tira a pessoa do lugar em que estava: {"ouro":"Leo","prata":"","bronze":["",""]}
+ok    3º lugar tem duas vagas: ["Paulo","Caio"]
+ok    a mesma pessoa não ocupa os dois 3º lugares: ["paulo",""]
+ok    tirar do pódio: {"ouro":"__eu","prata":"","bronze":["",""]}
+ok    o lugar de cada um, sem ligar pra acento: ["prata","bronze",null]
+ok    Gi usa a academia, o professor e a duração de sempre: {"academiaId":7,"professorId":3,"duracao":90}
+ok    competição não herda a academia nem o professor: {"academiaId":null,"professorId":null,"duracao":null}
+ok    open mat fica na academia, sem professor: {"academiaId":7,"professorId":null,"duracao":90}
+ok    o padrão salvo de um tipo vale só pra ele: [9,7]
+
+tudo certo
+
+> neurojitsu@12.7.0 teste:ofensiva
+> node scripts/teste-ofensiva.mjs
+
+ok    sem ponto nenhum: 0
+ok    um dia hoje: 1
+ok    fechou hoje: true
+ok    dois eventos no mesmo dia contam um: 1
+ok    parou ontem: a ofensiva está viva: true
+ok    parou ontem: mas em risco: true
+ok    parou ontem: os dias continuam: 5
+ok    fechou hoje: não está em risco: false
+ok    14 dias não dão escudo: 0
+ok    15 dias dão um escudo: 1
+ok    29 dias, ainda um: 1
+ok    30 dias dão o segundo: 2
+ok    45 dias: dois é o teto: 2
+ok    300 dias: continua dois: 2
+ok    falta pro primeiro escudo: 14
+ok    no teto, não falta nada: 0
+ok    14 dias e sumiu um dia: quebrou: false
+ok    14 dias e sumiu um dia: zerou: 0
+ok    mas o recorde fica registrado: 14
+ok    15 dias e sumiu um dia: o escudo segurou: true
+ok    15 dias e sumiu um dia: não zerou: 15
+ok    e o escudo foi gasto: 0
+ok    gasto sozinho, sem perguntar: 1
+ok    15 dias e sumiu 3 dias: um escudo não cobre: false
+ok    30 dias e sumiu 2 dias: os dois escudos cobrem: true
+ok    30 dias e sumiu 3 dias: não cobrem: false
+ok    buraco antes de ter escudo não é coberto: 20
+ok    dia coberto não conta na ofensiva: 16
+ok    e ela fechou hoje: true
+ok    aula rápida, quiz e treino fecham igual: 3
+ok    sem lesao registrada: zerou e recomecou hoje: 1
+ok    com lesao registrada: nao quebrou: true
+ok    congelou: 10 dias mais o de hoje: 11
+ok    e nao gastou escudo (nem tinha): 0
+ok    lesao cobre sem gastar escudo: 0
+ok    e o escudo continua guardado: 1
+ok    lesao aberta segura a ofensiva: true
+ok    e ela aparece como congelada: true
+ok    congelada nao e "em risco": false
+ok    lesao adaptada nao congela: 1
+ok    estudar machucado conta o dia: 12
+ok    treinou ontem: hoje ja esta fechado: true
+ok    e nao esta em risco: false
+ok    treinou ontem vale 2 dias: 2
+ok    treinou anteontem: hoje ainda pago: true
+ok    treinou ha 3 dias: hoje ja nao: false
+ok    so aula ontem: hoje continua aberto: false
+ok    e esta em risco: true
+ok    3x (seg/qua/sex) sem estudar nada: sem buraco nenhum: 20
+ok    5x por semana: 21 dias corridos, domingo incluso: 21
+ok    aula anteontem nao cobre ontem: 1
+ok    treino de hoje nao conta o amanha: 1
+ok    um dia so: comeca hoje: "2026-09-21"
+ok    cinco dias: comeca ha 4: "2026-09-17"
+ok    quebrou e voltou hoje: comeca hoje: "2026-09-21"
+ok    quebrada nao tem inicio: null
+ok    escudo segurou: o inicio nao muda: "2026-09-05"
+ok    lesao congelou: o inicio nao muda: "2026-09-06"
+ok    até o Estadual, a ofensiva guarda 2 escudos: 2
+ok    do Nacional pra cima, guarda 3: 3
+ok    o bônus de subir de divisão não é dia de presença: false
+
+tudo certo
+
+> neurojitsu@12.7.0 teste:placar
+> node scripts/teste-placar.mjs
+
+ok    finalizei 2, levei 1: venci por finalização: "finalizei"
+ok    finalizei 1, levei 2: fui finalizado: "fui_finalizado"
+ok    1 a 1 sem mais nada: trocamos taps: "ambos"
+ok    1 a 1, mais pontos meus: venci nos pontos: "venci_pontos"
+ok    1 a 1, mais pontos dele: perdi nos pontos: "perdi_pontos"
+ok    1 a 1, pontos iguais, vantagem minha: venci na vantagem: "venci_vantagem"
+ok    finalização vale mais que ponto: "finalizei"
+ok    sem finalização, pontos decidem: "venci_pontos"
+ok    sem ponto, vantagem decide: "venci_vantagem"
+ok    nada: empate: "empate"
+ok    2 a 1 conta como vitória: true
+ok    2 a 1 entra em rolas com finalização: 100
+ok    2 a 1 entra em rolas com tap sofrido: 100
+
+tudo certo
+
+> neurojitsu@12.7.0 teste:coerencia
+> node scripts/teste-coerencia.mjs
+
+ok    só falta volume: diz quantas vezes: "Faltam 3 vezes no rola pra subir pro 3º grau"
+ok    falta volume e semanas diferentes: avisa que tem mais: "Faltam 3 vezes no rola, e mais uma coisa, pra subir pro 3º grau"
+ok    2º grau: uma vez no singular: "Falta 1 vez no rola pra subir pro 2º grau"
+ok    Meu jogo conta as mesmas lutas do Painel: 2
+ok    meta de posição mostra o nome da posição: "Trabalhar Guarda fechada (por baixo)"
+ok    parou há 4 meses: enferrujando: "enferrujando"
+ok    2 usos antigos e 8 no último mês: melhorando: "melhorando"
+ok    ritmo igual: estável: "estavel"
+ok    "onde você apanha" só tem o que te fez bater: ["Mata-leão"]
+ok    chegou no 2º grau hoje: aparece como subiu: ["Armlock"]
+ok    já era 2º grau e só foi usada: não aparece: 0
+
+tudo certo
+
+> neurojitsu@12.7.0 teste:telas
+> node scripts/teste-telas.mjs
+
+banco: 111 rolas em 4 parceiros
+ok    painel
+ok    treinos
+ok    estudo
+ok    liga
+ok    amigos
+ok    jornada
+ok    dominio
+ok    meujogo
+ok    analise
+ok    conquistas
+ok    metas
+ok    parceiros
+ok    academia
+ok    nutricao
+ok    lesoes
+ok    ajustes
+ok    termos
+ok    privacidade
+ok    menu sem módulo Gás
+ok    link antigo de Gás abre Painel
+ok    painel mostra a melhor arma com dados
+ok    meta de posição com nome, não código
+ok    drill antigo virou drill: Meu jogo conta 99 lutas, não 111
+
+tudo certo
+
+> neurojitsu@12.7.0 teste:login
+> node scripts/teste-login.mjs
+
+ok    senha errada: "E-mail ou senha incorretos."
+ok    e-mail não confirmado: "Confirme seu e-mail antes de entrar (olhe a caixa de entrada)."
+ok    já tem conta: "Esse e-mail já tem conta. Tente entrar."
+ok    link de senha vencido: "Esse link expirou ou já foi usado. Peça um novo em \"Esqueci a senha\"."
+ok    link vencido (código): "Esse link expirou ou já foi usado. Peça um novo em \"Esqueci a senha\"."
+ok    senha nova igual à antiga: "A senha nova precisa ser diferente da antiga."
+ok    e-mail mal escrito: "Esse e-mail não parece válido. Confere se digitou certo."
+ok    pediu de novo rápido demais: "Espera alguns segundos antes de pedir de novo."
+ok    muitas tentativas: "Muitas tentativas. Espera um pouco e tenta de novo."
+ok    sem internet: "Sem conexão com o servidor. Seus dados continuam salvos no aparelho."
+ok    link vencido manda pedir outro: true
+
+tudo certo
+
+> neurojitsu@12.7.0 teste:graus
+> node scripts/teste-graus.mjs
+
+ok    1 uso: 1º grau: 1
+ok    5 usos no mesmo dia e parceiro: 2º grau: 2
+ok    15 usos, 1 pessoa, 5 semanas: fica no 2º (precisa de 2 pessoas): 2
+ok    15 usos, 3 pessoas, 2 semanas: fica no 2º (precisa de 4 semanas): 2
+ok    15 usos, 3 pessoas, 5 semanas: 3º grau: 3
+ok    academia pequena (2 parceiros) não trava no 3º: 3
+ok    e o texto diz que faltam semanas: "Falta sair em mais 2 semanas diferentes pra subir pro 3º grau"
+ok    35 usos, 3 pessoas, 3 meses, 2 em faixa acima: 4º grau: 4
+ok    sem ninguém de faixa acima: fica no 3º: 3
+ok    tudo num mês só: fica no 3º (Assinatura pede meses): 3
+ok    4 usos contra roxa já valem o 2º grau: 2
+ok    4 usos contra branca ainda não: 1
+ok    parceiro sem faixa marcada vale como a sua (azul não perde peso): 2
+ok    régua antiga dava 3º grau (15 no mesmo parceiro): 3
+ok    régua nova sozinha daria 2º: 2
+ok    guardado: continua no 3º: 3
+ok    antes da graduação era faixa branca: "branca"
+ok    régua da azul sozinha derrubaria pro 2º: 2
+ok    com a graduação registrada, fica no 3º: 3
+ok    branca sem grau: 2º grau pede 5: 5
+ok    branca com 2 graus: pede um pouco mais: 6
+ok    branca com 4 graus: já é a régua da azul: 20
+ok    régua da branca com 3 graus sozinha derrubaria pro 2º: 2
+ok    com o grau registrado, fica no 3º: 3
+ok    minhasTecnicas respeita a graduação: 3
+
+tudo certo
+
+> neurojitsu@12.7.0 teste:meujogo
+> node scripts/teste-meujogo.mjs
+
+ok    queda em 9 e finalização em 9 dos 18: jogo completo
+ok    o porquê cita os dois números da lista
+ok    lance conta rola, não evento
+ok    finalização mais usada com o nome
+ok    o que mais cede é raspagem
+ok    passagem em 11, queda em 5: passador
+ok    o porquê do passador
+ok    três passagens no mesmo rola não ganham de queda em 12 rolas
+ok    controle em 15, passagem em 10: controlador, não completo
+ok    ninguém pontua e ninguém passa: sobrevivente
+ok    ninguém pontua mas passam sempre: completo sem pico
+ok    5 rolas: sem estilo
+ok    5 rolas: a lista já mostra
+ok    drill fica de fora
+ok    teste bate
+ok    teste não bate, sem bronca
+ok    jogo completo não vira "o que mais aparece é Jogo Completo"
+
+tudo certo
+
+> neurojitsu@12.7.0 teste:sync
+> node scripts/teste-sync.mjs
+
+ok    a biblioteca criada no aparelho não entra na fila
+[seed] 4 técnicas novas adicionadas à biblioteca
+ok    técnica que a atualização repõe não entra na fila
+ok    plano de ataque que vem pronto é semente
+ok    técnica da biblioteca, intocada, é reconhecida como semente
+ok    registro baixado não volta pra fila (nem editado, nem novo)
+ok    o que veio da nuvem fica gravado
+ok    registro novo que veio da nuvem não guarda a marca
+ok    edição e criação do aluno entram na fila
+ok    técnica que o aluno mexeu deixa de ser semente
+ok    toque duplo: sai só o repetido em minutos
+ok    os rolas e os pontos dos repetidos saem junto
+ok    rodar de novo não apaga mais nada
+ok    aparelho que subiu só parte das tabelas passa a ter todas
+
+tudo certo
+
+> neurojitsu@12.7.0 teste:ia
+> node scripts/teste-ia.mjs
+
+ok    o teste de "IA ligada" continua respondendo 400
+ok    sem conta, a IA não atende
+ok    token inventado não passa
+ok    aluno logado lê o treino falado
+ok    ação que saiu do app não existe mais
+ok    cobrança desligada: Análise IA pra quem tem conta
+ok    cobrança ligada: Análise IA barra quem não assina
+ok    cobrança ligada: assinante usa
+ok    cobrança ligada: admin usa
+ok    cobrança ligada: transcrever barra quem não assina
+ok    cobrança ligada: ler o treino falado barra quem não assina
+ok    cobrança ligada: assinante transcreve
+ok    o áudio vai pro Whisper grande, em português, com a dica
+ok    a legenda que o Whisper inventa não chega no app
+ok    gravação vazia não vai pra Groq
+ok    cobrança desligada: quem tem conta transcreve
+ok    sem conta, não transcreve
+ok    classificar vídeo: aluno não
+ok    classificar vídeo: admin sim
+
+tudo certo
+
+> neurojitsu@12.7.0 teste:quiz
+> node scripts/teste-quiz.mjs
+
+ok    nenhum id repetido
+ok    toda pergunta tem exatamente uma certa
+ok    toda alternativa explica o porquê
+ok    no mesmo dia, a certa aparece em pelo menos 3 posições diferentes
+ok    mesma pergunta, mesmo dia: mesma ordem
+ok    a mesma pergunta muda de ordem ao longo dos dias
+ok    embaralhar não perde nem inventa alternativa
+ok    tem pergunta pra roxa em diante
+
+tudo certo
+
+> neurojitsu@12.7.0 teste:marcos
+> node scripts/teste-marcos.mjs
+
+ok    4 rolas num dia ainda não é recorde
+ok    5 rolas num dia vira marco
+ok    bater o recorde de novo gera outra chave
+ok    2h59 de tatame num dia ainda não conta
+ok    3h de tatame num dia vira marco
+ok    sem os números novos, nada quebra
+ok    todo tipo de frase tem pelo menos 3 opções
+
+tudo certo
+
+> neurojitsu@12.7.0 teste:nutricao
+> node scripts/teste-nutricao.mjs
+
+ok    os meus vêm primeiro, e o apagado some
+ok    todos os de casa entram
+ok    chave do meu é c + id, do de casa é o id
+ok    3 ovos e 1 iogurte meu somam proteína e carbo
+ok    alimento apagado não soma
+ok    dia sem nada: não aparece
+ok    dia vazio anotado: não aparece
+ok    passou da meta: bateu
+ok    abaixo da meta: não bateu
+ok    marcou "bati" sem anotar comida: bateu
+ok    marcou "não bati" vale mais que a soma
+
+tudo certo
+
+> neurojitsu@12.7.0 teste:resultados
+> node scripts/teste-resultados.mjs
+
+ok    {"subsAplicadas":["Armlock"]} é finalizei
+ok    {"subsSofridas":["Mata-leão"]} é fui_finalizado
+ok    {"ptsMeus":["passagem"],"ptsDele":["raspagem"]} é venci_pontos
+ok    {"ptsMeus":["raspagem"],"ptsDele":["montada"]} é perdi_pontos
+ok    {"ptsMeus":["raspagem"],"ptsDele":["queda"],"vantMinhas":2,"vantDele":1} é venci_vantagem
+ok    {"vantDele":1} é perdi_vantagem
+ok    {"subsAplicadas":["a"],"ptsDele":["montada","costas"]} é finalizei
+ok    {"ptsMeus":["montada"],"vantDele":5} é venci_pontos
+ok    {} é empate
+ok    drill fica de fora
+ok    vitórias por finalização batem com a regra
+ok    vitórias no placar = pontos + vantagem
+ok    derrotas por finalização batem com a regra
+ok    derrotas no placar = pontos + vantagem
+ok    como você venceu soma o total de vitórias
+ok    como você perdeu soma o total de derrotas
+ok    nenhum rola some: vitórias + derrotas + empates = rolas
+ok    o gráfico bate com os totais do topo
+ok    o gráfico bate com o resumo do app
+ok    tem de tudo no teste (senão ele não prova nada)
+
+tudo certo
+
+> neurojitsu@12.7.0 teste:renomeios
+> node scripts/teste-renomeios.mjs
+
+ok    nenhum nome antigo sobrou na biblioteca
+ok    ninguém mais chama single leg de "Solo"
+ok    arco e flecha com o nome do tatame
+ok    o uid continua o do nome antigo (as aulas seguem ligadas)
+ok    o nome antigo ainda acha a técnica
+ok    o nome novo acha a mesma técnica
+ok    a técnica guardada ganha o nome novo e mantém o uid
+ok    a biblioteca renomeada continua sendo biblioteca (não sobe pra nuvem)
+ok    o treino troca o nome da técnica da aula
+ok    as finalizações do rola trocam de nome, até as da lista mais antiga
+ok    abrir o app de novo não volta pro "Chave de braço, armlock"
+ok    o nome da lista mais antiga vai direto pro nome de hoje
+ok    as técnicas dos pontos trocam de nome
+ok    a meta troca o alvo
+ok    roda uma vez só
+
+tudo certo
+
+> neurojitsu@12.7.0 teste:regras
+> node scripts/teste-regras.mjs
+
+ok    heel hook no Gi avisa até pra preta
+ok    heel hook no No-Gi, marrom adulto: pode
+ok    heel hook no No-Gi, azul: avisa
+ok    kneebar na roxa avisa
+ok    kneebar na marrom: pode
+ok    toe hold na azul avisa
+ok    calf slicer na preta: pode
+ok    chave de punho na branca adulta avisa
+ok    chave de punho na azul adulta: pode
+ok    single leg com a cabeça por fora na branca avisa
+ok    chave de punho com 17 anos avisa
+ok    botinha com 15 anos avisa
+ok    botinha com 16 anos: pode
+ok    omoplata com 10 anos avisa
+ok    omoplata com 13 anos: pode
+ok    guilhotina com 9 anos avisa
+ok    sem idade, as regras de idade não entram
+ok    tesoura voadora avisa até pra preta
+ok    twister avisa até pra preta
+ok    defesa de heel hook não tem regra
+ok    posição com nome parecido não tem regra
+ok    mata-leão pra branca adulta: pode
+ok    finalização escrita na mão também é reconhecida
+ok    a idade sai do ano
+
+tudo certo
+
+> neurojitsu@12.7.0 teste:voz
+> node scripts/teste-voz.mjs
+
+ok    trecho normal passa
+ok    legenda inventada no silêncio sai
+ok    "obrigado por assistir" sai
+ok    silêncio de baixa confiança sai
+ok    fala com confiança fica mesmo com no_speech alto
+ok    trecho repetido em loop sai
+ok    a dica que volta como texto sai
+ok    sem segmentos, usa o texto inteiro
+ok    bloco repetido coladinho sai
+ok    a dica traz os nomes da pessoa
+ok    a dica cabe no limite do Whisper
+ok    com muita gente, as palavras do tatame continuam
+ok    nome sem acento acha
+ok    primeiro nome acha quando é de uma pessoa só
+ok    pedaço do nome não vira outra pessoa
+ok    primeiro nome de duas pessoas não chuta
+ok    sobrenome diferente é gente nova
+ok    nome vazio não acha
+ok    iPhone grava mp4
+ok    Chrome grava webm com opus
+
+tudo certo
+
+> neurojitsu@12.7.0 teste:campeonato
+> node scripts/teste-campeonato.mjs
+
+banco: 111 rolas em 4 parceiros
+ok    campeonato novo abre pelo campeonato
+ok    campeonato não pergunta tempo
+ok    sem o nome do campeonato não segue
+ok    o campeonato já fica gravado, em andamento e sem luta
+ok    as etapas aparecem, com a 1ª luta pra registrar
+ok    cada luta na sua tela
+ok    sem o nome do adversário a luta não salva
+ok    cada luta grava na hora, sem repetir o treino
+ok    a luta é de competição e vale o tempo oficial
+ok    o tempo do campeonato é a soma das lutas
+ok    voltar de uma luta em branco não deixa luta vazia
+ok    na lista, o campeonato aparece em andamento
+ok    reabre nas etapas, com as lutas
+ok    venceu todas: o pódio já vem com você em 1º e o último adversário em 2º
+ok    o pódio fecha a categoria e dá a colocação
+ok    nada foi gravado duas vezes
+ok    nenhum erro no caminho
+
+tudo certo

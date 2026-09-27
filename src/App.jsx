@@ -46,7 +46,6 @@ const Estudo = lazy(() => import('./pages/Estudo'));
 const Analise = lazy(() => import('./pages/Analise'));
 const Academia = lazy(() => import('./pages/Academia'));
 const Nutricao = lazy(() => import('./pages/Nutricao'));
-const Respiracao = lazy(() => import('./pages/Respiracao'));
 const Lesoes = lazy(() => import('./pages/Lesoes'));
 const Parceiros = lazy(() => import('./pages/Parceiros'));
 const Admin = lazy(() => import('./pages/Admin'));
@@ -70,7 +69,7 @@ const PAGINAS = {
   estudo: Estudo, liga: LigaPagina, amigos: AmigosPagina, admin: Admin,
   termos: Termos, privacidade: Privacidade, dominio: Dominio, meujogo: MeuJogo, analise: Analise, conquistas: Conquistas,
   metas: Metas, parceiros: Parceiros,
-  academia: Academia, nutricao: Nutricao, respiracao: Respiracao,
+  academia: Academia, nutricao: Nutricao,
   lesoes: Lesoes, ajustes: Ajustes,
 };
 

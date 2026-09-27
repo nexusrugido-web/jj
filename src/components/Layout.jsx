@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  LayoutDashboard, NotebookPen, ChartNoAxesColumn, Target, Wind, Dumbbell, HeartPulse,
+  LayoutDashboard, NotebookPen, ChartNoAxesColumn, Target, Dumbbell, HeartPulse,
   Trophy, Users, Settings as Cog, MoreHorizontal, Download, Award, Apple, CloudOff, Cloud,
   RefreshCw, Dna, GraduationCap, Flame, Shield, Megaphone, CircleHelp, X, UsersRound,
 } from 'lucide-react';
@@ -22,7 +22,6 @@ export const ROTAS_TODAS = [
 
   { id: 'academia', nome: 'Musculação', icon: Dumbbell, grupo: 'Corpo', premium: true },
   { id: 'nutricao', nome: 'Nutrição', icon: Apple, grupo: 'Corpo', premium: true },
-  { id: 'respiracao', nome: 'Gás', icon: Wind, grupo: 'Corpo' },
   { id: 'lesoes', nome: 'Lesões', icon: HeartPulse, grupo: 'Corpo' },
 
   { id: 'admin', nome: 'Painel', icon: Shield, grupo: 'Sistema', admin: true },
