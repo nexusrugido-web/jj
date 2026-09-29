@@ -3,6 +3,7 @@ import {
   Plus, Target, Trash2, Pencil, Check, Trophy, Sparkles, Clock, X, Minus, Share2,
 } from 'lucide-react';
 import Figurinha from '../components/Figurinha';
+import ListaComHistorico from '../components/ListaComHistorico';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { useApp } from '../contexto';
@@ -69,7 +70,8 @@ export default function Metas() {
     [goals]
   );
   const ativas = minhas.filter((g) => g.status === 'ativa');
-  const feitas = minhas.filter((g) => g.status === 'concluida');
+  const feitas = useMemo(() => minhas.filter((g) => g.status === 'concluida')
+    .sort((a, b) => (b.concluidaEm || '').localeCompare(a.concluidaEm || '') || (b.criadoEm || 0) - (a.criadoEm || 0)), [minhas]);
 
   const dispensadas = new Set(settings.sugestoesDispensadas || []);
   const sugestoes = useMemo(() => sugerirMetas({
@@ -164,8 +166,8 @@ export default function Metas() {
             )}
           </Card>
         ) : (
-          <div className="grid g-cards">
-            {ativas.map((g) => (
+          <ListaComHistorico itens={ativas} limite={6} titulo="Todas as metas ativas" className="grid g-cards"
+            renderItem={(g) => (
               <CartaoMeta
                 key={g.id} g={g}
                 dados={{ sessions, rolls, partners, tecnicas, buracos, aulas, quiz }}
@@ -187,8 +189,8 @@ export default function Metas() {
                   }
                 }}
               />
-            ))}
-          </div>
+            )}
+          />
         )
       )}
 
@@ -235,8 +237,10 @@ export default function Metas() {
         feitas.length === 0 ? (
           <Card><Empty icon={Trophy} titulo="Nada concluído ainda" texto="Quando você fechar uma meta, ela fica guardada aqui." /></Card>
         ) : (
-          <div className="col" style={{ gap: 10 }}>
-            {feitas.map((g) => (
+          <ListaComHistorico itens={feitas} limite={3} titulo="Metas concluídas" style={{ gap: 10 }}
+            abrirSempre textoAbrir={feitas.length > 3 ? `Ver todas (${feitas.length}) e gráfico` : 'Ver gráfico de conclusões'}
+            cabecalho={<GraficoMetasConcluidas metas={feitas} />}
+            renderItem={(g) => (
               <Card key={g.id}>
                 <div className="row" style={{ gap: 10 }}>
                   <span className="stat-ico" style={{ color: 'var(--jade)' }}><Check size={15} /></span>
@@ -244,16 +248,17 @@ export default function Metas() {
                     <div className="tiny" style={{ fontWeight: 600 }}>{g.titulo}</div>
                     <div className="micro muted">
                       {ORIGENS[g.origem]?.nome}
-                      {g.concluidaEm && `, concluída ${relativo(g.concluidaEm)}`}
+                      {g.concluidaEm ? `, concluída ${relativo(g.concluidaEm)}` : ', data não registrada'}
                     </div>
+                    {g.concluidaEm && <div className="micro muted">{fmtData(g.concluidaEm)}</div>}
                   </div>
                   <button className="btn ghost icon sm" aria-label="Compartilhar"
                     onClick={() => setStory({ selo: 'meta concluída', grande: g.titulo })}><Share2 size={14} /></button>
                   <button className="btn ghost icon sm" onClick={() => setExcluir(g)}><Trash2 size={13} /></button>
                 </div>
               </Card>
-            ))}
-          </div>
+            )}
+          />
         )
       )}
 
@@ -486,6 +491,33 @@ export default function Metas() {
         titulo="Remover meta" texto="Ela some da lista."
       />
     </div>
+  );
+}
+
+function GraficoMetasConcluidas({ metas }) {
+  const contagem = new Map();
+  for (const meta of metas) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(meta.concluidaEm || '')) {
+      contagem.set(meta.concluidaEm, (contagem.get(meta.concluidaEm) || 0) + 1);
+    }
+  }
+  const dias = [...contagem].sort(([a], [b]) => b.localeCompare(a)).slice(0, 12);
+  if (!dias.length) return <p className="tiny muted" style={{ marginBottom: 16 }}>As metas antigas não têm data de conclusão registrada.</p>;
+  const maior = Math.max(...dias.map(([, n]) => n));
+  return (
+    <Card style={{ marginBottom: 16 }}>
+      <div className="eyebrow">Quando você concluiu</div>
+      <p className="micro muted" style={{ margin: '6px 0 14px' }}>Últimos {dias.length} {dias.length === 1 ? 'dia com conclusão' : 'dias com conclusões'}. O histórico completo está abaixo.</p>
+      <div className="col" style={{ gap: 10 }} role="img" aria-label="Gráfico de metas concluídas por dia">
+        {dias.map(([dia, n]) => (
+          <div key={dia} className="row" style={{ gap: 10 }} title={`${fmtData(dia)}: ${n} ${n === 1 ? 'meta' : 'metas'}`}>
+            <span className="micro num" style={{ minWidth: 78 }}>{fmtData(dia)}</span>
+            <div style={{ flex: 1 }}><Bar v={n} max={maior} tone="jade" /></div>
+            <span className="micro num" style={{ minWidth: 16, textAlign: 'right' }}>{n}</span>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 

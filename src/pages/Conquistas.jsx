@@ -14,6 +14,7 @@ import AcademiaProfessor from '../components/AcademiaProfessor';
 import { resumo as resumoGeral } from '../lib/stats';
 import useOfensivaSemanal from '../lib/useOfensivaSemanal';
 import Figurinha from '../components/Figurinha';
+import ListaComHistorico from '../components/ListaComHistorico';
 import { minhasTecnicas, resumoGraus, requisitosDaFaixa, grauPorN } from '../lib/graus';
 import { Ponteira } from '../components/Ponteira';
 import { proximaGraduacao, FAIXAS_ORDEM } from '../lib/milestones';
@@ -237,8 +238,8 @@ export default function Conquistas() {
       {graduacoes.length > 0 && (
         <Card style={{ marginBottom: 14 }} className="pad-0">
           <div style={{ padding: '16px 16px 8px' }}><h2 className="h-sec">Sua linha do tempo</h2></div>
-          <div className="list">
-            {graduacoes.map((g, i) => (
+          <ListaComHistorico itens={graduacoes} limite={4} titulo="Todas as graduações" className="list"
+            renderItem={(g, i) => (
               <div key={g.id} className="list-item">
                 <span className="stat-ico" style={{ color: 'var(--accent)' }}><Medal size={16} /></span>
                 <div className="grow">
@@ -260,8 +261,8 @@ export default function Conquistas() {
                 />
                 <button className="btn ghost icon sm" onClick={() => setExcluir(g)}><Trash2 size={13} /></button>
               </div>
-            ))}
-          </div>
+            )}
+          />
         </Card>
       )}
 
@@ -275,8 +276,8 @@ export default function Conquistas() {
         <Card><Empty icon={Trophy} titulo="Nenhum marco ainda" texto="Registre treinos e rolas. Os marcos aparecem sozinhos quando você bate horas de tatame, domina técnicas e mantém consistência." /></Card>
       ) : (
         /* as conquistas em linha do tempo: o mais recente em cima */
-        <Card className="marcos">
-          {marcos.map((m) => {
+        <ListaComHistorico itens={marcos} limite={5} titulo="Todos os marcos" className="card marcos"
+          renderItem={(m) => {
             const Ico = ICONES[m.tipo] || Trophy;
             return (
               <div key={m.id} className="marco">
@@ -296,8 +297,8 @@ export default function Conquistas() {
                 />
               </div>
             );
-          })}
-        </Card>
+          }}
+        />
       )}
 
       {/* ---- registrar graduação ---- */}

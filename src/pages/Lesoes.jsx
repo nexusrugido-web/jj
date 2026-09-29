@@ -4,6 +4,7 @@ import { Plus, HeartPulse, Trash2, Pencil, Check, TriangleAlert } from 'lucide-r
 import { db } from '../db/db';
 import { useApp } from '../contexto';
 import ParadoEstudando from '../components/ParadoEstudando';
+import ListaComHistorico from '../components/ListaComHistorico';
 import { REGIOES_CORPO } from '../db/seed';
 import {
   Card, Btn, Field, Input, Textarea, Select, Modal, Chip, Empty, Confirmar, useToast, Stat, Seg, Bar, EscolherData,
@@ -111,8 +112,8 @@ export default function Lesoes() {
           />
         </Card>
       ) : (
-        <div className="grid g-cards">
-          {lista.map((l) => {
+        <ListaComHistorico itens={lista} limite={5} titulo={aba === 'curadas' ? 'Lesões curadas' : 'Lesões abertas'} className="grid g-cards"
+          renderItem={(l) => {
             const st = STATUS.find((s) => s.id === l.status);
             const dias = l.status === 'curada' && l.dataCura ? diasEntre(l.data, l.dataCura) : diasEntre(l.data, hoje());
             return (
@@ -143,8 +144,8 @@ export default function Lesoes() {
                 )}
               </Card>
             );
-          })}
-        </div>
+          }}
+        />
       )}
 
       <Modal

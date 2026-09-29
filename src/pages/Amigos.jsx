@@ -7,6 +7,7 @@ import {
   Card, Btn, Chip, Sheet, Confirmar, Empty, Busca, useToast,
 } from '../components/UI';
 import Avatar from '../components/Avatar';
+import ListaComHistorico from '../components/ListaComHistorico';
 import {
   meusAmigos, meusConvitesDeSala, meuPar, pedirAmizade, responderAmizade, chamarPraSala, recusarConviteDeSala,
 } from '../lib/amigos';
@@ -36,7 +37,6 @@ export default function AmigosPagina() {
   const [convite, setConvite] = useState(null);
   const [saindo, setSaindo] = useState(false);
   const [busca, setBusca] = useState('');
-  const [todos, setTodos] = useState(false);
 
   const ativa = ligada?.('liga');
 
@@ -115,7 +115,6 @@ export default function AmigosPagina() {
   const filtrados = busca.trim()
     ? deVerdade.filter((a) => a.nome.toLowerCase().includes(busca.trim().toLowerCase()))
     : deVerdade;
-  const naTela = todos ? filtrados : filtrados.slice(0, NA_TELA);
 
   const esperando = convites.length + recebidos.length;
 
@@ -195,8 +194,9 @@ export default function AmigosPagina() {
             <Btn variant="contorno" icon={Swords} onClick={() => irPara('liga')} style={{ alignSelf: 'flex-start' }}>Ver o grupo da Liga</Btn>
           </div>
         ) : (
-          <div className="col" style={{ gap: 6 }}>
-            {naTela.map((a) => (
+          <div>
+            <ListaComHistorico itens={filtrados} limite={NA_TELA} titulo="Todos os amigos" style={{ gap: 6 }}
+              renderItem={(a) => (
               <div key={a.user_id} className="liga-linha">
                 <span className="liga-pos num">{deVerdade.indexOf(a) + 1}</span>
                 <Avatar nome={a.nome} foto={a.foto} className="liga-avatar" />
@@ -209,13 +209,9 @@ export default function AmigosPagina() {
                 {a.na_sala && <Chip tone="jade">na sala</Chip>}
                 <span className="num tiny" style={{ minWidth: 34, textAlign: 'right', fontWeight: 700 }}>{a.xp_semana}</span>
               </div>
-            ))}
+              )}
+            />
             {!filtrados.length && <p className="tiny muted">Ninguém com esse nome.</p>}
-            {filtrados.length > NA_TELA && (
-              <Btn size="sm" variant="ghost" onClick={() => setTodos(!todos)}>
-                {todos ? 'Mostrar menos' : `Ver todos os ${filtrados.length}`}
-              </Btn>
-            )}
           </div>
         )}
 

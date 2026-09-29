@@ -12,6 +12,7 @@ import {
   BeltTag, Busca, Bar, Seg,
 } from '../components/UI';
 import { statsParceiro } from '../lib/stats';
+import ListaComHistorico from '../components/ListaComHistorico';
 import { buscaMatch } from '../lib/utils';
 
 export default function Parceiros() {
@@ -85,8 +86,8 @@ export function AbaParceiros() {
           />
         </Card>
       ) : (
-        <div className="grid g-auto">
-          {lista.map((p) => (
+        <ListaComHistorico itens={lista} limite={6} titulo="Todos os parceiros" className="grid g-auto"
+          renderItem={(p) => (
             <Card key={p.id} className="hover" style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
               <div className="row" style={{ alignItems: 'flex-start' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -116,8 +117,8 @@ export function AbaParceiros() {
 
               {p.notas && <p className="micro muted" style={{ borderTop: '1px solid var(--seam)', paddingTop: 9, whiteSpace: 'pre-wrap' }}>{p.notas}</p>}
             </Card>
-          ))}
-        </div>
+          )}
+        />
       )}
 
       <Sheet
@@ -191,8 +192,8 @@ function AbaAcademias() {
       {academias.length === 0 ? (
         <Card><Empty icon={Building2} titulo="Nenhuma academia" texto="Cadastre onde você treina pra parar de digitar o mesmo nome toda vez." /></Card>
       ) : (
-        <div className="grid g-auto">
-          {academias.map((a) => {
+        <ListaComHistorico itens={academias} limite={6} titulo="Todas as academias" className="grid g-auto"
+          renderItem={(a) => {
             const profs = professores.filter((p) => p.academiaId === a.id);
             const treinos = sessions.filter((s) => s.academiaId === a.id).length;
             return (
@@ -228,8 +229,8 @@ function AbaAcademias() {
                 {a.notas && <p className="micro muted">{a.notas}</p>}
               </Card>
             );
-          })}
-        </div>
+          }}
+        />
       )}
 
       <Sheet
@@ -309,21 +310,13 @@ function AbaProfessores() {
         <Btn variant="primary" icon={Plus} onClick={() => setEdit(vazioProf(academias[0]?.id))} style={{ marginTop: 12 }}>Novo professor</Btn>
       </Card>
 
-      {academias.map((a) => {
-        const profs = professores.filter((p) => p.academiaId === a.id);
-        return (
-          <div key={a.id} style={{ marginBottom: 16 }}>
-            <div className="row" style={{ gap: 8, marginBottom: 9 }}>
-              <Building2 size={14} className="muted" />
-              <span className="eyebrow">{a.nome}</span>
-              <span className="spacer" />
-              <button className="btn ghost xs" onClick={() => setEdit(vazioProf(a.id))}><Plus size={11} /> professor</button>
-            </div>
-            {profs.length === 0 ? (
-              <Card><p className="tiny muted center" style={{ padding: 10 }}>Nenhum professor nesta academia ainda.</p></Card>
-            ) : (
-              <div className="grid g-auto">
-                {profs.map((p) => {
+      {professores.length === 0 ? (
+        <Card><Empty icon={GraduationCap} titulo="Nenhum professor cadastrado" texto="Cadastre o professor e vincule à academia dele." /></Card>
+      ) : (
+        <ListaComHistorico
+          itens={[...professores].sort((a, b) => (acadById[a.academiaId]?.nome || '').localeCompare(acadById[b.academiaId]?.nome || '') || a.nome.localeCompare(b.nome))}
+          limite={6} titulo="Todos os professores" className="grid g-auto"
+          renderItem={(p) => {
                   const treinos = sessions.filter((s) => s.professorId === p.id).length;
                   return (
                     <Card key={p.id} className="hover" style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
@@ -331,6 +324,7 @@ function AbaProfessores() {
                         <span className="stat-ico"><GraduationCap size={15} /></span>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 700, fontFamily: 'var(--display)', fontSize: 15 }} className="truncate">{p.nome}</div>
+                          <div className="micro muted" style={{ marginTop: 4 }}>{acadById[p.academiaId]?.nome || 'Academia não encontrada'}</div>
                           <div className="row" style={{ gap: 6, marginTop: 5, flexWrap: 'wrap' }}>
                             <BeltTag faixa={p.faixa} graus={p.graus} />
                             {treinos > 0 && <Chip tone="jade">{treinos} {treinos === 1 ? 'aula' : 'aulas'}</Chip>}
@@ -344,12 +338,9 @@ function AbaProfessores() {
                       {p.notas && <p className="micro muted">{p.notas}</p>}
                     </Card>
                   );
-                })}
-              </div>
-            )}
-          </div>
-        );
-      })}
+          }}
+        />
+      )}
 
       <Sheet
         aberto={!!edit} onClose={() => setEdit(null)}
