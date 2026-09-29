@@ -9,6 +9,7 @@ import {
   Card, Btn, Chip, Empty, Stat, Sheet, Field, Input, BeltTag, useToast,
 } from './UI';
 import { ajusteDe } from '../lib/ajustes';
+import { sincronizar } from '../lib/sync';
 import {
   subirPraLiga, corteDoGrupo, nomeCurto, DIVISOES_LIGA, relogioDaLiga, faltaTexto, resultadoEmPalavras,
   MINIMO_DO_GRUPO, minimoPraSubir, praDivisao, naDivisao, nomeDivisao, ORDEM_DIVISOES, MINIMO_PRA_SUBIR,
@@ -194,7 +195,7 @@ function VagasDoGrupo({ linhas, tamanho }) {
    dos pontos. Tocar abre as divisões.
    ============================================================ */
 function BarraPraSubir({ divisao, xp = 0, posicao = null, total = 0, onAbrir }) {
-  const p = progressoPraSubir({ divisao, xp, posicao, total });
+  const p = progressoPraSubir({ divisao, xp, posicao, total, corte: ajusteDe('liga_corte', 3) });
   if (p.topo) {
     return (
       <button type="button" className="liga-subir" onClick={onAbrir}>
@@ -205,7 +206,7 @@ function BarraPraSubir({ divisao, xp = 0, posicao = null, total = 0, onAbrir }) 
   }
   const cond = [
     { ok: p.pontosOk, sim: `${p.minimo} pontos`, nao: `faltam ${p.falta} pts` },
-    { ok: p.lugarOk, sim: 'em 1º', nao: 'terminar em 1º' },
+    { ok: p.lugarOk, sim: 'entre os classificados', nao: 'alcançar os classificados' },
     { ok: p.grupoOk, sim: 'grupo valendo', nao: `grupo de ${MINIMO_DO_GRUPO}+` },
   ];
   return (
@@ -263,7 +264,7 @@ function AsDivisoes({ aberto, onClose, atual = 'branca', melhor = null, xp = 0, 
                     {recorde && <span className="divisao-voce recorde">sua melhor</span>}
                   </div>
                   <div className="micro muted" style={{ marginTop: 2 }}>
-                    {anterior ? `Chega quem termina em 1º ${naDivisao(anterior)} com ${MINIMO_PRA_SUBIR[anterior]} pontos ou mais` : 'Onde todo mundo começa'}
+                    {anterior ? `Chega quem termina entre os classificados ${naDivisao(anterior)} com ${MINIMO_PRA_SUBIR[anterior]} pontos ou mais` : 'Onde todo mundo começa'}
                   </div>
                 </div>
               </div>
@@ -332,8 +333,9 @@ export default function Liga({ compacto = false }) {
       /* o que ainda está só no aparelho sobe antes: é o primeiro
          ponto da semana que coloca a pessoa no grupo */
       if (subir) await subirPraLiga().catch(() => {});
+      await sincronizar();
       const [r, p, sp] = await Promise.all([
-        supabase.rpc('minha_liga'),
+        supabase.rpc('minha_liga_semanal'),
         supabase.from('perfil').select('participa_liga, anonimo, apelido, avatar_url').eq('user_id', sessao.user.id).single(),
         /* antes do SQL do resultado rodar, a função não existe: fica sem */
         supabase.rpc('minha_semana_passada').then((x) => x, () => ({ data: null })),
@@ -620,7 +622,7 @@ export default function Liga({ compacto = false }) {
               </span>
               {div !== minhaDiv && <DivisaoTag id={div} />}
               {l.sequencia > 0 && (
-                <span className="micro num row" style={{ gap: 3, color: 'var(--roar)' }} title="dias de ofensiva">
+                <span className="micro num row" style={{ gap: 3, color: 'var(--roar)' }} title="semanas de ofensiva">
                   <Flame size={12} /> {l.sequencia}
                 </span>
               )}
@@ -810,7 +812,7 @@ function PerfilDoColega({ linha, onClose }) {
     setP(null);
     if (!linha) return undefined;
     let vivo = true;
-    supabase.rpc('perfil_na_liga', { p_user: linha.user_id })
+    supabase.rpc('perfil_na_liga_semanal', { p_user: linha.user_id })
       .then(({ data }) => { if (vivo) setP((Array.isArray(data) ? data[0] : data) || false); })
       .catch(() => { if (vivo) setP(false); });
     return () => { vivo = false; };
@@ -830,7 +832,7 @@ function PerfilDoColega({ linha, onClose }) {
             <DivisaoTag id={p.divisao} prefixo="Divisão " />
           </div>
           <div className="grid g2" style={{ gap: 14 }}>
-            <Stat size="sm" icon={Flame} valor={p.sequencia || 0} label={p.sequencia === 1 ? 'dia de ofensiva' : 'dias de ofensiva'} tone={p.sequencia ? 'roar' : undefined} />
+            <Stat size="sm" icon={Flame} valor={p.sequencia || 0} label={p.sequencia === 1 ? 'semana de ofensiva' : 'semanas de ofensiva'} tone={p.sequencia ? 'roar' : undefined} />
             <Stat size="sm" icon={Dumbbell} valor={p.treinos_semana ? `${p.treinos_semana}x` : '?'} label="treinos por semana" />
             <Stat size="sm" icon={Trophy} valor={p.xp_semana || 0} label="pontos nesta semana" tone="accent" />
           </div>

@@ -504,6 +504,7 @@ function PontosDoEstudo({ aberto, onClose, cobrando }) {
       <p className="micro muted" style={{ lineHeight: 1.7 }}>
         Os pontos contam na liga da semana, que fecha segunda ao meio-dia.
         O teto por dia existe pra ninguém liderar maratonando vídeo.
+        {' '}Estudar continua gerando XP. A ofensiva semanal acompanha os treinos realizados no tatame e não depende desses pontos.
         {cobrando ? ` No plano grátis dá pra ver ${LIMITES.aulasPorDia} aula completa e ${LIMITES.shortsPorDia} aula rápida por dia.` : ''}
       </p>
     </Sheet>

@@ -12,14 +12,13 @@ import {
 } from '../components/UI';
 import AcademiaProfessor from '../components/AcademiaProfessor';
 import { resumo as resumoGeral } from '../lib/stats';
-import { ofensiva } from '../lib/ofensiva';
+import useOfensivaSemanal from '../lib/useOfensivaSemanal';
 import Figurinha from '../components/Figurinha';
 import { minhasTecnicas, resumoGraus, requisitosDaFaixa, grauPorN } from '../lib/graus';
 import { Ponteira } from '../components/Ponteira';
 import { proximaGraduacao, FAIXAS_ORDEM } from '../lib/milestones';
 import { hoje, fmtData, relativo, diasEntre, fmtDur } from '../lib/utils';
 import { periodoDeDados, dentroDoPeriodo } from '../lib/periodo';
-import { escudosDaDivisao, useMinhaDivisao } from '../lib/liga';
 
 /* Abre a figurinha pro story (a imagem, com o @ do app). O card
    em link continua lá dentro, pra quem prefere mandar no grupo. */
@@ -67,11 +66,8 @@ export default function Conquistas() {
   const [storyGrad, setStoryGrad] = useState(null);
 
   const r = useMemo(() => resumoGeral(sessions, rolls), [sessions, rolls]);
-  const pontos = useLiveQuery(() => db.pontos.toArray(), [], []) || [];
-  const lesoes = useLiveQuery(() => db.injuries.toArray(), [], []) || [];
   /* do Nacional pra cima a ofensiva guarda 3 escudos */
-  const minhaDivisao = useMinhaDivisao();
-  const ofa = useMemo(() => ofensiva(pontos, undefined, lesoes, { maxEscudos: escudosDaDivisao(minhaDivisao?.divisao) }), [pontos, lesoes, minhaDivisao]);
+  const ofa = useOfensivaSemanal();
   const esteira = useMemo(() => minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa, graduacoes, settings.graus || 0), [rolls, partners, sessions, techniques, settings.faixa, graduacoes, settings.graus]);
   const dom = useMemo(() => resumoGraus(esteira), [esteira]);
 
@@ -177,7 +173,7 @@ export default function Conquistas() {
       <div className="grid g4" style={{ marginBottom: 14 }}>
         <Card><Stat icon={Clock} valor={`${r.matHoras}h`} label="tatame total" tone="roar" /></Card>
         <Card><Stat icon={Award} valor={dom.g3 + dom.g4} label={dom.g3 + dom.g4 === 1 ? 'técnica dominada' : 'técnicas dominadas'} tone="jade" /></Card>
-        <Card><Stat icon={Flame} valor={ofa.recorde} label="recorde de ofensiva" /></Card>
+        <Card><Stat icon={Flame} valor={ofa.recorde} label="recorde de ofensiva em semanas" /></Card>
         <Card><Stat icon={Trophy} valor={marcos.length} label="marcos" /></Card>
       </div>
 

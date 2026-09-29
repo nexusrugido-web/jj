@@ -3,7 +3,7 @@ import { supabase } from './supabase';
 import { db, getMeta, setMeta } from '../db/db';
 import { semanaDe, EVENTOS } from './xp';
 import { hoje, addDias } from './utils';
-import { ofensiva } from './ofensiva';
+
 
 /* ============================================================
    A LIGA, DO LADO DO APARELHO
@@ -64,7 +64,7 @@ export const escudosDaDivisao = (id) => DIVISOES_LIGA[id]?.escudos ?? 2;
 export function beneficiosDa(id) {
   const n = ordemDa(id);
   const lista = [];
-  if (n === 0) return ['O começo de todo mundo. Termine em 1º do grupo com o mínimo de pontos pra subir.'];
+  if (n === 0) return ['O começo de todo mundo. Termine entre os classificados do grupo com o mínimo de pontos pra subir.'];
   lista.push(`Moldura ${['', 'prata', 'verde', 'laranja', 'dourada'][n]} na sua foto, na liga e no perfil`);
   lista.push(`Selo "Divisão ${nomeDivisao(id)}" na figurinha do story`);
   if (escudosDaDivisao(id) > 2) lista.push(`Ofensiva com ${escudosDaDivisao(id)} escudos em vez de 2`);
@@ -78,7 +78,7 @@ export function beneficiosDa(id) {
    As três condições do fechamento, uma por uma: grupo com 3 ou
    mais, terminar em 1º e fazer o mínimo de pontos da divisão.
    ============================================================ */
-export function progressoPraSubir({ divisao = 'branca', xp = 0, posicao = null, total = 0 }) {
+export function progressoPraSubir({ divisao = 'branca', xp = 0, posicao = null, total = 0, corte = 3 }) {
   const proxima = ORDEM_DIVISOES[ordemDa(divisao) + 1] || null;
   const minimo = MINIMO_PRA_SUBIR[divisao] ?? null;
   if (!proxima || !minimo) return { proxima: null, topo: true };
@@ -89,7 +89,7 @@ export function progressoPraSubir({ divisao = 'branca', xp = 0, posicao = null, 
     falta,
     pct: Math.min(100, Math.round((xp / minimo) * 100)),
     grupoOk: total >= MINIMO_DO_GRUPO,
-    lugarOk: posicao === 1,
+    lugarOk: posicao > 0 && posicao <= corteDoGrupo(total, corte).sobem,
     pontosOk: falta === 0,
   };
 }
@@ -161,14 +161,8 @@ async function subir() {
   /* a divisão e o recorde, pro selo, a moldura e os escudos */
   const div = await buscarMinhaDivisao().catch(() => null);
 
-  /* a ofensiva sobe junto: é ela que o ranking e o grupo mostram */
-  const dias = ofensiva(await db.pontos.toArray(), undefined, [], { maxEscudos: escudosDaDivisao(div?.divisao) }).dias;
-  const chaveSeq = `${uid}:${dias}`;
-  if ((await getMeta('liga_sequencia', null)) !== chaveSeq) {
-    const { error } = await supabase.from('perfil').update({ sequencia: dias }).eq('user_id', uid);
-    if (error) console.error('[liga] ofensiva', error);
-    else await setMeta('liga_sequencia', chaveSeq);
-  }
+  /* A ofensiva semanal é calculada no servidor pelos registros sincronizados.
+     Não escrever semanas em perfil.sequencia: esse campo pertence ao app diário. */
   return true;
 }
 
@@ -261,7 +255,7 @@ export function resultadoEmPalavras(r) {
         titulo: `Você continua ${naDivisao(r.divisao_depois)}`,
         texto: faltou
           ? `Terminou em 1º, com ${pts}, mas pra subir ${praDivisao(ACIMA_DE[r.divisao_antes])} precisava de ${min}. Faltaram ${min - r.xp}.`
-          : `Terminou em ${lugar}, com ${pts}. Pra subir, é terminar em 1º com pelo menos ${min || 0} pontos.`,
+          : `Terminou em ${lugar}, com ${pts}. Pra subir, precisa ficar entre os classificados do grupo e atingir pelo menos ${min || 0} pontos.`,
       };
     }
     case 'poucos': return { tom: '', titulo: 'Grupo de 2 não vale subida', texto: `O seu grupo teve só 2 pessoas, e a subida e a descida só valem com 3 ou mais. Você terminou em ${lugar}, com ${pts}, e continua ${naDivisao(r.divisao_depois)}.` };

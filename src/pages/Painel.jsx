@@ -22,7 +22,7 @@ import RotuloPeriodo from '../components/RotuloPeriodo';
 import { periodoDeDados } from '../lib/periodo';
 import Recomendacao, { VitrineRecomendacao } from '../components/Recomendacao';
 import { resumoSemana, lerSemana } from '../lib/semana';
-import { ofensiva } from '../lib/ofensiva';
+import useOfensivaSemanal from '../lib/useOfensivaSemanal';
 import { situacao, guiaDeEstudo } from '../lib/lesao';
 import { analisarJogo } from '../lib/game';
 import { Ponteira } from '../components/Ponteira';
@@ -33,7 +33,6 @@ import { Sheet, useToast, Diamante } from '../components/UI';
 import { podeVer } from '../lib/plano';
 import { Convite, Vitrine } from '../components/Plano';
 import { supabase } from '../lib/supabase';
-import { escudosDaDivisao, useMinhaDivisao } from '../lib/liga';
 
 export default function Painel() {
   const [ajudaTec, setAjudaTec] = useState(false);
@@ -77,8 +76,7 @@ export default function Painel() {
   /* a lesão que tira do tatame congela a ofensiva: sem isso,
      quem operou o joelho perde tudo enquanto está de molho */
   /* do Nacional pra cima a ofensiva guarda 3 escudos */
-  const minhaDivisao = useMinhaDivisao();
-  const ofa = useMemo(() => ofensiva(pontos, undefined, lesoes, { maxEscudos: escudosDaDivisao(minhaDivisao?.divisao) }), [pontos, lesoes, minhaDivisao]);
+  const ofa = useOfensivaSemanal();
 
   const esteira = useMemo(() => minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa, gradings, settings.graus || 0), [rolls, partners, sessions, techniques, settings.faixa, gradings, settings.graus]);
   const recap = useMemo(() => resumoSemana(sessions, rolls, esteira, { faixa: settings.faixa }), [sessions, rolls, esteira, settings.faixa]);
@@ -130,7 +128,7 @@ export default function Painel() {
                   finalizacoesAplicadas: r.topAplicadas, finalizacoesSofridas: r.topSofridas,
                   tecnicasDominadas: esteira.filter((e) => e.grau >= 3).map((e) => e.nome),
                   jogoA: meuJogo.map((e) => e.nome),
-                  streak: ofa.dias,
+                  ofensivaSemanas: ofa.semanas,
                 };
                 const res = await analisarDiario(resumoIa, settings.faixa);
                 setAnalise(res?.dados || { leitura: res?.texto || '' });
@@ -156,7 +154,7 @@ export default function Painel() {
       )}
 
       {/* ---- o placar: um cartão, os números que importam ----
-          a ofensiva é a mesma da Liga (pontos), não dias de treino */}
+          a ofensiva acompanha as semanas com treino */}
       <Card className="painel-placar" style={{ marginBottom: 14 }}>
         <div className="placar-principal">
         {/* a ofensiva é o número que traz a pessoa de volta: faixa própria,
@@ -165,15 +163,16 @@ export default function Painel() {
           <span className="placar-ofa-chama"><Flame size={24} /></span>
           <span className="placar-ofa-txt">
             <span className="placar-ofa-linha">
-              <span className="placar-num num" style={ofa.dias > 0 ? { color: 'var(--roar)' } : undefined}>
-                <Contador valor={ofa.dias} />
+              <span className="placar-num num" style={ofa.semanas > 0 ? { color: 'var(--roar)' } : undefined}>
+                <Contador valor={ofa.semanas} />
               </span>
-              <span className="placar-rot">{ofa.dias === 1 ? 'dia de ofensiva' : 'dias de ofensiva'}</span>
+              <span className="placar-rot">{ofa.semanas === 1 ? 'semana de ofensiva' : 'semanas de ofensiva'}</span>
             </span>
             <span className="placar-sub">
+              {ofa.congelada ? 'Pausada por lesão' : ofa.treinouEstaSemana ? 'Semana garantida' : 'Semana em aberto'} · {' '}
               recorde {ofa.recorde} · {ofa.escudos
                 ? `${ofa.escudos} ${ofa.escudos === 1 ? 'escudo' : 'escudos'}`
-                : `escudo em ${ofa.faltaProEscudo} ${ofa.faltaProEscudo === 1 ? 'dia' : 'dias'}`}
+                : `escudo em ${ofa.faltaProEscudo} ${ofa.faltaProEscudo === 1 ? 'semana' : 'semanas'}`}
             </span>
           </span>
           <span className="placar-ofa-ver">Ver <ChevronRight size={15} /></span>

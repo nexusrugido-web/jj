@@ -25,7 +25,7 @@ import { registrarErro, erroDeAcesso } from './lib/monitor';
 import { carregarChaves, carregarRecado, souAdmin, ligada, observarChaves, todasAsChaves, chavesAntesDaTela } from './lib/chaves';
 import { sincronizarMarcos } from './lib/milestones';
 import { abriuOApp } from './lib/push';
-import { ofensiva } from './lib/ofensiva';
+import useOfensivaSemanal from './lib/useOfensivaSemanal';
 import { analisarJogo } from './lib/game';
 import { somarPontos } from './db/scoring';
 
@@ -395,6 +395,7 @@ export default function App() {
   const categories = useLiveQuery(() => db.categories.filter((c) => !c.arquivada).sortBy('ordem'), [], []);
   const techniques = useLiveQuery(() => db.techniques.filter((t) => !t.arquivada).toArray(), [], []);
   const partners = useLiveQuery(() => db.partners.filter((p) => !p.arquivada).toArray(), [], []);
+  const ofaSemanal = useOfensivaSemanal();
   const sessions = useLiveQuery(() => db.sessions.orderBy('data').reverse().toArray(), [], []);
   const rolls = useLiveQuery(() => db.rolls.toArray(), [], []);
   const goals = useLiveQuery(() => db.goals.toArray(), [], []);
@@ -449,9 +450,7 @@ export default function App() {
       const novos = await sincronizarMarcos({
         matHoras: r.matHoras, rolas: r.rolas, sessoes: r.sessoes,
         dominadas: dom.g3 + dom.g4, primeiraFinalizacao: primeira,
-        /* o marco "X dias seguidos" conta a ofensiva, que é o que
-           a tela mostra. r.streak conta só dias de treino. */
-        streakRecorde: ofensiva(await db.pontos.toArray()).recorde,
+        semanasRecorde: ofaSemanal.recorde,
         pontos: jogo.ptsMeus,
         primeiraRaspagemAcima: raspouAcima,
         saldoPositivoPesado: saldoPesado,
@@ -467,7 +466,7 @@ export default function App() {
       marcosChecados.current = true;
     }, 900);
     return () => clearTimeout(t);
-  }, [pronto, sessions, rolls, techniques, partners, gradings, settings.faixa, settings.graus, settings.celebrar]);
+  }, [pronto, sessions, rolls, techniques, partners, gradings, settings.faixa, settings.graus, settings.celebrar, ofaSemanal.recorde]);
 
   if (!pronto) {
     return (

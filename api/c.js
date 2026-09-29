@@ -37,6 +37,15 @@ const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => (
 function contar(tipo, d) {
   const nome = d.nome || 'Um praticante';
   if (tipo === 'ofensiva') {
+    if (d.versao === 2) {
+      const n = Number(d.semanas) || 0;
+      return {
+        titulo: `${n} ${n === 1 ? 'semana' : 'semanas'} de ofensiva no tatame`,
+        texto: `${nome} construiu uma sequência de semanas com treino. Pausas e escudos preservam a sequência sem somar semanas.`,
+        numero: n,
+        rotulo: n === 1 ? 'semana de ofensiva' : 'semanas de ofensiva',
+      };
+    }
     const n = Number(d.dias) || 0;
     return {
       titulo: `${n} ${n === 1 ? 'dia seguido' : 'dias seguidos'} no tatame`,

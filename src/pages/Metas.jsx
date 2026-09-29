@@ -319,7 +319,7 @@ export default function Metas() {
             </Field>
 
             {edit.tipo === 'frequencia' && (
-              <Field label="Quantas vezes por semana" hint="Melhor começar com o que você já consegue e subir depois.">
+              <Field label="Quantas vezes por semana" hint="Sua meta é pessoal. Um treino mantém a ofensiva semanal, mesmo que a meta ainda não tenha sido atingida.">
                 <div className="row wrap" style={{ gap: 7 }}>
                   {[1, 2, 3, 4, 5, 6].map((n) => (
                     <button key={n} type="button" className={`chip ${Number(edit.alvo) === n ? 'on' : ''}`}

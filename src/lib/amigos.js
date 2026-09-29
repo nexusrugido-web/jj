@@ -15,7 +15,7 @@ async function rpc(nome, args) {
   return data;
 }
 
-export const meusAmigos = async () => (supabase ? (await rpc('meus_amigos')) || [] : []);
+export const meusAmigos = async () => (supabase ? (await rpc('meus_amigos_semanal')) || [] : []);
 export const meusConvitesDeSala = async () => (supabase ? (await rpc('meus_convites_de_sala')) || [] : []);
 export const meuPar = async () => (supabase ? primeira(await rpc('meu_par')) || null : null);
 

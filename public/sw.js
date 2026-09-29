@@ -74,6 +74,13 @@ function aviso(n) {
   const qual = (lista) => doDia(lista, n.versao);
   const dias = Number(String(n.title || '').match(/^\d+/)?.[0]) || 0;
   const tipo = n.tag || '';
+  if (tipo === 'ofensiva_semanal') {
+    return {
+      titulo: n.title || 'Sua semana de treino ainda está aberta',
+      corpo: n.body || 'Se você treinou nesta semana, registre para manter sua sequência.',
+      acoes: [{ acao: 'treino', titulo: 'Registrar treino', rota: ROTA.treino }],
+    };
+  }
   if (tipo === 'ofensiva') {
     return {
       titulo: dias > 1

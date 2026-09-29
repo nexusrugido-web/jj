@@ -6,9 +6,10 @@ import { useApp } from '../contexto';
 import { Btn, Sheet } from './UI';
 import Figurinha from './Figurinha';
 import { semanaDe } from '../lib/xp';
-import { ofensiva, textoOfensiva, diasFechados, diasParadosPorLesao, MAX_ESCUDOS } from '../lib/ofensiva';
+import { textoOfensivaSemanal, somarDiasOfensiva, MAX_ESCUDOS } from '../lib/ofensivaSemanal';
+import useOfensivaSemanal from '../lib/useOfensivaSemanal';
 import { hoje, addDias } from '../lib/utils';
-import { escudosDaDivisao, useMinhaDivisao } from '../lib/liga';
+
 
 /* ============================================================
    SUA OFENSIVA
@@ -20,10 +21,7 @@ import { escudosDaDivisao, useMinhaDivisao } from '../lib/liga';
 export default function MinhaOfensiva({ aberto, onClose }) {
   const { irPara } = useApp();
   const pontos = useLiveQuery(() => db.pontos.toArray(), [], []) || [];
-  const lesoes = useLiveQuery(() => db.injuries.toArray(), [], []) || [];
-  /* do Nacional pra cima a ofensiva guarda 3 escudos */
-  const minhaDivisao = useMinhaDivisao();
-  const ofa = useMemo(() => ofensiva(pontos, undefined, lesoes, { maxEscudos: escudosDaDivisao(minhaDivisao?.divisao) }), [pontos, lesoes, minhaDivisao]);
+  const ofa = useOfensivaSemanal();
 
   const semanas = useMemo(() => {
     const soma = (f) => pontos.filter(f).reduce((a, x) => a + (x.xp || 0), 0);
@@ -43,7 +41,7 @@ export default function MinhaOfensiva({ aberto, onClose }) {
 
   return (
     <Sheet aberto={aberto} onClose={onClose} titulo="Sua ofensiva">
-      <BlocoOfensiva o={ofa} pontos={pontos} lesoes={lesoes} irPara={ir} />
+      <BlocoOfensiva o={ofa} irPara={ir} />
       <DueloDaSemana agora={semanas.agora} passada={semanas.passada} recorde={semanas.recorde} irPara={ir} />
     </Sheet>
   );
@@ -52,94 +50,48 @@ export default function MinhaOfensiva({ aberto, onClose }) {
 /* ============================================================
    A OFENSIVA
 
-   O primeiro bloco da tela, porque é o número que faz a pessoa
-   abrir o app amanhã. A pista mostra os últimos catorze dias:
-   aceso é dia fechado, e o último quadradinho tracejado é hoje
-   quando ainda não fechou.
-
-   O botão só aparece quando falta fechar o dia. Nos outros dias
-   ele seria só mais um botão.
+   A pista mostra as últimas doze semanas. Treinos, pausas e
+   escudos seguem o mesmo cálculo do contador.
    ============================================================ */
-function BlocoOfensiva({ o, pontos, lesoes, irPara }) {
-  const frase = textoOfensiva(o);
+function BlocoOfensiva({ o, irPara }) {
+  const frase = textoOfensivaSemanal(o);
   const cor = frase.tom || (o.viva ? 'roar' : 'dim');
-
-  /* os catorze dias que cabem na tela, do mais antigo pro de hoje */
-  /* a mesma conta da ofensiva, e não uma cópia: o dia pago pelo
-     treino tem que acender na pista igual ele conta lá */
-  const fechados = new Set(diasFechados(pontos));
-  const gelo = diasParadosPorLesao(lesoes);
-  const pista = Array.from({ length: 14 }, (_, i) => {
-    const dia = addDias(hoje(), -(13 - i));
-    const cheio = fechados.has(dia);
-    /* só o que está dentro da corrente de agora acende forte. O
-       que veio antes de ela começar fica apagado, senão a pista
-       mostra catorze dias iguais enquanto o número diz "1 dia". */
-    const vale = !!o.desde && dia >= o.desde;
-    return {
-      dia,
-      classe: cheio ? (vale ? 'on' : 'feito')
-        /* congelado não é dia perdido, então não pode ficar cinza */
-        : gelo.has(dia) ? 'gelo' : '',
-      agora: i === 13,
-    };
+  const estados = new Map(o.historico.map((h) => [h.semana, h.estado]));
+  const pista = Array.from({ length: 12 }, (_, i) => {
+    const semana = somarDiasOfensiva(o.semanaAtual, -(11 - i) * 7);
+    const estado = estados.get(semana) || (i === 11 ? o.estado : 'sem_treino');
+    return { semana, estado, classe: estado === 'treinada' ? 'on' : ['pausada', 'protegida'].includes(estado) ? 'gelo' : '', agora: i === 11 };
   });
-
+  const nomes = { treinada: 'com treino', pausada: 'pausada por lesão', protegida: 'protegida por escudo', pendente: 'em aberto', sem_treino: 'sem treino' };
   return (
     <div className={`ofa${o.viva ? ' viva' : ''}`} style={{ '--cor': `var(--${cor})` }}>
       <div className="ofa-topo">
         <span className="ofa-chama"><Flame size={22} /></span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="eyebrow">ofensiva</div>
-          <div className="ofa-num">
-            <span className="num">{o.dias}</span>
-            <span className="ofa-dia">{o.dias === 1 ? 'dia seguido' : 'dias seguidos'}</span>
-          </div>
+          <div className="eyebrow">ofensiva semanal</div>
+          <div className="ofa-num"><span className="num">{o.semanas}</span><span className="ofa-dia">{o.semanas === 1 ? 'semana' : 'semanas'}</span></div>
         </div>
-        {o.recorde > o.dias && o.recorde >= 3 && (
-          <span className="fita-recorde" title="seu recorde">
-            <Crown size={12} /> {o.recorde}
-          </span>
-        )}
+        {o.recorde > o.semanas && <span className="fita-recorde" title="recorde semanal"><Crown size={12} /> {o.recorde}</span>}
       </div>
-
-      <div className="ofa-pista" title="os últimos 14 dias">
-        {pista.map((d) => (
-          <i key={d.dia} className={`${d.classe}${d.agora ? ' agora' : ''}`} />
-        ))}
+      <div className="ofa-pista" style={{ gridTemplateColumns: 'repeat(12, 1fr)' }} aria-label="Últimas 12 semanas">
+        {pista.map((d) => <i key={d.semana} className={`${d.classe}${d.agora ? ' agora' : ''}`} title={`Semana de ${d.semana}: ${nomes[d.estado]}`} aria-label={`Semana de ${d.semana}: ${nomes[d.estado]}`} />)}
       </div>
-      <div className="ofa-legenda">
-        <span>14 dias atrás</span>
-        <span>hoje</span>
-      </div>
-
-      <p className="ofa-txt">{frase.texto}</p>
-
+      <div className="ofa-legenda"><span>últimas 12 semanas</span><span>esta semana</span></div>
+      <p className="ofa-txt"><strong>{frase.titulo}.</strong> {frase.texto}</p>
+      <p className="tiny muted">Um treino realizado na semana mantém a ofensiva. Sua meta pessoal é acompanhada separadamente. A semana vai de segunda a domingo, no horário de Brasília.</p>
+      <p className="micro muted">Gi, no-gi, drill, open mat e aula privada contam. Competições contam quando você conclui o registro da participação.</p>
       <div className="ofa-pe">
         <div className="escudos">
-          {Array.from({ length: ofa.maxEscudos || MAX_ESCUDOS }).map((_, i) => (
-            <span key={i} className={`escudo ${i < o.escudos ? 'cheio' : ''}`}>
-              <ShieldCheck size={12} />
-            </span>
-          ))}
-          <span className="micro muted" style={{ marginLeft: 4 }}>
-            {o.escudos
-              ? `${o.escudos} ${o.escudos === 1 ? 'escudo' : 'escudos'}`
-              : `escudo em ${o.faltaProEscudo} ${o.faltaProEscudo === 1 ? 'dia' : 'dias'}`}
-          </span>
+          {Array.from({ length: o.maxEscudos || MAX_ESCUDOS }).map((_, i) => <span key={i} className={`escudo ${i < o.escudos ? 'cheio' : ''}`}><ShieldCheck size={12} /></span>)}
+          <span className="micro muted" style={{ marginLeft: 4 }}>{o.escudos} de {o.maxEscudos} escudos</span>
         </div>
-
-        <div className="row" style={{ gap: 8, marginLeft: 'auto' }}>
-          {/* só dá pra compartilhar o que já virou alguma coisa.
-              "1 dia seguido" não é conquista, é terça-feira. */}
-          {o.dias >= 7 && <BtnCompartilhar o={o} />}
-          {!o.fechouHoje && (
-            <Btn size="sm" variant="primary" onClick={() => irPara('estudo')}>
-              Fechar o dia <ChevronRight size={13} />
-            </Btn>
-          )}
+        <div className="row wrap" style={{ gap: 8, marginLeft: 'auto' }}>
+          {o.semanas >= 4 && <BtnCompartilhar o={o} />}
+          {!o.treinouEstaSemana && !o.congelada && <Btn size="sm" variant="primary" onClick={() => irPara('treinos')}>Registrar treino <ChevronRight size={13} /></Btn>}
         </div>
       </div>
+      <p className="micro muted" style={{ marginTop: 12 }}>{o.faltaProEscudo ? `Próximo escudo em ${o.faltaProEscudo} ${o.faltaProEscudo === 1 ? 'semana com treino' : 'semanas com treino'}.` : 'Escudos completos.'} Um escudo protege uma semana sem treino. Lesões que impedem treinar preservam a sequência sem gastar escudos. Proteção e pausa não somam semanas.</p>
+      {o.recordeDiario > 0 && <p className="micro muted">Histórico anterior: recorde de {o.recordeDiario} dias na regra diária. Esse recorde não foi convertido em semanas.</p>}
     </div>
   );
 }
@@ -152,8 +104,8 @@ function BtnCompartilhar({ o }) {
       <Btn size="sm" icon={Share2} onClick={() => setAberto(true)}>Compartilhar</Btn>
       <Figurinha
         aberto={aberto} onClose={() => setAberto(false)} tipo="ofensiva"
-        dados={{ selo: 'ofensiva', grande: `${o.dias} dias seguidos`, sub: `no tatame · recorde de ${o.recorde}` }}
-        link={{ tipo: 'ofensiva', dados: { dias: o.dias, recorde: o.recorde }, texto: `${o.dias} dias seguidos no tatame.` }}
+        dados={{ selo: 'ofensiva', grande: `${o.semanas} semanas de ofensiva`, sub: `no tatame · recorde de ${o.recorde}` }}
+        link={{ tipo: 'ofensiva', dados: { semanas: o.semanas, recorde: o.recorde, versao: 2 }, texto: `${o.semanas} semanas de ofensiva no tatame.` }}
       />
     </>
   );

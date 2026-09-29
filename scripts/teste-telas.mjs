@@ -140,6 +140,7 @@ const entrada = fs.readdirSync('dist/assets').find((f) => f.startsWith('index-')
 await import(pathToFileURL(path.resolve('dist/assets', entrada)).href);
 const esperar = (ms = 400) => new Promise((r) => setTimeout(r, ms));
 await esperar(4000);
+if (erros.length) console.log('Erros durante a abertura:', erros.join('\n'));
 
 const raiz = w.document.getElementById('root');
 const clicar = (el) => { if (!el) return false; el.dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true })); return true; };

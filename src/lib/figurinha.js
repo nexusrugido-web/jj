@@ -37,7 +37,7 @@ export const FRASES = {
     'Motivação some. Disciplina bate o ponto.',
     'Constância finaliza mais que talento.',
     'Treino não depende do humor. Depende de aparecer.',
-    'Dia após dia, sem dar os três tapinhas.',
+    'Semana após semana, construindo meu jogo.',
     'Minha sequência é a minha guarda fechada: ninguém passa.',
   ],
   semana: [

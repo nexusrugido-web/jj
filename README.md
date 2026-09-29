@@ -37,7 +37,7 @@ O que é grátis e o que é pago mora em `RECURSOS` (`src/lib/plano.js`) e só v
 ## Regras que não se quebram
 
 - **O registro nunca é pago.** Treino, rola e todos os campos são grátis pra sempre: é o dado que alimenta o diagnóstico pago.
-- **Grau é habilidade, ponto é esforço.** Grau sai dos rolas, nunca desce e nunca vai pra ranking. Ponto (treino, aula, quiz) vai pra Liga e pra ofensiva. Os dois nunca aparecem na mesma linha.
+- **Grau é habilidade, ponto é esforço.** Grau sai dos rolas, nunca desce e nunca vai pra ranking. Ponto (treino, aula, quiz) vai pra Liga. A ofensiva conta semanas com treino realizado, independente de XP e meta pessoal. Regras, migração e testes: [ofensiva semanal](docs/ofensiva-semanal.md).
 - **Todo número com tempo** sai de `periodoDeDados` (`src/lib/periodo.js`) e mostra o rótulo do período.
 - **Drill não é luta** em conta nenhuma.
 - **"O rola"**, no masculino. `npm run lint:copy` barra o feminino e o travessão.

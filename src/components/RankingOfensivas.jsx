@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Flame, RefreshCw, Medal } from 'lucide-react';
 import { useApp } from '../contexto';
 import { supabase } from '../lib/supabase';
+import { sincronizar } from '../lib/sync';
 import { Card, Btn, BeltTag } from './UI';
 
 /* ============================================================
    AS MAIORES OFENSIVAS
 
-   Dias seguidos aparecendo, de todo mundo que está na liga. O
-   ranking do servidor (supabase/ofensiva.sql) devolve os vinte
+   Semanas com treino, de todo mundo que está na liga. O
+   ranking semanal do servidor devolve os vinte
    primeiros, e a sua linha no fim quando você não couber neles.
 
    Com pouca gente no app isso não é vergonha, é o contrário:
@@ -32,7 +33,8 @@ export default function RankingOfensivas({ limite = null }) {
     if (!supabase || !sessao) { setCarregando(false); return; }
     setCarregando(true);
     try {
-      const { data, error } = await supabase.rpc('ranking_ofensivas');
+      await sincronizar();
+      const { data, error } = await supabase.rpc('ranking_ofensivas_semanais');
       if (error) throw error;
       setLinhas(Array.isArray(data) ? data : []);
     } catch (e) {
@@ -51,7 +53,7 @@ export default function RankingOfensivas({ limite = null }) {
       <p className="tiny muted">
         {carregando ? 'Carregando o ranking…'
           : !ativa ? 'O ranking abre quando a liga estiver ligada.'
-            : 'Ninguém fechou um dia ainda. O primeiro a fechar entra aqui.'}
+            : 'Seu primeiro treino sincronizado inicia a ofensiva semanal.'}
       </p>
     );
   }
@@ -63,7 +65,7 @@ export default function RankingOfensivas({ limite = null }) {
     <Card style={{ marginBottom: 14 }}>
       <div className="card-head">
         <div>
-          <div className="eyebrow">dias seguidos aparecendo</div>
+          <div className="eyebrow">semanas com treino</div>
           {!noPopup && <h2 className="h-sec row" style={{ gap: 8 }}><Flame size={16} /> As maiores ofensivas</h2>}
         </div>
         <Btn size="sm" variant="ghost" icon={RefreshCw} onClick={buscar}>Atualizar</Btn>
@@ -80,7 +82,7 @@ export default function RankingOfensivas({ limite = null }) {
               <span className="rank-nome tiny">{l.nome}{l.sou_eu ? ' (você)' : ''}</span>
               <BeltTag faixa={l.faixa} graus={l.graus || 0} />
               <span className="rank-dias num row">
-                <Flame size={12} /> {l.dias}
+                <Flame size={12} /> {l.semanas}
               </span>
             </div>
           </React.Fragment>
@@ -89,10 +91,10 @@ export default function RankingOfensivas({ limite = null }) {
 
       <p className="micro muted" style={{ marginTop: 12, lineHeight: 1.65 }}>
         {eu && !eu.de_fora && eu.posicao === 1
-          ? 'Ninguém no app apareceu mais dias seguidos que você.'
+          ? 'Sua sequência está entre as maiores do app.'
           : eu
-            ? `Você é o ${eu.posicao}º. Quem está na sua frente só fez uma coisa a mais: apareceu ontem.`
-            : 'A sua ofensiva entra aqui no primeiro dia fechado.'}
+            ? `Você é o ${eu.posicao}º. Cada semana com treino constrói sua sequência.`
+            : 'Sua ofensiva entra aqui após sincronizar o primeiro treino.'}
         {' '}A faixa ao lado é a de verdade, a do tatame.
       </p>
     </Card>

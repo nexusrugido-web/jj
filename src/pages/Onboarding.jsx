@@ -263,6 +263,7 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
               titulo="Quantas vezes por semana você treina?"
               texto="Fala o que acontece de verdade, não o que você gostaria. O app usa isso pra sugerir coisa realista."
             />
+            <p className="tiny muted">Sua meta acompanha esse ritmo. Para manter a ofensiva, basta um treino realizado na semana. Treinos e estudos continuam dando XP conforme suas próprias regras.</p>
             <div className="row wrap" style={{ gap: 8 }}>
               {[1, 2, 3, 4, 5, 6, 7].map((n) => (
                 <button key={n} type="button" className={`chip ${perfil.frequencia === n ? 'on' : ''}`}

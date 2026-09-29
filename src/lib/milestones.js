@@ -11,7 +11,7 @@ import { hoje, fmtDur } from './utils';
 export const MARCOS_HORAS = [10, 25, 50, 100, 200, 300, 500, 750, 1000];
 export const MARCOS_ROLAS = [10, 50, 100, 250, 500, 1000];
 
-export function definirMarcos({ matHoras, rolas, sessoes, dominadas, primeiraFinalizacao, streakRecorde, pontos, primeiraRaspagemAcima, saldoPositivoPesado, taxaVitoria, rolasComPontos, recordeRolasDia = 0, recordeTatameDia = 0 }) {
+export function definirMarcos({ matHoras, rolas, sessoes, dominadas, primeiraFinalizacao, streakRecorde, semanasRecorde = 0, pontos, primeiraRaspagemAcima, saldoPositivoPesado, taxaVitoria, rolasComPontos, recordeRolasDia = 0, recordeTatameDia = 0 }) {
   const lista = [];
 
   for (const h of MARCOS_HORAS) {
@@ -44,6 +44,10 @@ export function definirMarcos({ matHoras, rolas, sessoes, dominadas, primeiraFin
   }
   for (const s of [7, 14, 30, 60, 100]) {
     if (streakRecorde >= s) lista.push({ chave: `streak_${s}`, titulo: `${s} dias seguidos`, texto: 'Consistência é a técnica mais difícil do jiu-jitsu.', tipo: 'streak', valor: s });
+  }
+
+  for (const n of [4, 8, 12, 26, 52]) {
+    if (semanasRecorde >= n) lista.push({ chave: `ofensiva_semanal_${n}`, titulo: `${n} semanas de ofensiva`, texto: 'Semanas com treino no tatame. Pausas e escudos preservam sem somar semanas.', tipo: 'streak', valor: n, unidade: 'semanas' });
   }
 
   /* ---- o recorde do dia ----

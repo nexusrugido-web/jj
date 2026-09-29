@@ -14,6 +14,16 @@ import { GRAUS } from '../lib/graus';
 
 const PASSOS = [
   {
+    icone: Target,
+    titulo: 'Ofensiva, meta e Liga',
+    corpo: [
+      'Registrar os rolas ajuda você a entender seu jogo. A ofensiva reconhece as semanas em que você treinou: um treino entre segunda e domingo mantém a sequência.',
+      'A meta é a frequência que você escolheu. Com meta de três treinos e um realizado, a ofensiva está mantida e a meta ainda está em andamento.',
+      'A cada quatro semanas com treino na sequência você ganha um escudo. Ele protege uma semana sem somar semanas. Lesões que impedem treinar pausam a sequência sem gastar escudos.',
+      'A Liga é um complemento: os pontos de treinos e estudos seguem suas regras, e a entrada continua automática para quem participa. O XP não substitui o treino na ofensiva nem determina os graus das técnicas.',
+    ],
+  },
+  {
     icone: NotebookPen,
     titulo: 'Registrar um treino leva um minuto',
     corpo: [

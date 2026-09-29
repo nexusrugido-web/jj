@@ -202,7 +202,7 @@ export default function AmigosPagina() {
                 <Avatar nome={a.nome} foto={a.foto} className="liga-avatar" />
                 <span className="tiny liga-nome">{a.nome}</span>
                 {a.sequencia > 0 && (
-                  <span className="micro num row" style={{ gap: 3, color: 'var(--roar)' }} title="dias de ofensiva">
+                  <span className="micro num row" style={{ gap: 3, color: 'var(--roar)' }} title="semanas de ofensiva">
                     <Flame size={12} /> {a.sequencia}
                   </span>
                 )}

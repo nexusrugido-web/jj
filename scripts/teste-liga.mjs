@@ -71,6 +71,8 @@ ok('Estadual com 90 de 120: falta 30, 75%, em 1º num grupo que vale', [p1.proxi
 const p2 = progressoPraSubir({ divisao: 'branca', xp: 100, posicao: 2, total: 2 });
 ok('Academia com 100: pontos ok, mas em 2º e grupo de 2', [p2.pontosOk, p2.lugarOk, p2.grupoOk, p2.pct], [true, false, false, 100]);
 ok('no Mundial não tem pra onde subir', progressoPraSubir({ divisao: 'preta', xp: 500 }).topo, true);
+ok('2º em grupo de 6 está entre os classificados', progressoPraSubir({ divisao: 'branca', xp: 100, posicao: 2, total: 6 }).lugarOk, true);
+ok('corte configurado é respeitado pela barra', progressoPraSubir({ divisao: 'branca', xp: 100, posicao: 2, total: 6, corte: 1 }).lugarOk, false);
 ok('escudos: 2 até o Estadual, 3 do Nacional pra cima', ['branca', 'azul', 'roxa', 'preta', undefined].map(escudosDaDivisao), [2, 2, 3, 3, 2]);
 ok('Nacional: moldura, selo e o escudo extra', beneficiosDa('roxa'), ['Moldura verde na sua foto, na liga e no perfil', 'Selo "Divisão Nacional" na figurinha do story', 'Ofensiva com 3 escudos em vez de 2']);
 ok('Mundial tem a coroa', beneficiosDa('preta').some((b) => b.includes('coroa')), true);

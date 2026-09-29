@@ -131,7 +131,7 @@ export function Privacidade({ onVoltar }) {
           A liga. Quando você registra um treino na semana, entra num grupo pequeno de praticantes, e quem
           está no seu grupo vê: o seu primeiro nome com a inicial do sobrenome (ou o apelido que escolher, ou
           só "Anônimo"), a sua foto, se você colocar uma (no modo Anônimo ela não aparece), a sua faixa, a sua divisão na liga, quantas vezes por semana você disse que treina,
-          a sua ofensiva (quantos dias seguidos você aparece no app) e os pontos que fez na semana. Nada do que
+          a sua ofensiva (sequência de semanas com treino, preservada por pausas e escudos) e os pontos que fez na semana. Nada do que
           você registrou nos treinos. Dá pra escolher como aparecer e sair da liga quando quiser, na tela Liga; a
           saída vale a partir da
           semana seguinte.

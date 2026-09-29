@@ -13,7 +13,7 @@ import RankingOfensivas from '../components/RankingOfensivas';
 import ListaResumida from '../components/ListaResumida';
 import { EVENTOS } from '../lib/xp';
 import { DIVISOES_LIGA, MINIMO_PRA_SUBIR, MINIMO_DO_GRUPO, nomeDivisao } from '../lib/liga';
-import { ofensiva, MAX_ESCUDOS, DIAS_POR_ESCUDO } from '../lib/ofensiva';
+import { MAX_ESCUDOS, SEMANAS_POR_ESCUDO } from '../lib/ofensivaSemanal';
 import { relativo, fmtData } from '../lib/utils';
 
 /* ============================================================
@@ -174,7 +174,7 @@ function ComoFunciona({ aberto, onClose }) {
             conteudo: (
               <Passos itens={[
                 'A semana vai de segunda a domingo e fecha na segunda ao meio-dia, no horário de Brasília.',
-                'Quem termina em 1º, com o mínimo de pontos da divisão, sobe. Quem termina em último desce.',
+                'Os classificados no topo sobem ao atingir o mínimo de pontos da divisão. Os últimos podem descer; a quantidade depende do tamanho do grupo.',
                 'O resultado aparece na Liga: em que lugar você ficou, se subiu, e o pódio do grupo.',
                 'Na mesma hora começa a semana nova, com os pontos zerados e um grupo novo.',
                 'Quem entrou fica até domingo: dá pra sair, mas só vale na semana seguinte.',
@@ -182,7 +182,7 @@ function ComoFunciona({ aberto, onClose }) {
             ),
           },
           {
-            id: 'subir', icone: TrendingUp, titulo: 'Como subir de divisão', resumo: 'Terminar em 1º e fazer o mínimo de pontos',
+            id: 'subir', icone: TrendingUp, titulo: 'Como subir de divisão', resumo: 'Ficar entre os classificados e fazer o mínimo de pontos',
             conteudo: (
               <>
                 <Passos itens={[
@@ -246,15 +246,15 @@ function ComoFunciona({ aberto, onClose }) {
             conteudo: <p>Cada coisa tem um teto diário. Maratonar vídeo não vale mais que ir treinar, porque o que faz você melhorar é o tatame.</p>,
           },
           {
-            id: 'ofensiva', icone: Flame, titulo: 'A ofensiva', resumo: 'Dias seguidos aparecendo, não de tatame',
+            id: 'ofensiva', icone: Flame, titulo: 'A ofensiva semanal', resumo: 'Um treino na semana mantém sua sequência',
             conteudo: (
               <>
                 <Passos itens={[
-                  'Qualquer coisa que dê ponto fecha o dia: uma aula rápida de trinta segundos, uma pergunta do quiz, o treino registrado.',
-                  'Treino paga os dois dias seguintes, porque recuperação faz parte. Quem treina 3x por semana não perde a ofensiva sem estudar.',
-                  `A cada ${DIAS_POR_ESCUDO} dias seguidos você ganha um escudo, até ${MAX_ESCUDOS}. Ele é gasto sozinho no dia em que você não aparecer.`,
+                  'Um treino realizado entre segunda e domingo mantém a ofensiva, usando o horário de Brasília e a data real do treino.',
+                  'Sua meta mede a frequência que você escolheu. Estudar continua valendo XP; a ofensiva acompanha o tatame.',
+                  `A cada ${SEMANAS_POR_ESCUDO} semanas com treino na sequência você ganha um escudo, até ${MAX_ESCUDOS}; do Nacional em diante, até 3. Ele protege uma semana encerrada sem treino.`,
                 ]} />
-                <p>Quem está em {DIAS_POR_ESCUDO - 1} dias e some perde tudo. Quem passou dos {DIAS_POR_ESCUDO} tem um escudo pra voltar.</p>
+                <p>Escudos e pausas por lesão preservam a sequência sem somar semanas. Lesões que impedem treinar não gastam escudos nem exigem estudo. A semana atual fica aberta até domingo.</p>
               </>
             ),
           },

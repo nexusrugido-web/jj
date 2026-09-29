@@ -269,7 +269,7 @@ export default function Ajustes() {
       {/* ---------- como usar ---------- */}
       <Sheet aberto={aberto === 'comousar'} onClose={fechar} titulo="Como usar">
         <p className="tiny muted" style={{ lineHeight: 1.65 }}>
-          Um passo a passo curto: como registrar treino, o que são os graus das técnicas, por que atacar e defender
+          Um passo a passo curto: como registrar treino, como funcionam ofensiva semanal, metas e Liga, o que são os graus das técnicas, por que atacar e defender
           ficam separados e onde os seus dados ficam.
         </p>
         <div className="row wrap" style={{ gap: 8 }}>
@@ -614,8 +614,8 @@ function Notificacoes({ sessao }) {
   return (
     <>
       <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        No máximo um por dia, na hora em que você costuma usar o app. Avisam quando a ofensiva está pra cair,
-        quando a liga fecha, e o resultado dela na segunda.
+        A ofensiva avisa no domingo se a semana ainda não tem treino e não está pausada por lesão.
+        Você também pode receber avisos da Liga e do resultado na segunda.
       </p>
 
       {!sessao ? (
