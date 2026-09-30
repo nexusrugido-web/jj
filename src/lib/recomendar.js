@@ -2,6 +2,7 @@ import { grauPorN, requisitosDaFaixa, posicoesSofridas, NOME_POSICAO_SOFRIDA, TI
 import { placarDaRola } from './game';
 import { ultimosDias } from './periodo';
 import { faixaDeConteudo } from './faixas';
+import { fmtData } from './utils';
 
 /* ============================================================
    RECOMENDAÇÕES POR INTENÇÃO
@@ -153,6 +154,27 @@ function falar(intencao, faixa, dados) {
   return saida;
 }
 
+/* O último retorno explícito da aula vale mais que uma dificuldade antiga.
+   Sem resposta não apaga a anterior; "peguei" indica que já conseguiu fazer. */
+export function tecnicaParaRevisar(sessions = [], periodo = ultimosDias(30)) {
+  const ultimas = new Map();
+  const recentes = [...sessions]
+    .filter((s) => s.data >= periodo.ini && s.data <= periodo.fim)
+    .sort((a, b) => b.data.localeCompare(a.data)
+      || (Number(b.criadoEm) || 0) - (Number(a.criadoEm) || 0)
+      || (Number(b.id) || 0) - (Number(a.id) || 0));
+  for (const s of recentes) {
+    for (const f of s.focoTecnicas || []) {
+      if (!f.nome || !['peguei', 'meio', 'nao'].includes(f.aprendizado) || ultimas.has(f.nome)) continue;
+      ultimas.set(f.nome, { nome: f.nome, aprendizado: f.aprendizado, data: s.data });
+    }
+  }
+  return [...ultimas.values()]
+    .filter((f) => f.aprendizado !== 'peguei')
+    .sort((a, b) => (a.aprendizado === 'nao' ? -1 : 1) - (b.aprendizado === 'nao' ? -1 : 1)
+      || b.data.localeCompare(a.data))[0] || null;
+}
+
 /* ============================================================
    O MOTOR
    ============================================================ */
@@ -198,6 +220,20 @@ export function gerarRecomendacoes({
         ondeTxt: buracoQuente.inicioComum ? ', quase sempre em rola que começou na mesma posição' : '',
       }),
       evidencia: `${buracoQuente.vezes} vezes sofrida, ${buracoQuente.recente} no último mês`,
+    });
+  }
+
+  const revisarAula = tecnicaParaRevisar(sessions);
+  if (revisarAula) {
+    const nao = revisarAula.aprendizado === 'nao';
+    out.push({
+      intencao: 'aprender',
+      alvo: revisarAula.nome,
+      titulo: `Rever ${revisarAula.nome}`,
+      texto: nao
+        ? `Você marcou "Não peguei" na aula. Revise a explicação e tente de novo com o professor antes de levar ao rola.`
+        : `Você marcou "Mais ou menos" na aula. Reveja os passos e repita no drill até o movimento sair com clareza.`,
+      evidencia: `${nao ? 'Não peguei' : 'Mais ou menos'} em ${fmtData(revisarAula.data)}`,
     });
   }
 

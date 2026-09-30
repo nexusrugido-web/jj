@@ -1,0 +1,59 @@
+.foco-nome { overflow-wrap: anywhere; }
+
+.foco-aprendizado {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.foco-aprendizado-opcao {
+  min-width: 0;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px;
+  border: 2px solid var(--seam-hi);
+  border-radius: 12px;
+  background: var(--mat-hi);
+  color: var(--dim);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  transition: background .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease;
+}
+
+.foco-aprendizado-opcao.selecionada {
+  color: var(--chalk);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cor-aprendizado) 32%, transparent);
+  border-color: var(--cor-aprendizado);
+  background: color-mix(in srgb, var(--cor-aprendizado) 22%, var(--mat-hi));
+}
+
+.foco-aprendizado-opcao.jade { --cor-aprendizado: var(--jade); }
+.foco-aprendizado-opcao.roar { --cor-aprendizado: var(--roar); }
+.foco-aprendizado-opcao.blood { --cor-aprendizado: var(--blood); }
+.foco-aprendizado-opcao.selecionada svg { color: var(--cor-aprendizado); flex: none; }
+.foco-aprendizado-opcao:focus-visible { outline: 2px solid var(--chalk); outline-offset: 3px; }
+
+.foco-aprendizado-retorno {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 9px;
+  color: var(--dim);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.foco-aprendizado-retorno span { flex: 1; }
+.foco-aprendizado-retorno button {
+  flex: none;
+  color: var(--chalk);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

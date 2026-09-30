@@ -8,6 +8,7 @@ import { buscaMatch } from '../lib/utils';
 import { avaliarTecnica } from '../lib/regras';
 import { casaApelido } from '../db/sinonimos';
 import { autopreencherTecnica } from '../lib/ai';
+import './Aprendizado.css';
 
 /* ============================================================
    SELETOR DE TÉCNICAS
@@ -257,9 +258,9 @@ export function SeletorTecnica({
    APRENDIZADO, como foi a técnica na aula
    ============================================================ */
 export const APRENDIZADO = [
-  { id: 'peguei', nome: 'Peguei', cor: 'jade', desc: 'Entendi e saiu no drill' },
-  { id: 'meio', nome: 'Mais ou menos', cor: 'roar', desc: 'Entendi a ideia, não sai limpo' },
-  { id: 'nao', nome: 'Não peguei', cor: 'blood', desc: 'Passou por cima da cabeça' },
+  { id: 'peguei', nome: 'Peguei', cor: 'jade', desc: 'Entendi e consegui fazer no drill.' },
+  { id: 'meio', nome: 'Mais ou menos', cor: 'roar', desc: 'Entendi a ideia, mas preciso repetir. Isso ajuda o app a sugerir uma revisão.' },
+  { id: 'nao', nome: 'Não peguei', cor: 'blood', desc: 'Ainda não entendi. Isso ajuda o app a sugerir revisão e não conta como movimento conhecido.' },
 ];
 
 export function ListaFoco({ itens, onChange, onAbrirSeletor }) {
@@ -270,23 +271,31 @@ export function ListaFoco({ itens, onChange, onAbrirSeletor }) {
       {itens.map((f, i) => (
         <div key={i} className="foco-item">
           <div className="row" style={{ gap: 8 }}>
-            <span className="tiny" style={{ flex: 1, fontWeight: 600, minWidth: 0 }}>{f.nome}</span>
-            <button className="btn ghost icon sm" onClick={() => onChange(itens.filter((_, j) => j !== i))} aria-label="Tirar">
+            <span className="tiny foco-nome" style={{ flex: 1, fontWeight: 600, minWidth: 0 }}>{f.nome}</span>
+            <button className="btn ghost icon sm" type="button" onClick={() => onChange(itens.filter((_, j) => j !== i))} aria-label={`Tirar ${f.nome}`}>
               <X size={13} />
             </button>
           </div>
-          <div className="row wrap" style={{ gap: 5, marginTop: 8 }}>
+          <div className="foco-aprendizado" role="group" aria-label={`Como foi ${f.nome} na aula`}>
             {APRENDIZADO.map((a) => (
               <button
                 key={a.id}
                 type="button"
-                className={`chip ${f.aprendizado === a.id ? a.cor : ''}`}
-                onClick={() => set(i, { aprendizado: f.aprendizado === a.id ? null : a.id })}
+                className={`foco-aprendizado-opcao ${f.aprendizado === a.id ? `selecionada ${a.cor}` : ''}`}
+                aria-pressed={f.aprendizado === a.id}
+                onClick={() => set(i, { aprendizado: a.id })}
               >
-                {a.nome}
+                {f.aprendizado === a.id && <Check size={14} strokeWidth={3} aria-hidden="true" />}
+                <span>{a.nome}</span>
               </button>
             ))}
           </div>
+          {f.aprendizado && (
+            <div className="foco-aprendizado-retorno" role="status">
+              <span>{APRENDIZADO.find((a) => a.id === f.aprendizado)?.desc}</span>
+              <button type="button" onClick={() => set(i, { aprendizado: null })}>Limpar</button>
+            </div>
+          )}
         </div>
       ))}
 

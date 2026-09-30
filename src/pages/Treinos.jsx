@@ -1651,7 +1651,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
         </div>
       )}
 
-      <Field label={forma.tecnicas} hint="Escolha da biblioteca e marque se pegou. Isso alimenta metas, planos e domínio.">
+      <Field label={forma.tecnicas} hint="Escolha uma técnica e marque como foi na aula. O registro aparece no seu histórico; dificuldades também orientam o que revisar em Estudo.">
         <ListaFoco
           itens={s.focoTecnicas || []}
           onChange={(v) => set('focoTecnicas', v)}
