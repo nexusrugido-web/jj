@@ -495,7 +495,7 @@ export function EscolhaChips({ valor, onChange, opcoes, permiteLimpar = true }) 
 export function ParceiroRapido({ valor, partners = [], onEscolher }) {
   const [criando, setCriando] = React.useState(false);
   const [nome, setNome] = React.useState('');
-  const [faixa, setFaixa] = React.useState('branca');
+  const [faixa, setFaixa] = React.useState('');
   const [salvando, setSalvando] = React.useState(false);
   const toast = useToast();
 
@@ -507,12 +507,14 @@ export function ParceiroRapido({ valor, partners = [], onEscolher }) {
       const { db } = await import('../db/db');
       const existe = partners.find((p) => p.nome.toLowerCase() === n.toLowerCase());
       const id = existe ? existe.id : await db.partners.add({
-        nome: n, faixa, graus: 0, academiaId: null, pesoKg: null,
+        nome: n, faixa: faixa || null, graus: 0, academiaId: null, pesoKg: null,
         notas: '', criadoEm: Date.now(),
       });
       onEscolher(Number(id));
-      setCriando(false); setNome(''); setFaixa('branca');
+      setCriando(false); setNome(''); setFaixa('');
       if (!existe) toast(`${n} adicionado`);
+    } catch {
+      toast('Não consegui cadastrar o parceiro. Tente de novo.', 'err');
     } finally {
       setSalvando(false);
     }
@@ -520,7 +522,8 @@ export function ParceiroRapido({ valor, partners = [], onEscolher }) {
 
   if (criando) {
     return (
-      <div className="col" style={{ gap: 9 }}>
+      <div className="parceiro-rapido-form">
+        <div className="tiny" style={{ fontWeight: 700 }}>Novo parceiro</div>
         <Input
           value={nome}
           onChange={(e) => setNome(e.target.value)}
@@ -528,14 +531,15 @@ export function ParceiroRapido({ valor, partners = [], onEscolher }) {
           autoFocus
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); criar(); } }}
         />
+        <div className="micro muted">Faixa dele, se você souber</div>
         <div className="row wrap" style={{ gap: 6 }}>
-          {['branca', 'azul', 'roxa', 'marrom', 'preta'].map((f) => (
+          {['', 'branca', 'azul', 'roxa', 'marrom', 'preta'].map((f) => (
             <button
-              key={f} type="button"
+              key={f || 'desconhecida'} type="button"
               className={`chip ${faixa === f ? 'on' : ''}`}
-              style={{ minHeight: 36, textTransform: 'capitalize' }}
+              style={{ minHeight: 36, textTransform: f ? 'capitalize' : 'none' }}
               onClick={() => setFaixa(f)}
-            >{f}</button>
+            >{f || 'Não sei'}</button>
           ))}
         </div>
         <div className="row" style={{ gap: 8 }}>
@@ -559,12 +563,16 @@ export function ParceiroRapido({ valor, partners = [], onEscolher }) {
         >
           <option value="">Escolher parceiro</option>
           {partners.map((p) => (
-            <option key={p.id} value={p.id}>{p.nome} ({p.faixa})</option>
+            <option key={p.id} value={p.id}>{p.nome}{p.faixa ? ` (${p.faixa})` : ''}</option>
           ))}
         </Select>
       )}
-      <button type="button" className="btn ghost sm" onClick={() => setCriando(true)} style={{ alignSelf: 'flex-start' }}>
-        <Plus size={13} /> {partners.length ? 'Novo parceiro' : 'Adicionar quem rolou com você'}
+      <button type="button" className="parceiro-rapido-adicionar" onClick={() => setCriando(true)}>
+        <span className="parceiro-rapido-mais"><Plus size={16} /></span>
+        <span className="parceiro-rapido-texto">
+          <strong>{partners.length ? 'Novo parceiro' : 'Adicionar parceiro'}</strong>
+          <small>Nome e faixa; o resto pode ficar para depois</small>
+        </span>
       </button>
     </div>
   );

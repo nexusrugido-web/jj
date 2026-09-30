@@ -51,7 +51,7 @@ export const posInicialPorId = Object.fromEntries(POSICOES_INICIAIS.map((p) => [
 export const PESO_REL = [
   { id: 'leve',    nome: 'Mais leve que eu', peso: 0.85, icone: '↓' },
   { id: 'similar', nome: 'Peso parecido',    peso: 1.0,  icone: '=' },
-  { id: 'pesado',  nome: 'Mais pesado que eu', peso: 1.25, icone: '↑' },
+  { id: 'pesado',  nome: 'Mais pesado que eu', peso: 1.2,  icone: '↑' },
 ];
 
 export const pesoRelPorId = Object.fromEntries(PESO_REL.map((p) => [p.id, p]));

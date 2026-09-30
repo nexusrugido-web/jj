@@ -41,6 +41,9 @@ const rolls = [
   { sessionId: 1, contexto: 'drill', ptsMeus: ['montada'] },
 ];
 ok('Meu jogo conta as mesmas lutas do Painel', analisarJogo(rolls, [], sessions).rolas, resumo(sessions, rolls).rolas);
+ok('parceiro sem faixa conhecida não entra como faixa branca na análise',
+  analisarJogo([{ sessionId: 1, contexto: 'rola', partnerId: 7, ptsMeus: ['montada'] }],
+    [{ id: 7, faixa: null }], sessions).porFaixa, []);
 
 /* ---------- título de meta sem código interno ---------- */
 ok('meta de posição mostra o nome da posição', tituloDaMeta({ tipo: 'posicao', alvo: 'guarda_fechada_baixo' }), 'Trabalhar Guarda fechada (por baixo)');

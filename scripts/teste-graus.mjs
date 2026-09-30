@@ -58,6 +58,9 @@ ok('4 usos contra roxa já valem o 2º grau', grau(Array.from({ length: 4 }, () 
 ok('4 usos contra branca ainda não', grau(Array.from({ length: 4 }, () => uso(0, 1, 'branca'))), 1);
 ok('parceiro sem faixa marcada vale como a sua (azul não perde peso)',
   calcularAtaque(Array.from({ length: 7 }, () => uso(0, null, null)), 'azul').grau, 2);
+ok('peso do parceiro muda o volume arredondado sem criar usos extras',
+  ['leve', 'similar', 'pesado'].map((peso) => calcularAtaque([uso(0, 1, 'branca', peso)]).volume),
+  [0.9, 1, 1.2]);
 
 /* ---------- o grau conquistado não volta ---------- */
 const antes = (dia, pid) => ({ data: addDias(REGRA_NOVA_DESDE, -60 + dia), partnerId: pid, faixaParceiro: 'branca', contexto: 'rola' });

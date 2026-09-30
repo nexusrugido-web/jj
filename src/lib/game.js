@@ -86,7 +86,7 @@ const DICA_DO_QUE_CEDE = {
 
 /* ---------- resumo geral do jogo ---------- */
 export function analisarJogo(rolls, partners, sessions, faixaUsuario = 'branca') {
-  const faixaDe = new Map(partners.map((p) => [p.id, p.faixa || 'branca']));
+  const faixaDe = new Map(partners.map((p) => [p.id, p.faixa || null]));
   const minhaOrdem = FAIXA_ORDEM[faixaUsuario] ?? 0;
 
   /* Um rola 0x0 TAMBÉM é dado: significa que ninguém pontuou.
@@ -143,8 +143,8 @@ export function analisarJogo(rolls, partners, sessions, faixaUsuario = 'branca')
     for (const [ponto, nomes] of Object.entries(r.tecMeus || {})) contaTec(tecMeu, ponto, nomes);
     for (const [ponto, nomes] of Object.entries(r.tecDele || {})) contaTec(tecDele, ponto, nomes);
 
-    const faixa = faixaDe.get(r.partnerId) || 'branca';
-    acumula(porFaixa, faixa, p);
+    const faixa = faixaDe.get(r.partnerId);
+    if (faixa) acumula(porFaixa, faixa, p);
 
     if (r.pesoRel) acumula(porPeso, r.pesoRel, p);
     if (r.posInicial) acumula(porPosicao, r.posInicial, p);

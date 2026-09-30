@@ -40,7 +40,7 @@ export default function Parceiros() {
 }
 
 /* ================= PARCEIROS ================= */
-const vazioP = () => ({ nome: '', faixa: 'branca', graus: 0, pesoKg: '', estilo: '', notas: '', academiaId: null });
+const vazioP = () => ({ nome: '', faixa: '', graus: 0, pesoKg: '', estilo: '', notas: '', academiaId: null });
 
 /* também abre por cima do registro do treino, quando ainda não há parceiro */
 export function AbaParceiros() {
@@ -93,7 +93,7 @@ export function AbaParceiros() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 16, letterSpacing: '-0.02em' }} className="truncate">{p.nome}</div>
                   <div className="row" style={{ gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-                    <BeltTag faixa={p.faixa} graus={p.graus} />
+                    {p.faixa ? <BeltTag faixa={p.faixa} graus={p.graus} /> : <Chip>faixa não informada</Chip>}
                     {p.pesoKg && <Chip>{p.pesoKg} kg</Chip>}
                   </div>
                   {acadById[p.academiaId] && <div className="micro muted" style={{ marginTop: 6 }}>{acadById[p.academiaId].nome}</div>}
@@ -131,7 +131,8 @@ export function AbaParceiros() {
             <Field label="Nome"><Input value={edit.nome} onChange={(e) => setEdit({ ...edit, nome: e.target.value })} /></Field>
             <div className="grid g3" style={{ gap: 12 }}>
               <Field label="Faixa">
-                <Select value={edit.faixa} onChange={(e) => setEdit({ ...edit, faixa: e.target.value })}>
+                <Select value={edit.faixa || ''} onChange={(e) => setEdit({ ...edit, faixa: e.target.value })}>
+                  <option value="">Não sei / não informada</option>
                   {FAIXAS.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
                 </Select>
               </Field>

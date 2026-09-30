@@ -1,7 +1,7 @@
 import { FAIXA_ORDEM, hoje, diasEntre, addDias } from './utils';
 import { periodoDeDados, dentroDoPeriodo } from './periodo';
 import { SEED } from '../db/seed';
-import { pontosPorId } from '../db/scoring';
+import { pontosPorId, PESO_REL } from '../db/scoring';
 
 /* ============================================================
    GRAUS POR TÉCNICA
@@ -32,7 +32,7 @@ export const contextoPorId = (id) => CONTEXTOS.find((c) => c.id === id) || CONTE
    contra quem é mais pesado também. */
 const PESO_FAIXA = { branca: 1.0, azul: 1.35, roxa: 1.7, marrom: 2.1, preta: 2.6 };
 const pesoDaFaixa = (faixa) => PESO_FAIXA[faixa] || (1 + 0.35 * (FAIXA_ORDEM[faixa] || 0));
-const PESO_CORPO = { leve: 0.85, similar: 1.0, pesado: 1.2 };
+const PESO_CORPO = Object.fromEntries(PESO_REL.map((p) => [p.id, p.peso]));
 
 /* ---------- os quatro graus ---------- */
 export const GRAUS = [
@@ -312,7 +312,7 @@ export function calcularDefesa(sofridas, faixaUsuario = 'branca') {
   let deAcima = 0;
 
   for (const s of sofridas) {
-    const f = s.faixaParceiro || 'branca';
+    const f = s.faixaParceiro || 'não informada';
     porFaixa[f] = (porFaixa[f] || 0) + 1;
     if ((FAIXA_ORDEM[f] ?? 0) > minhaOrdem) deAcima++;
     if (s.posInicial) posicoes.set(s.posInicial, (posicoes.get(s.posInicial) || 0) + 1);

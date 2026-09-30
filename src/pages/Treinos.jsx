@@ -3,7 +3,7 @@ import { lazy } from '../lib/lazy';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Plus, Trash2, Pencil, NotebookPen, Timer, ChevronDown, ChevronRight, Copy, Check,
-  MessageSquare, Building2, GraduationCap, Trophy, Weight, Mic, Users, History, ShieldAlert,
+  MessageSquare, Building2, GraduationCap, Trophy, Weight, Mic, Users, History, ShieldAlert, CircleHelp,
 } from 'lucide-react';
 import { useApp } from '../contexto';
 import { db } from '../db/db';
@@ -16,7 +16,7 @@ import { darXp, checarConsistencia } from '../lib/xp';
 import { SeletorTecnica, ListaFoco, APRENDIZADO } from '../components/SeletorTecnica';
 import {
   Card, Btn, Field, Input, NumeroInput, EscolherData, Textarea, Select, Sheet, Chip, Stepper,
-  Empty, Confirmar, useToast, SubsInput, Busca, PontosInput, EscolhaChips, ParceiroRapido, Seg, Diamante,
+  Empty, Confirmar, useToast, SubsInput, Busca, PontosInput, ParceiroRapido, Seg, Diamante,
 } from '../components/UI';
 import Calendario from '../components/Calendario';
 import ResumoDoTipo, { PodioCategoria } from '../components/ResumoDoTipo';
@@ -29,6 +29,7 @@ import AntesDeCompetir from '../components/AntesDeCompetir';
 import { padraoDoTipo } from '../lib/padraoTreino';
 import { avaliarTecnica, idadeDe, modalidadeDoTreino, FONTE_DA_REGRA } from '../lib/regras';
 import { divisaoDaIdade } from '../lib/idade';
+import '../styles/treino-rola.css';
 import {
   ORGANIZACOES, DIVISOES, CATEGORIAS_PESO, resultadoPorId, ehPodio,
   competicaoVazia, EU, resultadoDoPodio, podioComEu, atletasDaChave,
@@ -63,7 +64,7 @@ const FORMA = {
   competicao: { aula: null, rolas: 'sempre', lutas: true },
 };
 const formaDe = (tipo) => FORMA[tipo] || FORMA.gi;
-/* rola com alguma coisa dentro: o vazio que nasce com o treino novo não conta */
+/* Luta de competição em rascunho só conta depois de receber algum dado. */
 const rolaTemDado = (r) => !!(r.partnerId || String(r.adversario || '').trim() || (r.ptsMeus || []).length || (r.ptsDele || []).length
   || (r.subsAplicadas || []).length || (r.subsSofridas || []).length || String(r.notas || '').trim());
 
@@ -344,7 +345,7 @@ export default function Treinos() {
     }
 
     setEditando(s2);
-    setRolasEdit(rs.length || ehCompeticao(tipo) ? rs : [novaRola(settings.duracaoRolaPadrao || 5, null, tipo)]);
+    setRolasEdit(rs);
     setTela('hub');
     const quantos = rs.length ? `Montei ${rs.length} ${ehCompeticao(tipo) ? (rs.length === 1 ? 'luta' : 'lutas') : rs.length === 1 ? 'rola' : 'rolas'}. ` : '';
     toast(`${quantos}${criados.length ? `Cadastrei ${criados.join(', ')}. ` : ''}Confira antes de salvar.`);
@@ -355,8 +356,10 @@ export default function Treinos() {
     const tipo = filtroTipo !== 'todos' ? filtroTipo : 'gi';
     const divisao = divisaoDaIdade(idadeDe(settings.anoNascimento));
     setEditando({ ...novaSessao(settings, tipo), ...(ehCompeticao(tipo) ? { competicao: { ...competicaoVazia(), ...(divisao ? { divisao } : {}), andamento: true } } : {}) });
-    /* campeonato começa sem luta: cada uma entra quando acontece */
-    setRolasEdit(ehCompeticao(tipo) ? [] : [novaRolaDoTreino(minutosDaRola || settings.duracaoRolaPadrao || 5)]);
+    /* Um treino novo começa sem rola. O cronômetro é a exceção:
+       quem tocou em registrar o tempo pediu explicitamente um rola. */
+    setRolasEdit(minutosDaRola && !ehCompeticao(tipo)
+      ? [novaRola(minutosDaRola, null, tipo)] : []);
     setTela(ehCompeticao(tipo) ? 'campeonato' : 'hub');
   }
 
@@ -432,8 +435,9 @@ export default function Treinos() {
       } else {
         id = await db.sessions.add({ ...s, criadoEm: Date.now() });
       }
-      /* drill e aula particular: o rola vazio que nasce com o treino não é gravado */
-      const paraGravar = formaDe(s.tipo).rolas === 'sempre' && !ehCompeticao(s.tipo) ? rolasDoTreino : rolasDoTreino.filter(rolaTemDado);
+      /* Rola de treino so existe depois do toque em Adicionar rola.
+         0x0 tambem vale; luta de competicao ainda descarta rascunho vazio. */
+      const paraGravar = ehCompeticao(s.tipo) ? rolasDoTreino.filter(rolaTemDado) : rolasDoTreino;
       for (const r of paraGravar) {
         const { id: _drop, uid: _u, updatedAt: _up, ...rest } = r;
         const pos = posicoesImplicadas(r, positions);
@@ -1310,6 +1314,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
   const [rolaAberta, setRolaAberta] = useState(rolas.length ? 0 : null);
   const [seletor, setSeletor] = useState(null);
   const [parceirosAberto, setParceirosAberto] = useState(false);
+  const [ajudaPesoAberta, setAjudaPesoAberta] = useState(false);
   const [antesDeCompetir, setAntesDeCompetir] = useState(false);
 
   const profsDaAcademia = useMemo(
@@ -1356,9 +1361,26 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
                         {!partners.length && <p className="micro muted">Escreva o nome e pronto. Academia e professor ficam pra depois.</p>}
                       </>
                     )}
-                    <Field label="Peso dele em relação a você" hint="Encaixar em alguém mais pesado é mais difícil, e o app leva isso em conta.">
-                      <EscolhaChips valor={r.pesoRel} onChange={(v) => setRola(i, { pesoRel: v })} opcoes={PESO_REL} />
-                    </Field>
+                    <div className="rola-peso">
+                      <div className="rola-peso-cabecalho">
+                        <span className="label">Peso dele em relação a você</span>
+                        <button type="button" className="rola-peso-ajuda" aria-label="Entender como faixa e peso entram na evolução"
+                          onClick={() => setAjudaPesoAberta(true)}><CircleHelp size={16} /> Entenda</button>
+                      </div>
+                      <div className="rola-peso-opcoes" role="group" aria-label="Peso do parceiro em relação a você">
+                        {PESO_REL.map((opcao) => (
+                          <button type="button" key={opcao.id}
+                            className={`rola-peso-opcao ${r.pesoRel === opcao.id ? 'selecionada' : ''}`}
+                            aria-pressed={r.pesoRel === opcao.id}
+                            onClick={() => setRola(i, { pesoRel: r.pesoRel === opcao.id ? null : opcao.id })}>
+                            <span className="rola-peso-icone" aria-hidden="true">{opcao.icone}</span>
+                            <span>{opcao.nome}</span>
+                            {r.pesoRel === opcao.id && <Check size={15} className="rola-peso-check" />}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="micro muted">Não sabe ou não lembra? Deixe sem marcar.</p>
+                    </div>
                   </div>
 
                   <div className="grid g2" style={{ gap: 10 }}>
@@ -1535,6 +1557,15 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
             </Suspense>
           )}
         </Sheet>
+        <Sheet aberto={ajudaPesoAberta} onClose={() => setAjudaPesoAberta(false)} titulo="Por que perguntar faixa e peso?">
+          <div className="col" style={{ gap: 12, lineHeight: 1.6 }}>
+            <p className="tiny">O app usa esses dados como contexto do rola, não como medida oficial da sua habilidade.</p>
+            <p className="tiny muted">Uma técnica que você aplicou contra resistência conta para a evolução dela. Faixa mais graduada e parceiro mais pesado dão mais peso a esse registro; alguém mais leve dá menos. Para os graus altos, também contam pessoas diferentes e constância ao longo das semanas.</p>
+            <p className="tiny muted">Derrotas e dificuldades alimentam a análise do jogo e podem orientar recomendações. Inventar uma faixa, peso ou técnica aplicada pode fazer o app mostrar um grau ou conselho que não combina com o seu jogo real.</p>
+            <p className="tiny" style={{ color: 'var(--jade)' }}>Não precisa acertar tudo: deixe em branco o que não souber. Registre o que aconteceu de verdade.</p>
+            <Btn variant="primary" onClick={() => setAjudaPesoAberta(false)}>Entendi</Btn>
+          </div>
+        </Sheet>
     </>
   );
 
@@ -1696,7 +1727,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
           </p>
         </div>
         <span className="spacer" />
-        <Btn size="sm" variant="primary" icon={Plus} onClick={addRola}>{forma.lutas ? 'Luta' : 'Rola'}</Btn>
+        <Btn size="sm" variant="primary" icon={Plus} onClick={addRola}>{forma.lutas ? 'Adicionar luta' : 'Adicionar rola'}</Btn>
       </div>
 
       <div className="col" style={{ gap: 9 }}>
@@ -1743,7 +1774,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
           );
         })}
         {rolas.length === 0 && (
-          <p className="tiny muted">Sem rolas ainda. Cada rola registrado alimenta a escada posicional, o cálculo de domínio e as estatísticas.</p>
+          <p className="tiny muted">Nenhum rola adicionado. Se rolou, toque em “Adicionar rola”; se foi só aula, pode salvar o treino assim.</p>
         )}
       </div>
       </>}
