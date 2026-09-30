@@ -158,7 +158,7 @@ export default function TesteAviso({ email }) {
           <div className="tiny" style={{ fontWeight: 700 }}>Metas de {inspecao.email}</div>
           <p className="micro muted" style={{ margin: '6px 0 10px', lineHeight: 1.6 }}>
             {inspecao.aparelhos_elegiveis} de {inspecao.aparelhos} aparelho(s) apto(s) · avisos {inspecao.notificar ? 'ligados' : 'desligados'} · horário de costume {inspecao.hora_local}h ({inspecao.fuso}).
-            Cada prévia usa o mesmo gerador da fila real. O teste ignora horário e limites e não conta como envio automático.
+            Cada prévia usa o mesmo gerador da fila real com os dados de agora; o progresso pode mudar até o envio. O teste ignora horário e limites e não conta como envio automático.
             Na rotina, sai no máximo uma meta por vez e duas por semana, com rodízio entre as metas elegíveis.
           </p>
           {!inspecao.metas?.length && <p className="micro muted">Nenhuma meta ativa e sincronizada nesta conta.</p>}
