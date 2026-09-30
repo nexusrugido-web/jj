@@ -71,7 +71,11 @@ returns jsonb language sql stable security definer set search_path = public as $
       or c.tipo not in ('frequencia','competicao') and extract(isodow from p_hoje) in (2,5)
         and (c.feito is null or c.alvo_num is null or c.feito < c.alvo_num)
     )
-    order by c.ultimo_aviso nulls first, c.id
+    order by case
+      when c.tipo = 'competicao' and c.data_competicao - p_hoje <= 3 then 0
+      when c.tipo = 'frequencia' then 1
+      else 2 end,
+      c.ultimo_aviso nulls first, c.id
     limit 1
   )
   select jsonb_build_object(

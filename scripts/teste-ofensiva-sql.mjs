@@ -70,6 +70,8 @@ assert.match(meta.corpo,/1 de 3 treinos/);
 assert.equal((await pg.query('select public.proxima_meta_para_aviso($1,$2) as valor',[user,'2026-09-22'])).rows[0].valor,null);
 await pg.query('insert into registros(id,user_id,tabela,dados) values($1,$2,$3,$4)',
   [metaManual,user,'goals',JSON.stringify({tipo:'manual',titulo:'Alongar 5x',alvo:5,contador:2,status:'ativa',origem:'confirmada'})]);
+assert.equal((await pg.query('select public.proxima_meta_para_aviso($1,$2) as valor',[user,'2026-09-25'])).rows[0].valor.tipo,
+  `meta:${metaFrequencia}`);
 await pg.query('insert into notificacao_envio(user_id,tipo,dia,enviado_em,respondeu) values($1,$2,$3,now(),false)',
   [user,`meta:${metaFrequencia}`,'2026-09-25']);
 meta=(await pg.query('select public.proxima_meta_para_aviso($1,$2) as valor',[user,'2026-09-29'])).rows[0].valor;
