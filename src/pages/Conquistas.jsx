@@ -17,7 +17,9 @@ import Figurinha from '../components/Figurinha';
 import ListaComHistorico from '../components/ListaComHistorico';
 import { minhasTecnicas, resumoGraus, requisitosDaFaixa, grauPorN } from '../lib/graus';
 import { Ponteira } from '../components/Ponteira';
-import { proximaGraduacao, FAIXAS_ORDEM } from '../lib/milestones';
+import { proximaGraduacao } from '../lib/milestones';
+import { faixasDaIdade, faixaValidaNaIdade, proximaFaixa } from '../lib/faixas';
+import { idadeDe } from '../lib/regras';
 import { hoje, fmtData, relativo, diasEntre, fmtDur } from '../lib/utils';
 import { periodoDeDados, dentroDoPeriodo } from '../lib/periodo';
 
@@ -50,7 +52,7 @@ function figuraDaGraduacao(g, sessions, desde) {
   const ses = sessions.filter((s) => (!desde || s.data >= desde) && s.data <= g.data);
   const minutos = ses.reduce((a, s) => a + (Number(s.duracao) || 0), 0);
   const custou = ses.length ? `depois de ${ses.length} ${ses.length === 1 ? 'treino' : 'treinos'} e ${fmtDur(minutos)} de tatame` : '';
-  const faixa = { cor: FAIXAS.find((f) => f.id === g.faixa)?.cor, graus: g.tipo === 'faixa' ? 0 : Number(g.graus) || 0, preta: g.faixa === 'preta' };
+  const faixa = { cor: FAIXAS.find((f) => f.id === g.faixa)?.cor, centro: FAIXAS.find((f) => f.id === g.faixa)?.centro, graus: g.tipo === 'faixa' ? 0 : Number(g.graus) || 0, preta: g.faixa === 'preta' };
   return g.tipo === 'faixa'
     ? { selo: 'faixa nova', grande: `Faixa ${nome}`, sub: custou, faixa }
     : { selo: 'grau novo', grande: `${g.graus}º grau na ${nome}`, sub: custou, faixa };
@@ -74,7 +76,7 @@ export default function Conquistas() {
 
   const ultimaGrad = graduacoes[0];
   const desde = ultimaGrad?.data || settings.inicioTreino || null;
-  const prox = proximaGraduacao(settings.faixa, settings.graus);
+  const prox = proximaGraduacao(settings.faixa, settings.graus, idadeDe(settings.anoNascimento));
 
   /* estatísticas desde a última graduação */
   const periodo = useMemo(() => {
@@ -92,16 +94,18 @@ export default function Conquistas() {
   }, [desde, sessions, rolls]);
 
   async function salvarGraduacao() {
-    const g = { ...registrar };
+    const { atualizaPerfil, ...g } = registrar;
+    const idadeNaData = idadeDe(settings.anoNascimento, new Date(`${g.data}T12:00:00`));
+    if (!faixaValidaNaIdade(g.faixa, idadeNaData)) return toast('Essa faixa não corresponde à idade na data da graduação.', 'err');
     /* a figurinha conta os treinos desde a graduação anterior: calcula antes de salvar a nova */
     const figura = figuraDaGraduacao(g, sessions, desde);
     await db.gradings.add({ ...g, criadoEm: Date.now() });
-    await salvarSettings({ faixa: g.faixa, graus: g.tipo === 'faixa' ? 0 : g.graus });
+    if (atualizaPerfil) await salvarSettings({ faixa: g.faixa, graus: g.tipo === 'faixa' ? 0 : g.graus });
     setRegistrar(null);
     toast('Parabéns! Graduação registrada 🥋');
     /* graduação sobe a régua das técnicas, de faixa ou de grau: quem vê
        o próximo grau mais longe precisa saber que não perdeu nada */
-    setFaixaNova({ tipo: g.tipo, faixa: g.faixa, graus: g.tipo === 'faixa' ? 0 : Number(g.graus) || 0, antes: settings.faixa, figura });
+    if (atualizaPerfil) setFaixaNova({ tipo: g.tipo, faixa: g.faixa, graus: g.tipo === 'faixa' ? 0 : Number(g.graus) || 0, antes: settings.faixa, figura });
   }
 
   /* a semana de segunda até hoje, pro card da semana. "0 rolas"
@@ -121,9 +125,10 @@ export default function Conquistas() {
           <h1 className="h-page">Conquistas</h1>
         </div>
         <Btn variant="primary" icon={Medal} onClick={() => setRegistrar({
-          data: hoje(), tipo: settings.graus < 4 ? 'grau' : 'faixa',
-          faixa: settings.graus < 4 ? settings.faixa : (FAIXAS_ORDEM[FAIXAS_ORDEM.indexOf(settings.faixa) + 1] || settings.faixa),
+          data: hoje(), tipo: prox.tipo === 'faixa' ? 'faixa' : 'grau',
+          faixa: prox.tipo === 'faixa' ? proximaFaixa(settings.faixa, idadeDe(settings.anoNascimento)) : settings.faixa,
           graus: settings.graus < 4 ? settings.graus + 1 : 0,
+          atualizaPerfil: true,
           /* o padrão do treino, que é quase sempre quem gradua */
           academiaId: settings.academiaPadraoId || null, professorId: settings.professorPadraoId || null,
           professor: '', academia: '', notas: '',
@@ -311,7 +316,7 @@ export default function Conquistas() {
           <>
             <p className="tiny muted">Esse é o único momento que o app comemora de verdade. Merecido.</p>
             <div className="grid g2" style={{ gap: 12 }}>
-              <Field label="Quando foi"><EscolherData valor={registrar.data} titulo="Quando foi a graduação" onChange={(data) => setRegistrar({ ...registrar, data })} /></Field>
+              <Field label="Quando foi"><EscolherData valor={registrar.data} titulo="Quando foi a graduação" onChange={(data) => setRegistrar({ ...registrar, data, atualizaPerfil: data === hoje() })} /></Field>
               <Field label="O que ganhou">
                 <Select value={registrar.tipo} onChange={(e) => setRegistrar({ ...registrar, tipo: e.target.value })}>
                   <option value="grau">Um grau</option>
@@ -321,9 +326,17 @@ export default function Conquistas() {
             </div>
             <Field label="Faixa">
               <Select value={registrar.faixa} onChange={(e) => setRegistrar({ ...registrar, faixa: e.target.value })}>
-                {FAIXAS.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+                {!faixaValidaNaIdade(registrar.faixa, idadeDe(settings.anoNascimento, new Date(`${registrar.data}T12:00:00`))) && (
+                  <option value={registrar.faixa} disabled>Escolha uma faixa válida para a data</option>
+                )}
+                {faixasDaIdade(idadeDe(settings.anoNascimento, new Date(`${registrar.data}T12:00:00`))).map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
               </Select>
             </Field>
+            <button type="button" className={`opcao-meta ${registrar.atualizaPerfil ? 'on' : ''}`}
+              onClick={() => setRegistrar({ ...registrar, atualizaPerfil: !registrar.atualizaPerfil })}>
+              <div className="tiny" style={{ fontWeight: 600 }}>{registrar.atualizaPerfil ? '✓ ' : ''}Esta é minha graduação atual</div>
+              <p className="micro muted" style={{ marginTop: 3 }}>Marque para atualizar a faixa do perfil. Graduações antigas ficam no histórico sem trocar a faixa de hoje.</p>
+            </button>
             {registrar.tipo === 'grau' && (
               <Field label="Qual grau"><Stepper value={registrar.graus} onChange={(v) => setRegistrar({ ...registrar, graus: v })} min={1} max={4} /></Field>
             )}

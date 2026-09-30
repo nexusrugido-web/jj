@@ -1,10 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { TriangleAlert, Check } from 'lucide-react';
 import { taxaPorFaixa, PRESETS, periodoDeDados, primeiroTreino } from '../lib/periodo';
-
-const COR_FAIXA = {
-  branca: '#e8e6e1', azul: '#3b7dd8', roxa: '#7b4fc4', marrom: '#7a4a2b', preta: '#1a1a1a',
-};
+import { FAIXAS, visualDaFaixa } from '../lib/faixas';
 
 export default function TaxaPorFaixa({
   sessions, rolls, partners, minhaFaixa = 'branca',
@@ -77,9 +74,9 @@ export default function TaxaPorFaixa({
         {t.linhas.map((l) => (
           <div key={l.faixa} className="taxa-bloco">
             <div className="row" style={{ gap: 10, alignItems: 'center' }}>
-              <span className="taxa-faixa-cor" style={{ background: COR_FAIXA[l.faixa], border: l.faixa === 'preta' ? '1px solid #4a5250' : 'none' }} />
+              <span className="taxa-faixa-cor" style={{ background: visualDaFaixa(l.faixa), border: l.faixa === 'preta' ? '1px solid #4a5250' : 'none' }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="tiny" style={{ fontWeight: 800, textTransform: 'capitalize' }}>{l.faixa}</div>
+                <div className="tiny" style={{ fontWeight: 800, textTransform: 'capitalize' }}>{FAIXAS.find((f) => f.id === l.faixa)?.nome || l.faixa}</div>
                 <div className="micro" style={{ color: l.acima ? 'var(--roar)' : 'var(--dim)', fontWeight: 600 }}>
                   {l.acima ? 'acima de você' : l.igual ? 'sua faixa' : 'abaixo de você'}
                 </div>

@@ -135,11 +135,15 @@ function linhas(ctx, texto, largura, max) {
 /* A faixa desenhada, pra graduação: a cor da faixa, a ponteira
    preta (vermelha na preta) e um risco branco por grau. */
 const ALTURA_FAIXA = 116;
-function desenharFaixa(ctx, x, y, largura, { cor: corFaixa, graus = 0, preta = false }) {
+function desenharFaixa(ctx, x, y, largura, { cor: corFaixa, centro, graus = 0, preta = false }) {
   ctx.save();
   ctx.beginPath(); ctx.roundRect(x, y, largura, ALTURA_FAIXA, 14);
   ctx.fillStyle = corFaixa; ctx.fill();
   ctx.clip();
+  if (centro) {
+    ctx.fillStyle = centro;
+    ctx.fillRect(x, y + ALTURA_FAIXA * 0.25, largura, ALTURA_FAIXA * 0.5);
+  }
   /* as costuras que atravessam a faixa */
   ctx.strokeStyle = 'rgba(0,0,0,0.16)';
   ctx.lineWidth = 3;

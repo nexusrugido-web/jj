@@ -2,6 +2,8 @@
    familia: dominante | neutra | guarda | inferior | em_pe | perna
    pts = pontuacao IBJJF quando a posicao e estabilizada por 3s. */
 
+import { FAIXAS } from '../lib/faixas';
+
 const positions = [
   { slug: 'em_pe', nome: 'De pé', nomeEn: 'Standing', familia: 'em_pe', pts: 0, ordem: 0 },
   { slug: 'clinch', nome: 'Clinch, pegada em pé', nomeEn: 'Clinch', familia: 'em_pe', pts: 0, ordem: 1 },
@@ -812,13 +814,7 @@ const exercises = [
 
 export const SEED = { positions, categories, techniques, breathProtocols, exercises };
 
-export const FAIXAS = [
-  { id: 'branca', nome: 'Branca', cor: '#edf2ef' },
-  { id: 'azul', nome: 'Azul', cor: '#3b7ae4' },
-  { id: 'roxa', nome: 'Roxa', cor: '#8b5cf6' },
-  { id: 'marrom', nome: 'Marrom', cor: '#8a5a34' },
-  { id: 'preta', nome: 'Preta', cor: '#2a2f2e' },
-];
+export { FAIXAS };
 
 export const REGIOES_CORPO = [
   'Joelho', 'Ombro', 'Cotovelo', 'Costelas', 'Dedos da mão', 'Pescoço',

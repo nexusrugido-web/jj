@@ -1,3 +1,5 @@
+import { faixaDeConteudo } from './faixas.js';
+
 /* ============================================================
    O VOCABULÁRIO DO JOGO
 
@@ -267,7 +269,7 @@ export function doLegado({ temas = [], posicoes = [], faixa = null } = {}) {
     posicaoLado,
     habilidades: [...habilidades],
     formato,
-    nivel: DE_FAIXA[faixa] || null,
+    nivel: DE_FAIXA[faixaDeConteudo(faixa)] || null,
   };
 }
 

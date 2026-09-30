@@ -1,4 +1,5 @@
 import { hoje, addDias } from '../lib/utils';
+import { faixaDeConteudo } from '../lib/faixas';
 /* ============================================================
    QUIZ CONCEITUAL
 
@@ -469,7 +470,7 @@ export function perguntasPara({ faixa = 'branca', dor = null, tema = null, limit
   const agora = hoje();
   const porId = new Map(respondidas.map((r) => [r.perguntaId, r]));
 
-  let lista = PERGUNTAS.filter((p) => !p.faixa || p.faixa.includes(faixa));
+  let lista = PERGUNTAS.filter((p) => !p.faixa || p.faixa.includes(faixaDeConteudo(faixa)));
   if (dor) lista = lista.filter((p) => p.dor === dor);
   if (tema) lista = lista.filter((p) => p.tema === tema);
 

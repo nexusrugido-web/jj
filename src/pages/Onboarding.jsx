@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { Check, ChevronRight, ChevronLeft, Dna, Sparkles } from 'lucide-react';
 import { Card, Btn, Field, Input, useToast } from '../components/UI';
 import { db } from '../db/db';
-import { FAIXAS } from '../db/seed';
 import { QUIZ, estiloDoQuiz, estiloPorId } from '../db/scoring';
 import { hoje } from '../lib/utils';
 import { podeVer, LIMITES } from '../lib/plano';
 import { EscolherDificuldades } from '../components/Dificuldades';
 import { idadeDe } from '../lib/regras';
 import { IDADE_MINIMA, IDADE_SEM_RESPONSAVEL } from '../lib/idade';
+import { faixasDaIdade, faixaValidaNaIdade, visualDaFaixa, faixaDeConteudo } from '../lib/faixas';
 
 /* ============================================================
    ONBOARDING
@@ -92,7 +92,7 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
       porque: `Foi o ritmo que você contou. Registrar isso é o que faz o resto do app ter dado pra trabalhar.`,
     });
   }
-  if (perfil.faixa === 'branca') {
+  if (faixaDeConteudo(perfil.faixa) === 'branca') {
     sugestoes.push({
       id: 'defesa-branca',
       tipo: 'defesa',
@@ -158,6 +158,7 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
       const i = idadeDe(perfil.anoNascimento);
       return i != null && i >= IDADE_MINIMA && i < 100 && (i >= IDADE_SEM_RESPONSAVEL || perfil.responsavel);
     })()
+    : atual === 'faixa' ? faixaValidaNaIdade(perfil.faixa, idadeDe(perfil.anoNascimento))
     : atual === 'tempo' ? !!perfil.tempo
     : atual === 'frequencia' ? perfil.frequencia > 0
     : atual === 'objetivo' ? !!perfil.objetivo
@@ -196,10 +197,14 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
             <div className="col" style={{ gap: 16 }}>
               <Pergunta
                 titulo="Em que ano você nasceu?"
-                texto="A regra do jiu-jitsu muda com a idade: tem técnica que só é liberada a partir de certa idade, e a divisão de campeonato também sai daqui. O app guarda só o ano."
+                texto="O ano define as faixas disponíveis, a divisão de campeonato e os avisos de regras. A IBJJF usa a idade que você completa neste ano. O app guarda só o ano."
               />
               <Input type="number" inputMode="numeric" value={perfil.anoNascimento} placeholder="Ex.: 1998"
-                onChange={(e) => setPerfil({ ...perfil, anoNascimento: e.target.value.slice(0, 4) })} autoFocus />
+                onChange={(e) => {
+                  const anoNascimento = e.target.value.slice(0, 4);
+                  setPerfil({ ...perfil, anoNascimento,
+                    ...(faixaValidaNaIdade(perfil.faixa, idadeDe(anoNascimento)) ? {} : { faixa: 'branca', graus: 0 }) });
+                }} autoFocus />
               {i != null && i < IDADE_MINIMA && (
                 <p className="tiny" style={{ color: 'var(--roar)', lineHeight: 1.6 }}>
                   O NeuroJitsu é pra quem tem {IDADE_MINIMA} anos ou mais.
@@ -220,13 +225,13 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
 
         {atual === 'faixa' && (
           <div className="col" style={{ gap: 16 }}>
-            <Pergunta titulo="Qual a sua faixa?" texto="E quantos graus ela tem hoje. O app ajusta a régua das suas técnicas por aqui." />
+            <Pergunta titulo="Qual a sua faixa?" texto="Mostramos as faixas reconhecidas para o seu ano de nascimento. Quem concede a faixa e os graus é o professor." />
             <div className="row wrap" style={{ gap: 7 }}>
-              {FAIXAS.map((f) => (
+              {faixasDaIdade(idadeDe(perfil.anoNascimento)).map((f) => (
                 <button key={f.id} type="button" className={`chip ${perfil.faixa === f.id ? 'on' : ''}`}
                   style={{ minHeight: 44, paddingInline: 16 }}
                   onClick={() => setPerfil({ ...perfil, faixa: f.id })}>
-                  <span style={{ width: 14, height: 7, borderRadius: 2, background: f.cor, border: f.id === 'preta' ? '1px solid #4a5250' : 'none' }} />
+                  <span style={{ width: 14, height: 7, borderRadius: 2, background: visualDaFaixa(f.id), border: f.id === 'preta' ? '1px solid #4a5250' : 'none' }} />
                   {f.nome}
                 </button>
               ))}

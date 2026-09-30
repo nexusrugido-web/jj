@@ -2,6 +2,7 @@ import { acervo } from './acervo';
 import { palavrasFortes } from './aulas';
 import { semAcento, TECNICAS_DISTINTAS, grafiasDe } from './classificar';
 import { familiaDaTecnica, FAMILIAS_DE_FINALIZACAO } from './tecnicas';
+import { faixaDeConteudo } from './faixas';
 import {
   POSICOES, HABILIDADES, SITUACOES, FORMATOS, DE_FAIXA,
   separar, nomeDe, nomePosicaoLado, familiaDaHabilidade,
@@ -43,7 +44,7 @@ const ORDEM_DO_NIVEL = { fundamento: 0, intermediario: 1, avancado: 2 };
    já é graduado: fundamento continua servindo pra faixa preta */
 function ajusteDoNivel(nivelDoVideo, faixa) {
   if (!nivelDoVideo) return 0;
-  const aluno = ORDEM_DO_NIVEL[DE_FAIXA[faixa] || 'fundamento'];
+  const aluno = ORDEM_DO_NIVEL[DE_FAIXA[faixaDeConteudo(faixa)] || 'fundamento'];
   const video = ORDEM_DO_NIVEL[nivelDoVideo];
   if (video === aluno) return 5;
   if (video > aluno) return video - aluno === 1 ? -2 : -6;
@@ -284,7 +285,7 @@ export function aulasPara(pedido, {
 
   /* a duração só desempata entre os que estão perto da melhor nota:
      aula curta e fraca não passa na frente da certa */
-  const querCurto = ['branca', 'azul'].includes(faixa);
+  const querCurto = ['branca', 'azul'].includes(faixaDeConteudo(faixa));
   const [melhor, ...resto] = saida;
   const mesmoGrupo = (a) => vistasSet.has(a.id) === vistasSet.has(melhor.id);
   const perto = resto.filter((a) => mesmoGrupo(a) && a.nota >= melhor.nota * 0.8)

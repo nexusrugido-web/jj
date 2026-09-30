@@ -1,5 +1,6 @@
 import React from 'react';
 import { FAIXAS } from '../db/seed';
+import { visualDaFaixa } from '../lib/faixas';
 
 /* ============================================================
    A FAIXA DE VERDADE
@@ -13,7 +14,7 @@ export default function FaixaVisual({ faixa = 'branca', graus = 0 }) {
   const f = FAIXAS.find((x) => x.id === faixa) || FAIXAS[0];
   const n = Math.min(4, Math.max(0, Number(graus) || 0));
   return (
-    <div className={`faixa-vis ${faixa}`} style={{ '--cor': f.cor }} role="img" aria-label={`Faixa ${f.nome.toLowerCase()}, ${n} ${n === 1 ? 'grau' : 'graus'}`}>
+    <div className={`faixa-vis ${faixa}`} style={{ '--cor': visualDaFaixa(faixa) }} role="img" aria-label={`Faixa ${f.nome.toLowerCase()}, ${n} ${n === 1 ? 'grau' : 'graus'}`}>
       <span className="faixa-vis-ponta">
         {Array.from({ length: n }).map((_, i) => <i key={i} />)}
       </span>

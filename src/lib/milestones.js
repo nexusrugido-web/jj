@@ -1,5 +1,6 @@
 import { db } from '../db/db';
 import { hoje, fmtDur } from './utils';
+import { FAIXAS, faixaValidaNaIdade, proximaFaixa } from './faixas';
 
 /* ============================================================
    MARCOS, o lugar do XP.
@@ -127,9 +128,10 @@ export async function sincronizarMarcos(dados) {
 
 export const FAIXAS_ORDEM = ['branca', 'azul', 'roxa', 'marrom', 'preta'];
 
-export function proximaGraduacao(faixa, graus) {
-  if (graus < 4) return { tipo: 'grau', label: `${graus + 1}º grau na faixa ${faixa}` };
-  const i = FAIXAS_ORDEM.indexOf(faixa);
-  const prox = FAIXAS_ORDEM[i + 1];
-  return prox ? { tipo: 'faixa', label: `Faixa ${prox}` } : { tipo: 'grau', label: 'Mais um grau' };
+export function proximaGraduacao(faixa, graus, idade = null) {
+  if (!faixaValidaNaIdade(faixa, idade)) return { tipo: 'revisar', label: 'Confirme sua faixa atual com o professor' };
+  if (graus < 4) return { tipo: 'grau', label: `${graus + 1}º grau na faixa ${FAIXAS.find((f) => f.id === faixa)?.nome.toLowerCase() || faixa}` };
+  if (faixa === 'preta') return { tipo: 'revisar', label: 'Confirme seu próximo grau com o professor' };
+  const prox = proximaFaixa(faixa, idade);
+  return prox !== faixa ? { tipo: 'faixa', label: `Faixa ${FAIXAS.find((f) => f.id === prox)?.nome.toLowerCase() || prox}` } : { tipo: 'revisar', label: 'Converse com seu professor sobre a próxima graduação' };
 }

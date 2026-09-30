@@ -1,6 +1,7 @@
 import { grauPorN, requisitosDaFaixa, posicoesSofridas, NOME_POSICAO_SOFRIDA, TITULO_POSICAO_SOFRIDA, vezesNaPosicao } from './graus';
 import { placarDaRola } from './game';
 import { ultimosDias } from './periodo';
+import { faixaDeConteudo } from './faixas';
 
 /* ============================================================
    RECOMENDAÇÕES POR INTENÇÃO
@@ -303,7 +304,7 @@ export function gerarRecomendacoes({
 
   /* 8. EXPLORAR: repertório estreito, e só a partir da azul */
   const comUso = tecnicas.filter((t) => t.usosResistencia > 0).length;
-  if (comUso >= 3 && comUso <= 5 && faixa !== 'branca') {
+  if (comUso >= 3 && comUso <= 5 && faixaDeConteudo(faixa) !== 'branca') {
     out.push({
       intencao: 'explorar',
       alvo: null,
@@ -483,7 +484,7 @@ export function respostaAoMarcar(resultado, rec, faixa = 'branca') {
   if (resultado === 'meio') {
     return {
       titulo: 'Faz parte',
-      texto: faixa === 'branca'
+      texto: faixaDeConteudo(faixa) === 'branca'
         ? 'Quase nada sai de primeira. Vou manter isso na lista pra você insistir.'
         : 'Vou manter na lista. Repetição é o que resolve esse tipo de coisa.',
       tom: 'roar',

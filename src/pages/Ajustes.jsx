@@ -9,6 +9,9 @@ import TesteVideo from '../components/TesteVideo';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, exportAll, importAll, wipeAll, ensureSeed } from '../db/db';
 import { FAIXAS } from '../db/seed';
+import { faixasDaIdade, faixaValidaNaIdade } from '../lib/faixas';
+import { idadeDe } from '../lib/regras';
+import { IDADE_MINIMA } from '../lib/idade';
 import {
   Card, Btn, Field, Input, NumeroInput, Select, Switch, Modal, Chip, useToast, Stat, Confirmar, Stepper, Sheet, EscolherData,
 } from '../components/UI';
@@ -78,6 +81,8 @@ export default function Ajustes() {
 
   const fechar = () => setAberto(null);
   const faixaNome = FAIXAS.find((f) => f.id === settings.faixa)?.nome || 'Branca';
+  const idadeFaixa = idadeDe(settings.anoNascimento);
+  const idadeFaixaValida = idadeFaixa != null && idadeFaixa >= IDADE_MINIMA && idadeFaixa < 100;
 
   return (
     <div className="page">
@@ -166,7 +171,7 @@ export default function Ajustes() {
         <SalvaSozinho />
         <div className="grid g2" style={{ gap: 12 }}>
           <Field label="Nome"><Input value={settings.nome} onChange={(e) => set('nome', e.target.value)} placeholder="Como te chamam" /></Field>
-          <Field label="Ano de nascimento" hint="A regra das técnicas e a divisão de campeonato mudam com a idade.">
+          <Field label="Ano de nascimento" hint="A IBJJF considera a idade que você completa no ano. Faixas e divisão de campeonato dependem dela.">
             <Input type="number" inputMode="numeric" value={settings.anoNascimento || ''} placeholder="Ex.: 1998"
               onChange={(e) => set('anoNascimento', Number(e.target.value.slice(0, 4)) || null)} />
           </Field>
@@ -192,9 +197,17 @@ export default function Ajustes() {
           <Field label="Peso (kg)"><Input type="number" value={settings.pesoKg} onChange={(e) => set('pesoKg', e.target.value)} /></Field>
           <Field label="Faixa" hint="Filtra as finalizações legais pra você.">
             <Select value={settings.faixa} onChange={(e) => set('faixa', e.target.value)}>
-              {FAIXAS.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+              {(!idadeFaixaValida || !faixaValidaNaIdade(settings.faixa, idadeFaixa)) && (
+                <option value={settings.faixa} disabled>
+                  {FAIXAS.find((f) => f.id === settings.faixa)?.nome || settings.faixa}: informe o ano para confirmar
+                </option>
+              )}
+              {idadeFaixaValida && faixasDaIdade(idadeFaixa).map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
             </Select>
           </Field>
+          {(!idadeFaixaValida || !faixaValidaNaIdade(settings.faixa, idadeFaixa)) && (
+            <p className="micro muted">{idadeFaixaValida ? 'Esta faixa não corresponde ao ano informado.' : 'Informe um ano de nascimento válido para escolher a faixa.'} Seus registros continuam intactos; confirme a faixa que seu professor concedeu.</p>
+          )}
           {(settings.tecnicasLiberadas || []).length > 0 && (
             <Field label="Liberadas pelo professor" hint="O app não avisa mais da regra delas. Toque pra voltar a avisar.">
               <div className="row wrap" style={{ gap: 6 }}>

@@ -3,6 +3,7 @@ import { X, Check, AlertTriangle, Minus, Plus, Search, CalendarDays, Gem } from 
 import { useApp } from '../contexto';
 import { hoje, addDias, fmtData } from '../lib/utils';
 import { FAIXAS } from '../db/seed';
+import { visualDaFaixa } from '../lib/faixas';
 import Sheet from './Sheet';
 
 /* ---------------- Toasts ---------------- */
@@ -185,7 +186,7 @@ export function BeltTag({ faixa, graus = 0, children }) {
   const f = FAIXAS.find((x) => x.id === faixa) || FAIXAS[0];
   return (
     <span className="belt-tag">
-      <span className="belt-bar" style={{ background: f.cor, border: faixa === 'preta' ? '1px solid #4a5250' : 'none' }} />
+      <span className="belt-bar" style={{ background: visualDaFaixa(faixa), border: faixa === 'preta' ? '1px solid #4a5250' : 'none' }} />
       {children || f.nome}
       {graus > 0 && <span className="num micro muted">{'|'.repeat(graus)}</span>}
     </span>

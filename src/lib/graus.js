@@ -31,6 +31,7 @@ export const contextoPorId = (id) => CONTEXTOS.find((c) => c.id === id) || CONTE
 /* Quem estava do outro lado pesa. Contra faixa mais alta vale mais,
    contra quem é mais pesado também. */
 const PESO_FAIXA = { branca: 1.0, azul: 1.35, roxa: 1.7, marrom: 2.1, preta: 2.6 };
+const pesoDaFaixa = (faixa) => PESO_FAIXA[faixa] || (1 + 0.35 * (FAIXA_ORDEM[faixa] || 0));
 const PESO_CORPO = { leve: 0.85, similar: 1.0, pesado: 1.2 };
 
 /* ---------- os quatro graus ---------- */
@@ -96,7 +97,7 @@ export function requisitosDaFaixa(faixa = 'branca', regra = 'v2', graus = 0) {
   return {
     1: { usos: 1 },
     2: { usos: Math.round(5 * a.m) },
-    3: { usos: Math.round(15 * a.m), transferencia: 2, semanas: 4, acima: faixa === 'branca' ? 0 : 1 },
+    3: { usos: Math.round(15 * a.m), transferencia: 2, semanas: 4, acima: (FAIXA_ORDEM[faixa] ?? 0) < 1 ? 0 : 1 },
     4: { usos: Math.round(35 * a.m), transferencia: 3, meses: 3, acima: a.acima4 },
   };
 }
@@ -120,6 +121,7 @@ function requisitosV1(faixa = 'branca') {
   };
 
   const a = AJUSTE_DA_FAIXA[faixa] || AJUSTE_DA_FAIXA.branca;
+  const faixaBasica = (FAIXA_ORDEM[faixa] ?? 0) < 1;
 
   return {
     1: { ...base[1] },
@@ -127,15 +129,15 @@ function requisitosV1(faixa = 'branca') {
     3: {
       ...base[3],
       usos: Math.round(base[3].usos * a.m),
-      transferencia: base[3].transferencia + (faixa === 'branca' ? 0 : 1),
-      refinamento: base[3].refinamento + (faixa === 'branca' ? 0 : 2),
-      acima: faixa === 'branca' ? 0 : 1,
+      transferencia: base[3].transferencia + (faixaBasica ? 0 : 1),
+      refinamento: base[3].refinamento + (faixaBasica ? 0 : 2),
+      acima: faixaBasica ? 0 : 1,
     },
     4: {
       ...base[4],
       usos: Math.round(base[4].usos * a.m),
-      transferencia: base[4].transferencia + (faixa === 'branca' ? 0 : 1),
-      refinamento: base[4].refinamento + (faixa === 'branca' ? 0 : 2),
+      transferencia: base[4].transferencia + (faixaBasica ? 0 : 1),
+      refinamento: base[4].refinamento + (faixaBasica ? 0 : 2),
       acima: a.acima4,
     },
   };
@@ -163,7 +165,7 @@ export function calcularAtaque(usos, faixaUsuario = 'branca', { regra = 'v2', gr
   for (const u of comResistencia) {
     const ctx = contextoPorId(u.contexto).peso;
     /* parceiro não marcado conta como alguém da sua faixa */
-    const f = u.faixaParceiro ? (PESO_FAIXA[u.faixaParceiro] || 1) / (PESO_FAIXA[faixaUsuario] || 1) : 1;
+    const f = u.faixaParceiro ? pesoDaFaixa(u.faixaParceiro) / pesoDaFaixa(faixaUsuario) : 1;
     const c = PESO_CORPO[u.pesoRel] || 1;
     volume += ctx * Math.min(2.2, Math.max(0.55, f)) * c;
 

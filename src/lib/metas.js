@@ -2,6 +2,7 @@ import { hoje, diasEntre, pct, fmtData, addDias } from './utils';
 import { periodoDeDados, dentroDoPeriodo } from './periodo';
 import { grauPorN } from './graus';
 import { posInicialPorId } from '../db/scoring';
+import { faixaDeConteudo } from './faixas';
 
 /* ============================================================
    METAS COM ORIGEM EXPLÍCITA
@@ -134,7 +135,7 @@ export function sugerirMetas({ faixa = 'branca', frequenciaTipica = 0, objetivo 
       tipo: 'defesa',
       alvo: b.nome,
       titulo: `Parar de ser pego na ${b.nome.toLowerCase()}`,
-      porque: faixa === 'branca'
+      porque: faixaDeConteudo(faixa) === 'branca'
         ? `Foi ${b.vezes} vezes até agora. No começo, aprender a sair vale mais do que aprender a atacar.`
         : `Foi ${b.vezes} vezes, e ${b.recente} só no último mês. É o furo mais caro do seu jogo agora.`,
     });
@@ -526,7 +527,7 @@ export function estadoSemMeta(faixa = 'branca', temTreinos = false) {
   }
   return {
     titulo: 'Nenhuma meta por enquanto',
-    texto: faixa === 'branca'
+    texto: faixaDeConteudo(faixa) === 'branca'
       ? 'Você não precisa de meta pra evoluir no começo, mas ter uma ajuda a não sumir do tatame.'
       : 'Definir uma meta de processo, do tipo que depende só de você, costuma render mais que meta de resultado.',
     acao: 'Criar meta',

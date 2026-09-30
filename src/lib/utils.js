@@ -2,6 +2,8 @@
    Com toISOString, depois das 21h no Brasil já era amanhã: o treino
    da noite ganhava a data do dia seguinte, e a semana virava no
    domingo à noite. */
+import { FAIXA_ORDEM } from './faixas';
+
 export function dataLocal(d = new Date()) {
   const p = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
@@ -117,4 +119,4 @@ export function buscaMatch(texto, termo) {
   return norm(texto).includes(norm(termo));
 }
 
-export const FAIXA_ORDEM = { branca: 0, azul: 1, roxa: 2, marrom: 3, preta: 4 };
+export { FAIXA_ORDEM };

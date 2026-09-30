@@ -1,6 +1,7 @@
 import { capa, embed, duracaoTexto, SERVIDORES_CAPA } from '../db/aulas';
 import { hoje, hoje as diaDeHoje } from './utils';
 import { acervo, acervoAberto } from './acervo';
+import { faixaDeConteudo } from './faixas';
 
 /* ============================================================
    ESCOLHA DE AULAS
@@ -60,7 +61,7 @@ function semanaAtual() {
 
 /* faixa branca e azul preferem aula curta; roxa pra cima aguenta longa */
 function ordemPorFaixa(faixa) {
-  return ['branca', 'azul'].includes(faixa)
+  return ['branca', 'azul'].includes(faixaDeConteudo(faixa))
     ? (a, b) => a.d - b.d
     : (a, b) => b.d - a.d;
 }
@@ -115,8 +116,8 @@ export function escolherAulas({
 
       /* agora sim os desempates */
       let nota = relevancia;
-      if (a.f === faixa) nota += 12;
-      else if (a.f && a.f !== faixa) nota -= 4;
+      if (a.f === faixaDeConteudo(faixa)) nota += 12;
+      else if (a.f && a.f !== faixaDeConteudo(faixa)) nota -= 4;
       if (a.tm.includes('logica')) nota += 3;
 
       return { ...a, nota };
@@ -145,7 +146,7 @@ export function escolherAulas({
   if (!saida.length) return [];
 
   /* curto primeiro pra branca e azul, longo primeiro pra roxa acima */
-  const querCurto = preferirCurto !== null ? preferirCurto : ['branca', 'azul'].includes(faixa);
+  const querCurto = preferirCurto !== null ? preferirCurto : ['branca', 'azul'].includes(faixaDeConteudo(faixa));
   const melhor = saida[0];
   const resto = saida.slice(1, quantidade * 3)
     .sort((a, b) => (querCurto ? a.d - b.d : b.d - a.d));
@@ -168,7 +169,7 @@ export function aulasDoTema(tema, { faixa, vistas = [], busca = '', tipo = 'todo
   lista = lista.map((a) => ({
     ...a,
     vista: vistasSet.has(a.id),
-    peso: (a.f === faixa ? 10 : 0) + (a.f && a.f !== faixa ? -5 : 0),
+    peso: (a.f === faixaDeConteudo(faixa) ? 10 : 0) + (a.f && a.f !== faixaDeConteudo(faixa) ? -5 : 0),
   }));
 
   /* não vista primeiro; entre elas, a ordem que o administrador

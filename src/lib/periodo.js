@@ -2,6 +2,7 @@ import { hoje, addDias, diasEntre, pct, mesNome, fmtData, mesPorExtenso } from '
 import { placarDaRola } from './game';
 import { somarPontos } from '../db/scoring';
 import { FAIXA_ORDEM } from './utils';
+import { FAIXAS } from './faixas';
 
 /* ============================================================
    O PERÍODO DOS DADOS
@@ -450,7 +451,7 @@ export function janelaDoCalendario(sessions, rolls, { fim = hoje() } = {}) {
    mesma coisa que ganhar 30% de roxa, e é justamente o
    segundo que mostra evolução.
    ============================================================ */
-const FAIXAS_ORDEM = ['branca', 'azul', 'roxa', 'marrom', 'preta'];
+const FAIXAS_ORDEM = FAIXAS.map((f) => f.id);
 
 export function taxaPorFaixa(sessions, rolls, partners, periodo, minhaFaixa = 'branca') {
   const { ini, fim } = periodo;

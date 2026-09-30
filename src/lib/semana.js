@@ -2,6 +2,7 @@ import { hoje, addDias, diasEntre } from './utils';
 import { placarDaRola } from './game';
 import { semanaDe } from './xp';
 import { calcularAtaque } from './graus';
+import { faixaDeConteudo } from './faixas';
 
 /* ============================================================
    SEQUÊNCIA E RESUMO DA SEMANA
@@ -123,7 +124,7 @@ export function lerSemana(r, faixa = 'branca') {
 
   if (r.tecnicas >= 5) {
     txt += ` Apareceram ${r.tecnicas} técnicas diferentes, o que mostra um jogo variado.`;
-  } else if (r.tecnicas > 0 && r.tecnicas <= 2 && faixa !== 'branca') {
+  } else if (r.tecnicas > 0 && r.tecnicas <= 2 && faixaDeConteudo(faixa) !== 'branca') {
     txt += ` Só ${r.tecnicas} ${r.tecnicas === 1 ? 'técnica apareceu' : 'técnicas apareceram'}. Vale abrir o repertório.`;
   }
 

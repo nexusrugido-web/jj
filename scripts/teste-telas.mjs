@@ -218,7 +218,13 @@ w.history.pushState({}, '', '/?go=respiracao'); w.dispatchEvent(new w.PopStateEv
 confere('link antigo de Gás abre Painel', raiz.querySelector('.sidebar .navlink.on')?.textContent.trim() === 'Painel' && !raiz.textContent.includes('Gás no jiu-jitsu'));
 confere('painel mostra a melhor arma com dados', !/Registre uma finalização pra descobrir/.test(txt));
 w.history.pushState({}, '', '/?go=metas'); w.dispatchEvent(new w.PopStateEvent('popstate')); await esperar(1500);
-confere('meta de posição com nome, não código', raiz.textContent.includes('Trabalhar Guarda fechada (por baixo)'));
+/* A varredura acima visita todas as abas e pode deixar Concluídas aberta. */
+clicar([...raiz.querySelectorAll('.page .seg button')].find((b) => b.textContent.trim().startsWith('Minhas')));
+await esperar(300);
+/* A meta de posição é a última das 12: o limite visual deixa seis na página. */
+clicar([...raiz.querySelectorAll('.page button')].find((b) => b.textContent.trim() === 'Ver todos (12)'));
+await esperar(300);
+confere('meta de posição com nome, não código', w.document.body.textContent.includes('Trabalhar Guarda fechada (por baixo)'));
 
 w.history.pushState({}, '', '/?go=meujogo'); w.dispatchEvent(new w.PopStateEvent('popstate')); await esperar(1500);
 confere('drill antigo virou drill: Meu jogo conta 99 lutas, não 111', raiz.textContent.includes('seu estilo · 99 rolas'));
