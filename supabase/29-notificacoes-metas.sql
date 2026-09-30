@@ -12,14 +12,14 @@ returns jsonb language sql stable security definer set search_path = public as $
            coalesce(nullif(left(trim(r.dados->>'titulo'), 75), ''),
              case r.dados->>'tipo'
                when 'frequencia' then 'Treinar com regularidade'
-               when 'tecnica' then 'Subir uma tecnica de grau'
+               when 'tecnica' then 'Subir uma técnica de grau'
                when 'defesa' then 'Fechar um buraco na defesa'
                when 'treinos' then 'Chegar a um total de treinos'
                when 'manual' then 'Minha meta pessoal'
                when 'aulas' then 'Assistir aulas'
                when 'quiz' then 'Responder o quiz'
                when 'rolas' then 'Fazer mais rolas'
-               when 'posicao' then 'Trabalhar uma posicao'
+               when 'posicao' then 'Trabalhar uma posição'
                when 'volume' then 'Tempo de tatame'
                when 'competicao' then 'Competir'
                else 'Minha meta' end) as titulo,
@@ -86,20 +86,20 @@ returns jsonb language sql stable security definer set search_path = public as $
     'corpo', case
       when e.tipo = 'frequencia' then
         'Nesta semana: ' || e.feito || ' de ' || e.alvo_num ||
-        ' treinos. Se ja treinou, registre quando puder.'
+        ' treinos. Se já treinou, registre quando puder.'
       when e.tipo = 'treinos' then
-        'Voce registrou ' || e.feito || ' de ' || e.alvo_num ||
+        'Você registrou ' || e.feito || ' de ' || e.alvo_num ||
         ' treinos. Veja o proximo passo.'
       when e.tipo = 'manual' and e.alvo_num is not null then
         'Seu contador esta em ' || e.feito || ' de ' || e.alvo_num ||
         '. Atualize quando quiser.'
       when e.tipo = 'competicao' then
         'Faltam ' || (e.data_competicao - p_hoje) ||
-        ' dias para a competicao. Confira sua preparacao.'
+        ' dias para a competição. Confira sua preparação.'
       when e.tipo = 'tecnica' then
-        'Veja o grau da tecnica e registre como ela apareceu no treino.'
+        'Veja o grau da técnica e registre como ela apareceu no treino.'
       when e.tipo = 'defesa' then
-        'Depois do proximo rola, registre se essa defesa funcionou.'
+        'Depois do próximo rola, registre se essa defesa funcionou.'
       when e.tipo = 'aulas' then
         'Uma aula assistida ajuda nesta meta. Veja o que falta.'
       when e.tipo = 'quiz' then
@@ -107,7 +107,7 @@ returns jsonb language sql stable security definer set search_path = public as $
       when e.tipo = 'rolas' then
         'Registre seus rolas reais para acompanhar esta meta.'
       when e.tipo = 'posicao' then
-        'Anote a posicao inicial do proximo rola para acompanhar esta meta.'
+        'Anote a posição inicial do próximo rola para acompanhar esta meta.'
       when e.tipo = 'volume' then
         'O tempo de treino registrado alimenta esta meta.'
       else 'Abra para conferir seu progresso e escolher o proximo passo.'
@@ -230,17 +230,17 @@ begin
       e.endpoint, e.p256dh, e.auth, e.sequencia,
       case e.tipo_dele
         when 'ofensiva_semanal' then
-          e.sequencia || ' semanas de ofensiva: sua semana ainda esta aberta'
-        when 'liga'      then 'A semana da liga fecha hoje'
+          e.sequencia || ' semanas de ofensiva: sua semana ainda está aberta'
+        when 'liga'      then 'A semana da Liga fecha hoje'
         when 'resultado' then 'A liga fechou'
-        when 'volta'     then 'O tatame continua ai'
+        when 'volta'     then 'O tatame continua aí'
         else e.meta->>'titulo'
       end as titulo,
       case e.tipo_dele
-        when 'ofensiva_semanal' then case when (e.ofensiva->>'escudos')::int > 0 then 'Se voce treinou, registre. Sem treino, um escudo protege esta semana sem somar semanas.' else 'Se voce treinou nesta semana, registre seu treino para manter a sequencia.' end
-        when 'liga'     then 'Ainda da pra mexer na sua posicao antes da meia-noite.'
-        when 'resultado' then 'Veja onde voce parou e com quem voce corre esta semana.'
-        when 'volta'    then 'Seu jogo esta do mesmo jeito que voce deixou. Da pra voltar por uma aula.'
+        when 'ofensiva_semanal' then case when (e.ofensiva->>'escudos')::int > 0 then 'Se você treinou, registre. Sem treino, um escudo protege esta semana sem somar semanas.' else 'Se você treinou nesta semana, registre para manter a sequência.' end
+        when 'liga'     then 'Ainda dá para mudar sua posição antes do fechamento da semana.'
+        when 'resultado' then 'Veja onde você terminou e como começa esta semana.'
+        when 'volta'    then 'Seu jogo continua aqui. Volte por uma aula, no seu ritmo.'
         else e.meta->>'corpo'
       end as corpo,
       case e.tipo_dele
