@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Stethoscope, Loader } from 'lucide-react';
+import { Bell, Stethoscope, Loader, Target } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Card, Btn, Field, Input, useToast } from './UI';
 
@@ -30,6 +30,10 @@ export default function TesteAviso({ email }) {
   const [resposta, setResposta] = useState('');
   const [vezes, setVezes] = useState({});
   const [diag, setDiag] = useState(null);
+  const [inspecao, setInspecao] = useState(null);
+  const [carregandoMetas, setCarregandoMetas] = useState(false);
+  const [testeMeta, setTesteMeta] = useState('');
+  const [estadoMeta, setEstadoMeta] = useState({});
 
   async function testar(a) {
     setEnviando(a.id); setResposta('');
@@ -57,6 +61,63 @@ export default function TesteAviso({ email }) {
     setDiag(data || []);
   }
 
+  async function verMetas() {
+    setCarregandoMetas(true);
+    const { data, error } = await supabase.rpc('inspecionar_avisos_metas', { p_email: alvo.trim() });
+    setCarregandoMetas(false);
+    if (error) {
+      toast(error.code === 'PGRST202' ? 'Aplique o SQL 33 no Supabase para ver avisos por meta.'
+        : `Não consegui consultar as metas: ${error.message}`, 'err');
+      return;
+    }
+    if (data?.erro) { toast(data.erro, 'err'); setInspecao(null); return; }
+    setInspecao(data);
+    setEstadoMeta({});
+  }
+
+  async function enviarMeta(meta) {
+    setTesteMeta(meta.id);
+    setEstadoMeta((atual) => ({ ...atual, [meta.id]: { estado: 'solicitando' } }));
+    const { data, error } = await supabase.rpc('testar_aviso_meta', {
+      p_email: alvo.trim(), p_meta: meta.id,
+    });
+    if (error) {
+      setTesteMeta('');
+      setEstadoMeta((atual) => ({ ...atual, [meta.id]: { estado: 'erro', erro: error.message } }));
+      return;
+    }
+    setEstadoMeta((atual) => ({ ...atual, [meta.id]: data }));
+    // pg_net responde depois que a transação termina. Mostrar o resultado
+    // real da Edge Function, sem confundir "solicitado" com "entregue".
+    let respondeu = false;
+    for (let tentativa = 0; tentativa < 10; tentativa++) {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const status = await supabase.rpc('estado_teste_aviso_meta', { p_request_id: data.request_id });
+      if (status.error) {
+        setEstadoMeta((atual) => ({ ...atual, [meta.id]: { estado: 'erro', erro: status.error.message } }));
+        respondeu = true;
+        break;
+      }
+      if (status.data?.estado !== 'aguardando') {
+        setEstadoMeta((atual) => ({ ...atual, [meta.id]: status.data }));
+        respondeu = true;
+        break;
+      }
+    }
+    if (!respondeu) setEstadoMeta((atual) => ({ ...atual, [meta.id]: { estado: 'demora' } }));
+    setTesteMeta('');
+  }
+
+  function textoEstadoMeta(estado) {
+    if (!estado) return '';
+    if (estado.estado === 'erro') return `Falhou: ${estado.erro || `HTTP ${estado.status_http}`}`;
+    if (estado.estado === 'demora') return 'A função ainda não respondeu. Confira os logs da Edge Function notificar.';
+    if (estado.estado === 'respondido') return estado.enviados > 0
+      ? `Serviço de push aceitou ${estado.enviados} envio(s). Confira o aparelho.`
+      : 'A função respondeu, mas não aceitou nenhum envio. Confira o aparelho e os logs.';
+    return 'Pedido enviado; aguardando resposta da função…';
+  }
+
   return (
     <Card style={{ marginBottom: 14 }}>
       <div className="card-head">
@@ -69,7 +130,7 @@ export default function TesteAviso({ email }) {
         O celular precisa estar com os avisos ligados (Ajustes → Avisos).
       </p>
       <Field label="Pra qual conta">
-        <Input value={alvo} onChange={(e) => setAlvo(e.target.value)} placeholder="email@da.conta" />
+        <Input value={alvo} onChange={(e) => { setAlvo(e.target.value); setInspecao(null); setDiag(null); }} placeholder="email@da.conta" />
       </Field>
       <div className="col" style={{ gap: 6, marginTop: 12 }}>
         {AVISOS.map((a) => (
@@ -88,7 +149,47 @@ export default function TesteAviso({ email }) {
       {resposta && <p className="micro" style={{ marginTop: 10, lineHeight: 1.6 }}>{resposta}</p>}
       <div className="row wrap" style={{ gap: 8, marginTop: 12 }}>
         <Btn variant="contorno" icon={Stethoscope} disabled={!alvo.trim()} onClick={diagnosticar}>Ver o diagnóstico</Btn>
+        <Btn variant="contorno" icon={Target} disabled={!alvo.trim() || carregandoMetas} onClick={verMetas}>
+          {carregandoMetas ? 'Consultando metas' : 'Ver avisos de cada meta'}
+        </Btn>
       </div>
+      {inspecao && (
+        <div style={{ marginTop: 16 }}>
+          <div className="tiny" style={{ fontWeight: 700 }}>Metas de {inspecao.email}</div>
+          <p className="micro muted" style={{ margin: '6px 0 10px', lineHeight: 1.6 }}>
+            {inspecao.aparelhos_elegiveis} de {inspecao.aparelhos} aparelho(s) apto(s) · avisos {inspecao.notificar ? 'ligados' : 'desligados'} · horário de costume {inspecao.hora_local}h ({inspecao.fuso}).
+            Cada prévia usa o mesmo gerador da fila real. O teste ignora horário e limites e não conta como envio automático.
+            Na rotina, sai no máximo uma meta por vez e duas por semana, com rodízio entre as metas elegíveis.
+          </p>
+          {!inspecao.metas?.length && <p className="micro muted">Nenhuma meta ativa e sincronizada nesta conta.</p>}
+          <div className="col" style={{ gap: 8 }}>
+            {inspecao.metas?.map((m) => (
+              <div key={m.id} style={{ padding: '12px', background: 'var(--void)', borderRadius: 9 }}>
+                <div className="row" style={{ gap: 10, alignItems: 'flex-start' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="tiny" style={{ fontWeight: 700 }}>{m.titulo}</div>
+                    <div className="micro muted">{m.tipo}</div>
+                  </div>
+                  <Btn size="sm" variant="contorno" icon={testeMeta === m.id ? Loader : Bell}
+                    disabled={!!testeMeta || !m.aviso || inspecao.aparelhos === 0}
+                    onClick={() => enviarMeta(m)}>
+                    {testeMeta === m.id ? 'Enviando' : 'Testar esta meta'}
+                  </Btn>
+                </div>
+                {m.aviso ? (
+                  <div className="micro" style={{ marginTop: 8, lineHeight: 1.6 }}>
+                    <strong>{m.aviso.titulo}</strong><br />{m.aviso.corpo}
+                  </div>
+                ) : <div className="micro muted" style={{ marginTop: 8 }}>Esta meta não gera aviso com os dados atuais.</div>}
+                <div className="micro muted" style={{ marginTop: 6 }}>
+                  {m.ultimo_envio ? `Último envio automático: ${new Date(m.ultimo_envio).toLocaleString('pt-BR', { timeZone: inspecao.fuso })}${m.ultimo_respondeu ? ' · aberto' : ''}` : 'Nenhum envio automático registrado para esta meta.'}
+                </div>
+                {estadoMeta[m.id] && <div className="micro" style={{ marginTop: 6 }}>{textoEstadoMeta(estadoMeta[m.id])}</div>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {diag && (
         <div className="col" style={{ gap: 6, marginTop: 12 }}>
           {diag.map((d) => (

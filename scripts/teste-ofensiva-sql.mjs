@@ -10,14 +10,19 @@ await pg.exec(`
   create table auth.users(id uuid,email text);
   create schema cron; create table cron.job(jobname text,schedule text);
   create schema vault; create table vault.secrets(name text);
-  create function public.sou_admin() returns boolean language sql as $$ select true $$;
+  create table vault.decrypted_secrets(name text,decrypted_secret text);
+  create schema net;
+  create table net._http_response(id bigint,status_code int,timed_out boolean,error_msg text,content text);
+  create function net.http_post(url text,headers jsonb,body jsonb) returns bigint language sql as $$ select 42::bigint $$;
+  create function public.sou_admin() returns boolean language sql as $$ select current_setting('test.admin',true)='on' $$;
+  set test.admin='on';
   create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('test.uid',true),'')::uuid $$;
   create function public.semana_de(d date) returns date language sql immutable as $$ select d-(extract(isodow from d)::int-1) $$;
   create function public.hoje_br() returns date language sql stable as $$ select '2026-09-27'::date $$;
   create function public.semana_atual() returns date language sql stable as $$ select public.semana_de(public.hoje_br()) $$;
   create table public.perfil(user_id uuid primary key,nome text,faixa text default 'branca',graus int default 0,sequencia int default 999,participa_liga boolean default true,notificar boolean default true,criado_em timestamptz default now());
   create table public.total_xp(user_id uuid,divisao text);
-  create table public.registros(user_id uuid,tabela text,dados jsonb,deleted_at timestamptz);
+  create table public.registros(user_id uuid,tabela text,dados jsonb,deleted_at timestamptz,created_at timestamptz default now());
   create table public.push_inscricao(user_id uuid,endpoint text,p256dh text,auth text,fuso text,falhas int default 0);
   create table public.notificacao_envio(user_id uuid,tipo text,dia date,enviado_em timestamptz,respondeu boolean);
   create table public.pontos(user_id uuid,data date,evento text);
@@ -38,6 +43,12 @@ await pg.exec('alter table public.registros add column id uuid default gen_rando
 const sqlMetas = await fs.readFile(new URL('../supabase/29-notificacoes-metas.sql', import.meta.url), 'utf8');
 await pg.exec(sqlMetas);
 await pg.exec(sqlMetas); // reexecução segura
+const sqlPainelMetas = await fs.readFile(new URL('../supabase/33-painel-avisos-por-meta.sql', import.meta.url), 'utf8');
+try { await pg.exec(sqlPainelMetas); } catch (e) { console.error(e.message); process.exit(1); }
+await pg.exec(sqlPainelMetas); // reexecução segura
+const verificarPainel = await fs.readFile(new URL('../supabase/34-verificar-painel-avisos-metas.sql', import.meta.url), 'utf8');
+const checagens = JSON.parse((await pg.query(verificarPainel)).rows[0].verificacao_painel_metas);
+assert.ok(Object.values(checagens).every(Boolean));
 const inicio='2026-06-01';
 let casos=0;
 async function comparar(sessoes,hoje,lesoes=[],max=2,rolls=[]) {
@@ -70,6 +81,22 @@ assert.match(meta.corpo,/1 de 3 treinos/);
 assert.equal((await pg.query('select public.proxima_meta_para_aviso($1,$2) as valor',[user,'2026-09-22'])).rows[0].valor,null);
 await pg.query('insert into registros(id,user_id,tabela,dados) values($1,$2,$3,$4)',
   [metaManual,user,'goals',JSON.stringify({tipo:'manual',titulo:'Alongar 5x',alvo:5,contador:2,status:'ativa',origem:'confirmada'})]);
+const inspeccao=(await pg.query('select public.inspecionar_avisos_metas($1) as valor',['teste@example.invalid'])).rows[0].valor;
+assert.equal(inspeccao.metas.length,2);
+assert.equal(inspeccao.metas.find(m=>m.id===metaManual).aviso.corpo,'Seu contador esta em 2 de 5. Atualize quando quiser.');
+assert.equal(inspeccao.metas.find(m=>m.id===metaFrequencia).aviso.tipo,`meta:${metaFrequencia}`);
+assert.equal((await pg.query('select public.proxima_meta_para_aviso($1,$2) as valor',[user,'2026-09-25'])).rows[0].valor.tipo,`meta:${metaFrequencia}`);
+await pg.exec(`insert into push_inscricao(user_id,endpoint,p256dh,auth,fuso) values ('${user}','mock','mock','mock','America/Bahia');
+  insert into vault.secrets(name) values ('url_notificar'),('chave_notificar');
+  insert into vault.decrypted_secrets(name,decrypted_secret) values ('url_notificar','https://example.invalid'),('chave_notificar','fake');`);
+assert.equal((await pg.query('select public.testar_aviso_meta($1,$2) as valor',['teste@example.invalid',metaManual])).rows[0].valor.request_id,42);
+assert.equal((await pg.query('select public.estado_teste_aviso_meta(42) as valor')).rows[0].valor.estado,'aguardando');
+await pg.exec(`insert into net._http_response values (42,200,false,null,'{"fila":1,"enviados":1}');`);
+assert.equal((await pg.query('select public.estado_teste_aviso_meta(42) as valor')).rows[0].valor.enviados,1);
+await pg.exec("set test.admin='off'");
+await assert.rejects(pg.query('select public.inspecionar_avisos_metas($1)',['teste@example.invalid']),/administrador/);
+await assert.rejects(pg.query('select public.testar_aviso_meta($1,$2)',['teste@example.invalid',metaManual]),/administrador/);
+await pg.exec("set test.admin='on'");
 assert.equal((await pg.query('select public.proxima_meta_para_aviso($1,$2) as valor',[user,'2026-09-25'])).rows[0].valor.tipo,
   `meta:${metaFrequencia}`);
 await pg.query('insert into notificacao_envio(user_id,tipo,dia,enviado_em,respondeu) values($1,$2,$3,now(),false)',

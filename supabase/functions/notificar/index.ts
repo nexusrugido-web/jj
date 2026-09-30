@@ -86,7 +86,8 @@ Deno.serve(async (req) => {
      banco usa pra a gente ver a notificacao sem esperar a hora.
      Com "tipo", "dias" e "versao", o teste sai com a cara de um
      aviso de verdade (ofensiva, liga...), pro admin ver cada um. */
-  let pedido: { teste?: string; tipo?: string; dias?: number; versao?: number } = {};
+  let pedido: { teste?: string; tipo?: string; dias?: number; versao?: number;
+    titulo?: string; corpo?: string; caminho?: string } = {};
   try { pedido = (await req.json()) ?? {}; } catch { pedido = {}; }
   const teste = pedido.teste ?? null;
 
@@ -104,7 +105,11 @@ Deno.serve(async (req) => {
       /* o teste de um tipo: o sw.js escolhe o texto pelo tag, e na
          ofensiva lê os dias no começo do título */
       if (teste && pedido.tipo) {
-        l = { ...l, tipo: pedido.tipo, titulo: pedido.tipo === 'ofensiva' ? `${pedido.dias ?? 1} dias` : l.titulo };
+        const meta = pedido.tipo.startsWith('meta:') && pedido.titulo && pedido.corpo
+          && pedido.caminho === '/?go=metas';
+        l = meta
+          ? { ...l, tipo: pedido.tipo, titulo: pedido.titulo!, corpo: pedido.corpo!, caminho: pedido.caminho! }
+          : { ...l, tipo: pedido.tipo, titulo: pedido.tipo === 'ofensiva' ? `${pedido.dias ?? 1} dias` : l.titulo };
       }
       const corpo = JSON.stringify({
         web_push: 8030,
