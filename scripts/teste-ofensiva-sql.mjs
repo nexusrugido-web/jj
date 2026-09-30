@@ -34,6 +34,10 @@ await pg.exec(`
 const sql = await fs.readFile(new URL('../supabase/26-ofensiva-semanal.sql', import.meta.url), 'utf8');
 await pg.exec(sql);
 await pg.exec(sql); // reexecução segura
+await pg.exec('alter table public.registros add column id uuid default gen_random_uuid()');
+const sqlMetas = await fs.readFile(new URL('../supabase/29-notificacoes-metas.sql', import.meta.url), 'utf8');
+await pg.exec(sqlMetas);
+await pg.exec(sqlMetas); // reexecução segura
 const inicio='2026-06-01';
 let casos=0;
 async function comparar(sessoes,hoje,lesoes=[],max=2,rolls=[]) {
@@ -56,6 +60,23 @@ const user='00000000-0000-0000-0000-000000000001';
 await pg.query('insert into perfil(user_id,nome) values($1,$2)',[user,'Teste']);
 await pg.query('insert into auth.users(id,email) values($1,$2)',[user,'teste@example.invalid']);
 await pg.query('insert into registros(user_id,tabela,dados) values($1,$2,$3)',[user,'sessions',JSON.stringify({id:1,data:'2026-09-21',tipo:'gi'})]);
+const metaFrequencia='00000000-0000-0000-0000-000000000101';
+const metaManual='00000000-0000-0000-0000-000000000102';
+await pg.query('insert into registros(id,user_id,tabela,dados) values($1,$2,$3,$4)',
+  [metaFrequencia,user,'goals',JSON.stringify({tipo:'frequencia',titulo:'Treinar 3x',alvo:3,status:'ativa',origem:'usuario'})]);
+let meta=(await pg.query('select public.proxima_meta_para_aviso($1,$2) as valor',[user,'2026-09-25'])).rows[0].valor;
+assert.equal(meta.tipo,`meta:${metaFrequencia}`);
+assert.match(meta.corpo,/1 de 3 treinos/);
+assert.equal((await pg.query('select public.proxima_meta_para_aviso($1,$2) as valor',[user,'2026-09-22'])).rows[0].valor,null);
+await pg.query('insert into registros(id,user_id,tabela,dados) values($1,$2,$3,$4)',
+  [metaManual,user,'goals',JSON.stringify({tipo:'manual',titulo:'Alongar 5x',alvo:5,contador:2,status:'ativa',origem:'confirmada'})]);
+await pg.query('insert into notificacao_envio(user_id,tipo,dia,enviado_em,respondeu) values($1,$2,$3,now(),false)',
+  [user,`meta:${metaFrequencia}`,'2026-09-25']);
+meta=(await pg.query('select public.proxima_meta_para_aviso($1,$2) as valor',[user,'2026-09-29'])).rows[0].valor;
+assert.equal(meta.tipo,`meta:${metaManual}`);
+assert.match(meta.corpo,/2 de 5/);
+await pg.query("update registros set dados=jsonb_set(dados,'{status}','\"concluida\"'::jsonb) where id=$1",[metaManual]);
+assert.equal((await pg.query('select public.proxima_meta_para_aviso($1,$2) as valor',[user,'2026-09-29'])).rows[0].valor,null);
 await pg.exec(`set test.uid='${user}'`);
 assert.equal((await pg.query('select public.minha_ofensiva_semanal() as o')).rows[0].o.semanas,1);
 assert.equal((await pg.query('select * from public.ranking_ofensivas_semanais()')).rows[0].semanas,1);

@@ -110,11 +110,21 @@ export async function ligarNotificacao(uid) {
         p256dh: j.keys.p256dh,
         auth: j.keys.auth,
         fuso: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Sao_Paulo',
+        falhas: 0,
       }, { onConflict: 'endpoint' }),
       20000,
       'servidor'
     );
     if (error) throw error;
+
+    /* O interruptor e global por conta. Ao religar um aparelho, reativar
+       tambem o filtro que a fila do servidor consulta. */
+    const { error: erroPerfil } = await comPrazo(
+      supabase.from('perfil').update({ notificar: true }).eq('user_id', uid),
+      20000,
+      'perfil'
+    );
+    if (erroPerfil) throw erroPerfil;
 
     return { ok: true, motivo: 'ligada' };
   } catch (e) {
@@ -142,11 +152,21 @@ export async function desligarNotificacao(uid) {
   }
 }
 
-export async function estaLigada() {
+export async function estaLigada(uid) {
   try {
     if (!('serviceWorker' in navigator) || Notification?.permission !== 'granted') return false;
     const reg = await comPrazo(navigator.serviceWorker.getRegistration(), 8000, 'registro');
-    return !!(await reg?.pushManager.getSubscription());
+    const sub = await reg?.pushManager.getSubscription();
+    if (!sub || !supabase || !uid) return false;
+    const [{ data: perfil, error: erroPerfil }, { data: inscricao, error: erroInscricao }] = await comPrazo(
+      Promise.all([
+        supabase.from('perfil').select('notificar').eq('user_id', uid).maybeSingle(),
+        supabase.from('push_inscricao').select('falhas').eq('endpoint', sub.endpoint).eq('user_id', uid).maybeSingle(),
+      ]),
+      20000,
+      'servidor'
+    );
+    return !erroPerfil && !erroInscricao && !!perfil?.notificar && !!inscricao && inscricao.falhas < 5;
   } catch {
     return false;
   }

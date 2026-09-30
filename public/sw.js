@@ -5,7 +5,7 @@
    - fontes externas: cache-first
    Os DADOS ficam no IndexedDB, entao o app inteiro funciona sem internet. */
 
-const VERSION = 'neurojitsu-v12-9';
+const VERSION = 'neurojitsu-v12-10';
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
 
@@ -62,6 +62,7 @@ const ROTA = {
   estudar: '/?go=estudo',
   treino: '/?go=treinos',
   liga: '/?go=liga',
+  meta: '/?go=metas',
 };
 
 /* Com a cara do tatame: brinca, mas cobra. Cada tipo tem algumas
@@ -79,6 +80,13 @@ function aviso(n) {
       titulo: n.title || 'Sua semana de treino ainda está aberta',
       corpo: n.body || 'Se você treinou nesta semana, registre para manter sua sequência.',
       acoes: [{ acao: 'treino', titulo: 'Registrar treino', rota: ROTA.treino }],
+    };
+  }
+  if (tipo.startsWith('meta:')) {
+    return {
+      titulo: n.title || 'Sua meta no NeuroJitsu',
+      corpo: n.body || 'Abra para conferir seu progresso.',
+      acoes: [{ acao: 'meta', titulo: 'Ver minha meta', rota: ROTA.meta }],
     };
   }
   if (tipo === 'ofensiva') {

@@ -63,8 +63,9 @@ export default function TesteAviso({ email }) {
         <h2 className="h-sec row" style={{ gap: 8 }}><Bell size={17} /> Testar avisos</h2>
       </div>
       <p className="tiny muted" style={{ lineHeight: 1.65, marginBottom: 12 }}>
-        Toque em mandar e minimize o app na hora: o aviso chega em poucos segundos na barra de notificações,
-        do mesmo jeito que chega pro aluno. Tocar de novo no mesmo aviso manda a próxima versão do texto.
+        Toque em mandar e minimize o app na hora: o aviso chega em poucos segundos na barra de notificações.
+        Este teste ignora horário, interruptor do perfil e regras de elegibilidade; receber aqui não comprova
+        que o envio automático está funcionando. Tocar de novo no mesmo aviso manda a próxima versão do texto.
         O celular precisa estar com os avisos ligados (Ajustes → Avisos).
       </p>
       <Field label="Pra qual conta">

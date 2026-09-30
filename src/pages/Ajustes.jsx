@@ -595,7 +595,7 @@ function Notificacoes({ sessao }) {
   const [falha, setFalha] = useState(null);
   const { pode, motivo } = podeNotificar();
 
-  useEffect(() => { estaLigada().then(setLigado); }, [sessao]);
+  useEffect(() => { estaLigada(sessao?.user?.id).then(setLigado); }, [sessao?.user?.id]);
 
   async function alternar() {
     setOcupado(true);
