@@ -3696,3 +3696,48 @@ body::after {
   .aviso-update { grid-template-columns: auto 1fr auto; }
   .aviso-update-botoes { grid-column: auto; display: flex; }
 }
+
+/* ---------- atualizando: a tela que cobre o app até recarregar ---------- */
+.tela-atualizando {
+  position: fixed; inset: 0; z-index: 9000;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+  background: radial-gradient(120% 80% at 50% 40%, color-mix(in srgb, var(--accent) 14%, var(--void)) 0%, var(--void) 62%);
+  animation: atualizando-entra .25s var(--ease);
+  padding: 24px; text-align: center;
+}
+.tela-atualizando-anel {
+  position: relative; width: 92px; height: 92px; display: grid; place-items: center;
+}
+.tela-atualizando-anel::before {
+  content: ''; position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0 55%, var(--accent) 85%, transparent 100%);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  animation: atualizando-gira .9s linear infinite;
+}
+.tela-atualizando-anel .brand-mark { width: 56px; height: 56px; border-radius: 16px; animation: atualizando-pulsa 1.2s var(--ease) infinite; }
+.tela-atualizando-titulo {
+  font-family: var(--display); font-size: 26px; font-weight: 800; letter-spacing: -0.02em;
+  background: linear-gradient(90deg, var(--chalk) 0%, var(--chalk) 35%, var(--accent) 50%, var(--chalk) 65%, var(--chalk) 100%);
+  background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: atualizando-brilho 1.2s linear infinite;
+}
+.tela-atualizando-barra { width: min(220px, 60vw); height: 4px; border-radius: 99px; background: var(--seam); overflow: hidden; }
+.tela-atualizando-barra span { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--accent); animation: atualizando-enche 1.2s var(--ease) forwards; }
+.tela-atualizando p { font-size: 12px; color: var(--dim); margin: 0; }
+@keyframes atualizando-entra { from { opacity: 0; } }
+@keyframes atualizando-gira { to { transform: rotate(360deg); } }
+@keyframes atualizando-pulsa { 50% { transform: scale(0.94); } }
+@keyframes atualizando-brilho { from { background-position: 100% 0; } to { background-position: -150% 0; } }
+@keyframes atualizando-enche { to { width: 100%; } }
+@media (prefers-reduced-motion: reduce) {
+  .tela-atualizando-anel::before, .tela-atualizando-anel .brand-mark, .tela-atualizando-titulo { animation: none; }
+}
+.aviso-atualizado {
+  position: fixed; left: 50%; transform: translateX(-50%); z-index: 60;
+  bottom: calc(var(--mobilebar-h, 64px) + 14px);
+  padding: 10px 16px; border-radius: 99px; font-size: 13px; font-weight: 600;
+  background: var(--mat-top); color: var(--jade); border: 1px solid var(--seam-hi); box-shadow: var(--shadow-lg);
+  animation: subir 0.35s var(--ease);
+}
+@media (min-width: 781px) { .aviso-atualizado { bottom: 20px; } }

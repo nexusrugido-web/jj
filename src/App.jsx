@@ -150,6 +150,12 @@ export default function App() {
   const [precisaAceitar, setPrecisaAceitar] = useState(false);
   const [tourAberto, setTourAberto] = useState(false);
   const [atualizar, setAtualizar] = useState(null);
+  /* tocou em Atualizar: a tela de atualizando aparece antes de recarregar */
+  const [atualizando, setAtualizando] = useState(false);
+  const [atualizado, setAtualizado] = useState(() => {
+    try { const v = sessionStorage.getItem('acabou-de-atualizar'); sessionStorage.removeItem('acabou-de-atualizar'); return !!v; } catch { return false; }
+  });
+  useEffect(() => { if (atualizado) { const t = setTimeout(() => setAtualizado(false), 2600); return () => clearTimeout(t); } return undefined; }, [atualizado]);
   const [acesso, setAcesso] = useState({ premium: false, status: 'checando' });
   const [chaves, setChaves] = useState(todasAsChaves);
   const [ehAdmin, setEhAdmin] = useState(false);
@@ -610,10 +616,19 @@ export default function App() {
             </div>
             <div className="aviso-update-botoes">
               <button className="btn ghost sm" onClick={() => setAtualizar(null)}>Depois</button>
-              <button className="btn primary sm" onClick={atualizar}>Atualizar</button>
+              <button className="btn primary sm" onClick={() => { setAtualizando(true); setTimeout(atualizar, 1200); }}>Atualizar</button>
             </div>
           </div>
         )}
+        {atualizando && (
+          <div className="tela-atualizando" role="status" aria-live="polite">
+            <div className="tela-atualizando-anel"><span className="brand-mark" /></div>
+            <div className="tela-atualizando-titulo">Atualizando</div>
+            <div className="tela-atualizando-barra"><span /></div>
+            <p>Seus treinos e rolas ficam onde estão.</p>
+          </div>
+        )}
+        {atualizado && <div className="aviso-atualizado" role="status">✓ App atualizado</div>}
         <Tour aberto={tourAberto} onClose={() => setTourAberto(false)} onConcluir={() => salvarSettings({ tourVisto: 1 })} />
         <Celebracao marco={celebrar} onFechar={() => setCelebrar(null)} />
         <Renovacao />

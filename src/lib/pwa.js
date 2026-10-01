@@ -109,15 +109,11 @@ export function vigiarAtualizacao(aoEncontrar) {
   if (!('serviceWorker' in navigator)) return () => {};
 
   let reg = null;
-  let recarregando = false;
 
-  /* O controlador trocou, e isso basta: da proxima vez que algo
-     for buscado, quem responde e a versao nova. Recarregar aqui
-     derrubaria um treino sendo digitado, entao o app so recarrega
-     quando a pessoa toca em atualizar. */
+  /* O controlador trocou: só recarrega se foi a pessoa que pediu
+     (tocou em Atualizar). Sozinho, derrubaria um treino sendo digitado. */
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (recarregando) return;
-    recarregando = true;
+    if (pediuAtualizar) window.location.reload();
   });
 
   navigator.serviceWorker.getRegistration().then((r) => {
@@ -149,7 +145,15 @@ export function vigiarAtualizacao(aoEncontrar) {
   return () => clearInterval(t);
 }
 
+let pediuAtualizar = false;
 function aplicar(reg) {
-  if (reg.waiting) reg.waiting.postMessage('SKIP_WAITING');
-  else window.location.reload();
+  pediuAtualizar = true;
+  /* a tela seguinte diz que deu certo */
+  try { sessionStorage.setItem('acabou-de-atualizar', '1'); } catch { /* sem armazenamento, só não avisa */ }
+  if (reg.waiting) {
+    /* a versão nova assume e o controllerchange recarrega; se ele não
+       vier, recarrega do mesmo jeito */
+    reg.waiting.postMessage('SKIP_WAITING');
+    setTimeout(() => window.location.reload(), 1500);
+  } else window.location.reload();
 }
