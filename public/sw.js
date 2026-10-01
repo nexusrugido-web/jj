@@ -5,7 +5,7 @@
    - fontes externas: cache-first
    Os DADOS ficam no IndexedDB, entao o app inteiro funciona sem internet. */
 
-const VERSION = 'neurojitsu-v12-13';
+const VERSION = 'neurojitsu-v12-14';
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
 
@@ -106,6 +106,54 @@ function relogio(agora = Date.now()) {
    pra redesenhar (3:00, 2:45, 2:30...). Aparece ao puxar o aviso.
    Se o aparelho não souber desenhar, o aviso sai só com o texto.
    ------------------------------------------------------------ */
+async function emDataUrl(tela) {
+  const png = new Uint8Array(await (await tela.convertToBlob({ type: 'image/png' })).arrayBuffer());
+  let bin = '';
+  for (let i = 0; i < png.length; i += 0x8000) bin += String.fromCharCode.apply(null, png.subarray(i, i + 0x8000));
+  return `data:image/png;base64,${btoa(bin)}`;
+}
+
+/* ------------------------------------------------------------
+   O RELÓGIO NO ÍCONE
+
+   O cartão grande só aparece com o aviso aberto, e quem decide
+   quando abrir é o celular (no HyperOS, segurando e arrastando).
+   O ícone da direita aparece sempre, com o aviso fechado: o
+   relógio vai nele, grande, como o número do Duolingo.
+   ------------------------------------------------------------ */
+async function iconeDoRelogio(tempo) {
+  if (typeof OffscreenCanvas === 'undefined') return null;
+  try {
+    const L = 192;
+    const tela = new OffscreenCanvas(L, L);
+    const g = tela.getContext('2d');
+    g.beginPath();
+    g.roundRect(0, 0, L, L, 44);
+    g.clip();
+    g.fillStyle = '#120d0c';
+    g.fillRect(0, 0, L, L);
+    const brilho = g.createRadialGradient(L / 2, L / 2, 10, L / 2, L / 2, 120);
+    brilho.addColorStop(0, 'rgba(239, 90, 68, 0.38)');
+    brilho.addColorStop(1, 'rgba(239, 90, 68, 0)');
+    g.fillStyle = brilho;
+    g.fillRect(0, 0, L, L);
+    g.textAlign = 'center';
+    g.textBaseline = 'alphabetic';
+    /* "3 dias" vira o número grande com "dias" embaixo; "2:08", o
+       relógio grande com "faltam" embaixo */
+    const [numero, legenda] = tempo.includes(' ') ? tempo.split(' ') : [tempo, 'faltam'];
+    g.fillStyle = '#ef5a44';
+    g.font = `800 ${numero.length > 3 ? 62 : 92}px system-ui, sans-serif`;
+    g.fillText(numero, L / 2, numero.length > 3 ? 112 : 122);
+    g.fillStyle = '#ff9b8a';
+    g.font = '700 28px system-ui, sans-serif';
+    g.fillText(legenda, L / 2, 158);
+    return await emDataUrl(tela);
+  } catch {
+    return null;
+  }
+}
+
 async function cartaoDoRelogio(tempo) {
   if (typeof OffscreenCanvas === 'undefined') return null;
   try {
@@ -141,10 +189,7 @@ async function cartaoDoRelogio(tempo) {
     g.font = '600 38px system-ui, sans-serif';
     g.fillText('1 treino = ofensiva', 44, 270);
     g.fillText('segura! ⚠️', 44, 318);
-    const png = new Uint8Array(await (await tela.convertToBlob({ type: 'image/png' })).arrayBuffer());
-    let bin = '';
-    for (let i = 0; i < png.length; i += 0x8000) bin += String.fromCharCode.apply(null, png.subarray(i, i + 0x8000));
-    return `data:image/png;base64,${btoa(bin)}`;
+    return await emDataUrl(tela);
   } catch {
     return null;
   }
@@ -285,8 +330,9 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     (async () => {
       if (bonito.relogio) {
-        const imagem = await cartaoDoRelogio(bonito.relogio);
+        const [imagem, icone] = await Promise.all([cartaoDoRelogio(bonito.relogio), iconeDoRelogio(bonito.relogio)]);
         if (imagem) opcoes.image = imagem;
+        if (icone) opcoes.icon = icone;
       }
       await self.registration.showNotification(titulo, opcoes);
       /* o numero na bolinha do icone. O formato declarativo faz
