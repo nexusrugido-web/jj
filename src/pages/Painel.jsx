@@ -26,6 +26,8 @@ import { semanaDe } from '../lib/xp';
 import useOfensivaSemanal from '../lib/useOfensivaSemanal';
 import { situacao, guiaDeEstudo } from '../lib/lesao';
 import { analisarJogo } from '../lib/game';
+import { treinoDeHoje } from '../lib/treinoDeHoje';
+import TreinoDeHoje from '../components/TreinoDeHoje';
 import { Ponteira } from '../components/Ponteira';
 import { PrimeirosPassos, AvisoDeVolta } from '../components/PrimeirosPassos';
 import Destaques from '../components/Destaques';
@@ -110,6 +112,10 @@ export default function Painel() {
     [esteira, buracos, partners, sessions, rolls, settings.faixa, feitas]
   );
   const jogo = useMemo(() => analisarJogo(rolls, partners, sessions, settings.faixa), [rolls, partners, sessions, settings.faixa]);
+  const hojeNoTatame = useMemo(
+    () => treinoDeHoje({ sessions, esteira, buracos, jogo, metaSemanal: settings.metaSemanal }),
+    [sessions, esteira, buracos, jogo, settings.metaSemanal]
+  );
   const horasNoAno = useMemo(
     () => {
       /* as horas nascem do ritmo (ou do número que a pessoa escolheu) */
@@ -301,6 +307,8 @@ export default function Painel() {
 
       <PrimeirosPassos sessions={sessions} rolls={rolls} tecnicas={esteira} irPara={irPara} />
       <AvisoDeVolta sessions={sessions} irPara={irPara} />
+
+      <TreinoDeHoje hoje={hojeNoTatame} acesso={acesso} />
 
       {/* ---- o ritmo da semana ---- */}
       <SemanaDoRitmo

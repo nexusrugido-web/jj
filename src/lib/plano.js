@@ -56,6 +56,7 @@ export const RECURSOS = {
   meujogo:       { premium: true, nome: 'Meu jogo por situação', desc: 'Como você vai contra mais pesado, mais leve e em cada posição em que o rola começa.' },
   aulasIlimitadas:{ premium: true, nome: 'Aulas sem limite', desc: `No grátis é ${LIMITES.aulasPorDia} aula completa e ${LIMITES.shortsPorDia} aula rápida por dia.` },
   quizIlimitado: { premium: true, nome: 'Quiz sem limite', desc: 'E ele volta nas perguntas que você errou. No grátis é uma rodada por dia, com perguntas sorteadas.' },
+  treinoHoje:    { premium: true, nome: 'O treino de hoje', desc: 'Antes de cada treino: a técnica perto do grau, o que mais te pega e de onde você mais ganha.' },
   recomendacoes: { premium: true, nome: 'O que treinar agora', desc: 'Escolhido pelos seus rolas, no Painel, em Minhas técnicas e no Estudo (Pra você).' },
   musculacao:    { premium: true, nome: 'Força pro jiu-jitsu', desc: 'Os exercícios que mais ajudam no tatame, cada um com o plano pra encaixar no treino de academia que você já faz.' },
   nutricao:      { premium: true, nome: 'Combustível pro jiu-jitsu', desc: 'Proteína, carboidrato e água calculados pelo seu peso, o seu dia de comida com rotinas, e os suplementos que têm estudo por trás.' },
@@ -76,12 +77,13 @@ export const PRECOS = { mensal: 29.9, anual: 297 };
 
 export const PILARES = [
   { titulo: 'Entenda o seu jogo', texto: 'O que os seus rolas mostram, de onde você vence e onde cede.', recursos: ['analise', 'meujogo', 'ia', 'historico'] },
-  { titulo: 'Saiba o que treinar', texto: 'Escolhido pelo que mais te pega, e trocado conforme você evolui.', recursos: ['recomendacoes', 'aulasIlimitadas', 'quizIlimitado', 'metas'] },
+  { titulo: 'Saiba o que treinar', texto: 'Escolhido pelo que mais te pega, e trocado conforme você evolui.', recursos: ['treinoHoje', 'recomendacoes', 'aulasIlimitadas', 'quizIlimitado', 'metas'] },
   { titulo: 'Corpo pronto pro tatame', texto: 'Força e comida pensadas pro jiu-jitsu, com os seus números.', recursos: ['musculacao', 'nutricao'] },
   { titulo: 'E menos trabalho', texto: 'Conta o treino falando, e a figurinha na cor da sua faixa.', recursos: ['voz', 'temasFigurinha'] },
 ];
 
 export const NOVIDADES = [
+  { data: '2026-10-01', titulo: 'O treino de hoje: o que tentar e o que evitar, antes de cada treino' },
   { data: '2026-10-01', titulo: 'Mapa de posições com os dois lados de cada posição' },
   { data: '2026-09-30', titulo: 'Suplementos lado a lado, com a fonte e o limite de cada estudo' },
   { data: '2026-09-25', titulo: 'Registrar falando: conta o treino e o app monta tudo' },

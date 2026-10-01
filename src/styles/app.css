@@ -3767,3 +3767,9 @@ body::after {
 /* ---------- calculadora de horas ---------- */
 .calc-resultado { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 14px; background: var(--void); border: 1px solid var(--seam); }
 .calc-numero { font-family: var(--display); font-weight: 800; font-size: 30px; letter-spacing: -0.02em; color: var(--chalk); }
+
+/* ---------- o treino de hoje ---------- */
+.hoje-card { border-color: color-mix(in srgb, var(--accent) 30%, var(--seam)); }
+.hoje-linha { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.5; }
+.hoje-linha b { color: var(--chalk); }
+.hoje-ico { flex: none; width: 22px; text-align: center; }
