@@ -3,8 +3,9 @@
 --
 -- Ofensiva semanal: alem do aviso de domingo na hora de costume, sai um
 -- de reta final as 21h de Brasilia (3h antes da semana fechar), so pra
--- quem tem ofensiva viva e a semana sem treino. O celular mostra quanto
--- falta na hora em que o aviso aparece (public/sw.js).
+-- quem tem ofensiva viva e a semana sem treino, atualizado em silencio as
+-- 22h e as 23h (3h, 2h, 1h). O celular mostra quanto falta na hora em que
+-- o aviso aparece (public/sw.js). Pode reaplicar: e seguro.
 --
 -- Meta de treinos por semana: sai no dia em que nao sobra folga (os
 -- treinos que faltam sao os dias que faltam ate domingo), uma vez por
@@ -212,10 +213,11 @@ begin
     select
       c.*,
       case
-        /* 0. a reta final: domingo as 21h de Brasilia, 3h antes da semana
-           fechar, se a ofensiva esta viva e a semana ainda sem treino */
+        /* 0. a reta final: domingo das 21h as 23h de Brasilia, se a ofensiva
+           esta viva e a semana ainda sem treino. As 21h sai com som; as 22h e
+           as 23h o mesmo aviso e atualizado em silencio (3h, 2h, 1h) */
         when extract(isodow from public.hoje_br()) = 7
-          and extract(hour from now() at time zone 'America/Sao_Paulo')::int = 21
+          and extract(hour from now() at time zone 'America/Sao_Paulo')::int between 21 and 23
           and not c.fechou_hoje and c.sequencia > 0
           and not (c.ofensiva->>'congelada')::boolean
           then 'ofensiva_reta_final'
@@ -255,13 +257,18 @@ begin
   ),
   texto as (
     select
-      e.user_id, e.tipo_dele as tipo, e.hoje_dele as dia,
+      e.user_id,
+      case when e.tipo_dele = 'ofensiva_reta_final'
+             and extract(hour from now() at time zone 'America/Sao_Paulo')::int > 21
+           then e.tipo_dele || ':' || extract(hour from now() at time zone 'America/Sao_Paulo')::int
+           else e.tipo_dele end as tipo,
+      e.hoje_dele as dia,
       e.endpoint, e.p256dh, e.auth, e.sequencia,
       case e.tipo_dele
         when 'ofensiva_semanal' then
           e.sequencia || ' semanas de ofensiva: sua semana ainda está aberta'
         when 'ofensiva_reta_final' then
-          'Faltam 3 horas: ' || e.sequencia || ' semanas de ofensiva em jogo'
+          'Falta ' || (24 - extract(hour from now() at time zone 'America/Sao_Paulo')::int) || 'h pra fechar a semana'
         when 'liga'      then 'A semana da Liga fecha hoje'
         when 'resultado' then 'A liga fechou'
         when 'volta'     then 'O tatame continua aí'
@@ -269,7 +276,7 @@ begin
       end as titulo,
       case e.tipo_dele
         when 'ofensiva_semanal' then case when (e.ofensiva->>'escudos')::int > 0 then 'Se você treinou, registre. Sem treino, um escudo protege esta semana sem somar semanas.' else 'Se você treinou nesta semana, registre para manter a sequência.' end
-        when 'ofensiva_reta_final' then '1 treino registrado = ofensiva segura. Treinou e não registrou? Registra agora.'
+        when 'ofensiva_reta_final' then '1 treino registrado = ofensiva segura! ⚠️'
         when 'liga'     then 'Ainda dá para mudar sua posição antes do fechamento da semana.'
         when 'resultado' then 'Veja onde você terminou e como começa esta semana.'
         when 'volta'    then 'Seu jogo continua aqui. Volte por uma aula, no seu ritmo.'

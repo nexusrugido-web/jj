@@ -5,7 +5,7 @@
    - fontes externas: cache-first
    Os DADOS ficam no IndexedDB, entao o app inteiro funciona sem internet. */
 
-const VERSION = 'neurojitsu-v12-11';
+const VERSION = 'neurojitsu-v12-12';
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
 
@@ -79,8 +79,10 @@ function fimDaSemana(agora = Date.now()) {
   const diasAteSegunda = ((8 - br.getUTCDay()) % 7) || 7;
   return Date.UTC(br.getUTCFullYear(), br.getUTCMonth(), br.getUTCDate() + diasAteSegunda) + 3 * 3600000;
 }
+/* curto pra caber no aviso fechado: "4 dias", "2h08", "35 min" */
 function quantoFalta(agora = Date.now()) {
-  const min = Math.floor((fimDaSemana(agora) - agora) / 60000);
+  const min = Math.max(0, Math.floor((fimDaSemana(agora) - agora) / 60000));
+  if (min >= 24 * 60) { const d = Math.floor(min / (24 * 60)); return `${d} ${d === 1 ? 'dia' : 'dias'}`; }
   return min >= 60 ? `${Math.floor(min / 60)}h${String(min % 60).padStart(2, '0')}` : `${min} min`;
 }
 
@@ -96,16 +98,17 @@ function aviso(n) {
       acoes: [{ acao: 'treino', titulo: 'Registrar treino', rota: ROTA.treino }],
     };
   }
-  /* domingo às 21h: igual ao do Duolingo, o relógio na cara */
-  if (tipo === 'ofensiva_reta_final') {
-    const restante = fimDaSemana() - Date.now();
+  /* domingo às 21h, como o do Duolingo: o tempo que falta no título.
+     Às 22h e 23h chega de novo (ofensiva_reta_final:22, :23) e troca o
+     mesmo aviso em silêncio: 3h, 2h, 1h. Aviso de site não tem
+     cronômetro correndo sozinho; isso é o mais perto. */
+  if (tipo.startsWith('ofensiva_reta_final')) {
     return {
-      titulo: restante > 0 && restante <= 6 * 3600000
-        ? `⏳ ${quantoFalta()} pra semana fechar`
-        : 'Sua semana de treino ainda está aberta',
-      corpo: '1 treino registrado = ofensiva segura! ⚠️ Treinou e não registrou? Registra agora.',
+      titulo: `⏳ ${quantoFalta()} pra fechar a semana`,
+      corpo: '1 treino registrado = ofensiva segura! ⚠️',
       acoes: [{ acao: 'treino', titulo: 'Salvar ofensiva', rota: ROTA.treino }],
-      ate: fimDaSemana(),
+      tag: 'ofensiva_reta_final',
+      silencioso: tipo.includes(':'),
     };
   }
   if (tipo.startsWith('meta:')) {
@@ -197,11 +200,13 @@ self.addEventListener('push', (event) => {
        branca em fundo transparente, a logo colorida vira um quadrado */
     badge: '/badge-96.png',
     lang: n.lang || 'pt-BR',
-    tag: n.tag || 'neurojitsu',
-    renotify: true,
-    vibrate: [80, 40, 80],
-    /* na reta final, a hora do aviso é a hora do prazo */
-    timestamp: bonito.ate || Date.now(),
+    tag: bonito.tag || n.tag || 'neurojitsu',
+    /* a atualização da reta final troca o texto sem tocar de novo */
+    renotify: !bonito.silencioso,
+    silent: !!bonito.silencioso,
+    /* silencioso não pode vibrar: o Chrome recusa o aviso inteiro */
+    ...(bonito.silencioso ? {} : { vibrate: [80, 40, 80] }),
+    timestamp: Date.now(),
     /* os botões embaixo do aviso, como no Duolingo: o toque já leva
        pra ação, sem abrir o app e procurar */
     actions: bonito.acoes.map(({ acao, titulo: t }) => ({ action: acao, title: t })),

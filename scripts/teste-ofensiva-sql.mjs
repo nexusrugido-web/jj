@@ -167,8 +167,11 @@ assert.deepEqual((await filaDe('18:10')).map((r) => r.tipo), ['ofensiva_semanal'
 assert.deepEqual((await filaDe('20:10')).map((r) => r.tipo), [], 'fora da hora, nada');
 const reta = await filaDe('21:10');
 assert.deepEqual(reta.map((r) => r.tipo), ['ofensiva_reta_final'], '21h de Brasília, a reta final');
-assert.match(reta[0].titulo, /Faltam 3 horas: 1 semanas de ofensiva em jogo/);
-assert.deepEqual((await filaDe('22:10')).map((r) => r.tipo), [], 'a reta final é uma vez só');
+assert.match(reta[0].titulo, /Falta 3h pra fechar a semana/);
+assert.deepEqual((await filaDe('22:10')).map((r) => r.tipo), ['ofensiva_reta_final:22'], '22h: atualiza o mesmo aviso');
+assert.match((await filaDe('23:10'))[0].titulo, /Falta 1h/, '23h: falta 1h');
+await pg.query("insert into notificacao_envio(user_id,tipo,dia,enviado_em,respondeu) values($1,'ofensiva_reta_final:23','2026-09-27',now(),false)", [u3]);
+assert.deepEqual((await filaDe('23:40')).map((r) => r.tipo), [], 'a trava: cada hora sai uma vez');
 await pg.query('insert into registros(user_id,tabela,dados) values($1,$2,$3)', [u3, 'sessions', JSON.stringify({ data: '2026-09-26', tipo: 'gi' })]);
 assert.deepEqual((await filaDe('21:10')).map((r) => r.tipo), [], 'treinou na semana: não cobra');
 
