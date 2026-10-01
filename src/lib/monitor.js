@@ -78,11 +78,6 @@ export function registrarErro(erro, contexto = {}) {
   });
 }
 
-export function marcarPasso(mensagem, dados = {}) {
-  if (!ligado || !Sentry) return;
-  Sentry.addBreadcrumb({ message: mensagem, data: dados, level: 'info' });
-}
-
 
 
 export function erroDeAcesso(erro) {

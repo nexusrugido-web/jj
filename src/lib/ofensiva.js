@@ -204,20 +204,6 @@ export function diasFechados(pontos = [], ate = hoje()) {
   return [...set].sort();
 }
 
-/* ============================================================
-   OS DIAS QUE A LESÃO CONGELOU
-
-   Só a lesão que tira do tatame ('parado'). Lesão que deixa
-   treinar adaptado não congela nada, porque a pessoa continua
-   indo.
-
-   O fim é a cura, e enquanto não tem cura é hoje: lesão aberta
-   congela até a pessoa fechar.
-   ============================================================ */
-export function diasParadosPorLesao(lesoes = [], ate = hoje()) {
-  return diasParados(lesoes, ate);
-}
-
 function diasParados(lesoes, ate) {
   const set = new Set();
   for (const l of lesoes) {
@@ -239,54 +225,3 @@ function faltaPro(corrente, emMao, maxEscudos = MAX_ESCUDOS) {
   return resto === 0 && corrente > 0 ? DIAS_POR_ESCUDO : DIAS_POR_ESCUDO - resto;
 }
 
-/* ---------- a frase da ofensiva, sem cobrança ---------- */
-export function textoOfensiva(o) {
-  if (!o.ultimoDia) {
-    return {
-      titulo: 'A ofensiva começa hoje',
-      texto: 'Qualquer coisa que dê ponto fecha o dia: uma aula rápida, uma pergunta do quiz, ou o treino registrado.',
-      tom: '',
-    };
-  }
-
-  if (!o.viva) {
-    return {
-      titulo: o.recorde >= DIAS_POR_ESCUDO ? `Seu recorde foi de ${o.recorde} dias` : 'Ofensiva zerada',
-      texto: 'Uma ação hoje começa a próxima. O que você já treinou continua valendo: nada do seu histórico se perde.',
-      tom: '',
-    };
-  }
-
-  if (o.congelada) {
-    return {
-      titulo: o.dias === 1 ? 'Ofensiva congelada em 1 dia' : `Ofensiva congelada em ${o.dias} dias`,
-      texto: 'Você registrou lesão que tira do tatame. Enquanto ela estiver aberta a contagem fica parada, e não gasta escudo. Se estudar, ela volta a crescer.',
-      tom: 'ice',
-    };
-  }
-
-  if (o.emRisco) {
-    return {
-      titulo: o.dias === 1 ? 'Sua ofensiva fecha hoje' : `${o.dias} dias, e hoje ainda está aberto`,
-      texto: o.escudos > 0
-        ? `Se o dia passar, um escudo segura. Você tem ${o.escudos}.`
-        : 'Sem escudo guardado ainda. Meio minuto de aula rápida mantém de pé.',
-      tom: 'roar',
-    };
-  }
-
-  if (o.dias >= 100) {
-    return { titulo: `${o.dias} dias seguidos`, texto: 'Cem dias aparecendo. Isso é mais constância do que a maioria dos faixas-pretas teve no primeiro ano.', tom: 'jade' };
-  }
-  if (o.dias >= 30) {
-    return { titulo: `${o.dias} dias seguidos`, texto: 'Um mês sem falhar um dia. É esse tipo de rotina que muda faixa.', tom: 'jade' };
-  }
-  if (o.dias >= DIAS_POR_ESCUDO) {
-    return { titulo: `${o.dias} dias seguidos`, texto: 'Você já tem escudo guardado. Agora dá pra faltar um dia sem perder o que construiu.', tom: 'jade' };
-  }
-  return {
-    titulo: o.dias === 1 ? 'Primeiro dia' : `${o.dias} dias seguidos`,
-    texto: `Faltam ${o.faltaProEscudo} ${o.faltaProEscudo === 1 ? 'dia' : 'dias'} pro primeiro escudo, que segura a ofensiva quando a vida atrapalhar.`,
-    tom: '',
-  };
-}

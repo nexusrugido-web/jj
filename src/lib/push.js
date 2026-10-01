@@ -172,30 +172,6 @@ export async function estaLigada(uid) {
   }
 }
 
-/* O estado cru de cada peca, pra tela mostrar quando algo falha.
-   E o que transforma "nao funciona" em "o service worker nao
-   registrou", que e uma frase que da pra agir em cima. */
-export async function estadoDoPush() {
-  const { motivo } = podeNotificar();
-  const est = {
-    plataforma: ehStandalone() ? 'instalado' : 'navegador',
-    chave: VAPID ? `${VAPID.slice(0, 6)}…` : 'FALTA',
-    permissao: typeof Notification !== 'undefined' ? Notification.permission : 'n/d',
-    suporte: motivo,
-    sw: 'n/d',
-    inscricao: 'n/d',
-  };
-  try {
-    const reg = await comPrazo(navigator.serviceWorker.getRegistration(), 8000, 'registro');
-    est.sw = reg ? (reg.active ? 'ativo' : 'registrado, sem ativo') : 'nenhum';
-    const sub = await reg?.pushManager.getSubscription();
-    est.inscricao = sub ? 'sim' : 'não';
-  } catch (e) {
-    est.sw = `erro: ${e?.message || e}`;
-  }
-  return est;
-}
-
 /* ============================================================
    ABRIU O APP
 

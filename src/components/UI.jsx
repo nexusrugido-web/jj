@@ -295,44 +295,6 @@ export function EscolherData({ valor, onChange, titulo = 'Quando foi', futuro = 
   );
 }
 
-/* ---------------- Editor de lista genérico (flexibilidade) ---------------- */
-export function TagsInput({ valor = [], onChange, sugestoes = [], placeholder = 'Adicionar…' }) {
-  const [txt, setTxt] = useState('');
-  const add = (v) => {
-    const s = String(v).trim();
-    if (!s || valor.includes(s)) return;
-    onChange([...valor, s]);
-    setTxt('');
-  };
-  const sug = sugestoes.filter((s) => !valor.includes(s) && s.toLowerCase().includes(txt.toLowerCase())).slice(0, 6);
-  return (
-    <div className="col" style={{ gap: 8 }}>
-      <div className="row wrap" style={{ gap: 6 }}>
-        {valor.map((t) => (
-          <button key={t} type="button" className="chip on" onClick={() => onChange(valor.filter((x) => x !== t))}>
-            {t} <X size={11} />
-          </button>
-        ))}
-      </div>
-      <div className="row" style={{ gap: 7 }}>
-        <input
-          className="input" value={txt} placeholder={placeholder}
-          onChange={(e) => setTxt(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(txt); } }}
-        />
-        <button type="button" className="btn icon" onClick={() => add(txt)} disabled={!txt.trim()} aria-label="Adicionar">
-          <Plus size={16} />
-        </button>
-      </div>
-      {txt && sug.length > 0 && (
-        <div className="row wrap" style={{ gap: 6 }}>
-          {sug.map((s) => <button key={s} type="button" className="chip" onClick={() => add(s)}>+ {s}</button>)}
-        </div>
-      )}
-    </div>
-  );
-}
-
 /* ---------------- Finalizações de um rola ----------------
    Aceita a MESMA finalização várias vezes no mesmo rola.
    Guardado como lista simples (["Triângulo","Triângulo","Kimura"])

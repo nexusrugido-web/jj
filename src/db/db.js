@@ -195,8 +195,7 @@ export const DEFAULT_SETTINGS = {
   academiaPadraoId: null, professorPadraoId: null, estiloDeclarado: null, quizDispensado: 0,
   dificuldades: [],
   objetivo: 'lazer', sugestoesDispensadas: [], tourVisto: 0, onboardingFeito: 0,
-  pesoKg: '', alturaCm: '', idade: '', sexo: 'm',
-  atividade: 1.725, objetivo: 'manter',
+  pesoKg: '',
   inicioTreino: '', acento: 'blood', fundo: 'preto',
   metaSemanal: 4, metaAnualHoras: 200, duracaoRolaPadrao: 5, duracaoTreinoPadrao: 90,
   mostrarNoDash: {

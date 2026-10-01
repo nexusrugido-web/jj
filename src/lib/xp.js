@@ -127,26 +127,6 @@ export const EVENTOS = {
    ============================================================ */
 export const TETO_ESTUDO_SEMANA = 140;
 
-/* ---------- as divisões. Quatro, não dez ---------- */
-export const DIVISOES = [
-  { id: 'iniciante',  nome: 'Iniciante',  min: 0,     cor: 'dim' },
-  { id: 'praticante', nome: 'Praticante', min: 800,   cor: 'ice' },
-  { id: 'competidor', nome: 'Competidor', min: 3500,  cor: 'roar' },
-  { id: 'veterano',   nome: 'Veterano',   min: 12000, cor: 'jade' },
-];
-
-export function divisaoPorXp(xp = 0) {
-  let d = DIVISOES[0];
-  for (const x of DIVISOES) if (xp >= x.min) d = x;
-  return d;
-}
-
-export function proximaDivisao(xp = 0) {
-  const atual = divisaoPorXp(xp);
-  const i = DIVISOES.indexOf(atual);
-  return i < DIVISOES.length - 1 ? DIVISOES[i + 1] : null;
-}
-
 /* ---------- chaves de período ---------- */
 export function semanaDe(data = hoje()) {
   const d = new Date(data + 'T00:00:00');

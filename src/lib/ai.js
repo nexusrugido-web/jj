@@ -49,5 +49,4 @@ export async function iaDisponivel() {
 }
 
 export const autopreencherTecnica = (nome, faixa) => chamarIA('autopreencher', { nome, faixa });
-export const validarTecnica = (nome, faixa, modo) => chamarIA('validar_tecnica', { nome, faixa, modo });
 export const analisarDiario = (resumo, faixa) => chamarIA('analisar', { resumo, faixa });

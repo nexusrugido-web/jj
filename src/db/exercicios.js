@@ -119,8 +119,6 @@ export const EXERCICIOS = [
     entrega: 'Resistência de pegada no próprio pano: é a mão que ainda fecha no último minuto do rola.' },
 ];
 
-export const exerciciosDoGrupo = (g) => EXERCICIOS.filter((e) => e.g === g);
-
 /* ============================================================
    O PLANO DE CADA EXERCÍCIO
 
