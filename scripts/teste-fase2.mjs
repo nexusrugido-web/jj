@@ -90,5 +90,21 @@ ok('o que ele faz em você', rx.dele, [{ nome: 'Mata-leão', vezes: 2 }]);
 ok('o plano junta as pontas, com o artigo certo', rx.plano, 'começa em pé; fica esperto com o Mata-leão; procura a Americana, que já entrou nele');
 ok('parceiro com 1 rola: sem plano', raioX(9, comPedro).plano, null);
 
+/* ---------- o modo campeonato ---------- */
+const { planoDePeso, categoriaDoPeso, categoriasDe, retaFinal } = await import('../src/lib/campeonato.js');
+ok('masculino gi tem 9 categorias, feminino 8', [categoriasDe('gi', 'masculino').length, categoriasDe('gi', 'feminino').length], [9, 8]);
+let pp = planoDePeso({ peso: 79.4, categoria: 'Leve', modalidade: 'gi', sexo: 'masculino', hoje: '2026-10-01', data: '2026-10-13' });
+ok('79,4 kg no gi (+2 do kimono) pra Leve 76: faltam 5,4 kg', [pp.falta, pp.naPesagem], [5.4, 81.4]);
+ok('5,4 kg em 12 dias é perigoso (acima de 1% por semana)', [pp.status, pp.seguro], ['perigoso', 0.8]);
+ok('e sugere a categoria em que ele cabe hoje', pp.sugestao, 'Médio');
+pp = planoDePeso({ peso: 79.4, categoria: 'Leve', modalidade: 'nogi', sexo: 'masculino', hoje: '2026-10-01', data: '2027-01-01' });
+ok('no-gi não soma kimono, e com 3 meses dá pra cortar', [pp.falta, pp.status], [5.9, 'cortar']);
+pp = planoDePeso({ peso: 72, categoria: 'Leve', modalidade: 'gi', sexo: 'masculino', hoje: '2026-10-01', data: '2026-10-13' });
+ok('72 kg + kimono cabe no Leve: dentro, com folga', [pp.status, pp.folga], ['dentro', 2]);
+ok('Pesadíssimo não tem limite', planoDePeso({ peso: 120, categoria: 'Pesadíssimo', hoje: '2026-10-01', data: '2026-10-13' }).status, 'semLimite');
+ok('feminino no-gi: 60 kg cabe no Leve 61,5', categoriaDoPeso(60, 'nogi', 'feminino'), 'Leve');
+ok('sem peso, sem plano', planoDePeso({ peso: '', categoria: 'Leve', hoje: '2026-10-01', data: '2026-10-13' }), null);
+ok('a reta final muda com o tempo', [retaFinal(1).startsWith('Dorme'), retaFinal(5).startsWith('Última semana'), retaFinal(30).startsWith('Tem tempo')], [true, true, true]);
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

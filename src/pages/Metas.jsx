@@ -25,6 +25,8 @@ import { hoje, fmtData, relativo } from '../lib/utils';
 import { podeVer, LIMITES, pedirOferta } from '../lib/plano';
 import { Convite } from '../components/Plano';
 import CalculadoraHoras from '../components/CalculadoraHoras';
+import ModoCampeonato from '../components/ModoCampeonato';
+import { categoriasDe } from '../lib/campeonato';
 
 const vazia = () => ({
   tipo: 'frequencia',
@@ -44,6 +46,7 @@ export default function Metas() {
   const toast = useToast();
   const [edit, setEdit] = useState(null);
   const [calculadora, setCalculadora] = useState(false);
+  const [campeonato, setCampeonato] = useState(null);
   const [excluir, setExcluir] = useState(null);
   const [seletorAberto, setSeletorAberto] = useState(false);
   /* a lista abriu porque faltava a técnica: escolher já salva a meta */
@@ -205,6 +208,7 @@ export default function Metas() {
                 faixa={faixa}
                 onEdit={() => setEdit({ ...g })}
                 onDel={() => setExcluir(g)}
+                onCampeonato={g.tipo === 'competicao' && g.data ? () => setCampeonato(g) : null}
                 onCompartilhar={(p) => setStory(p.concluida
                   ? { selo: 'meta concluída', grande: tituloDaMeta(g) }
                   : { selo: 'minha meta', grande: p.valor || tituloDaMeta(g), sub: p.valor ? tituloDaMeta(g) : '', pct: p.pct })}
@@ -495,6 +499,23 @@ export default function Metas() {
                   )}
                 </Field>
                 <Field label="Quando é"><EscolherData futuro valor={edit.data || ''} titulo="Quando é o campeonato" onChange={(data) => setEdit({ ...edit, data })} /></Field>
+                <Field label="Modalidade e divisão" hint="Pra calcular o peso: no gi a pesagem é de kimono.">
+                  <div className="row wrap" style={{ gap: 6 }}>
+                    {[['gi', 'Gi'], ['nogi', 'No-gi']].map(([id, nome]) => (
+                      <button key={id} type="button" className={`chip ${(edit.modalidade || 'gi') === id ? 'on' : ''}`} onClick={() => setEdit({ ...edit, modalidade: id, categoria: '' })}>{nome}</button>
+                    ))}
+                    {[['masculino', 'Masculino'], ['feminino', 'Feminino']].map(([id, nome]) => (
+                      <button key={id} type="button" className={`chip ${(edit.sexo || 'masculino') === id ? 'on' : ''}`} onClick={() => setEdit({ ...edit, sexo: id, categoria: '' })}>{nome}</button>
+                    ))}
+                  </div>
+                </Field>
+                <Field label="Categoria de peso" hint="Pela tabela da IBJJF (adulto e master).">
+                  <div className="row wrap" style={{ gap: 6 }}>
+                    {categoriasDe(edit.modalidade || 'gi', edit.sexo || 'masculino').map((c) => (
+                      <button key={c} type="button" className={`chip ${edit.categoria === c ? 'on' : ''}`} onClick={() => setEdit({ ...edit, categoria: c })}>{c}</button>
+                    ))}
+                  </div>
+                </Field>
               </>
             )}
 
@@ -508,6 +529,7 @@ export default function Metas() {
       </Sheet>
 
       <CalculadoraHoras aberto={calculadora} onClose={() => setCalculadora(false)} />
+      <ModoCampeonato meta={campeonato} esteira={tecnicas} onClose={() => setCampeonato(null)} />
 
       <SeletorTecnica
         aberto={seletorAberto} onClose={() => { setSeletorAberto(false); salvarAoEscolher.current = false; }}
@@ -576,7 +598,7 @@ function tituloAutomatico(g) {
   return '';
 }
 
-function CartaoMeta({ g, dados, faixa, onEdit, onDel, onConcluir, onContar, onCompartilhar }) {
+function CartaoMeta({ g, dados, faixa, onEdit, onDel, onConcluir, onContar, onCompartilhar, onCampeonato }) {
   const p = progressoDaMeta(g, dados);
   const tipo = tipoPorId(g.tipo);
   const t = g.tipo === 'tecnica' ? dados.tecnicas.find((x) => x.nome === g.alvo) : null;
@@ -691,6 +713,10 @@ function CartaoMeta({ g, dados, faixa, onEdit, onDel, onConcluir, onContar, onCo
       )}
 
       {g.notas && <p className="micro muted" style={{ borderTop: '1px solid var(--seam)', paddingTop: 9 }}>{g.notas}</p>}
+
+      {onCampeonato && !p.concluida && (
+        <Btn size="sm" variant="primary" onClick={onCampeonato}>🏆 Modo campeonato</Btn>
+      )}
 
       {!p.concluida && p.pct >= 100 && (
         <Btn size="sm" variant="primary" icon={Check} onClick={onConcluir}>Marcar como concluída</Btn>

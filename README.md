@@ -109,6 +109,8 @@ Roda os linters (copy, símbolos, ciclos, chunks), o build e todos os testes, in
 
 Rodar local: `npm install`, `cp .env.example .env.local`, `npm run dev`. Sem `.env.local` funciona igual, só sem nuvem e sem IA.
 
+Fase 2 do Premium (01/10): calculadora de horas (`CalculadoraHoras`, `ritmoPelasHoras` em lib/metas.js, grátis), o treino de hoje (`lib/treinoDeHoje.js`, cartão no Painel nos dias de treino), relatório do mês e retrospectiva do ano (`lib/relatorio.js`, `RelatorioDoMes`), raio-x do parceiro (`lib/raioX.js`, em Parceiros) e modo campeonato (`lib/campeonato.js` com a tabela de peso da IBJJF, `ModoCampeonato` na meta de campeonato). Os quatro últimos são Premium com a primeira parte grátis; testes em `scripts/teste-fase2.mjs`.
+
 Backup dos dados: `npm run backup` (precisa do Docker e de `SUPABASE_DB_URL` no `.env.local`, a URI do Session pooler do Supabase). Salva um `.dump` em `Downloads/neurojitsu-v12_7/NEUROJITSU-BACKUPS` (fora do git, ficam os 10 mais novos), com os schemas public e auth; volta com `pg_restore`. `supabase/44-tamanho-do-banco.sql` (só leitura) mostra o uso dos 500 MB do plano grátis.
 
 SQL do Supabase: os arquivos de `supabase/` são a versão sem segredo; os prontos pra colar, com segredo, ficam em `Downloads/neurojitsu-v12_7/NEUROJITSU-COLAR` (fora do git). Desde 25/09 os SQLs novos são numerados em `supabase/NN-*.sql` (25 a 42).
