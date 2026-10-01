@@ -147,7 +147,7 @@ for (const d of ['2026-10-06', '2026-10-07']) await pg.query('insert into regist
 assert.equal(await avisoMeta('2026-10-11'), null, 'uma vez por semana');
 await pg.query('delete from notificacao_envio where user_id=$1', [u2]);
 sem = await avisoMeta('2026-10-11');
-assert.match(sem.corpo, /Último dia da semana: 1 treino fecha a meta/, 'domingo, faltando 1, com a semana já treinada');
+assert.match(sem.corpo, /Último dia: 1 treino fecha a meta/, 'domingo, faltando 1, com a semana já treinada');
 await pg.query('insert into notificacao_envio(user_id,tipo,dia,enviado_em,respondeu) values($1,$2,$3,$4,false)', [u2, `meta:${semanal}`, '2026-10-09', '2026-10-09 20:00-03']);
 assert.equal((await avisoMeta('2026-10-16')).tipo, `meta:${semanal}`, 'a semana seguinte avisa de novo (antes eram 14 dias)');
 await pg.query('delete from registros where user_id=$1 and tabela=$2', [u2, 'sessions']);
@@ -167,10 +167,11 @@ assert.deepEqual((await filaDe('18:10')).map((r) => r.tipo), ['ofensiva_semanal'
 assert.deepEqual((await filaDe('20:10')).map((r) => r.tipo), [], 'fora da hora, nada');
 const reta = await filaDe('21:10');
 assert.deepEqual(reta.map((r) => r.tipo), ['ofensiva_reta_final'], '21h de Brasília, a reta final');
-assert.match(reta[0].titulo, /Falta 3h pra fechar a semana/);
-assert.deepEqual((await filaDe('22:10')).map((r) => r.tipo), ['ofensiva_reta_final:22'], '22h: atualiza o mesmo aviso');
-assert.match((await filaDe('23:10'))[0].titulo, /Falta 1h/, '23h: falta 1h');
-await pg.query("insert into notificacao_envio(user_id,tipo,dia,enviado_em,respondeu) values($1,'ofensiva_reta_final:23','2026-09-27',now(),false)", [u3]);
+assert.match(reta[0].titulo, /⏳ 2:50 pra fechar a semana/);
+assert.deepEqual((await filaDe('22:10')).map((r) => r.tipo), ['ofensiva_reta_final:2200'], '22h: redesenha o mesmo aviso');
+assert.deepEqual((await filaDe('22:47')).map((r) => r.tipo), ['ofensiva_reta_final:2245'], 'cada quarto de hora');
+assert.match((await filaDe('23:10'))[0].titulo, /⏳ 0:50 pra fechar/, '23h10: faltam 50 minutos');
+await pg.query("insert into notificacao_envio(user_id,tipo,dia,enviado_em,respondeu) values($1,'ofensiva_reta_final:2330','2026-09-27',now(),false)", [u3]);
 assert.deepEqual((await filaDe('23:40')).map((r) => r.tipo), [], 'a trava: cada hora sai uma vez');
 await pg.query('insert into registros(user_id,tabela,dados) values($1,$2,$3)', [u3, 'sessions', JSON.stringify({ data: '2026-09-26', tipo: 'gi' })]);
 assert.deepEqual((await filaDe('21:10')).map((r) => r.tipo), [], 'treinou na semana: não cobra');

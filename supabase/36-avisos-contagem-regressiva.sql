@@ -98,42 +98,31 @@ returns jsonb language sql stable security definer set search_path = public as $
     'id', e.id,
     'tipo', 'meta:' || e.id::text,
     'familia', case when e.tipo in ('aulas','quiz') then 'estudo' else 'treino' end,
-    'titulo', 'Sua meta: ' || e.titulo,
+    'titulo', '🎯 ' || e.titulo,
     'corpo', case
       when e.tipo = 'frequencia' and e.alvo_num between 1 and 7
         and e.alvo_num - e.feito = 1 and extract(isodow from p_hoje) = 7 then
-        'Último dia da semana: 1 treino fecha a meta. Treinou e não registrou? Registra agora.'
+        'Último dia: 1 treino fecha a meta da semana.'
       when e.tipo = 'frequencia' and e.alvo_num between 1 and 7
         and e.alvo_num - e.feito between 2 and 8 - extract(isodow from p_hoje)::int then
         'Faltam ' || (8 - extract(isodow from p_hoje)::int) || ' dias e ' || (e.alvo_num - e.feito) ||
-        ' treinos pra fechar a semana (' || e.feito || ' de ' || e.alvo_num || '). Daqui até domingo, cada dia conta.'
+        ' treinos (' || e.feito || ' de ' || e.alvo_num || '). Cada dia conta.'
       when e.tipo = 'frequencia' and e.alvo_num between 1 and 7 then
-        'Nesta semana: ' || e.feito || ' de ' || e.alvo_num ||
-        ' treinos. Se já treinou, registre quando puder.'
+        e.feito || ' de ' || e.alvo_num || ' treinos nesta semana. Treinou? Registra.'
       when e.tipo = 'treinos' and e.alvo_num is not null then
-        'Você registrou ' || e.feito || ' de ' || e.alvo_num ||
-        ' treinos. Veja o proximo passo.'
+        e.feito || ' de ' || e.alvo_num || ' treinos registrados. Bora pro próximo.'
       when e.tipo = 'manual' and e.alvo_num is not null then
-        'Seu contador esta em ' || e.feito || ' de ' || e.alvo_num ||
-        '. Atualize quando quiser.'
+        'Contador em ' || e.feito || ' de ' || e.alvo_num || '. Atualiza quando quiser.'
       when e.tipo = 'competicao' and e.data_competicao > p_hoje then
-        'Faltam ' || (e.data_competicao - p_hoje) ||
-        ' dias para a competição. Confira sua preparação.'
-      when e.tipo = 'tecnica' then
-        'Veja o grau da técnica e registre como ela apareceu no treino.'
-      when e.tipo = 'defesa' then
-        'Depois do próximo rola, registre se essa defesa funcionou.'
-      when e.tipo = 'aulas' then
-        'Uma aula assistida ajuda nesta meta. Veja o que falta.'
-      when e.tipo = 'quiz' then
-        'Revise um conceito no quiz e acompanhe seus acertos.'
-      when e.tipo = 'rolas' then
-        'Registre seus rolas reais para acompanhar esta meta.'
-      when e.tipo = 'posicao' then
-        'Anote a posição inicial do próximo rola para acompanhar esta meta.'
-      when e.tipo = 'volume' then
-        'O tempo de treino registrado alimenta esta meta.'
-      else 'Abra para conferir seu progresso e escolher o proximo passo.'
+        'Faltam ' || (e.data_competicao - p_hoje) || ' dias pro campeonato. Confere a preparação.'
+      when e.tipo = 'tecnica' then 'Usou ela no treino? Registra pra ela subir de grau.'
+      when e.tipo = 'defesa' then 'No próximo rola, registra se essa defesa funcionou.'
+      when e.tipo = 'aulas' then '1 aula rápida já conta pra essa meta.'
+      when e.tipo = 'quiz' then 'Revisa um conceito no quiz e soma acertos.'
+      when e.tipo = 'rolas' then 'Registra os rolas de verdade pra meta andar.'
+      when e.tipo = 'posicao' then 'Anota de onde começou o próximo rola.'
+      when e.tipo = 'volume' then 'O tempo de treino registrado alimenta essa meta.'
+      else 'Abre pra ver seu progresso.'
     end,
     'caminho', '/?go=metas'
   )
@@ -213,9 +202,10 @@ begin
     select
       c.*,
       case
-        /* 0. a reta final: domingo das 21h as 23h de Brasilia, se a ofensiva
-           esta viva e a semana ainda sem treino. As 21h sai com som; as 22h e
-           as 23h o mesmo aviso e atualizado em silencio (3h, 2h, 1h) */
+        /* 0. a reta final: domingo das 21h a meia-noite de Brasilia, se a
+           ofensiva esta viva e a semana ainda sem treino. As 21h sai com som;
+           de 15 em 15 minutos o mesmo aviso e redesenhado em silencio (o cron
+           notificar-reta-final chama nos quartos de hora); as 23h toca de novo */
         when extract(isodow from public.hoje_br()) = 7
           and extract(hour from now() at time zone 'America/Sao_Paulo')::int between 21 and 23
           and not c.fechou_hoje and c.sequencia > 0
@@ -258,17 +248,19 @@ begin
   texto as (
     select
       e.user_id,
-      case when e.tipo_dele = 'ofensiva_reta_final'
-             and extract(hour from now() at time zone 'America/Sao_Paulo')::int > 21
-           then e.tipo_dele || ':' || extract(hour from now() at time zone 'America/Sao_Paulo')::int
+      /* cada quarto de hora e um tipo (a trava e por tipo e dia):
+         ofensiva_reta_final, :2115, :2130 ... :2345 */
+      case when e.tipo_dele = 'ofensiva_reta_final' and to_char(now() at time zone 'America/Sao_Paulo', 'HH24MI') >= '2115'
+           then e.tipo_dele || ':' || to_char(now() at time zone 'America/Sao_Paulo', 'HH24')
+                || lpad(((extract(minute from now() at time zone 'America/Sao_Paulo')::int / 15) * 15)::text, 2, '0')
            else e.tipo_dele end as tipo,
       e.hoje_dele as dia,
       e.endpoint, e.p256dh, e.auth, e.sequencia,
       case e.tipo_dele
         when 'ofensiva_semanal' then
-          e.sequencia || ' semanas de ofensiva: sua semana ainda está aberta'
+          e.sequencia || ' semanas de ofensiva em jogo'
         when 'ofensiva_reta_final' then
-          'Falta ' || (24 - extract(hour from now() at time zone 'America/Sao_Paulo')::int) || 'h pra fechar a semana'
+          '⏳ ' || to_char((date_trunc('day', now() at time zone 'America/Sao_Paulo') + interval '1 day') - (now() at time zone 'America/Sao_Paulo'), 'FMHH24:MI') || ' pra fechar a semana'
         when 'liga'      then 'A semana da Liga fecha hoje'
         when 'resultado' then 'A liga fechou'
         when 'volta'     then 'O tatame continua aí'

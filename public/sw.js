@@ -5,7 +5,7 @@
    - fontes externas: cache-first
    Os DADOS ficam no IndexedDB, entao o app inteiro funciona sem internet. */
 
-const VERSION = 'neurojitsu-v12-12';
+const VERSION = 'neurojitsu-v12-13';
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
 
@@ -86,6 +86,71 @@ function quantoFalta(agora = Date.now()) {
   return min >= 60 ? `${Math.floor(min / 60)}h${String(min % 60).padStart(2, '0')}` : `${min} min`;
 }
 
+/* o relógio do cartão, no formato do Duolingo: "2:08"; com mais de um
+   dia, "4 dias" */
+function relogio(agora = Date.now()) {
+  const min = Math.max(0, Math.floor((fimDaSemana(agora) - agora) / 60000));
+  if (min >= 24 * 60) { const d = Math.floor(min / (24 * 60)); return `${d} ${d === 1 ? 'dia' : 'dias'}`; }
+  return `${Math.floor(min / 60)}:${String(min % 60).padStart(2, '0')}`;
+}
+
+/* ------------------------------------------------------------
+   O CARTÃO DO RELÓGIO
+
+   Aviso de site não tem o cronômetro nativo do Android (o do
+   Duolingo é app da loja). O mais perto: o celular desenha, na
+   hora em que o aviso chega, um cartão com o tempo que falta, e
+   no domingo à noite o servidor manda de novo a cada 15 minutos
+   pra redesenhar (3:00, 2:45, 2:30...). Aparece ao puxar o aviso.
+   Se o aparelho não souber desenhar, o aviso sai só com o texto.
+   ------------------------------------------------------------ */
+async function cartaoDoRelogio(tempo) {
+  if (typeof OffscreenCanvas === 'undefined') return null;
+  try {
+    const L = 720, A = 360;
+    const tela = new OffscreenCanvas(L, A);
+    const g = tela.getContext('2d');
+    g.fillStyle = '#120d0c';
+    g.fillRect(0, 0, L, A);
+    const brilho = g.createRadialGradient(585, 180, 10, 585, 180, 300);
+    brilho.addColorStop(0, 'rgba(239, 90, 68, 0.42)');
+    brilho.addColorStop(1, 'rgba(239, 90, 68, 0)');
+    g.fillStyle = brilho;
+    g.fillRect(0, 0, L, A);
+    try {
+      const marca = await createImageBitmap(await (await fetch('/icon-512.png')).blob());
+      g.save();
+      g.shadowColor = 'rgba(239, 90, 68, 0.6)';
+      g.shadowBlur = 40;
+      g.beginPath();
+      g.roundRect(475, 70, 220, 220, 48);
+      g.clip();
+      g.drawImage(marca, 475, 70, 220, 220);
+      g.restore();
+    } catch { /* sem a marca, o relógio basta */ }
+    g.textBaseline = 'alphabetic';
+    g.fillStyle = '#acacb0';
+    g.font = '700 26px system-ui, sans-serif';
+    g.fillText('PRA FECHAR A SEMANA', 44, 78);
+    g.fillStyle = '#ef5a44';
+    g.font = `800 ${tempo.length > 5 ? 112 : 138}px system-ui, sans-serif`;
+    g.fillText(tempo, 38, 208);
+    g.fillStyle = '#ff9b8a';
+    g.font = '600 38px system-ui, sans-serif';
+    g.fillText('1 treino = ofensiva', 44, 270);
+    g.fillText('segura! ⚠️', 44, 318);
+    const png = new Uint8Array(await (await tela.convertToBlob({ type: 'image/png' })).arrayBuffer());
+    let bin = '';
+    for (let i = 0; i < png.length; i += 0x8000) bin += String.fromCharCode.apply(null, png.subarray(i, i + 0x8000));
+    return `data:image/png;base64,${btoa(bin)}`;
+  } catch {
+    return null;
+  }
+}
+
+/* Com o aviso fechado, o Android mostra 1 linha de título (uns 30
+   caracteres) e 2 de texto (uns 75). Passou disso, vira "...". Toda
+   copy daqui cabe nesse espaço: frase inteira, sem ser comida. */
 function aviso(n) {
   /* o teste do admin escolhe a versão; o aviso de verdade usa a do dia */
   const qual = (lista) => doDia(lista, n.versao);
@@ -93,28 +158,30 @@ function aviso(n) {
   const tipo = n.tag || '';
   if (tipo === 'ofensiva_semanal') {
     return {
-      titulo: n.title || 'Sua semana de treino ainda está aberta',
-      corpo: n.body || 'Se você treinou nesta semana, registre para manter sua sequência.',
+      titulo: dias > 0 ? `🔥 Ofensiva de ${dias} ${dias === 1 ? 'semana' : 'semanas'} em jogo` : '🔥 Sua semana ainda está aberta',
+      corpo: 'Treinou e não registrou? 1 treino salva a semana.',
       acoes: [{ acao: 'treino', titulo: 'Registrar treino', rota: ROTA.treino }],
     };
   }
-  /* domingo às 21h, como o do Duolingo: o tempo que falta no título.
-     Às 22h e 23h chega de novo (ofensiva_reta_final:22, :23) e troca o
-     mesmo aviso em silêncio: 3h, 2h, 1h. Aviso de site não tem
-     cronômetro correndo sozinho; isso é o mais perto. */
+  /* domingo às 21h, como o do Duolingo: o tempo que falta no título e
+     no cartão. De 15 em 15 minutos chega de novo (ofensiva_reta_final:2115,
+     :2130...) e redesenha o mesmo aviso em silêncio. Toca às 21h e na
+     última hora (:2300). */
   if (tipo.startsWith('ofensiva_reta_final')) {
+    const quando = tipo.split(':')[1] || '';
     return {
-      titulo: `⏳ ${quantoFalta()} pra fechar a semana`,
+      titulo: quando === '2300' ? `⏳ Última hora: faltam ${quantoFalta()}` : `⏳ ${quantoFalta()} pra fechar a semana`,
       corpo: '1 treino registrado = ofensiva segura! ⚠️',
       acoes: [{ acao: 'treino', titulo: 'Salvar ofensiva', rota: ROTA.treino }],
       tag: 'ofensiva_reta_final',
-      silencioso: tipo.includes(':'),
+      silencioso: !!quando && quando !== '2300',
+      relogio: relogio(),
     };
   }
   if (tipo.startsWith('meta:')) {
     return {
-      titulo: n.title || 'Sua meta no NeuroJitsu',
-      corpo: n.body || 'Abra para conferir seu progresso.',
+      titulo: n.title || '🎯 Sua meta',
+      corpo: n.body || 'Abre pra ver seu progresso.',
       acoes: [{ acao: 'meta', titulo: 'Ver minha meta', rota: ROTA.meta }],
     };
   }
@@ -122,19 +189,19 @@ function aviso(n) {
     return {
       titulo: dias > 1
         ? qual([
-          `🔥 ${dias} dias sem bater. Não vai dar os três tapinhas justo hoje, né?`,
-          `🥋 ${dias} dias seguidos. Faixa preta é só uma faixa branca que não faltou, lembra?`,
-          `🔥 ${dias} dias de ofensiva. Não deixa ela te raspar logo agora.`,
-          `💪 ${dias} dias seguidos. O tatame lembra de quem aparece, e ele tem boa memória.`,
+          `🔥 ${dias} dias sem bater`,
+          `🥋 ${dias} dias seguidos`,
+          `🔥 ${dias} dias de ofensiva`,
+          `💪 ${dias} dias sem faltar`,
         ])
         : qual([
-          '🔥 Sua ofensiva fecha hoje. Não deixa ela te bater, hein?',
-          '🥋 O primeiro dia é o mais fácil de largar. Segura esse, que o segundo já fica leve.',
+          '🔥 Sua ofensiva fecha hoje',
+          '🥋 Segura o primeiro dia',
         ]),
       corpo: qual([
-        'Uma aula rápida de um minuto já segura a posição. Dá pra ver até na fila do mercado.',
-        'Nem precisa rolar hoje: uma aula rápida já fecha o dia e mantém a sequência de pé.',
-        'Disciplina é aparecer justo no dia em que o corpo pede pra bater. Um minuto resolve.',
+        '1 aula rápida já segura a posição. Dá pra ver até na fila do mercado.',
+        'Nem precisa rolar hoje: 1 aula rápida já mantém a sequência de pé.',
+        'Disciplina é aparecer no dia em que o corpo pede pra bater.',
       ]),
       acoes: [
         { acao: 'estudar', titulo: 'Aula rápida', rota: ROTA.estudar },
@@ -145,8 +212,8 @@ function aviso(n) {
   if (tipo === 'liga') {
     return {
       ...qual([
-        { titulo: '🏆 A liga fecha hoje. Ainda dá pra finalizar no último minuto.', corpo: 'Uns pontos a mais e você sobe no grupo antes da meia-noite. Um treino ou uma aula já mexem no placar.' },
-        { titulo: '⏱️ Último round da liga. Hora de apertar o estrangulamento.', corpo: 'A semana fecha à meia-noite, e quem aparece hoje passa na frente de quem deixou pra amanhã.' },
+        { titulo: '🏆 A liga fecha hoje', corpo: '1 treino ou 1 aula ainda mexe no placar antes da meia-noite.' },
+        { titulo: '⏱️ Último round da liga', corpo: 'Fecha à meia-noite. Quem aparece hoje passa na frente.' },
       ]),
       acoes: [{ acao: 'liga', titulo: 'Ver meu grupo', rota: ROTA.liga }],
     };
@@ -154,8 +221,8 @@ function aviso(n) {
   if (tipo === 'resultado') {
     return {
       ...qual([
-        { titulo: '📊 O árbitro levantou a mão. Saiu o resultado da liga.', corpo: 'Vem ver onde você terminou e com quem você vai correr nesta semana.' },
-        { titulo: '📊 A liga fechou. Foi pódio ou repescagem?', corpo: 'Entra pra ver onde você terminou e quem caiu no seu grupo agora.' },
+        { titulo: '📊 Saiu o resultado da liga', corpo: 'O árbitro levantou a mão. Vem ver onde você terminou.' },
+        { titulo: '📊 Pódio ou repescagem?', corpo: 'A liga fechou. Vem ver onde você terminou e quem caiu no seu grupo.' },
       ]),
       acoes: [{ acao: 'liga', titulo: 'Ver resultado', rota: ROTA.liga }],
     };
@@ -163,8 +230,8 @@ function aviso(n) {
   if (tipo === 'volta') {
     return {
       ...qual([
-        { titulo: '🥋 Seu kimono tá sentindo sua falta (e ele já até secou).', corpo: 'Seu jogo está do jeito que você deixou. Volta com uma aula rápida, sem pressa e sem culpa.' },
-        { titulo: '🥋 O tatame continua aí. Ninguém pegou o seu lugar, mas também ninguém guardou.', corpo: 'Uma aula rápida hoje, e amanhã voltar já fica bem mais fácil.' },
+        { titulo: '🥋 Seu kimono já até secou', corpo: 'Seu jogo está do jeito que você deixou. Volta com 1 aula rápida.' },
+        { titulo: '🥋 O tatame continua aí', corpo: '1 aula rápida hoje, e amanhã voltar fica bem mais fácil.' },
       ]),
       acoes: [{ acao: 'estudar', titulo: 'Aula rápida', rota: ROTA.estudar }],
     };
@@ -172,8 +239,8 @@ function aviso(n) {
   /* o botão "Testar avisos" do painel: mesmo visual dos avisos de verdade */
   if (tipo === 'teste') {
     return {
-      titulo: '🥋 Teste do NeuroJitsu: é assim que o aviso chega',
-      corpo: 'Se apareceu com o app fechado, a corrente inteira funciona. Toca nos botões pra ver se levam pro lugar certo.',
+      titulo: '🥋 Teste do NeuroJitsu',
+      corpo: 'Chegou com o app fechado? Então os avisos funcionam. Testa os botões.',
       acoes: [
         { acao: 'estudar', titulo: 'Aula rápida', rota: ROTA.estudar },
         { acao: 'treino', titulo: 'Registrar treino', rota: ROTA.treino },
@@ -215,6 +282,10 @@ self.addEventListener('push', (event) => {
 
   event.waitUntil(
     (async () => {
+      if (bonito.relogio) {
+        const imagem = await cartaoDoRelogio(bonito.relogio);
+        if (imagem) opcoes.image = imagem;
+      }
       await self.registration.showNotification(titulo, opcoes);
       /* o numero na bolinha do icone. O formato declarativo faz
          isso sozinho pelo app_badge; aqui e na mao. */
