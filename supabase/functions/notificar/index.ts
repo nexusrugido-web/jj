@@ -138,7 +138,10 @@ Deno.serve(async (req) => {
             keys: { p256dh: String(l.p256dh), auth: String(l.auth) },
           },
           corpo,
-          { TTL: 6 * 60 * 60, contentEncoding: 'aes128gcm' },
+          /* urgencia alta: com a normal, o Android parado (modo soneca,
+             economia de bateria) segura o aviso ate o celular acordar, e o
+             aviso com hora marcada chega tarde ou nao chega */
+          { TTL: 6 * 60 * 60, contentEncoding: 'aes128gcm', urgency: 'high' },
         );
         return { ok: true, user_id: l.user_id, tipo: l.tipo, dia: l.dia, endpoint: l.endpoint };
       } catch (e) {
