@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import {
   Plus, Target, Trash2, Pencil, Check, Trophy, Sparkles, Clock, X, Minus, Share2,
 } from 'lucide-react';
@@ -44,6 +44,8 @@ export default function Metas() {
   const [edit, setEdit] = useState(null);
   const [excluir, setExcluir] = useState(null);
   const [seletorAberto, setSeletorAberto] = useState(false);
+  /* a lista abriu porque faltava a técnica: escolher já salva a meta */
+  const salvarAoEscolher = useRef(false);
   const [aba, setAba] = useState('minhas');
   const [story, setStory] = useState(null);
   const [convite, setConvite] = useState(false);
@@ -87,9 +89,10 @@ export default function Metas() {
     return !minhas.some((m) => m.tipo === s.tipo && String(m.alvo) === String(s.alvo));
   }), [faixa, settings, tecnicas, buracos, sessions, minhas, dispensadas]);
 
-  async function salvar() {
-    const g = { ...edit };
-    if ((g.tipo === 'tecnica' || g.tipo === 'defesa') && !String(g.alvo || '').trim()) return toast('Escolhe a técnica', 'err');
+  async function salvar(base = edit) {
+    const g = { ...base };
+    /* sem técnica, abre a lista pra escolher em vez de só reclamar */
+    if ((g.tipo === 'tecnica' || g.tipo === 'defesa') && !String(g.alvo || '').trim()) { salvarAoEscolher.current = true; setSeletorAberto(true); return; }
     /* a meta que estava sem técnica ganha o nome do alvo ("Parar de ser
        pego na Americana") em vez de continuar com o título genérico */
     const antes = g.id ? goals.find((x) => x.id === g.id) : null;
@@ -147,7 +150,7 @@ export default function Metas() {
       {/* a de horas no ano mora nos Ajustes, mas é meta como as outras */}
       {aba === 'minhas' && horasNoAno && (
         <Card style={{ marginBottom: 14 }}>
-          <LinhaDeMeta titulo="Horas no ano" p={horasNoAno} />
+          <LinhaDeMeta titulo={horasNoAno.titulo} p={horasNoAno} />
           <button className="btn ghost xs" onClick={() => irPara('ajustes')} style={{ marginTop: 6 }}>mudar em Ajustes</button>
         </Card>
       )}
@@ -162,7 +165,7 @@ export default function Metas() {
             Esta meta só começa a contar quando tiver a técnica. {g.tipo === 'defesa' ? 'Escolha a que mais te pega nos rolas.' : 'Escolha a que você quer levar adiante.'}
           </p>
           <div className="row wrap" style={{ gap: 8, marginTop: 12 }}>
-            <Btn size="sm" variant="primary" onClick={() => setEdit({ ...g })}>Escolher a técnica</Btn>
+            <Btn size="sm" variant="primary" onClick={() => { setEdit({ ...g }); salvarAoEscolher.current = true; setSeletorAberto(true); }}>Escolher a técnica</Btn>
             <Btn size="sm" variant="ghost" onClick={() => db.goals.update(g.id, { status: 'arquivada' })}>Descartar</Btn>
           </div>
         </Card>
@@ -501,11 +504,15 @@ export default function Metas() {
       </Sheet>
 
       <SeletorTecnica
-        aberto={seletorAberto} onClose={() => setSeletorAberto(false)}
+        aberto={seletorAberto} onClose={() => { setSeletorAberto(false); salvarAoEscolher.current = false; }}
         techniques={techniques} categories={categories} positions={positions}
         faixa={faixa} titulo={edit?.tipo === 'defesa' ? 'Qual finalização está te pegando' : 'Qual técnica você quer subir de grau'}
         categoriaFiltro={edit?.tipo === 'defesa' ? ['estrangulamento', 'articular', 'perna'] : null}
-        onEscolher={(t) => setEdit({ ...edit, alvo: t.nome })}
+        onEscolher={(t) => {
+          const novo = { ...edit, alvo: t.nome };
+          setEdit(novo);
+          if (salvarAoEscolher.current) { salvarAoEscolher.current = false; salvar(novo); }
+        }}
       />
 
       <Confirmar

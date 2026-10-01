@@ -255,7 +255,7 @@ export default function Painel() {
           ) : (
             <div className="col" style={{ gap: 14 }}>
               {/* a de horas no ano, desenhada como as outras */}
-              {horasNoAno && <LinhaDeMeta titulo="Horas no ano" p={horasNoAno} />}
+              {horasNoAno && <LinhaDeMeta titulo={horasNoAno.titulo} p={horasNoAno} />}
               {metasAtivas.slice(0, 3).map((g) => <LinhaDeMeta key={g.id} titulo={tituloDaMeta(g)} p={g.p} />)}
             </div>
           )}

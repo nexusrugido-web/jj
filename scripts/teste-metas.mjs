@@ -32,7 +32,7 @@ ok('a duração do treino entra na conta: 1h dá menos que 1h30', horasPeloRitmo
 /* ---------- de onde vem o alvo ---------- */
 const novo = { metaSemanal: 5, metaAnualHorasModo: 'derivada', metaAnualHorasDesde: '2026-09-30' };
 ok('aluno novo: o alvo sai do ritmo, com a origem explicada', [alvoDeHoras(novo, [], [], '2026-09-30').alvo, alvoDeHoras(novo, [], [], '2026-09-30').origem],
-  [99, 'calculada pelo seu ritmo: 5x por semana até 31/12']);
+  [99, 'calculada pelo seu ritmo: 5x por semana']);
 ok('a meta de frequência assumida manda no ritmo', ritmoSemanal({ metaSemanal: 2 }, [{ tipo: 'frequencia', alvo: 4, status: 'ativa', origem: 'confirmada' }]), 4);
 ok('sugestão não confirmada não manda no ritmo', ritmoSemanal({ metaSemanal: 2 }, [{ tipo: 'frequencia', alvo: 4, status: 'ativa', origem: 'sugerida' }]), 2);
 ok('mudou o ritmo: a meta derivada acompanha', alvoDeHoras({ ...novo, metaSemanal: 3 }, [], [], '2026-09-30').alvo < 99, true);
