@@ -3781,3 +3781,7 @@ body::after {
 .rel-numeros small { font-size: 11px; color: var(--dim); }
 .rel-linha { display: flex; gap: 9px; align-items: flex-start; font-size: 14px; line-height: 1.5; }
 .rel-linha b { color: var(--chalk); }
+
+/* ---------- raio-x do parceiro ---------- */
+.raiox-plano { padding: 12px 14px; border-radius: 12px; font-size: 14px; line-height: 1.55; background: color-mix(in srgb, var(--accent) 10%, var(--void)); border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--seam)); }
+.raiox-plano b { color: var(--chalk); }

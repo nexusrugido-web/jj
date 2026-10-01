@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Plus, Users, Trash2, Pencil, Check, Building2, GraduationCap,
-  TriangleAlert, MapPin,
+  TriangleAlert, MapPin, ScanSearch,
 } from 'lucide-react';
 import { useApp } from '../contexto';
 import { db } from '../db/db';
@@ -16,6 +16,7 @@ import ListaComHistorico from '../components/ListaComHistorico';
 import { buscaMatch } from '../lib/utils';
 import { PESO_REL, pesoRelPorId } from '../db/scoring';
 import '../styles/treino-rola.css';
+import RaioXParceiro from '../components/RaioXParceiro';
 
 export default function Parceiros() {
   const [aba, setAba] = useState('parceiros');
@@ -69,7 +70,8 @@ function PesoRelativo({ valor, onChange }) {
 
 /* também abre por cima do registro do treino, quando ainda não há parceiro */
 export function AbaParceiros() {
-  const { partners, rolls, settings } = useApp();
+  const { partners, rolls, settings, acesso } = useApp();
+  const [raio, setRaio] = useState(null);
   const toast = useToast();
   const academias = useLiveQuery(() => db.academies.filter((a) => !a.arquivada).toArray(), [], []) || [];
   const [edit, setEdit] = useState(null);
@@ -148,6 +150,12 @@ export function AbaParceiros() {
 
               {p.estilo && <p className="micro muted">{p.estilo}</p>}
 
+              {p.s.rolas > 0 && (
+                <button type="button" className="btn contorno sm" onClick={() => setRaio(p)} style={{ alignSelf: 'flex-start' }}>
+                  <ScanSearch size={14} /> Raio-x contra {p.nome.split(' ')[0]}
+                </button>
+              )}
+
               <div className="col" style={{ gap: 6 }}>
                 <div className="row micro">
                   <span className="muted" style={{ flex: 1 }}>{p.s.rolas} rolas</span>
@@ -199,6 +207,8 @@ export function AbaParceiros() {
           </>
         )}
       </Sheet>
+
+      <RaioXParceiro parceiro={raio} rolls={rolls} acesso={acesso} onClose={() => setRaio(null)} />
 
       <SheetAcademia
         aberto={!!academiaPara}

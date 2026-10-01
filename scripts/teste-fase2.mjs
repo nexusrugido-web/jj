@@ -72,5 +72,23 @@ ok('o treino de outubro não entra no relatório de setembro', rel.treinos, 3);
 const ret = retrospectivaDoAno({ ano: 2026, sessions: sess, rolls: rolas, esteira: est, faixa: 'branca' });
 ok('a retrospectiva soma o ano inteiro', [ret.treinos, ret.rolas, ret.periodo.nome], [5, 5, '2026']);
 
+/* ---------- o raio-x do parceiro ---------- */
+const { raioX } = await import('../src/lib/raioX.js');
+const comPedro = [
+  { partnerId: 7, posInicial: 'em_pe', subsAplicadas: ['Americana'] },
+  { partnerId: 7, posInicial: 'em_pe', ptsMeus: ['queda'] },
+  { partnerId: 7, posInicial: 'em_pe', subsSofridas: ['Mata-leão'] },
+  { partnerId: 7, posInicial: 'guarda_fechada_baixo', subsSofridas: ['Mata-leão'] },
+  { partnerId: 7, posInicial: 'guarda_fechada_baixo', ptsDele: ['passagem'] },
+  { partnerId: 9, subsAplicadas: ['Kimura'] },
+];
+const rx = raioX(7, comPedro);
+ok('só os rolas com ele: 5, placar 2 x 3', [rx.rolas, rx.venceu, rx.perdeu, rx.empate], [5, 2, 3, 0]);
+ok('vai bem começando em pé (2 de 3)', rx.melhor && [rx.melhor.nome, rx.melhor.v, rx.melhor.n], ['Em pé', 2, 3]);
+ok('vai mal na guarda fechada por baixo', rx.pior && rx.pior.nome, 'Guarda fechada (por baixo)');
+ok('o que ele faz em você', rx.dele, [{ nome: 'Mata-leão', vezes: 2 }]);
+ok('o plano junta as pontas, com o artigo certo', rx.plano, 'começa em pé; fica esperto com o Mata-leão; procura a Americana, que já entrou nele');
+ok('parceiro com 1 rola: sem plano', raioX(9, comPedro).plano, null);
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);
