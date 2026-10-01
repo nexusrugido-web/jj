@@ -33,9 +33,11 @@ export function iniciarPWA() {
   });
 
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
-    });
+    const registrar = () => navigator.serviceWorker.register('/sw.js').catch(() => {});
+    /* este arquivo carrega depois que a página já carregou: esperar o
+       evento "load" deixava a primeira visita sem modo offline */
+    if (document.readyState === 'complete') registrar();
+    else window.addEventListener('load', registrar);
   }
 
   /* pede pro navegador não apagar os dados quando faltar espaço. O

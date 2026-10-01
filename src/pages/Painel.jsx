@@ -212,7 +212,7 @@ export default function Painel() {
                 <div className="valida bom" style={{ marginTop: 12 }}>
                   <ShieldCheck size={14} className="valida-ico" style={{ color: 'var(--jade)' }} />
                   <p className="micro muted" style={{ lineHeight: 1.6 }}>
-                    Sua sequência está protegida. Estudar conta no lugar de treinar enquanto você se recupera.
+                    Sua sequência está protegida enquanto você se recupera. Dá pra estudar sem precisar treinar.
                   </p>
                 </div>
                 <div className="row wrap" style={{ gap: 8, marginTop: 12 }}>

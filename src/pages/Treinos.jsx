@@ -156,6 +156,8 @@ export default function Treinos() {
 
   const [editando, setEditando] = useState(null);
   const [salvando, setSalvando] = useState(false);
+  /* lesão impeditiva sem prazo, perguntando se passou depois do treino */
+  const [lesoesAbertas, setLesoesAbertas] = useState([]);
   /* campeonato: 'hub' (as etapas), 'campeonato', 'luta-N', 'chave' ou 'podio' */
   const [tela, setTela] = useState('hub');
   const [rolasEdit, setRolasEdit] = useState([]);
@@ -475,31 +477,41 @@ export default function Treinos() {
 
   /* pontos pelo que foi registrado. Reflexão escrita vale mais,
      porque é ela que transforma registro em aprendizado. */
-  /* Quem marcou "não sei quanto tempo" volta sem avisar. O
-     primeiro treino registrado é o aviso. */
+  /* Quem marcou "não sei quanto tempo" e registrou um treino: o app
+     pergunta se a lesão passou. Antes fechava sozinho, e um treino leve
+     de quem ainda está se recuperando não quer dizer cura. */
   async function fecharLesaoAberta() {
     const abertas = await db.injuries
       .filter((l) => l.impacto === 'parado' && l.status !== 'curada' && l.prazo === 'nsei')
       .toArray();
-    for (const l of abertas) {
+    if (abertas.length) setLesoesAbertas(abertas);
+  }
+
+  async function confirmarCura() {
+    for (const l of lesoesAbertas) {
       await db.injuries.update(l.id, { status: 'curada', dataCura: hoje() });
     }
-    if (abertas.length) toast('Bom te ver de volta. Fechei a lesão que estava aberta.');
+    setLesoesAbertas([]);
+    toast('Bom te ver de volta. A lesão ficou marcada como curada.');
   }
 
   async function premiar(s, id) {
     let total = 0;
+    /* o ponto entra na data do treino, não na de hoje: o treino de
+       segunda registrado na quarta conta na semana em que aconteceu
+       (a liga só aceita enquanto aquela semana está aberta) */
+    const data = s.data && s.data <= hoje() ? s.data : hoje();
     const temReflexao = String(s.nota || '').trim().length >= 15
       || rolasEdit.some((r) => String(r.notas || '').trim().length >= 15);
 
     if (temReflexao) {
-      const p = await darXp('treino', { refId: `treino:${id}`, detalhe: s.data });
+      const p = await darXp('treino', { refId: `treino:${id}`, data, detalhe: s.data });
       if (p) total += p.xp;
     }
 
     /* competir vale um bônus, uma vez por dia */
     if (ehCompeticao(s.tipo)) {
-      const p = await darXp('competicao', { refId: `competicao:${id}`, detalhe: s.competicao?.evento || s.data });
+      const p = await darXp('competicao', { refId: `competicao:${id}`, data, detalhe: s.competicao?.evento || s.data });
       if (p) total += p.xp;
     }
 
@@ -511,7 +523,7 @@ export default function Treinos() {
         (r.subsAplicadas || []).length || (r.subsSofridas || []).length
       );
       if (!completa) continue;
-      const p = await darXp('rola', { refId: `rola:${id}:${i}`, detalhe: s.data });
+      const p = await darXp('rola', { refId: `rola:${id}:${i}`, data, detalhe: s.data });
       if (p) total += p.xp;
     }
 
@@ -899,6 +911,24 @@ export default function Treinos() {
             }}
           />
         )}
+      </Sheet>
+
+      <Sheet
+        aberto={lesoesAbertas.length > 0}
+        onClose={() => setLesoesAbertas([])}
+        titulo="Voltou de vez?"
+        footer={
+          <>
+            <Btn variant="ghost" onClick={() => setLesoesAbertas([])}>Ainda não</Btn>
+            <Btn variant="primary" icon={Check} onClick={confirmarCura}>Sim, estou recuperado</Btn>
+          </>
+        }
+      >
+        <p className="tiny muted" style={{ lineHeight: 1.65 }}>
+          Você marcou {lesoesAbertas.length === 1 ? 'uma lesão' : 'lesões'} que impede{lesoesAbertas.length === 1 ? '' : 'm'} o treino
+          ({lesoesAbertas.map((l) => l.regiao).filter(Boolean).join(', ') || 'sem região'}). Já está liberado pra treinar normal?
+          Se ainda estiver se recuperando, deixe aberta: a sua sequência segue protegida.
+        </p>
       </Sheet>
 
       <Sheet aberto={conviteVoz} onClose={() => setConviteVoz(false)} titulo="">
