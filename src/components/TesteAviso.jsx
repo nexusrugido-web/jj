@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Stethoscope, Loader, Target } from 'lucide-react';
+import { Bell, Stethoscope, Loader, Target, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Card, Btn, Field, Input, useToast } from './UI';
 
@@ -24,9 +24,17 @@ const AVISOS = [
   { id: 'volta', tipo: 'volta', nome: 'Volta pro tatame', quando: 'Depois de 7 dias sem nada, no máximo uma vez por mês.' },
 ];
 
+/* o e-mail confirmado fica neste navegador, pra não digitar de novo */
+const CHAVE_ALVO = 'teste-aviso-alvo';
+const lerAlvo = () => { try { return localStorage.getItem(CHAVE_ALVO) || ''; } catch { return ''; } };
+
 export default function TesteAviso({ email }) {
   const toast = useToast();
-  const [alvo, setAlvo] = useState(email || '');
+  const [alvo, setAlvo] = useState(() => lerAlvo() || email || '');
+  /* os botões só mandam pra conta confirmada: o servidor diz se ela
+     existe e quantos aparelhos têm os avisos ligados */
+  const [confirmado, setConfirmado] = useState(null);
+  const [confirmando, setConfirmando] = useState(false);
   const [enviando, setEnviando] = useState('');
   const [resposta, setResposta] = useState('');
   const [vezes, setVezes] = useState({});
@@ -55,6 +63,20 @@ export default function TesteAviso({ email }) {
     setVezes((v) => ({ ...v, [a.id]: versao + 1 }));
     setResposta(`${a.nome}: ${data}`);
   }
+
+  async function confirmar() {
+    setConfirmando(true);
+    const { data, error } = await supabase.rpc('diagnostico_de_aviso', { p_email: alvo.trim() });
+    setConfirmando(false);
+    if (error) { toast(String(error.message || '').includes('administrador') ? 'Esta conta não é admin no servidor.' : 'Não consegui conferir a conta.', 'err'); return; }
+    const linha = (n) => (data || []).find((x) => x.elo.startsWith(n));
+    if (linha('1.')?.situacao !== 'ok') { setConfirmado(null); toast('Nenhuma conta com esse e-mail.', 'err'); return; }
+    const aparelhos = linha('2.')?.situacao === 'ok' ? Number(String(linha('2.').detalhe).match(/^\d+/)?.[0]) || 1 : 0;
+    setConfirmado({ email: alvo.trim().toLowerCase(), aparelhos });
+    try { localStorage.setItem(CHAVE_ALVO, alvo.trim()); } catch { /* sem armazenamento, só não lembra */ }
+    toast(aparelhos ? 'E-mail confirmado e salvo' : 'Conta confirmada, mas sem aparelho com avisos ligados', aparelhos ? undefined : 'err');
+  }
+  const pronto = !!confirmado && confirmado.email === alvo.trim().toLowerCase();
 
   async function diagnosticar() {
     const { data, error } = await supabase.rpc('diagnostico_de_aviso', { p_email: alvo.trim() });
@@ -131,8 +153,23 @@ export default function TesteAviso({ email }) {
         O celular precisa estar com os avisos ligados (Ajustes → Avisos).
       </p>
       <Field label="Pra qual conta">
-        <Input value={alvo} onChange={(e) => { setAlvo(e.target.value); setInspecao(null); setDiag(null); }} placeholder="email@da.conta" />
+        <div className="row" style={{ gap: 8 }}>
+          <Input value={alvo} onChange={(e) => { setAlvo(e.target.value); setInspecao(null); setDiag(null); }} placeholder="email@da.conta" style={{ flex: 1 }} />
+          <Btn variant={pronto ? 'contorno' : 'primary'} icon={confirmando ? Loader : Check}
+            disabled={!alvo.trim() || confirmando} onClick={confirmar}>
+            {pronto ? 'Confirmado' : 'Confirmar'}
+          </Btn>
+        </div>
       </Field>
+      {pronto ? (
+        <p className="micro" style={{ marginTop: 6, color: confirmado.aparelhos ? 'var(--jade)' : 'var(--roar)' }}>
+          ✓ Os testes vão pra {confirmado.email} · {confirmado.aparelhos
+            ? `${confirmado.aparelhos} ${confirmado.aparelhos === 1 ? 'aparelho' : 'aparelhos'} com avisos ligados`
+            : 'nenhum aparelho com avisos ligados (Ajustes → Avisos no celular)'}
+        </p>
+      ) : (
+        <p className="micro muted" style={{ marginTop: 6 }}>Confirme o e-mail pra liberar os testes.</p>
+      )}
       <div className="col" style={{ gap: 6, marginTop: 12 }}>
         {AVISOS.map((a) => (
           <div key={a.id} className="row" style={{ gap: 10, alignItems: 'center', padding: '10px 12px', background: 'var(--void)', borderRadius: 9 }}>
@@ -141,7 +178,7 @@ export default function TesteAviso({ email }) {
               <div className="micro muted" style={{ lineHeight: 1.5 }}>{a.quando}</div>
             </div>
             <Btn size="sm" variant={a.id === 'teste' ? 'primary' : 'contorno'} icon={enviando === a.id ? Loader : Bell}
-              disabled={!!enviando || !alvo.trim()} onClick={() => testar(a)}>
+              disabled={!!enviando || !pronto} onClick={() => testar(a)}>
               {enviando === a.id ? 'Mandando' : vezes[a.id] ? 'De novo' : 'Mandar'}
             </Btn>
           </div>
