@@ -60,6 +60,9 @@ try { await getfy('Bearer errado', { event: 'pedido_pago', payload: {} }); } cat
 ok('token errado: recusa', /token da getfy invalido/.test(erro || ''), true);
 
 ok('evento de teste da Getfy', (await getfy('Bearer getfy-segredo', { event: 'webhook.test', payload: {} })).feito, 'teste');
+const antes = (await pg.query('select count(*)::int as n from recebido')).rows[0].n;
+ok('o botão Testar da Getfy (pedido_pago de exemplo) não vira venda', (await getfy('Bearer getfy-segredo', { event: 'pedido_pago', payload: { test: true, order: { id: 90001 }, customer: { email: 'exemplo@email.com' }, product: { id: 'prod-exemplo-uuid' } } })).feito, 'teste');
+ok('e não chega no processamento', (await pg.query('select count(*)::int as n from recebido')).rows[0].n, antes);
 
 await getfy('Bearer getfy-segredo', {
   event: 'pedido_pago',

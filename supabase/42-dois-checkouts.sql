@@ -181,7 +181,9 @@ begin
     raise exception 'token da getfy invalido' using errcode = '28000';
   end if;
 
-  if ev = 'webhook.test' then
+  /* o botao Testar da Getfy manda um evento de verdade (pedido_pago com
+     cliente e produto de exemplo) marcado com payload.test: nao processa */
+  if ev = 'webhook.test' or p_corpo #>> '{payload,test}' = 'true' then
     return query select 'teste'::text, 'a Getfy chegou no banco'::text; return;
   end if;
 
