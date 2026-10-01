@@ -6,7 +6,7 @@ import { ToastProvider } from './components/UI';
 import Layout from './components/Layout';
 import InstallPrompt from './components/InstallPrompt';
 import Tour from './components/Tour';
-import { marcarEngajamento , vigiarAtualizacao } from './lib/pwa';
+import { marcarEngajamento , vigiarAtualizacao, versaoDoAparelho } from './lib/pwa';
 import { supabase, supabaseConfigurado, sessaoAtual } from './lib/supabase';
 import { enfileirar, iniciarSync, onSync, garantirNuvem, enfileirarAjustes } from './lib/sync';
 import { resumo as calcResumo } from './lib/stats';
@@ -167,6 +167,20 @@ export default function App() {
   const marcosChecados = useRef(false);
 
   useEffect(() => vigiarAtualizacao((aplicar) => setAtualizar(() => aplicar)), []);
+  /* no Android a versão nova costuma entrar sozinha ao abrir o app, sem
+     barra de atualizar: compara com a última versão vista neste aparelho
+     e avisa que atualizou */
+  useEffect(() => {
+    const conferir = () => versaoDoAparelho().then((v) => {
+      if (!v) return;
+      let antes = null;
+      try { antes = localStorage.getItem('versao-vista'); localStorage.setItem('versao-vista', v); } catch { return; }
+      if (antes && antes !== v) setAtualizado(true);
+    });
+    conferir();
+    navigator.serviceWorker?.addEventListener('controllerchange', conferir);
+    return () => navigator.serviceWorker?.removeEventListener('controllerchange', conferir);
+  }, []);
 
   /* As chaves de recurso mudam no painel do administrador, e a tela
      precisa reagir na hora. Sem este ouvinte, ligar a liga só
