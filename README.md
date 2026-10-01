@@ -109,14 +109,16 @@ Roda os linters (copy, símbolos, ciclos, chunks), o build e todos os testes, in
 
 Rodar local: `npm install`, `cp .env.example .env.local`, `npm run dev`. Sem `.env.local` funciona igual, só sem nuvem e sem IA.
 
-SQL do Supabase: os arquivos de `supabase/` são a versão sem segredo; os prontos pra colar, com segredo, ficam em `Downloads/NEUROJITSU-COLAR` (fora do git).
+SQL do Supabase: os arquivos de `supabase/` são a versão sem segredo; os prontos pra colar, com segredo, ficam em `Downloads/neurojitsu-v12_7/NEUROJITSU-COLAR` (fora do git). Desde 25/09 os SQLs novos são numerados em `supabase/NN-*.sql` (25 a 35).
 
 ---
 
 ## Mudanças recentes
 
-Só as últimas, pra saber o estado atual. O detalhe de cada dia fica em `Downloads/NEUROJITSU-RELATORIOS`.
+Só as últimas, pra saber o estado atual. O detalhe de cada dia fica em `Downloads/neurojitsu-v12_7/NEUROJITSU-RELATORIOS`.
 
+- **30/09/2026** (continuação do trabalho do Codex)
+  - Assinatura: sai a pausa que prometia não cobrar sem falar com a Hotmart, e o anual não cai mais no checkout mensal. Offline desde a primeira visita (service worker registrado na hora). XP do treino na data em que ele aconteceu. Lesão impeditiva só fecha se a pessoa confirmar que voltou. Liga: com lesão impeditiva marcada até o domingo, não sobe nem desce (`perfil.lesao_desde`, resultado `protegido`, SQL `supabase/35-liga-lesao.sql`). Nutrição: suplementos lado a lado (`src/db/suplementos.js`). Acervo: vídeo novo já grava se é em pé.
 - **25/09/2026**
   - As divisões valem alguma coisa (`liga.js`: `beneficiosDa`, `progressoPraSubir`, `escudosDaDivisao`, `molduraDe`; SQL `supabase/liga-divisoes.sql` = `NEUROJITSU-COLAR/24`): moldura na foto (Estadual+), selo "Divisão X" na figurinha (Estadual+), ofensiva com 3 escudos (Nacional+), coroa no Mundial, +30 no total ao subir (evento `divisao`, do servidor, fora da corrida e fora da ofensiva) e o recorde da melhor divisão (`total_xp.melhor_divisao`, `minha_divisao()`). Na Liga, tocar na divisão abre "As divisões da liga" (a escada, onde você está, o recorde, o que cada uma dá, subir e descer), e a barra "Pra subir pro X" mostra pontos, 1º lugar e grupo valendo. O pódio da Liga é o de medalhas da Competição, com foto, desde 2 pessoas, e quem ficou fora aparece embaixo.
   - Vídeo em pé fica em pé na tela cheia pela proporção real (`aula.vertical`: a esteira pede `part=player&maxHeight` ao YouTube e grava; o Acervo do painel completa sozinho os que faltam; SQL `supabase/aula-vertical.sql` = `NEUROJITSU-COLAR/23`). Sem a proporção, vale o short. Legenda tira num toque só (o toque olha a legenda que está na tela). Liga: subir só vale com 3+ no grupo e com o mínimo de pontos da divisão (80/120/170/220, `minimo_pra_subir` no SQL 22). Treinos: no celular, Novo treino fica numa linha só dele.

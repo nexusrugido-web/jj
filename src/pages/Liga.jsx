@@ -189,6 +189,7 @@ function ComoFunciona({ aberto, onClose }) {
                   `O grupo precisa ter ${MINIMO_DO_GRUPO} pessoas ou mais. Com 2, ninguém sobe nem desce, pra ninguém subir só porque o outro sumiu.`,
                   'Em grupo de 3 a 5, só o 1º sobe e só o último desce. De 6 a 8, sobem os 2 primeiros e descem os 2 últimos.',
                   'Além de terminar na frente, precisa de uma semana de verdade: o mínimo de pontos cresce a cada divisão.',
+                  'Com lesão que impede o treino marcada em Lesões, você não sobe nem desce na semana. Ninguém precisa treinar machucado pra salvar a divisão.',
                 ]} />
                 <div className="col" style={{ gap: 6 }}>
                   {Object.entries(MINIMO_PRA_SUBIR).map(([de, min]) => {

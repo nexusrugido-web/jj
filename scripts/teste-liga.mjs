@@ -62,6 +62,7 @@ ok('sozinho não correu', resultadoEmPalavras({ ...base, total: 1, resultado: 's
 ok('semana ainda aberta: apurando, com a posição parcial', resultadoEmPalavras({ ...base, fechada: false, posicao: 3, xp: 90 }).texto.startsWith('Você está em 3º de 4, com 90 pontos.'), true);
 ok('1º sem o mínimo: a tela explica quanto faltou', resultadoEmPalavras({ ...base, resultado: 'ficou', xp: 100, divisao_antes: 'azul', divisao_depois: 'azul' }).texto,
   'Terminou em 1º, com 100 pontos, mas pra subir pro Nacional precisava de 120. Faltaram 20.');
+ok('lesão: pausado, sem subir nem descer', resultadoEmPalavras({ ...base, posicao: 4, resultado: 'protegido', divisao_depois: 'azul' }).titulo, 'Pausado por lesão');
 ok('grupo de 2: explica que não vale subida', resultadoEmPalavras({ ...base, total: 2, resultado: 'poucos', divisao_depois: 'azul' }).titulo, 'Grupo de 2 não vale subida');
 ok('semana fechada antes do resultado ser guardado: só o lugar', resultadoEmPalavras({ ...base, resultado: null, posicao: 2 }).titulo, 'Você terminou em 2º');
 

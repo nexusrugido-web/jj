@@ -15,7 +15,8 @@ import {
   MINIMO_DO_GRUPO, minimoPraSubir, praDivisao, naDivisao, nomeDivisao, ORDEM_DIVISOES, MINIMO_PRA_SUBIR,
   beneficiosDa, progressoPraSubir, buscarMinhaDivisao, useMinhaDivisao, molduraDe, BONUS_DE_SUBIR,
 } from '../lib/liga';
-import { getMeta, setMeta } from '../db/db';
+import { db, getMeta, setMeta } from '../db/db';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { fmtData } from '../lib/utils';
 import { enviarFoto, removerFoto } from '../lib/perfil';
 import { pedirAmizade } from '../lib/amigos';
@@ -296,6 +297,7 @@ function AsDivisoes({ aberto, onClose, atual = 'branca', melhor = null, xp = 0, 
           <Shield size={15} className="valida-ico" style={{ color: 'var(--dim)' }} />
           <p className="micro muted" style={{ lineHeight: 1.6 }}>
             Grupo de 2 não sobe nem desce ninguém, e terminar em 1º sem o mínimo de pontos mantém você onde está.
+            Com lesão que impede o treino marcada em Lesões, você não sobe nem desce enquanto ela estiver aberta.
           </p>
         </div>
       </div>
@@ -319,6 +321,9 @@ export default function Liga({ compacto = false }) {
   const [vendo, setVendo] = useState(null);
   /* a escada das divisões, e a minha divisão com o recorde */
   const [divisoesAberto, setDivisoesAberto] = useState(false);
+  /* com lesão impeditiva aberta, a semana não sobe nem desce (só pra mim:
+     a lesão dos outros é dado de saúde e não aparece) */
+  const lesionado = useLiveQuery(() => db.injuries.filter((l) => l.impacto === 'parado' && l.status !== 'curada').count(), [], 0) > 0;
   const minhaDivisao = useMinhaDivisao();
   /* a semana passada (supabase/liga-resultado.sql) e o popup de quando ela fecha */
   const [passada, setPassada] = useState(null);
@@ -521,9 +526,10 @@ export default function Liga({ compacto = false }) {
   const marca = (l) => {
     const div = l.divisao_pessoa || divisao;
     const min = minimoPraSubir(div);
+    const pausado = l.sou_eu && lesionado;
     return {
-      sobe: valendo && l.posicao <= sobem && min != null && l.xp_semana >= min,
-      desce: valendo && descem > 0 && l.posicao > total - descem && div !== 'branca',
+      sobe: !pausado && valendo && l.posicao <= sobem && min != null && l.xp_semana >= min,
+      desce: !pausado && valendo && descem > 0 && l.posicao > total - descem && div !== 'branca',
     };
   };
   const meuMinimo = minimoPraSubir(minhaDiv);
@@ -591,7 +597,16 @@ export default function Liga({ compacto = false }) {
           <span className="num" style={{ fontSize: 19, fontWeight: 700, color: 'var(--accent)' }}>{eu.xp_semana}</span>
         </div>
       )}
-      {!compacto && eu && (
+      {eu && lesionado && (
+        <div className="valida" style={{ marginTop: 12 }}>
+          <Shield size={15} className="valida-ico" style={{ color: 'var(--jade)' }} />
+          <p className="micro muted" style={{ lineHeight: 1.6 }}>
+            <b style={{ color: 'var(--chalk)' }}>Pausado por lesão.</b> Com a lesão que impede o treino marcada, você não sobe nem desce nesta semana.
+            Os seus pontos continuam contando. Volte quando estiver liberado.
+          </p>
+        </div>
+      )}
+      {!compacto && eu && !lesionado && (
         <BarraPraSubir divisao={minhaDiv} xp={eu.xp_semana} posicao={eu.posicao} total={total} onAbrir={() => setDivisoesAberto(true)} />
       )}
 

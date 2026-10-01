@@ -102,6 +102,13 @@ export function useMinhaDivisao() {
   return useLiveQuery(() => getMeta('liga_divisao', null), [], null);
 }
 
+/* o dia em que começou a lesão que impede o treino, se tiver uma aberta */
+export async function lesaoImpeditivaDesde() {
+  const abertas = await db.injuries.filter((l) => l.impacto === 'parado' && l.status !== 'curada').toArray();
+  const datas = abertas.map((l) => l.data).filter(Boolean).sort();
+  return datas[0] || (abertas.length ? hoje() : null);
+}
+
 /* ---------- a minha divisão e o recorde, guardados no aparelho ---------- */
 export async function buscarMinhaDivisao() {
   if (!supabase) return null;
@@ -156,6 +163,17 @@ async function subir() {
        então sem este log não sobrava rastro nenhum. */
     if (error) console.error('[liga] pontos', error);
     else await setMeta('liga_marca', marca);
+  }
+
+  /* a lesão impeditiva aberta: no fechamento, quem está assim não sobe
+     nem desce (supabase/liga-lesao.sql). Só a data vai pro servidor,
+     e ninguém mais lê. */
+  const desde = await lesaoImpeditivaDesde();
+  const chaveLesao = `${uid}:${desde || ''}`;
+  if ((await getMeta('liga_lesao', null)) !== chaveLesao) {
+    const { error } = await supabase.from('perfil').update({ lesao_desde: desde }).eq('user_id', uid);
+    /* antes do SQL 25 a coluna não existe: fica pra próxima */
+    if (!error) await setMeta('liga_lesao', chaveLesao);
   }
 
   /* a divisão e o recorde, pro selo, a moldura e os escudos */
@@ -258,6 +276,7 @@ export function resultadoEmPalavras(r) {
           : `Terminou em ${lugar}, com ${pts}. Pra subir, precisa ficar entre os classificados do grupo e atingir pelo menos ${min || 0} pontos.`,
       };
     }
+    case 'protegido': return { tom: '', titulo: 'Pausado por lesão', texto: `Você estava com lesão que impede o treino, então não subiu nem desceu: continua ${naDivisao(r.divisao_depois)}. Terminou em ${lugar}, com ${pts}. Volte quando estiver liberado.` };
     case 'poucos': return { tom: '', titulo: 'Grupo de 2 não vale subida', texto: `O seu grupo teve só 2 pessoas, e a subida e a descida só valem com 3 ou mais. Você terminou em ${lugar}, com ${pts}, e continua ${naDivisao(r.divisao_depois)}.` };
     case 'sozinho': return { tom: '', titulo: 'Ninguém correu com você', texto: `Ninguém do seu ritmo pontuou na semana passada, então não teve corrida: ninguém sobe nem desce sozinho. Os seus ${pts} continuam no seu total.` };
     default: return { tom: '', titulo: `Você terminou em ${r.posicao}º`, texto: `De ${r.total} no grupo, com ${pts}.` };
