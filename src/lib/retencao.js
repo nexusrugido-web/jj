@@ -1,5 +1,5 @@
-import { getMeta, setMeta } from '../db/db';
-import { hoje, addDias, diasEntre } from './utils';
+import { getMeta } from '../db/db';
+import { hoje, diasEntre } from './utils';
 
 /* ============================================================
    ATIVAÇÃO E RECONQUISTA
@@ -85,78 +85,6 @@ export function estadoDeAusencia(sessions) {
     acao: 'Registrar treino',
   };
 }
-
-/* ============================================================
-   PAUSA EM VEZ DE CANCELAMENTO
-
-   Quem vai parar por dois meses não precisa cancelar e
-   recomeçar depois. Pausar resolve melhor pros dois lados.
-   ============================================================ */
-export const MOTIVOS_PAUSA = [
-  { id: 'lesao', nome: 'Estou lesionado', sugestao: 3, texto: 'Recuperação leva o tempo que leva. Pausamos até você voltar.' },
-  { id: 'tempo', nome: 'Sem tempo agora', sugestao: 2, texto: 'Trabalho aperta, acontece. A conta fica guardada.' },
-  { id: 'viagem', nome: 'Vou viajar', sugestao: 1, texto: 'Um mês parado não apaga nada do que você já registrou.' },
-  { id: 'parei', nome: 'Parei de treinar', sugestao: 6, texto: 'Sem problema. Se um dia voltar, seus dados estarão aqui.' },
-  { id: 'preco', nome: 'Está pesando no bolso', sugestao: 0, texto: '' },
-  { id: 'outro', nome: 'Outro motivo', sugestao: 2, texto: '' },
-];
-
-export async function pausar(meses, motivo) {
-  const ate = addDias(hoje(), meses * 30);
-  await setMeta('pausa', { ate, motivo, criadaEm: hoje() });
-  return { ate, motivo };
-}
-
-export async function pausaAtiva() {
-  const p = await getMeta('pausa', null);
-  if (!p) return null;
-  if (p.ate < hoje()) { await setMeta('pausa', null); return null; }
-  return { ...p, diasRestantes: diasEntre(hoje(), p.ate) };
-}
-
-export async function retomar() {
-  await setMeta('pausa', null);
-}
-
-/* ============================================================
-   O QUE FALAR NA TELA DE CANCELAMENTO
-
-   Regra: oferecer pausa antes de oferecer desconto. Quem
-   aprende que basta ameaçar sair pra ganhar desconto vai
-   fazer isso toda renovação.
-   ============================================================ */
-export function ofertaDeSaida(motivo, resumo = {}) {
-  const m = MOTIVOS_PAUSA.find((x) => x.id === motivo);
-
-  if (motivo === 'preco') {
-    return {
-      tipo: 'anual',
-      titulo: 'O plano anual sai bem mais barato',
-      texto: 'Dá menos da metade por mês comparado com o mensal. Se o problema é valor, esse é o caminho antes de cancelar.',
-      acao: 'Ver o anual',
-    };
-  }
-
-  if (m?.sugestao) {
-    return {
-      tipo: 'pausa',
-      meses: m.sugestao,
-      titulo: `Quer pausar ${m.sugestao} ${m.sugestao === 1 ? 'mês' : 'meses'} em vez de cancelar?`,
-      texto: `${m.texto} Nesse período não cobramos nada, e quando voltar está tudo como você deixou.`,
-      acao: 'Pausar',
-    };
-  }
-
-  return {
-    tipo: 'nenhuma',
-    titulo: 'Tudo bem',
-    texto: resumo.treinos
-      ? `Você registrou ${resumo.treinos} treinos aqui. Tudo isso continua seu, dá pra baixar quando quiser.`
-      : 'Seus dados continuam disponíveis pra baixar quando quiser.',
-    acao: 'Baixar meus dados',
-  };
-}
-
 
 export async function funil() {
   return getMeta('funil', {});

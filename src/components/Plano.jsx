@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 import {
   Check, Lock, Sparkles, Gem, Crown, Receipt, ExternalLink, RefreshCw,
 } from 'lucide-react';
-import { Card, Btn, Chip, Sheet, useToast } from './UI';
+import { Card, Btn, Chip, Sheet } from './UI';
 import { RECURSOS, LIMITES, diasParaVencer } from '../lib/plano';
 import { HOTMART_MINHAS_COMPRAS } from './Renovacao';
-import { MOTIVOS_PAUSA, ofertaDeSaida, pausar, pausaAtiva, retomar } from '../lib/retencao';
 import { fmtData } from '../lib/utils';
 import { abrirLink, linkDe } from '../lib/links';
 
@@ -73,12 +72,7 @@ function Faturas({ aberto, onClose, faturas }) {
 }
 
 export default function Plano({ acesso, compacto = false }) {
-  const toast = useToast();
-  const [saindo, setSaindo] = useState(false);
   const [verFaturas, setVerFaturas] = useState(false);
-  const [pausa, setPausa] = useState(null);
-
-  React.useEffect(() => { pausaAtiva().then(setPausa); }, []);
 
   const dias = diasParaVencer(acesso);
   const gratis = Object.entries(RECURSOS).filter(([, r]) => !r.premium);
@@ -118,37 +112,12 @@ export default function Plano({ acesso, compacto = false }) {
               <Btn size="sm" variant="contorno" icon={Receipt} onClick={() => setVerFaturas(true)}>Faturas</Btn>
             </div>
 
-            {pausa ? (
-              <div className="valida atencao" style={{ marginTop: 12 }}>
-                <Check size={14} className="valida-ico" style={{ color: 'var(--roar)' }} />
-                <div>
-                  <p className="micro muted" style={{ lineHeight: 1.65 }}>
-                    Sua conta está pausada até {fmtData(pausa.ate)}. Não cobramos nada nesse período.
-                  </p>
-                  <button className="btn ghost xs" style={{ marginTop: 8 }}
-                    onClick={async () => { await retomar(); setPausa(null); toast('Bom te ver de volta'); }}>
-                    Voltar agora
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button className="btn ghost xs" style={{ marginTop: 12, opacity: 0.7 }} onClick={() => setSaindo(true)}>
-                Preciso parar por um tempo
-              </button>
-            )}
+            <Btn size="sm" variant="contorno" icon={ExternalLink} onClick={abrirHotmart}>
+              Gerenciar ou cancelar na Hotmart
+            </Btn>
           </div>
         </div>
 
-        <Saida
-          aberto={saindo}
-          onClose={() => setSaindo(false)}
-          onPausar={async (meses, motivo) => {
-            const p = await pausar(meses, motivo);
-            setPausa({ ...p, diasRestantes: meses * 30 });
-            setSaindo(false);
-            toast(`Pausado até ${fmtData(p.ate)}`);
-          }}
-        />
         <Faturas aberto={verFaturas} onClose={() => setVerFaturas(false)} faturas={faturas} />
       </Card>
     );
@@ -347,89 +316,5 @@ export function HistoricoCortado({ cortados, onAssinar }) {
         <button className="btn ghost xs" onClick={onAssinar} style={{ marginTop: 8 }}>Ver o Premium</button>
       </div>
     </div>
-  );
-}
-
-
-/* ============================================================
-   QUANDO ALGUÉM QUER PARAR
-
-   A ordem importa: primeiro entender o motivo, depois oferecer
-   pausa. Desconto só aparece pra quem disse que o problema é
-   preço, senão vira jogo de ameaçar sair toda renovação.
-   ============================================================ */
-function Saida({ aberto, onClose, onPausar }) {
-  const [motivo, setMotivo] = useState(null);
-  const oferta = motivo ? ofertaDeSaida(motivo) : null;
-
-  return (
-    <Sheet
-      aberto={aberto}
-      onClose={() => { setMotivo(null); onClose(); }}
-      titulo={motivo ? '' : 'O que está acontecendo?'}
-      wide
-    >
-      {!motivo ? (
-        <>
-          <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-            Saber o motivo ajuda a gente a resolver do jeito certo. Talvez nem precise cancelar.
-          </p>
-          <div className="col" style={{ gap: 9 }}>
-            {MOTIVOS_PAUSA.map((m) => (
-              <button key={m.id} type="button" className="opcao-meta" onClick={() => setMotivo(m.id)}>
-                <div className="row" style={{ gap: 9 }}>
-                  <span className="tiny" style={{ fontWeight: 600, flex: 1 }}>{m.nome}</span>
-                  <span className="muted">›</span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </>
-      ) : (
-        <div className="col" style={{ gap: 16 }}>
-          <div>
-            <h3 style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.3 }}>
-              {oferta.titulo}
-            </h3>
-            <p className="tiny muted" style={{ marginTop: 9, lineHeight: 1.75 }}>{oferta.texto}</p>
-          </div>
-
-          {oferta.tipo === 'pausa' && (
-            <>
-              <div className="row wrap" style={{ gap: 7 }}>
-                {[1, 2, 3, 6].map((n) => (
-                  <button key={n} type="button" className="chip" style={{ minHeight: 42, paddingInline: 16 }}
-                    onClick={() => onPausar(n, motivo)}>
-                    {n} {n === 1 ? 'mês' : 'meses'}
-                  </button>
-                ))}
-              </div>
-              <p className="micro muted" style={{ lineHeight: 1.65 }}>
-                Durante a pausa você continua entrando e vendo tudo que registrou. Só não cobramos.
-              </p>
-            </>
-          )}
-
-          {oferta.tipo === 'anual' && (
-            <Btn
-              variant="primary"
-              disabled={!linkDe('assinatura_anual')}
-              onClick={() => abrirLink('assinatura_anual')}
-            >
-              Ver o plano anual
-            </Btn>
-          )}
-
-          <div className="divider" />
-          <p className="micro muted" style={{ lineHeight: 1.7 }}>
-            Se preferir cancelar mesmo, é pela Hotmart, no e-mail da compra. Seus dados continuam aqui e você
-            pode baixar tudo quando quiser.
-          </p>
-          <button className="btn ghost xs" onClick={() => setMotivo(null)} style={{ alignSelf: 'flex-start' }}>
-            Voltar
-          </button>
-        </div>
-      )}
-    </Sheet>
   );
 }

@@ -24,20 +24,8 @@ export function observarLinks(fn) {
   return () => ouvintes.delete(fn);
 }
 
-/* ------------------------------------------------------------
-   O link pedido, e o plano B quando ele está vazio.
-
-   O anual cai no mensal de propósito: enquanto você não criar o
-   produto anual na Hotmart, quem clica em "ver o anual" ainda
-   tem pra onde ir, em vez de apertar um botão que não faz nada.
-   ------------------------------------------------------------ */
-const RESERVA = { assinatura_anual: 'assinatura_mensal' };
-
 export function linkDe(chave) {
-  const direto = cache[chave];
-  if (direto) return direto;
-  const b = RESERVA[chave];
-  return (b && cache[b]) || null;
+  return cache[chave] || null;
 }
 
 
