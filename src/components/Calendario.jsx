@@ -8,7 +8,7 @@ import { db } from '../db/db';
 import { bateuODia } from '../lib/nutricao';
 import { Sheet, Chip, Stat, Card, Btn, BeltTag } from './UI';
 import { janelaDoCalendario, mesDoCalendario, rotuloDoPeriodo } from '../lib/periodo';
-import { fmtDur, relativo, mesNome } from '../lib/utils';
+import { fmtDur, relativo, mesNome, mesLongo } from '../lib/utils';
 import { placarDaRola, ROTULO_RESULTADO, TOM_RESULTADO } from '../lib/game';
 import { agruparPontos, posInicialPorId, pesoRelPorId } from '../db/scoring';
 import { APRENDIZADO } from './SeletorTecnica';
@@ -44,6 +44,17 @@ export default function Calendario({
     [umMes, sessions, rolls, ano, mes]
   );
   const { resumo } = vista;
+
+  /* virou o mês e ele ainda está vazio: o anterior não sumiu, só está
+     na seta. Mostra quanto teve lá, com o atalho */
+  const ehMesAtual = ano === agora.getFullYear() && mes === agora.getMonth();
+  const anterior = useMemo(() => {
+    if (!umMes || !ehMesAtual || resumo.treinados > 0) return null;
+    const m = mes === 0 ? 11 : mes - 1, a = mes === 0 ? ano - 1 : ano;
+    const r = mesDoCalendario(sessions, rolls, a, m).resumo;
+    const nome = mesLongo(`${a}-${String(m + 1).padStart(2, '0')}-01`);
+    return r.treinados > 0 ? { nome: nome[0].toUpperCase() + nome.slice(1), dias: r.treinados } : null;
+  }, [umMes, ehMesAtual, resumo.treinados, sessions, rolls, ano, mes]);
 
   const gradPorDia = useMemo(() => {
     const m = new Map();
@@ -112,6 +123,12 @@ export default function Calendario({
             </p>
           )}
         </>
+      )}
+
+      {anterior && (
+        <button type="button" className="btn contorno sm" style={{ alignSelf: 'flex-start' }} onClick={() => irMes(-1)}>
+          <ChevronLeft size={14} /> {anterior.nome}: {anterior.dias} {anterior.dias === 1 ? 'dia' : 'dias'} de treino · ver
+        </button>
       )}
 
       <div className="cal-grade solo anima-troca" key={umMes ? `${ano}-${mes}` : 'janela'}>
