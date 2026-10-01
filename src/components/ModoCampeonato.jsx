@@ -1,11 +1,12 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ClipboardCheck } from 'lucide-react';
 import { useApp } from '../contexto';
-import { Sheet, Btn, Field, NumeroInput, Chip } from './UI';
+import { Sheet, Btn, Field, NumeroInput, Chip, EscolherData } from './UI';
+import { db } from '../db/db';
 import { Vitrine } from './Plano';
 import AntesDeCompetir from './AntesDeCompetir';
 import { podeVer, pedirOferta } from '../lib/plano';
-import { planoDePeso, retaFinal, KIMONO_KG } from '../lib/campeonato';
+import { planoDePeso, retaFinal, KIMONO_KG, categoriasDe } from '../lib/campeonato';
 import { jogoPrincipal } from '../lib/graus';
 import { hoje, diasEntre, fmtData } from '../lib/utils';
 
@@ -18,8 +19,16 @@ import { hoje, diasEntre, fmtData } from '../lib/utils';
    ============================================================ */
 const kg = (n) => `${String(n).replace('.', ',')} kg`;
 
-export default function ModoCampeonato({ meta, esteira = [], onClose }) {
+export default function ModoCampeonato({ meta: metaInicial, esteira = [], onClose }) {
   const { settings, salvarSettings, acesso } = useApp();
+  /* a meta muda aqui dentro (data e categoria) e a folha acompanha */
+  const [meta, setMeta] = useState(metaInicial);
+  useEffect(() => { setMeta(metaInicial); }, [metaInicial]);
+  const mudar = async (patch) => {
+    const novo = { ...meta, ...patch };
+    setMeta(novo);
+    if (meta?.id) await db.goals.update(meta.id, patch);
+  };
   const [checklist, setChecklist] = useState(false);
   const hj = hoje();
   const dias = meta?.data ? Math.max(0, diasEntre(hj, meta.data)) : null;
@@ -66,7 +75,36 @@ export default function ModoCampeonato({ meta, esteira = [], onClose }) {
     <>
       <Sheet aberto={!!meta} onClose={onClose} titulo={meta ? `🏆 ${meta.alvo || 'Campeonato'}` : ''}
         subtitulo={meta?.data ? `${fmtData(meta.data)}${meta.categoria ? ` · ${meta.categoria}` : ''}${meta.modalidade === 'nogi' ? ' · no-gi' : ' · gi'}` : ''}>
-        {meta && (
+        {meta && (!meta.data || !meta.categoria) && (
+          <div className="col" style={{ gap: 12 }}>
+            <p className="tiny muted" style={{ lineHeight: 1.6 }}>
+              Pra montar a preparação, falta {!meta.data && !meta.categoria ? 'a data e a categoria' : !meta.data ? 'a data' : 'a categoria'} do campeonato.
+            </p>
+            {!meta.data && (
+              <Field label="Quando é">
+                <EscolherData futuro valor={meta.data || ''} titulo="Quando é o campeonato" onChange={(data) => mudar({ data })} />
+              </Field>
+            )}
+            <Field label="Modalidade e divisão" hint="No gi a pesagem é de kimono.">
+              <div className="row wrap" style={{ gap: 6 }}>
+                {[['gi', 'Gi'], ['nogi', 'No-gi']].map(([id, nome]) => (
+                  <button key={id} type="button" className={`chip ${(meta.modalidade || 'gi') === id ? 'on' : ''}`} onClick={() => mudar({ modalidade: id, categoria: '' })}>{nome}</button>
+                ))}
+                {[['masculino', 'Masculino'], ['feminino', 'Feminino']].map(([id, nome]) => (
+                  <button key={id} type="button" className={`chip ${(meta.sexo || 'masculino') === id ? 'on' : ''}`} onClick={() => mudar({ sexo: id, categoria: '' })}>{nome}</button>
+                ))}
+              </div>
+            </Field>
+            <Field label="Categoria de peso" hint="Pela tabela da IBJJF (adulto e master).">
+              <div className="row wrap" style={{ gap: 6 }}>
+                {categoriasDe(meta.modalidade || 'gi', meta.sexo || 'masculino').map((c) => (
+                  <button key={c} type="button" className={`chip ${meta.categoria === c ? 'on' : ''}`} onClick={() => mudar({ categoria: c })}>{c}</button>
+                ))}
+              </div>
+            </Field>
+          </div>
+        )}
+        {meta && meta.data && (
           <>
             <div className="calc-resultado" style={{ alignItems: 'flex-start' }}>
               <div className="calc-numero num">{dias === 0 ? 'Hoje!' : dias === 1 ? 'Amanhã' : `${dias} dias`}</div>

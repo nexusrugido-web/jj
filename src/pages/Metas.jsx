@@ -208,7 +208,7 @@ export default function Metas() {
                 faixa={faixa}
                 onEdit={() => setEdit({ ...g })}
                 onDel={() => setExcluir(g)}
-                onCampeonato={g.tipo === 'competicao' && g.data ? () => setCampeonato(g) : null}
+                onCampeonato={g.tipo === 'competicao' ? () => setCampeonato(g) : null}
                 onCompartilhar={(p) => setStory(p.concluida
                   ? { selo: 'meta concluída', grande: tituloDaMeta(g) }
                   : { selo: 'minha meta', grande: p.valor || tituloDaMeta(g), sub: p.valor ? tituloDaMeta(g) : '', pct: p.pct })}
