@@ -44,5 +44,33 @@ ok('quarta não é dia de treino dele: some', h.mostrar, false);
 h = treinoDeHoje({ sessions: sessoes, hj: '2026-09-29' });
 ok('sem nenhum dado que sustente, não aparece', h.mostrar, false);
 
+/* ---------- o relatório do mês ---------- */
+const { relatorioDoMes, mesPassado, retrospectivaDoAno } = await import('../src/lib/relatorio.js');
+const { minhasTecnicas } = await import('../src/lib/graus.js');
+ok('no dia 1/10, o mês que fechou é setembro', [mesPassado('2026-10-01').ini, mesPassado('2026-10-01').fim, mesPassado('2026-10-01').nome], ['2026-09-01', '2026-09-30', 'Setembro']);
+ok('em janeiro, é dezembro do ano anterior', mesPassado('2027-01-05').ini, '2026-12-01');
+const sess = [
+  { id: 1, data: '2026-08-10', duracao: 60 },
+  { id: 2, data: '2026-09-02', duracao: 60 }, { id: 3, data: '2026-09-09', duracao: 90 }, { id: 4, data: '2026-09-16', duracao: 90 },
+  { id: 5, data: '2026-10-01', duracao: 60 },
+];
+const rolas = [
+  { sessionId: 1, subsSofridas: ['Triângulo'] },
+  { sessionId: 2, subsAplicadas: ['Americana'] },
+  { sessionId: 3, subsSofridas: ['Triângulo'] },
+  { sessionId: 4, subsSofridas: ['Triângulo'] },
+  { sessionId: 4, subsAplicadas: ['Americana'] },
+];
+const est = minhasTecnicas(rolas, [], sess, [], 'branca');
+const rel = relatorioDoMes({ hj: '2026-10-01', sessions: sess, rolls: rolas, esteira: est, faixa: 'branca' });
+ok('setembro: 3 treinos, 4h, 4 rolas', [rel.treinos, rel.horas, rel.rolas], [3, 4, 4]);
+ok('ganhou 2 de 4 (50%)', [rel.venceu, rel.taxa], [2, 50]);
+ok('comparado com agosto: +3 rolas, +2 treinos', rel.variacao, { rolas: 3, treinos: 2 });
+ok('o que ainda te pega e vira o foco', [rel.cede, rel.foco], [{ nome: 'Triângulo', vezes: 2 }, 'Triângulo']);
+ok('a Americana subiu de grau em setembro', rel.subiram.map((x) => x.nome), ['Americana']);
+ok('o treino de outubro não entra no relatório de setembro', rel.treinos, 3);
+const ret = retrospectivaDoAno({ ano: 2026, sessions: sess, rolls: rolas, esteira: est, faixa: 'branca' });
+ok('a retrospectiva soma o ano inteiro', [ret.treinos, ret.rolas, ret.periodo.nome], [5, 5, '2026']);
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

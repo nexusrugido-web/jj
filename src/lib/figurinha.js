@@ -47,6 +47,18 @@ export const FRASES = {
     'Enquanto uns planejam, eu fui treinar.',
     'A semana cansou. Eu não parei.',
   ],
+  mes: [
+    'Um mês de tatame não se conta em dias. Se conta em rolas.',
+    'Mês fechado. O kimono sabe o que passou.',
+    'Não foi o mês perfeito. Foi o mês feito.',
+    'Mais um mês aparecendo. É assim que a faixa muda.',
+  ],
+  ano: [
+    'Um ano inteiro aparecendo. O resto é consequência.',
+    'Esse foi o ano em que eu não parei.',
+    'Faixa preta é só uma faixa branca que não desistiu. Mais um ano.',
+    'O tatame lembra de quem apareceu o ano todo.',
+  ],
   meta: [
     'Meta falada em voz alta já é meio caminho da finalização.',
     'Plano no papel, suor no tatame.',
@@ -81,6 +93,7 @@ export const DESENHOS = [
 export const DESENHO_PADRAO = {
   graduacao: 'comemoracao', recorde: 'queda', ofensiva: 'raspagem',
   semana: 'cumprimento', meta: 'montada', marco: 'chave-de-braco',
+  mes: 'cumprimento', ano: 'comemoracao',
 };
 export const urlDoDesenho = (id) => `/figurinhas/${id}.png`;
 

@@ -28,6 +28,7 @@ import { situacao, guiaDeEstudo } from '../lib/lesao';
 import { analisarJogo } from '../lib/game';
 import { treinoDeHoje } from '../lib/treinoDeHoje';
 import TreinoDeHoje from '../components/TreinoDeHoje';
+import RelatorioDoMes from '../components/RelatorioDoMes';
 import { Ponteira } from '../components/Ponteira';
 import { PrimeirosPassos, AvisoDeVolta } from '../components/PrimeirosPassos';
 import Destaques from '../components/Destaques';
@@ -309,6 +310,7 @@ export default function Painel() {
       <AvisoDeVolta sessions={sessions} irPara={irPara} />
 
       <TreinoDeHoje hoje={hojeNoTatame} acesso={acesso} />
+      <RelatorioDoMes sessions={sessions} rolls={rolls} esteira={esteira} faixa={settings.faixa} acesso={acesso} />
 
       {/* ---- o ritmo da semana ---- */}
       <SemanaDoRitmo

@@ -3773,3 +3773,11 @@ body::after {
 .hoje-linha { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.5; }
 .hoje-linha b { color: var(--chalk); }
 .hoje-ico { flex: none; width: 22px; text-align: center; }
+
+/* ---------- relatório do mês ---------- */
+.rel-numeros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.rel-numeros > div { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 12px; background: var(--void); border: 1px solid var(--seam); }
+.rel-numeros b { font-family: var(--display); font-weight: 800; font-size: 22px; color: var(--chalk); }
+.rel-numeros small { font-size: 11px; color: var(--dim); }
+.rel-linha { display: flex; gap: 9px; align-items: flex-start; font-size: 14px; line-height: 1.5; }
+.rel-linha b { color: var(--chalk); }
