@@ -19,8 +19,13 @@ const AVISOS = [
   { id: 'teste', tipo: 'teste', nome: 'Teste geral', quando: 'Só pra ver se a corrente inteira funciona.' },
   { id: 'ofensiva', tipo: 'ofensiva_semanal', nome: 'Ofensiva semanal', quando: 'Domingo, na hora de costume (antes das 21h), se a semana ainda não tem treino e não está pausada por lesão.' },
   { id: 'reta', tipo: 'ofensiva_reta_final', nome: 'Reta final da ofensiva', quando: 'Domingo às 21h de Brasília, 3h antes da semana fechar, com o relógio de quanto falta.' },
-  { id: 'liga', tipo: 'liga', nome: 'A liga fecha hoje', quando: 'Domingo às 10h, pra quem está num grupo da liga.' },
-  { id: 'resultado', tipo: 'resultado', nome: 'Resultado da liga', quando: 'Segunda às 14h, depois que a semana fecha.' },
+  { id: 'liga', tipo: 'liga', nome: 'A liga fecha hoje', quando: 'Domingo às 10h, pra quem está num grupo da liga e já treinou na semana.' },
+  { id: 'ligafinal', tipo: 'liga_reta_final', nome: 'Reta final da liga', quando: 'Domingo das 21h à meia-noite, só pra quem está na zona de rebaixamento, com o relógio.' },
+  { id: 'pos', tipo: 'pos_treino', nome: 'Treinou hoje?', quando: 'Nos dias em que a pessoa costuma treinar, 1h depois da hora de registrar, se o treino não entrou.' },
+  { id: 'amigo', tipo: 'amigo:teste', nome: 'Amigo te passou na liga', quando: 'Na hora em que um amigo passa você nos pontos da semana. Uma vez por amigo por semana.' },
+  { id: 'grau', tipo: 'grau:teste', nome: 'Técnica perto do grau', quando: 'Meio-dia de um dia de treino, faltando até 2 usos pro próximo grau. Uma vez por semana.' },
+  { id: 'camp', tipo: 'campeonato', nome: 'Campeonato chegando', quando: 'Faltando 7, 3, 2 e 1 dia pro campeonato da meta, na hora de costume.' },
+  { id: 'resumo', tipo: 'resumo', nome: 'Resumo da semana', quando: 'Segunda às 14h: treinos e rolas da semana, a liga e as técnicas que subiram.' },
   { id: 'volta', tipo: 'volta', nome: 'Volta pro tatame', quando: 'Depois de 7 dias sem nada, no máximo uma vez por mês.' },
 ];
 

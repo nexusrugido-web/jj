@@ -5,7 +5,7 @@
    - fontes externas: cache-first
    Os DADOS ficam no IndexedDB, entao o app inteiro funciona sem internet. */
 
-const VERSION = 'neurojitsu-v12-14';
+const VERSION = 'neurojitsu-v12-15';
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
 
@@ -65,6 +65,8 @@ const ROTA = {
   treino: '/?go=treinos',
   liga: '/?go=liga',
   meta: '/?go=metas',
+  painel: '/?go=painel',
+  dominio: '/?go=dominio',
 };
 
 /* Com a cara do tatame: brinca, mas cobra. Cada tipo tem algumas
@@ -154,7 +156,7 @@ async function iconeDoRelogio(tempo) {
   }
 }
 
-async function cartaoDoRelogio(tempo) {
+async function cartaoDoRelogio(tempo, { rotulo = 'PRA FECHAR A SEMANA', linhas = ['1 treino = ofensiva', 'segura! ⚠️'] } = {}) {
   if (typeof OffscreenCanvas === 'undefined') return null;
   try {
     const L = 720, A = 360;
@@ -181,14 +183,14 @@ async function cartaoDoRelogio(tempo) {
     g.textBaseline = 'alphabetic';
     g.fillStyle = '#acacb0';
     g.font = '700 26px system-ui, sans-serif';
-    g.fillText('PRA FECHAR A SEMANA', 44, 78);
+    g.fillText(rotulo, 44, 78);
     g.fillStyle = '#ef5a44';
     g.font = `800 ${tempo.length > 5 ? 112 : 138}px system-ui, sans-serif`;
     g.fillText(tempo, 38, 208);
     g.fillStyle = '#ff9b8a';
     g.font = '600 38px system-ui, sans-serif';
-    g.fillText('1 treino = ofensiva', 44, 270);
-    g.fillText('segura! ⚠️', 44, 318);
+    g.fillText(linhas[0] || '', 44, 270);
+    g.fillText(linhas[1] || '', 44, 318);
     return await emDataUrl(tela);
   } catch {
     return null;
@@ -225,6 +227,39 @@ function aviso(n) {
       relogio: relogio(),
     };
   }
+  /* a reta final da liga: na zona de rebaixamento, com o mesmo relógio */
+  if (tipo.startsWith('liga_reta_final')) {
+    const quando = tipo.split(':')[1] || '';
+    const pontos = String((n.versao == null && n.body) || 'Faltam 6 pontos').match(/Faltam (\d+) pontos/)?.[1];
+    return {
+      titulo: `⏳ ${quantoFalta()} pra liga fechar`,
+      corpo: (n.versao == null && n.body) || 'Você tá na zona de rebaixamento. Faltam 6 pontos pra sair.',
+      acoes: [{ acao: 'treino', titulo: 'Registrar treino', rota: ROTA.treino }],
+      tag: 'liga_reta_final',
+      silencioso: !!quando && quando !== '2300',
+      relogio: relogio(),
+      cartao: { rotulo: 'PRA LIGA FECHAR', linhas: pontos ? ['Faltam ' + pontos + ' pontos', 'pra sair da zona ⚠️'] : ['1 treino te tira', 'da zona ⚠️'] },
+    };
+  }
+  /* os avisos que o servidor escreve com os números da pessoa: aqui só
+     entra o botão de cada um */
+  /* no teste do admin (vem com versao) não há números da pessoa: sai o exemplo */
+  const EXEMPLO = {
+    pos_treino: ['🥋 Treinou hoje?', 'Registra os rolas enquanto tá fresco na cabeça.'],
+    resumo: ['📊 Semana: 3 treinos, 12 rolas', 'Subiu de divisão na liga! 1 técnica subiu de grau.'],
+    amigo: ['🥊 Fulano te passou na liga', 'Bora dar o troco? Faltam 6 pontos pra passar de volta.'],
+    grau: ['🥋 Falta pouco pro 2º grau', 'Mais 1 uso da Americana e ela sobe. Bora encaixar hoje?'],
+    campeonato: ['🏆 Campeonato em 3 dias', 'Hora de pegar leve no treino e cuidar do peso.'],
+  };
+  const doServidor = (acoes) => {
+    const ex = n.versao != null ? EXEMPLO[tipo.split(':')[0]] : null;
+    return { titulo: ex ? ex[0] : n.title || 'NeuroJitsu', corpo: ex ? ex[1] : n.body || '', acoes };
+  };
+  if (tipo === 'pos_treino') return doServidor([{ acao: 'treino', titulo: 'Registrar treino', rota: ROTA.treino }]);
+  if (tipo === 'resumo') return doServidor([{ acao: 'liga', titulo: 'Ver a liga', rota: ROTA.liga }]);
+  if (tipo.startsWith('amigo:')) return doServidor([{ acao: 'liga', titulo: 'Ver a liga', rota: ROTA.liga }]);
+  if (tipo.startsWith('grau:')) return doServidor([{ acao: 'dominio', titulo: 'Ver a técnica', rota: ROTA.dominio }]);
+  if (tipo === 'campeonato') return doServidor([{ acao: 'meta', titulo: 'Ver a preparação', rota: ROTA.meta }]);
   if (tipo.startsWith('meta:')) {
     return {
       titulo: n.title || '🎯 Sua meta',
@@ -330,7 +365,7 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     (async () => {
       if (bonito.relogio) {
-        const [imagem, icone] = await Promise.all([cartaoDoRelogio(bonito.relogio), iconeDoRelogio(bonito.relogio)]);
+        const [imagem, icone] = await Promise.all([cartaoDoRelogio(bonito.relogio, bonito.cartao), iconeDoRelogio(bonito.relogio)]);
         if (imagem) opcoes.image = imagem;
         if (icone) opcoes.icon = icone;
       }

@@ -176,6 +176,90 @@ assert.deepEqual((await filaDe('23:40')).map((r) => r.tipo), [], 'a trava: cada 
 await pg.query('insert into registros(user_id,tabela,dados) values($1,$2,$3)', [u3, 'sessions', JSON.stringify({ data: '2026-09-26', tipo: 'gi' })]);
 assert.deepEqual((await filaDe('21:10')).map((r) => r.tipo), [], 'treinou na semana: não cobra');
 
+// 40: os avisos do tatame (pós-treino, liga, amigo, resumo, grau, campeonato)
+await pg.exec(`alter table perfil add column lesao_desde date, add column anonimo boolean default false, add column apelido text;
+  alter table pontos add column xp int default 0, add column semana date, add column criado_em timestamptz default now();
+  alter table liga add column divisao text;
+  alter table liga_membro add column xp_semana int default 0, add column entrou_em timestamptz default now(), add column resultado text;
+  create table public.amizade(de uuid, para uuid, status text);`);
+const sql40 = (await fs.readFile(new URL('../supabase/40-avisos-do-tatame.sql', import.meta.url), 'utf8')).replaceAll('now()', 'public.agora()');
+await pg.exec(sql40);
+await pg.exec(sql40); // reexecução segura
+const uid = (n) => `00000000-0000-0000-0000-0000000004${String(n).padStart(2, '0')}`;
+const pessoa = async (n, nome) => {
+  await pg.query('insert into perfil(user_id,nome) values($1,$2)', [uid(n), nome]);
+  await pg.query("insert into push_inscricao(user_id,endpoint,p256dh,auth,fuso) values($1,$2,'m','m','America/Sao_Paulo')", [uid(n), `e${n}`]);
+};
+const treino = (n, data, id = null) => pg.query('insert into registros(user_id,tabela,dados) values($1,$2,$3)', [uid(n), 'sessions', JSON.stringify({ data, tipo: 'gi', ...(id ? { id } : {}) })]);
+const filaPara = async (n, quando) => {
+  await pg.query('update relogio set agora=$1', [quando]);
+  return (await pg.query('select tipo,titulo,corpo,caminho from public.fila_de_notificacao() where user_id=$1', [uid(n)])).rows;
+};
+// pós-treino: treina às terças; registra lá pelas 19h (hora_boa do teste = 18)
+await pessoa(1, 'Terça');
+await treino(1, '2026-09-08'); await treino(1, '2026-09-15');
+let av = await filaPara(1, '2026-09-22 20:10-03');
+assert.deepEqual(av.map((x) => x.tipo), ['pos_treino'], 'terça, 1h depois da hora de registrar');
+assert.equal(av[0].titulo, '🥋 Treinou hoje?');
+assert.deepEqual((await filaPara(1, '2026-09-23 20:10-03')).map((x) => x.tipo), [], 'quarta não é dia de treino dele');
+await pg.query("insert into notificacao_envio(user_id,tipo,dia,enviado_em,respondeu) values($1,'meta:x','2026-09-22',now(),false)", [uid(1)]);
+assert.deepEqual((await filaPara(1, '2026-09-22 20:10-03')).map((x) => x.tipo), [], 'no máximo 1 aviso por dia');
+await pg.query('delete from notificacao_envio where user_id=$1', [uid(1)]);
+await treino(1, '2026-09-22');
+assert.deepEqual((await filaPara(1, '2026-09-22 20:10-03')).map((x) => x.tipo), [], 'já registrou o treino de hoje');
+// técnica perto do grau: meio-dia de um dia de treino, com o que o app mandou
+await pessoa(2, 'Grau');
+await treino(2, '2026-09-08'); await treino(2, '2026-09-15');
+await pg.query('insert into registros(user_id,tabela,dados) values($1,$2,$3)', [uid(2), 'settings', JSON.stringify({ avisosDoApp: { perto: { nome: 'Americana', usos: 1, grau: 2 } } })]);
+av = await filaPara(2, '2026-09-22 12:10-03');
+assert.deepEqual(av.map((x) => x.tipo), ['grau:Americana']);
+assert.equal(av[0].titulo, '🥋 Falta pouco pro 2º grau');
+assert.equal(av[0].corpo, 'Mais 1 uso da Americana e ela sobe. Bora encaixar hoje?');
+assert.deepEqual((await filaPara(2, '2026-09-22 07:10-03')).map((x) => x.tipo), [], 'nada entre 22h e 8h');
+// amigo que passou: Cinco tinha 10, Seis tinha 5 e fez mais 10 há meia hora
+await pessoa(5, 'Cinco'); await pessoa(6, 'Seis');
+await pg.query("insert into amizade values($1,$2,'aceita')", [uid(5), uid(6)]);
+await pg.query("insert into pontos(user_id,data,evento,xp,semana,criado_em) values ($1,'2026-09-23','treino',10,'2026-09-21','2026-09-23 12:00-03'),($2,'2026-09-23','treino',5,'2026-09-21','2026-09-23 12:00-03'),($2,'2026-09-23','treino',10,'2026-09-21','2026-09-23 14:30-03')", [uid(5), uid(6)]);
+av = await filaPara(5, '2026-09-23 15:00-03');
+assert.deepEqual(av.map((x) => x.tipo), [`amigo:${uid(6)}`]);
+assert.equal(av[0].titulo, '🥊 Seis te passou na liga');
+assert.match(av[0].corpo, /Faltam 6 pontos/);
+assert.deepEqual((await filaPara(6, '2026-09-23 15:00-03')).map((x) => x.tipo), [], 'quem passou não recebe');
+assert.deepEqual((await filaPara(5, '2026-09-23 17:00-03')).map((x) => x.tipo), [], 'só na hora em que passou');
+// reta final da liga: domingo 21h, na zona de rebaixamento, ofensiva já segura
+await pessoa(7, 'Sete'); await pg.query('insert into perfil(user_id,nome) values($1,$2),($3,$4)', [uid(8), 'Oito', uid(9), 'Nove']);
+await treino(7, '2026-09-22');
+await pg.exec("insert into liga(id,semana,divisao,comecou_em) values (70,'2026-09-21','azul',now())");
+await pg.query('insert into liga_membro(liga_id,user_id,xp_semana) values (70,$1,0),(70,$2,5),(70,$3,9)', [uid(7), uid(8), uid(9)]);
+av = await filaPara(7, '2026-09-27 21:10-03');
+assert.deepEqual(av.map((x) => x.tipo), ['liga_reta_final']);
+assert.match(av[0].titulo, /⏳ 2:50 pra liga fechar/);
+assert.match(av[0].corpo, /zona de rebaixamento\. Faltam 6 pontos/);
+assert.deepEqual((await filaPara(7, '2026-09-27 21:40-03')).map((x) => x.tipo), ['liga_reta_final:2130'], 'redesenha de 15 em 15');
+await pg.exec("update liga set divisao='branca' where id=70");
+assert.deepEqual((await filaPara(7, '2026-09-27 21:10-03')).map((x) => x.tipo), [], 'na branca ninguém desce');
+// resumo da segunda: semana com 1 treino e 2 rolas, subiu de divisão, 1 técnica subiu
+await pessoa(10, 'Dez');
+await treino(10, '2026-09-22', 1);
+await pg.query("insert into registros(user_id,tabela,dados) values ($1,'rolls','{\"sessionId\":1}'),($1,'rolls','{\"sessionId\":1}'),($1,'settings',$2)", [uid(10), JSON.stringify({ avisosDoApp: { semana: '2026-09-21', subiram: 1 } })]);
+await pg.exec("insert into liga(id,semana,divisao) values (71,'2026-09-21','azul')");
+await pg.query("insert into liga_membro(liga_id,user_id,resultado) values (71,$1,'subiu')", [uid(10)]);
+av = await filaPara(10, '2026-09-28 14:10-03');
+assert.deepEqual(av.map((x) => x.tipo), ['resumo']);
+assert.equal(av[0].titulo, '📊 Semana: 1 treino, 2 rolas');
+assert.equal(av[0].corpo, 'Subiu de divisão na liga! 1 técnica subiu de grau.');
+// campeonato faltando 3 dias, na hora de costume
+await pessoa(11, 'Onze');
+await pg.query('insert into registros(user_id,tabela,dados) values($1,$2,$3)', [uid(11), 'goals', JSON.stringify({ tipo: 'competicao', status: 'ativa', origem: 'usuario', data: '2026-09-26' })]);
+av = await filaPara(11, '2026-09-23 18:10-03');
+assert.deepEqual(av.map((x) => x.tipo), ['campeonato']);
+assert.equal(av[0].titulo, '🏆 Campeonato em 3 dias');
+assert.deepEqual((await filaPara(11, '2026-09-24 18:10-03')).map((x) => x.tipo).filter((x) => x === 'campeonato'), ['campeonato'], 'faltando 2 também');
+// todo título e texto cabe no aviso fechado
+for (const linha of (await pg.query('select titulo, corpo from public.fila_de_notificacao()')).rows) {
+  assert.ok([...linha.titulo].length <= 34, `título longo: ${linha.titulo}`);
+}
+
 // O registro excluído deixa de contar sem depender de abrir o aplicativo.
 await pg.exec(`set test.uid='${user}'; update registros set deleted_at=now();`);
 assert.equal((await pg.query('select public.minha_ofensiva_semanal() as o')).rows[0].o.semanas,0);

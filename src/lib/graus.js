@@ -486,6 +486,24 @@ export function vezesNaPosicao(nome, rolls = [], sessions = []) {
 }
 
 /* ---------- a lista completa das suas técnicas ---------- */
+/* A técnica mais perto de subir de grau, pro aviso "falta pouco":
+   todo requisito do próximo grau já cumprido, menos os usos, e faltando
+   no máximo 2 (cada uso vale perto de 1; contra faixa acima ou alguém
+   mais pesado vale mais). Sem nenhuma assim, null. */
+export function pertoDoGrau(lista = []) {
+  let melhor = null;
+  for (const t of lista) {
+    const r = t.requisitos;
+    if (!t.proximo || !r || t.grau < 1) continue;
+    const resto = (t.transferencia || 0) >= (r.transferencia || 0) && (t.contraAcima || 0) >= (r.acima || 0)
+      && (t.semanas || 0) >= (r.semanas || 0) && (t.meses || 0) >= (r.meses || 0);
+    const falta = (r.usos || 0) - (t.volume || 0);
+    if (!resto || falta <= 0 || falta > 2) continue;
+    if (!melhor || falta < melhor.falta) melhor = { nome: t.nome, usos: Math.ceil(falta), grau: t.proximo, falta };
+  }
+  return melhor && { nome: melhor.nome, usos: melhor.usos, grau: melhor.grau };
+}
+
 export function minhasTecnicas(rolls, partners, sessions, techniques, faixaUsuario = 'branca', gradings = [], grausAtuais = 0) {
   const { ataque, defesa } = lerHistorico(rolls, partners, sessions);
   const porNome = new Map(techniques.map((t) => [t.nome.toLowerCase(), t]));

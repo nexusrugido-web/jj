@@ -13,8 +13,8 @@ import { EscadaPosicional, BarrasTop, Donut } from '../components/Charts';
 import Calendario from '../components/Calendario';
 import GraficoEvolucao from '../components/GraficoEvolucao';
 import { resumo, escadaPosicional, treinosNaSemana } from '../lib/stats';
-import { relativo, emQuanto } from '../lib/utils';
-import { minhasTecnicas, meusBuracos, jogoPrincipal, grauPorN } from '../lib/graus';
+import { relativo, emQuanto, addDias } from '../lib/utils';
+import { minhasTecnicas, meusBuracos, jogoPrincipal, grauPorN, pertoDoGrau } from '../lib/graus';
 import { recomendacoesDoAluno, faltaPara } from '../lib/recomendar';
 import { progressoDaMeta, tituloDaMeta, metaDeHorasNoAno, alvoDeHoras, metaIncompleta } from '../lib/metas';
 import LinhaDeMeta from '../components/LinhaDeMeta';
@@ -22,6 +22,7 @@ import RotuloPeriodo from '../components/RotuloPeriodo';
 import { periodoDeDados } from '../lib/periodo';
 import Recomendacao, { VitrineRecomendacao } from '../components/Recomendacao';
 import { resumoSemana } from '../lib/semana';
+import { semanaDe } from '../lib/xp';
 import useOfensivaSemanal from '../lib/useOfensivaSemanal';
 import { situacao, guiaDeEstudo } from '../lib/lesao';
 import { analisarJogo } from '../lib/game';
@@ -81,6 +82,19 @@ export default function Painel() {
   const esteira = useMemo(() => minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa, gradings, settings.graus || 0), [rolls, partners, sessions, techniques, settings.faixa, gradings, settings.graus]);
   const recap = useMemo(() => resumoSemana(sessions, rolls, esteira, { faixa: settings.faixa }), [sessions, rolls, esteira, settings.faixa]);
   const buracos = useMemo(() => meusBuracos(rolls, partners, sessions, settings.faixa), [rolls, partners, sessions, settings.faixa]);
+
+  /* o que só o app sabe calcular e os avisos precisam: a técnica perto
+     do grau ("falta pouco") e quantas subiram na semana que fechou (o
+     resumo de segunda). Vai junto com as configurações, só quando muda. */
+  useEffect(() => {
+    const passada = addDias(semanaDe(), -7);
+    const novo = {
+      perto: pertoDoGrau(esteira),
+      semana: passada,
+      subiram: resumoSemana(sessions, rolls, esteira, { semana: passada, faixa: settings.faixa }).subiram.length,
+    };
+    if (JSON.stringify(novo) !== JSON.stringify(settings.avisosDoApp || null)) salvarSettings({ avisosDoApp: novo });
+  }, [esteira, sessions, rolls, settings.faixa]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const metasAtivas = useMemo(() => {
     const dados = { sessions, rolls, tecnicas: esteira, buracos, aulas: vistasAulas, quiz: respostasQuiz };
