@@ -22,7 +22,7 @@ import {
 } from '../lib/metas';
 import { POSICOES_INICIAIS } from '../db/scoring';
 import { hoje, fmtData, relativo } from '../lib/utils';
-import { podeVer, LIMITES } from '../lib/plano';
+import { podeVer, LIMITES, pedirOferta } from '../lib/plano';
 import { Convite } from '../components/Plano';
 
 const vazia = () => ({
@@ -305,7 +305,7 @@ export default function Metas() {
             'Quantas metas ativas precisar',
             'O app continua contando sozinho pelos seus registros',
           ]}
-          onAssinar={() => { setConvite(false); irPara('ajustes'); }}
+          onAssinar={() => { setConvite(false); pedirOferta('metas'); }}
         />
       </Sheet>
 

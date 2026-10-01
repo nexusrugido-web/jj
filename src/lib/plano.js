@@ -64,6 +64,52 @@ export const RECURSOS = {
   metas:         { premium: true, nome: 'Metas sem limite', desc: `No grátis você assume até ${LIMITES.metasAtivas} metas que o app sugere pra você. Criar as suas e ter mais ativas é do Premium.` },
 };
 
+/* ============================================================
+   A OFERTA
+
+   O preço que a oferta mostra (quem cobra é a Hotmart: mudou lá,
+   muda aqui), as três promessas no lugar da lista de recursos, e as
+   novidades com data, que são a prova de que o Premium não para.
+   Novidade nova entra no começo da lista.
+   ============================================================ */
+export const PRECOS = { mensal: 29.9, anual: 297 };
+
+export const PILARES = [
+  { titulo: 'Entenda o seu jogo', texto: 'O que os seus rolas mostram, de onde você vence e onde cede.', recursos: ['analise', 'meujogo', 'ia', 'historico'] },
+  { titulo: 'Saiba o que treinar', texto: 'Escolhido pelo que mais te pega, e trocado conforme você evolui.', recursos: ['recomendacoes', 'aulasIlimitadas', 'quizIlimitado', 'metas'] },
+  { titulo: 'Corpo pronto pro tatame', texto: 'Força e comida pensadas pro jiu-jitsu, com os seus números.', recursos: ['musculacao', 'nutricao'] },
+  { titulo: 'E menos trabalho', texto: 'Conta o treino falando, e a figurinha na cor da sua faixa.', recursos: ['voz', 'temasFigurinha'] },
+];
+
+export const NOVIDADES = [
+  { data: '2026-10-01', titulo: 'Mapa de posições com os dois lados de cada posição' },
+  { data: '2026-09-30', titulo: 'Suplementos lado a lado, com a fonte e o limite de cada estudo' },
+  { data: '2026-09-25', titulo: 'Registrar falando: conta o treino e o app monta tudo' },
+  { data: '2026-09-24', titulo: 'Força pro jiu-jitsu ganhou o treino de resistência' },
+];
+
+/* o Premium de presente: 7 dias, no primeiro treino registrado (com
+   dado entrando, a Análise e o Meu jogo já têm o que mostrar) */
+export const PRESENTE_NO_TREINO = 1;
+
+/* qualquer botão de assinar pede a oferta; o App abre a folha */
+export function pedirOferta(recurso = null) {
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('abrir-oferta', { detail: { recurso } }));
+}
+
+/* cada passo do funil sobe pro servidor (marcar_funil, SQL 41) */
+export function marcarFunil(passo, detalhe = '') {
+  if (!supabase) return;
+  supabase.rpc('marcar_funil', { p_passo: passo, p_detalhe: detalhe || '' }).then(() => {}, () => {});
+}
+
+export async function ganharPresente() {
+  if (!supabase) return null;
+  const { data, error } = await supabase.rpc('ganhar_presente');
+  if (error) return null;
+  return data;
+}
+
 const CHAVE = 'acesso';
 
 /* ---------- o que está guardado no aparelho ---------- */

@@ -28,7 +28,7 @@ import Quiz from '../components/Quiz';
 import { Linha } from '../components/Guia';
 import { PERGUNTAS } from '../db/quiz';
 import { useLimite } from '../components/Limite';
-import { podeVer, LIMITES, RECOMENDACOES_NA_TELA } from '../lib/plano';
+import { podeVer, LIMITES, RECOMENDACOES_NA_TELA, pedirOferta } from '../lib/plano';
 import { Vitrine } from '../components/Plano';
 import { jaComprou, ehLivre } from '../lib/pago';
 import { EVENTOS } from '../lib/xp';
@@ -36,9 +36,9 @@ import { EVENTOS } from '../lib/xp';
 const NENHUMA = [];
 
 export default function Estudo() {
-  const { settings, salvarSettings, rolls, partners, sessions, techniques, gradings, irPara, ligada, acesso, acervoVer } = useApp();
+  const { settings, salvarSettings, rolls, partners, sessions, techniques, gradings, ligada, acesso, acervoVer } = useApp();
   const toast = useToast();
-  const { liberarVideo, aviso } = useLimite(acesso, irPara);
+  const { liberarVideo, aviso } = useLimite(acesso);
   const faixa = settings.faixa || 'branca';
 
   const assistidas = useLiveQuery(() => db.aulasVistas.toArray(), [], []) || [];
@@ -300,7 +300,7 @@ export default function Estudo() {
               'Aulas exclusivas de assinante, que você não acha no YouTube nem em lugar nenhum além do app',
               'Escolhidas pelo que mais te pega, e trocadas conforme você evolui no tatame',
             ]}
-            onAssinar={() => irPara('ajustes')}
+            onAssinar={() => pedirOferta('aulasIlimitadas')}
           />
         ) : (
           <div className="col" style={{ gap: 16 }}>

@@ -21,7 +21,7 @@ import {
 import Calendario from '../components/Calendario';
 import ResumoDoTipo, { PodioCategoria } from '../components/ResumoDoTipo';
 import { hoje, fmtDur, relativo, buscaMatch, mesPorExtenso } from '../lib/utils';
-import { recortarHistorico, podeVer } from '../lib/plano';
+import { recortarHistorico, podeVer, pedirOferta } from '../lib/plano';
 import { HistoricoCortado, Convite } from '../components/Plano';
 import { acharPorNome } from '../lib/voz';
 import { nomeAtual } from '../db/renomeios';
@@ -151,7 +151,7 @@ const POR_VEZ = 20;
 const NA_TELA = 10;
 
 export default function Treinos() {
-  const { sessions, rolls, partners, positions, techniques, categories, settings, salvarSettings, ligada, acesso, irPara } = useApp();
+  const { sessions, rolls, partners, positions, techniques, categories, settings, salvarSettings, ligada, acesso } = useApp();
   const toast = useToast();
   const academias = useLiveQuery(() => db.academies.filter((a) => !a.arquivada).toArray(), [], []) || [];
   const professores = useLiveQuery(() => db.professors.filter((p) => !p.arquivada).toArray(), [], []) || [];
@@ -840,7 +840,7 @@ export default function Treinos() {
               : 'Escolha as técnicas da aula e marque se pegou. Depois registre os rolas com os pontos e as anotações, é dali que sai o seu domínio e o seu estilo de jogo.'}
             acao={<Btn variant="primary" icon={Plus} onClick={() => abrirNova()}>{filtroTipo === 'competicao' ? 'Registrar campeonato' : filtroTipo !== 'todos' ? `Registrar ${TIPOS.find((x) => x.id === filtroTipo)?.nome}` : 'Registrar treino'}</Btn>}
           />
-          <HistoricoCortado cortados={cortados} onAssinar={() => irPara('ajustes')} />
+          <HistoricoCortado cortados={cortados} onAssinar={() => pedirOferta('historico')} />
         </Card>
       ) : (
         <div className="col" style={{ gap: 10 }}>
@@ -850,7 +850,7 @@ export default function Treinos() {
               Ver todos os {lista.length} treinos
             </Btn>
           )}
-          {lista.length <= NA_TELA && <HistoricoCortado cortados={cortados} onAssinar={() => irPara('ajustes')} />}
+          {lista.length <= NA_TELA && <HistoricoCortado cortados={cortados} onAssinar={() => pedirOferta('historico')} />}
         </div>
       )}
 
@@ -870,7 +870,7 @@ export default function Treinos() {
                 Mostrar mais ({lista.length - mostrar})
               </Btn>
             )}
-            {lista.length <= mostrar && <HistoricoCortado cortados={cortados} onAssinar={() => irPara('ajustes')} />}
+            {lista.length <= mostrar && <HistoricoCortado cortados={cortados} onAssinar={() => pedirOferta('historico')} />}
           </div>
         )}
       </Sheet>
@@ -945,7 +945,7 @@ export default function Treinos() {
             'Cada rola com parceiro, pontos e finalizações',
             'Parceiro, professor e academia novos entram sozinhos no cadastro',
           ]}
-          onAssinar={() => { setConviteVoz(false); irPara('ajustes'); }}
+          onAssinar={() => { setConviteVoz(false); pedirOferta('voz'); }}
         />
       </Sheet>
 

@@ -88,9 +88,12 @@ begin
     return;
   end if;
 
-  select * into v_a from public.assinatura
-  where user_id = v_user
-  order by (status = 'ativa') desc, vence_em desc nulls last
+  /* com o nome da tabela: status e vence_em tambem sao nomes da saida
+     da funcao, e sem o prefixo o Postgres recusa (ambiguous). Corrigido
+     no SQL 41. */
+  select a.* into v_a from public.assinatura a
+  where a.user_id = v_user
+  order by (a.status = 'ativa') desc, a.vence_em desc nulls last
   limit 1;
 
   if v_a.id is null then

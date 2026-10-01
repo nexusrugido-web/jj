@@ -3741,3 +3741,25 @@ body::after {
   animation: subir 0.35s var(--ease);
 }
 @media (min-width: 781px) { .aviso-atualizado { bottom: 20px; } }
+
+/* ---------- a oferta do Premium ---------- */
+.oferta { display: flex; flex-direction: column; gap: 16px; }
+.oferta-tocou { padding: 12px 14px; border-radius: 14px; background: color-mix(in srgb, var(--accent) 8%, var(--void)); border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--seam)); }
+.oferta-titulo { font-family: var(--display); font-weight: 800; font-size: 22px; letter-spacing: -0.02em; line-height: 1.2; }
+.oferta-pilares { display: grid; gap: 10px; }
+.oferta-pilar { padding: 11px 13px; border-radius: 12px; background: var(--void); border: 1px solid var(--seam); }
+.oferta-planos { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.oferta-plano {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left;
+  padding: 14px; border-radius: 14px; background: var(--void); border: 1.5px solid var(--seam-hi); color: var(--chalk);
+  cursor: pointer; transition: border-color .15s var(--ease), background .15s var(--ease);
+}
+.oferta-plano.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--void)); }
+.oferta-plano-selo { font-size: 11px; font-weight: 700; color: var(--accent-ink); background: var(--accent); padding: 3px 8px; border-radius: 99px; }
+.oferta-plano-nome { font-weight: 700; font-size: 14px; }
+.oferta-plano-preco { font-family: var(--display); font-weight: 800; font-size: 24px; letter-spacing: -0.02em; }
+.oferta-plano-preco small { font-size: 12px; font-weight: 600; color: var(--dim); margin-left: 2px; }
+.oferta-garantias { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.oferta-garantias li { display: flex; gap: 7px; align-items: flex-start; font-size: 12px; color: var(--dim); line-height: 1.5; }
+.oferta-garantias li svg { color: var(--jade); flex: none; margin-top: 2px; }
+.oferta-novidades { padding-top: 12px; border-top: 1px solid var(--seam); }

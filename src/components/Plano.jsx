@@ -3,9 +3,9 @@ import {
   Check, Lock, Sparkles, Gem, Crown, Receipt, ExternalLink, RefreshCw,
 } from 'lucide-react';
 import { Card, Btn, Chip, Sheet } from './UI';
-import { RECURSOS, LIMITES, diasParaVencer } from '../lib/plano';
+import { RECURSOS, LIMITES, diasParaVencer, PRECOS, PILARES, NOVIDADES, pedirOferta, marcarFunil } from '../lib/plano';
 import { HOTMART_MINHAS_COMPRAS } from './Renovacao';
-import { fmtData } from '../lib/utils';
+import { fmtData, diasEntre, hoje } from '../lib/utils';
 import { abrirLink, linkDe } from '../lib/links';
 
 /* ============================================================
@@ -24,7 +24,7 @@ const abrirHotmart = () => window.open(HOTMART_MINHAS_COMPRAS, '_blank', 'noopen
    Mensal conta 30 dias, anual 365, pelo nome do plano. */
 function DiasPagos({ acesso, dias }) {
   if (dias === null || dias < 0) return null;
-  const total = /anual/i.test(acesso.plano || '') ? 365 : 30;
+  const total = acesso.status === 'presente' ? 7 : /anual/i.test(acesso.plano || '') ? 365 : 30;
   const pct = Math.max(3, Math.min(100, Math.round((dias / total) * 100)));
   return (
     <div style={{ marginTop: 12 }}>
@@ -80,6 +80,25 @@ export default function Plano({ acesso, compacto = false }) {
 
   const faturas = acesso?.faturas || [];
 
+  if (acesso?.premium && acesso.status === 'presente') {
+    return (
+      <Card className="accent" style={{ marginBottom: compacto ? 0 : 14 }}>
+        <div className="row" style={{ gap: 12, alignItems: 'flex-start' }}>
+          <span className="stat-ico" style={{ color: 'var(--accent)' }}><Gem size={17} /></span>
+          <div style={{ flex: 1 }}>
+            <h2 className="h-sec">Premium de presente</h2>
+            <p className="tiny muted" style={{ marginTop: 6, lineHeight: 1.65 }}>
+              Tudo liberado até {fmtData(String(acesso.venceEm).slice(0, 10))}. Depois disso, as partes do Premium voltam a travar,
+              e os seus treinos continuam todos aqui.
+            </p>
+            <DiasPagos acesso={acesso} dias={dias} />
+            <Btn variant="primary" icon={Sparkles} onClick={() => pedirOferta(null)} style={{ marginTop: 12 }}>Assinar pra continuar</Btn>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
   if (acesso?.premium) {
     return (
       <Card className="accent" style={{ marginBottom: compacto ? 0 : 14 }}>
@@ -107,7 +126,7 @@ export default function Plano({ acesso, compacto = false }) {
                 <Btn size="sm" variant="primary" icon={ExternalLink} onClick={abrirHotmart}>Atualizar o pagamento</Btn>
               )}
               {acesso.status !== 'carencia' && acesso.renova === false && (
-                <Btn size="sm" variant="primary" icon={RefreshCw} onClick={() => abrirLink('assinatura_mensal')}>Renovar o Premium</Btn>
+                <Btn size="sm" variant="primary" icon={RefreshCw} onClick={() => pedirOferta(null)}>Renovar o Premium</Btn>
               )}
               <Btn size="sm" variant="contorno" icon={Receipt} onClick={() => setVerFaturas(true)}>Faturas</Btn>
             </div>
@@ -129,7 +148,8 @@ export default function Plano({ acesso, compacto = false }) {
         <div className="card-head">
           <div>
             <div className="eyebrow">
-              {acesso?.status === 'expirada' ? 'sua assinatura venceu' : 'você está no plano gratuito'}
+              {acesso?.status === 'expirada' ? 'sua assinatura venceu'
+                : acesso?.status === 'presente_acabou' ? 'seus 7 dias de Premium acabaram' : 'você está no plano gratuito'}
             </div>
             <h2 className="h-sec">O que muda com o Premium</h2>
           </div>
@@ -181,10 +201,10 @@ export default function Plano({ acesso, compacto = false }) {
             variant="primary"
             icon={Sparkles}
             disabled={!linkDe('assinatura_mensal')}
-            onClick={() => abrirLink('assinatura_mensal')}
+            onClick={() => pedirOferta(null)}
           >
             {!linkDe('assinatura_mensal') ? 'Assinatura ainda não abriu'
-              : ['expirada', 'cancelada'].includes(acesso?.status) ? 'Renovar o Premium' : 'Assinar'}
+              : ['expirada', 'cancelada'].includes(acesso?.status) ? 'Renovar o Premium' : 'Ver o Premium'}
           </Btn>
           {faturas.length > 0 && (
             <Btn variant="contorno" icon={Receipt} onClick={() => setVerFaturas(true)}>Faturas</Btn>
@@ -199,6 +219,93 @@ export default function Plano({ acesso, compacto = false }) {
 
       <Faturas aberto={verFaturas} onClose={() => setVerFaturas(false)} faturas={faturas} />
     </>
+  );
+}
+
+/* ============================================================
+   A OFERTA
+
+   Abre de qualquer botão de assinar (pedirOferta). Em cima, o que a
+   pessoa tocou; depois as três promessas, o anual e o mensal com
+   preço, a garantia e o que chegou de novo. Quem decide o plano é a
+   pessoa; o anual vem marcado porque é o que mais compensa pra ela.
+   ============================================================ */
+const brl = (v) => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+export function OfertaPremium({ recurso = null, onAssinar }) {
+  const temAnual = !!linkDe('assinatura_anual');
+  const [plano, setPlano] = useState(temAnual ? 'anual' : 'mensal');
+  const tocou = recurso && RECURSOS[recurso];
+  const economia = Math.round((PRECOS.mensal * 12 - PRECOS.anual) * 100) / 100;
+  const novidades = NOVIDADES.filter((n) => diasEntre(n.data, hoje()) <= 60).slice(0, 3);
+
+  const assinar = () => {
+    const chave = plano === 'anual' ? 'assinatura_anual' : 'assinatura_mensal';
+    marcarFunil(`assinar_${plano}`, recurso || 'geral');
+    abrirLink(chave);
+    onAssinar?.(plano);
+  };
+
+  return (
+    <div className="oferta">
+      {tocou && (
+        <div className="oferta-tocou">
+          <span className="vitrine-selo"><Gem size={13} /> Premium</span>
+          <div className="tiny" style={{ fontWeight: 700, marginTop: 8 }}>{tocou.nome}</div>
+          <p className="micro muted" style={{ marginTop: 3, lineHeight: 1.55 }}>{tocou.desc}</p>
+        </div>
+      )}
+
+      <h2 className="oferta-titulo">O professor não vê todos os seus rolas. O app vê.</h2>
+
+      <div className="oferta-pilares">
+        {PILARES.map((p) => (
+          <div key={p.titulo} className="oferta-pilar">
+            <div className="tiny" style={{ fontWeight: 700 }}><Check size={14} style={{ color: 'var(--jade)', verticalAlign: '-2px' }} /> {p.titulo}</div>
+            <p className="micro muted" style={{ marginTop: 3, lineHeight: 1.55 }}>{p.texto}</p>
+            <p className="micro" style={{ marginTop: 4, color: 'var(--dim)' }}>{p.recursos.map((k) => RECURSOS[k]?.nome).filter(Boolean).join(' · ')}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="oferta-planos" role="radiogroup" aria-label="Escolha o plano">
+        {temAnual && (
+          <button type="button" role="radio" aria-checked={plano === 'anual'} className={`oferta-plano ${plano === 'anual' ? 'on' : ''}`} onClick={() => setPlano('anual')}>
+            <span className="oferta-plano-selo">2 meses de graça</span>
+            <span className="oferta-plano-nome">Anual</span>
+            <span className="oferta-plano-preco num">{brl(PRECOS.anual)}<small>/ano</small></span>
+            <span className="micro muted">sai {brl(PRECOS.anual / 12)} por mês, {brl(economia)} a menos</span>
+          </button>
+        )}
+        <button type="button" role="radio" aria-checked={plano === 'mensal'} className={`oferta-plano ${plano === 'mensal' ? 'on' : ''}`} onClick={() => setPlano('mensal')}>
+          <span className="oferta-plano-nome">Mensal</span>
+          <span className="oferta-plano-preco num">{brl(PRECOS.mensal)}<small>/mês</small></span>
+          <span className="micro muted">menos que uma aula particular</span>
+        </button>
+      </div>
+
+      <Btn variant="primary" icon={Sparkles} onClick={assinar} style={{ width: '100%' }}>
+        {plano === 'anual' ? 'Assinar o anual' : 'Assinar o mensal'}
+      </Btn>
+
+      <ul className="oferta-garantias">
+        <li><Check size={13} /> 7 dias de garantia: não curtiu, o dinheiro volta.</li>
+        <li><Check size={13} /> Cancela quando quiser, direto na Hotmart.</li>
+        <li><Check size={13} /> Registrar treino continua grátis pra sempre, e os seus dados nunca travam.</li>
+      </ul>
+
+      {novidades.length > 0 && (
+        <div className="oferta-novidades">
+          <div className="eyebrow">chegou no Premium</div>
+          {novidades.map((n) => (
+            <div key={n.titulo} className="row micro" style={{ gap: 8, marginTop: 6 }}>
+              <span className="num muted" style={{ flex: 'none' }}>{fmtData(n.data, { curto: true })}</span>
+              <span>{n.titulo}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

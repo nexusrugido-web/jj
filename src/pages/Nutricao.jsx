@@ -9,7 +9,7 @@ import { db } from '../db/db';
 import { Card, Btn, Sheet, Field, Input, NumeroInput, Stepper, Busca, useToast } from '../components/UI';
 import Guia from '../components/Guia';
 import { Vitrine } from '../components/Plano';
-import { podeVer } from '../lib/plano';
+import { podeVer, pedirOferta } from '../lib/plano';
 import {
   contasDaNutricao, paraFechar, todosOsAlimentos, somarDia, chaveDoAlimento, bateuODia,
 } from '../lib/nutricao';
@@ -27,7 +27,7 @@ import { SUPLEMENTOS } from '../db/suplementos';
    ============================================================ */
 
 export default function Nutricao() {
-  const { settings, salvarSettings, acesso, irPara } = useApp();
+  const { settings, salvarSettings, acesso } = useApp();
   const [duvidas, setDuvidas] = useState(false);
   const [dia, setDia] = useState(hoje());
   const livre = podeVer(acesso, 'nutricao');
@@ -69,7 +69,7 @@ export default function Nutricao() {
             'Suplementação com estudo: o que a creatina, a beta-alanina e a cafeína fazem no seu corpo e no tatame',
             'Nutrição em evolução: acesso às novas recomendações, estudos comentados e melhorias que forem publicados durante sua assinatura',
           ]}
-          onAssinar={() => irPara('ajustes')}
+          onAssinar={() => pedirOferta('nutricao')}
         />
       </div>
     );

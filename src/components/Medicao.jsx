@@ -5,6 +5,7 @@ import { Card, Btn, Chip, Stat, Bar, Empty, useToast } from './UI';
 import { INTENCOES } from '../lib/recomendar';
 import { DIFICULDADES } from '../lib/necessidades';
 import { fmtData } from '../lib/utils';
+import { RECURSOS } from '../lib/plano';
 
 /* ============================================================
    MEDIÇÃO DO ESTUDO
@@ -33,6 +34,57 @@ const NOME_DO_TIPO = {
 };
 
 const taxa = (a, b) => (b ? `${Math.round((a / b) * 100)}%` : '-');
+
+/* ============================================================
+   FUNIL DO PREMIUM (SQL 41)
+
+   Quantas pessoas passaram por cada passo no período: do primeiro
+   treino à assinatura. Também números somados, nenhuma pessoa.
+   ============================================================ */
+function FunilPremium({ dias }) {
+  const [f, setF] = useState(null);
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.rpc('funil_premium', { p_dias: dias }).then(({ data }) => setF(data || null), () => setF(null));
+  }, [dias]);
+  if (!f) {
+    return (
+      <Card style={{ marginBottom: 14 }}>
+        <h2 className="h-sec">Funil do Premium</h2>
+        <p className="micro muted" style={{ marginTop: 6 }}>Sem dados ainda. Rode o SQL 41 no Supabase.</p>
+      </Card>
+    );
+  }
+  const p = f.passos || {};
+  const cliques = (p.assinar_mensal || 0) + (p.assinar_anual || 0);
+  return (
+    <Card style={{ marginBottom: 14 }}>
+      <div className="eyebrow">do primeiro treino à assinatura, últimos {f.dias} dias</div>
+      <h2 className="h-sec">Funil do Premium</h2>
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))', gap: 10, marginTop: 12 }}>
+        <Stat size="sm" valor={p.primeiro_treino || 0} label="1º treino" />
+        <Stat size="sm" valor={p.terceiro_treino || 0} label="3º treino" />
+        <Stat size="sm" valor={p.presente || 0} label="ganharam o presente" />
+        <Stat size="sm" valor={p.oferta_vista || 0} label="viram a oferta" />
+        <Stat size="sm" valor={cliques} label={`clicaram (${p.assinar_anual || 0} no anual)`} />
+        <Stat size="sm" valor={f.compras || 0} label="compraram" tone="accent" />
+        <Stat size="sm" valor={f.ativos || 0} label="assinantes ativos" />
+        <Stat size="sm" valor={f.presentes_ativos || 0} label="no presente agora" />
+      </div>
+      {(f.ofertas || []).length > 0 && (
+        <div className="col" style={{ gap: 6, marginTop: 14 }}>
+          <div className="micro muted">a oferta abriu a partir de</div>
+          {f.ofertas.slice(0, 6).map((o) => (
+            <div key={o.recurso} className="row micro" style={{ gap: 8 }}>
+              <span style={{ flex: 1 }}>{RECURSOS[o.recurso]?.nome || (o.recurso === 'geral' ? 'Ajustes e avisos' : o.recurso)}</span>
+              <span className="num">{o.pessoas}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
 
 export default function Medicao() {
   const toast = useToast();
@@ -63,6 +115,7 @@ export default function Medicao() {
 
   return (
     <>
+      <FunilPremium dias={dias} />
       <Card style={{ marginBottom: 14 }}>
         <div className="card-head">
           <div>

@@ -31,7 +31,7 @@ import { PrimeirosPassos, AvisoDeVolta } from '../components/PrimeirosPassos';
 import Destaques from '../components/Destaques';
 import { analisarDiario } from '../lib/ai';
 import { Sheet, useToast, Diamante } from '../components/UI';
-import { podeVer } from '../lib/plano';
+import { podeVer, pedirOferta } from '../lib/plano';
 import { Convite, Vitrine } from '../components/Plano';
 import { supabase } from '../lib/supabase';
 
@@ -384,7 +384,7 @@ export default function Painel() {
 
           {recs.length > 0 && !recsLivres && (
             <div style={{ marginTop: 16 }}>
-              <VitrineRecomendacao recs={recs} faixa={settings.faixa} vistas={vistasAulas.map((v) => v.videoId)} onAssinar={() => irPara('ajustes')} />
+              <VitrineRecomendacao recs={recs} faixa={settings.faixa} vistas={vistasAulas.map((v) => v.videoId)} onAssinar={() => pedirOferta('recomendacoes')} />
             </div>
           )}
           {recs.length > 0 && recsLivres && (
@@ -500,7 +500,7 @@ Toda vez que você marca um ponto, o app anota a posição que veio junto. Passa
             'Com o que você finaliza e em que você cai',
             'Presença no tatame, dia a dia',
           ]}
-          onAssinar={() => irPara('ajustes')}
+          onAssinar={() => pedirOferta('analise')}
         />
       )}
 
@@ -518,7 +518,7 @@ Toda vez que você marca um ponto, o app anota a posição que veio junto. Passa
             'Os focos pra agora, com o porquê e como treinar',
             'Uma pergunta pra levar pro seu professor',
           ]}
-          onAssinar={() => { setConviteIa(false); irPara('ajustes'); }}
+          onAssinar={() => { setConviteIa(false); pedirOferta('ia'); }}
         />
       </Sheet>
 

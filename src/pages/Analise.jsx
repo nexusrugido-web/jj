@@ -16,7 +16,7 @@ import { resumo, escadaPosicional, buracosNoJogo, escadaPareada } from '../lib/s
 import { placarDaRola } from '../lib/game';
 import { toCSV } from '../db/db';
 import { baixarArquivo, fmtDur, contar, hoje } from '../lib/utils';
-import { podeVer } from '../lib/plano';
+import { podeVer, pedirOferta } from '../lib/plano';
 import { Vitrine } from '../components/Plano';
 
 export default function Analise() {
@@ -112,7 +112,7 @@ export default function Analise() {
             'Contra quem você luta: quantas vence contra cada faixa',
             'Onde você fica por cima e onde fica por baixo',
           ]}
-          onAssinar={() => irPara('ajustes')}
+          onAssinar={() => pedirOferta('analise')}
         />
       </div>
     );

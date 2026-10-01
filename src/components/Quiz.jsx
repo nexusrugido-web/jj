@@ -7,7 +7,7 @@ import { perguntasPara, proximaRevisao } from '../db/quiz';
 import { darXp } from '../lib/xp';
 import { hoje } from '../lib/utils';
 import { useApp } from '../contexto';
-import { limiteDoDia, podeVer } from '../lib/plano';
+import { limiteDoDia, podeVer, pedirOferta } from '../lib/plano';
 import { LimiteDoDia } from './Plano';
 
 /* ============================================================
@@ -17,7 +17,7 @@ import { LimiteDoDia } from './Plano';
 
 export default function Quiz({ faixa = 'branca', dor = null, tema = null, onSair }) {
   const toast = useToast();
-  const { acesso, irPara } = useApp();
+  const { acesso } = useApp();
   /* sem valor padrão: undefined é "ainda carregando", e a rodada espera */
   const respondidasDb = useLiveQuery(() => db.quizRespostas.toArray(), []);
   const respondidas = respondidasDb || [];
@@ -93,7 +93,7 @@ export default function Quiz({ faixa = 'branca', dor = null, tema = null, onSair
   if (travado) {
     return (
       <div className="col" style={{ gap: 12 }}>
-        <LimiteDoDia tipo="quiz" onAssinar={() => irPara?.('ajustes')} />
+        <LimiteDoDia tipo="quiz" onAssinar={() => pedirOferta('quizIlimitado')} />
         {onSair && <button className="btn ghost xs" onClick={onSair}>Voltar</button>}
       </div>
     );

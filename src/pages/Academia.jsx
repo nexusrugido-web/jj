@@ -9,7 +9,7 @@ import Guia from '../components/Guia';
 import { Vitrine } from '../components/Plano';
 import { GRUPOS, EXERCICIOS, orientacaoDeCarga, planoDoExercicio, ehNovo } from '../db/exercicios';
 import { buscaMatch } from '../lib/utils';
-import { podeVer } from '../lib/plano';
+import { podeVer, pedirOferta } from '../lib/plano';
 import { semanaDe } from '../lib/xp';
 
 /* ============================================================
@@ -22,7 +22,7 @@ import { semanaDe } from '../lib/xp';
    ============================================================ */
 
 export default function Academia() {
-  const { sessions, acesso, irPara } = useApp();
+  const { sessions, acesso } = useApp();
   const [busca, setBusca] = useState('');
   const [grupo, setGrupo] = useState('todos');
   const [aberto, setAberto] = useState(null);
@@ -100,7 +100,7 @@ export default function Academia() {
             'Por que a força chega antes do músculo: nas primeiras semanas quem muda é o seu sistema nervoso',
             'Quanta academia cabe na sua semana de tatame, sem roubar o seu rola',
           ]}
-          onAssinar={() => irPara('ajustes')}
+          onAssinar={() => pedirOferta('musculacao')}
         />
       </div>
     );

@@ -12,7 +12,7 @@ import {
   analisarJogo, lerJogo, compararEstilo, porqueDoEstilo, oQueMaisCede, MIN_ROLAS_ESTILO,
 } from '../lib/game';
 import { minhasTecnicas } from '../lib/graus';
-import { podeVer } from '../lib/plano';
+import { podeVer, pedirOferta } from '../lib/plano';
 import { Vitrine } from '../components/Plano';
 import FaixaVisual from '../components/FaixaVisual';
 import { FAIXAS } from '../db/seed';
@@ -259,7 +259,7 @@ export default function MeuJogo() {
           {/* ---- por situação: é o que o plano pago abre ---- */}
           {podeVer(acesso, 'meujogo')
             ? <PorSituacao a={a} notas={notas} />
-            : <VitrineSituacao a={a} notas={notas} onAssinar={() => irPara('ajustes')} />}
+            : <VitrineSituacao a={a} notas={notas} onAssinar={() => pedirOferta('meujogo')} />}
         </>
       )}
 

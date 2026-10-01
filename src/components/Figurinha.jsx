@@ -3,7 +3,7 @@ import { Download, Share2, Copy, Link2, RefreshCw, Check, Plus } from 'lucide-re
 import { Sheet, Btn, Seg, Diamante, useToast } from './UI';
 import { useApp } from '../contexto';
 import { FAIXAS } from '../db/seed';
-import { podeVer } from '../lib/plano';
+import { podeVer, pedirOferta } from '../lib/plano';
 import {
   desenharFigurinha, paraPNG, INSTAGRAM, FRASES, TEMAS, DESENHOS, DESENHO_PADRAO, urlDoDesenho, lerFrase,
 } from '../lib/figurinha';
@@ -28,7 +28,7 @@ import { useMinhaDivisao, nomeDivisao } from '../lib/liga';
    link   opcional { tipo, dados, texto }: manda o card como link
    ============================================================ */
 export default function Figurinha({ aberto, onClose, dados, tipo = 'marco', link }) {
-  const { acesso, settings, irPara } = useApp();
+  const { acesso, settings } = useApp();
   const toast = useToast();
   const [fundo, setFundo] = useState('sem');
   const [comFrase, setComFrase] = useState(true);
@@ -145,7 +145,7 @@ export default function Figurinha({ aberto, onClose, dados, tipo = 'marco', link
           <p className="tiny" style={{ lineHeight: 1.6 }}>
             <b>A cor da faixa e o dourado são do Premium.</b> Na cor do app, a figurinha inteira continua de graça.
           </p>
-          <Btn variant="primary" onClick={() => { onClose(); irPara('ajustes'); }} style={{ width: '100%' }}>Liberar no Premium</Btn>
+          <Btn variant="primary" onClick={() => { onClose(); pedirOferta('temasFigurinha'); }} style={{ width: '100%' }}>Liberar no Premium</Btn>
         </div>
       ) : (
         <div className="col" style={{ gap: 8 }}>

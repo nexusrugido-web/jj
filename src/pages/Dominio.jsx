@@ -17,7 +17,7 @@ import { faltaPara, recomendacoesDoAluno, aderencia } from '../lib/recomendar';
 import Recomendacao, { VitrineRecomendacao } from '../components/Recomendacao';
 import { buscaMatch, relativo } from '../lib/utils';
 import { posInicialPorId } from '../db/scoring';
-import { podeVer, RECOMENDACOES_NA_TELA } from '../lib/plano';
+import { podeVer, RECOMENDACOES_NA_TELA, pedirOferta } from '../lib/plano';
 
 export default function Dominio() {
   const { rolls, partners, sessions, techniques, categories, goals, gradings, settings, irPara, acesso } = useApp();
@@ -113,7 +113,7 @@ export default function Dominio() {
               ))}
             </div>
           ) : (
-            <VitrineRecomendacao recs={recs} faixa={faixa} vistas={vistas.map((v) => v.videoId)} onAssinar={() => irPara('ajustes')} />
+            <VitrineRecomendacao recs={recs} faixa={faixa} vistas={vistas.map((v) => v.videoId)} onAssinar={() => pedirOferta('recomendacoes')} />
           )}
 
           {adesao && adesao.total >= 2 && (

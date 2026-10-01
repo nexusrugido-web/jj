@@ -27,8 +27,8 @@ import { Vitrine } from './Plano';
 
 export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFeito, comAula = true, tela = 'painel' }) {
   const toast = useToast();
-  const { acesso, irPara } = useApp();
-  const { liberarVideo, aviso } = useLimite(acesso, irPara);
+  const { acesso } = useApp();
+  const { liberarVideo, aviso } = useLimite(acesso);
   const [resposta, setResposta] = useState(null);
   const [tocando, setTocando] = useState(null);
 

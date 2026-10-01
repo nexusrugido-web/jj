@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { Lock } from 'lucide-react';
 import { Sheet, Card, Btn } from './UI';
 import { LimiteDoDia } from './Plano';
-import { limiteDoDia } from '../lib/plano';
+import { limiteDoDia, pedirOferta } from '../lib/plano';
 import { estadoDoVideo } from '../lib/pago';
 import { abertosHoje, registrarEventoVideo } from '../lib/aulas';
 import { medir } from '../lib/medir';
@@ -23,7 +23,7 @@ import { comOrigemDoApp } from '../lib/links';
    pessoa precisa conseguir ler o que ganha no Premium e fechar
    sem sair do lugar onde estava.
    ============================================================ */
-export function useLimite(acesso, irPara) {
+export function useLimite(acesso) {
   const [travado, setTravado] = useState(null);
   const [pago, setPago] = useState(null);
 
@@ -74,7 +74,7 @@ export function useLimite(acesso, irPara) {
       >
         <LimiteDoDia
           tipo={travado}
-          onAssinar={() => { setTravado(null); irPara?.('ajustes'); }}
+          onAssinar={() => { setTravado(null); pedirOferta(travado === 'quiz' ? 'quizIlimitado' : 'aulasIlimitadas'); }}
         />
       </Sheet>
 

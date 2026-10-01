@@ -13,6 +13,7 @@ import { resumo as calcResumo } from './lib/stats';
 import { minhasTecnicas, resumoGraus } from './lib/graus';
 import { sincronizarAcesso, acessoLocal, guardarCodigoDaUrl } from './lib/plano';
 import Renovacao from './components/Renovacao';
+import PremiumNoApp from './components/PremiumNoApp';
 import PerguntaIdade from './components/PerguntaIdade';
 import { subirPerfil, mexeuNoPerfil } from './lib/perfil';
 import { acervoLocal, sincronizarAcervo, observarAcervo } from './lib/acervo';
@@ -646,6 +647,7 @@ export default function App() {
         <Tour aberto={tourAberto} onClose={() => setTourAberto(false)} onConcluir={() => salvarSettings({ tourVisto: 1 })} />
         <Celebracao marco={celebrar} onFechar={() => setCelebrar(null)} />
         <Renovacao />
+        <PremiumNoApp />
         <PerguntaIdade pausado={tourAberto} />
       </AppCtx.Provider>
     </ToastProvider>

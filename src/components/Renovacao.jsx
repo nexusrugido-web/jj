@@ -3,8 +3,7 @@ import { Gem, Check } from 'lucide-react';
 import { useApp } from '../contexto';
 import { Sheet, Btn, useToast } from './UI';
 import { getMeta, setMeta } from '../db/db';
-import { RECURSOS, diasParaVencer, usarCodigoGuardado } from '../lib/plano';
-import { abrirLink } from '../lib/links';
+import { RECURSOS, diasParaVencer, usarCodigoGuardado, pedirOferta } from '../lib/plano';
 import { hoje } from '../lib/utils';
 
 /* ============================================================
@@ -25,6 +24,9 @@ export const HOTMART_MINHAS_COMPRAS = 'https://consumer.hotmart.com/';
 export function motivoDeRenovar(acesso) {
   if (!acesso) return null;
   const dias = diasParaVencer(acesso);
+  /* o presente de 7 dias: avisa 2 dias antes, no último dia e quando acabou */
+  if (acesso.premium && acesso.status === 'presente' && dias !== null && dias <= 2) return { tipo: 'presente', dias };
+  if (!acesso.premium && acesso.status === 'presente_acabou' && dias !== null && dias >= -3) return { tipo: 'presente_acabou', dias };
   if (acesso.premium && acesso.status === 'carencia') return { tipo: 'pagamento', dias };
   if (acesso.premium && acesso.renova === false && dias !== null && dias <= 7) return { tipo: 'acaba', dias };
   if (!acesso.premium && ['expirada', 'cancelada'].includes(acesso.status) && dias !== null && dias >= -7 && dias < 0) {
@@ -69,16 +71,25 @@ export default function Renovacao() {
 
   if (!aberto) return null;
   const pagamento = aberto.tipo === 'pagamento';
+  const presente = aberto.tipo === 'presente' || aberto.tipo === 'presente_acabou';
   const titulo = pagamento
     ? 'O pagamento da renovação não entrou'
-    : aberto.tipo === 'acaba'
-      ? `Seu Premium acaba ${quando(aberto.dias)}`
-      : 'Seu Premium acabou';
+    : aberto.tipo === 'presente'
+      ? `Seu Premium de presente acaba ${quando(aberto.dias)}`
+      : aberto.tipo === 'presente_acabou'
+        ? 'Seus 7 dias de Premium acabaram'
+        : aberto.tipo === 'acaba'
+          ? `Seu Premium acaba ${quando(aberto.dias)}`
+          : 'Seu Premium acabou';
   const texto = pagamento
     ? 'A Hotmart não conseguiu cobrar. O Premium continua ligado por uns dias enquanto você atualiza o cartão ou a forma de pagamento.'
-    : aberto.tipo === 'acaba'
-      ? 'A renovação está desligada. Sem renovar, estas partes voltam a travar:'
-      : 'Estas partes voltaram a travar. Renovando, abrem de novo na hora:';
+    : aberto.tipo === 'presente'
+      ? 'Depois disso, estas partes voltam a travar. Assinando, nada para:'
+      : aberto.tipo === 'presente_acabou'
+        ? 'Estas partes voltaram a travar. Assinando, abrem de novo na hora:'
+        : aberto.tipo === 'acaba'
+          ? 'A renovação está desligada. Sem renovar, estas partes voltam a travar:'
+          : 'Estas partes voltaram a travar. Renovando, abrem de novo na hora:';
 
   return (
     <Sheet aberto onClose={() => setAberto(null)} titulo="">
@@ -97,13 +108,15 @@ export default function Renovacao() {
         <Btn variant="primary" style={{ width: '100%' }} onClick={() => {
           setAberto(null);
           if (pagamento) window.open(HOTMART_MINHAS_COMPRAS, '_blank', 'noopener');
-          else abrirLink('assinatura_mensal');
+          else pedirOferta(null);
         }}>
-          {pagamento ? 'Atualizar o pagamento' : 'Renovar o Premium'}
+          {pagamento ? 'Atualizar o pagamento' : presente ? 'Ver o Premium' : 'Renovar o Premium'}
         </Btn>
-        <Btn variant="ghost" style={{ width: '100%' }} onClick={() => { setAberto(null); irPara('ajustes'); }}>
-          Ver minha assinatura
-        </Btn>
+        {!presente && (
+          <Btn variant="ghost" style={{ width: '100%' }} onClick={() => { setAberto(null); irPara('ajustes'); }}>
+            Ver minha assinatura
+          </Btn>
+        )}
       </div>
     </Sheet>
   );
