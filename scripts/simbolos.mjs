@@ -57,7 +57,8 @@ for (const a of arquivos) {
      componente esquecido, e o detector não via. */
   const semComentario = s
     .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/\/\/[^\n]*/g, '')
+    /* \/\/ depois de dois-pontos é link (https://), não comentário: apagar ali cortava a aspa do texto */
+    .replace(/(^|[^:])\/\/[^\n]*/g, '$1')
     /* o nome original em "import { X as Y }" não é uso de X */
     .replace(/import\s+[\s\S]*?\s+from\s+['"][^'"]+['"]/g, '')
     .replace(/'[^']*'|"[^"]*"|`[^`]*`/g, "''")
@@ -73,7 +74,7 @@ for (const a of arquivos) {
 
   /* palavras que parecem nome mas são da linguagem */
   const PALAVRAS = new Set([
-    'NaN', 'JSON', 'URL', 'DOM', 'API', 'XP', 'IA', 'CSV', 'PWA', 'SQL', 'UI',
+    'NaN', 'JSON', 'URL', 'DOM', 'API', 'XP', 'IA', 'CSV', 'PWA', 'SQL', 'UI', 'HTTP',
     'RPE', 'MODE', 'SKIP_WAITING',
   ]);
 

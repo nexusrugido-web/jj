@@ -15,6 +15,7 @@ import {
 } from '../lib/nutricao';
 import { hoje, addDias, fmtData, relativo, mesNome } from '../lib/utils';
 import { idadeDe } from '../lib/regras';
+import { SUPLEMENTOS } from '../db/suplementos';
 
 /* ============================================================
    COMBUSTÍVEL PRO JIU-JITSU
@@ -58,14 +59,15 @@ export default function Nutricao() {
           fundo={calculadora}
           titulo="Quanto comer pro seu corpo aguentar o tatame, calculado pelo seu peso"
           texto={contas
-            ? `Com os seus ${String(contas.peso).replace('.', ',')} kg, o app já fez a conta: quanto de proteína pra reconstruir o que o rola quebra, quanto de carboidrato pra ter gás até o último minuto e quanta água pra não apagar no terceiro round. E todo dia você confere se bateu a proteína, com a comida que já tem em casa.`
-            : 'Coloque o seu peso e o app faz a conta: quanto de proteína pra reconstruir o que o rola quebra, quanto de carboidrato pra ter gás até o último minuto e quanta água pra não apagar no terceiro round.'}
+            ? `Com os seus ${String(contas.peso).replace('.', ',')} kg, o app já fez a conta: quanto de proteína pra reconstruir o que o rola quebra, quanto de carboidrato pra ter gás até o último minuto e quanta água pra não apagar no segundo rola. E todo dia você confere se bateu a proteína, com a comida que já tem em casa.`
+            : 'Coloque o seu peso e o app faz a conta: quanto de proteína pra reconstruir o que o rola quebra, quanto de carboidrato pra ter gás até o último minuto e quanta água pra não apagar no segundo rola.'}
           itens={[
             'Proteína, carboidrato, água e cafeína pelo seu peso e pela sua semana de tatame',
             'Bateu a proteína hoje? Toca no que comeu e a barra enche até a sua meta',
             'Seus alimentos e suas refeições salvas: o café da manhã entra com um toque',
             'O mês de proteína num calendário, junto dos seus dias de tatame',
             'Suplementação com estudo: o que a creatina, a beta-alanina e a cafeína fazem no seu corpo e no tatame',
+            'Nutrição em evolução: acesso às novas recomendações, estudos comentados e melhorias que forem publicados durante sua assinatura',
           ]}
           onAssinar={() => irPara('ajustes')}
         />
@@ -499,109 +501,122 @@ const SO_COM_NUTRI = new Set(['creatina', 'betaalanina', 'cafeina']);
 
 function Suplementos({ contas, menor = false }) {
   const [sanfona, setSanfona] = useState(false);
-  const [aberto, setAberto] = useState('creatina');
+  const [atual, setAtual] = useState(0);
+  const [detalhe, setDetalhe] = useState(null);
+  const trilha = useRef(null);
+  const atualRef = useRef(0);
   const cafe = contas?.cafeina;
-  const lista = [
-    { id: 'creatina', nome: 'Creatina', dose: '3 a 5 g por dia, todo dia, sem fase de carga',
-      resumo: 'O suplemento mais estudado do esporte, e o que mais combina com jiu-jitsu.',
-      corpo: [
-        'Enche o estoque de energia rápida do músculo, a que acaba nos primeiros segundos de esforço forte.',
-        'Ajuda a ganhar força e massa magra junto com o treino de academia.',
-        'Também alimenta o cérebro: memória, atenção e raciocínio mais rápidos, principalmente depois de noite mal dormida.',
-      ],
-      tatame: [
-        'Mais explosão na queda, na raspagem e na hora de sair de baixo.',
-        'Recupera melhor entre um rola e outro, e entre um treino e o próximo.',
-        'Segura a cabeça ligada no fim do treino, quando o cansaço embaralha a técnica.',
-      ],
-      fonte: 'ISSN (posição sobre creatina) e meta-análise na Frontiers in Nutrition, 2024' },
-    { id: 'betaalanina', nome: 'Beta-alanina', dose: '4 a 6 g por dia, divididos em doses de 1,6 g, por pelo menos 4 semanas',
-      resumo: 'Segura o braço queimando no fim do round.',
-      corpo: [
-        'Aumenta a carnosina no músculo, que segura a acidez do esforço forte.',
-        'Adia a hora em que o músculo "trava" de cansaço.',
-      ],
-      tatame: [
-        'O efeito aparece em esforços de 1 a 4 minutos, que é o tamanho de um rola.',
-        'Pegada e braço aguentam mais no fim do round e no rola seguinte.',
-        'Dividir a dose em 1,6 g deixa o formigamento na pele (normal e sem perigo) bem mais leve.',
-      ],
-      fonte: 'ISSN (posição sobre beta-alanina)' },
-    { id: 'cafeina', nome: 'Cafeína',
-      dose: cafe ? `uns ${cafe.mg} mg, 1 hora antes (${cafe.xicaras} ${cafe.xicaras === 1 ? 'xícara' : 'xícaras'} de café coado)` : '3 mg por kg, 1 hora antes',
-      resumo: 'Mais força e mais fôlego no treino pesado, com o café que você já toma.',
-      corpo: [
-        'Diminui a sensação de cansaço e deixa o esforço parecer mais leve.',
-        'Melhora força, velocidade e resistência em doses de 3 a 6 mg por kg.',
-      ],
-      tatame: [
-        'Mais disposição pro treino da noite depois de um dia inteiro de trabalho.',
-        'Reação mais rápida no rola.',
-        'Tomada até umas 16h, não atrapalha o sono, que é onde o corpo se recupera.',
-      ],
-      fonte: 'ISSN (posição sobre cafeína)' },
-    { id: 'whey', nome: 'Whey', dose: '1 scoop quando não der pra bater a proteína com comida',
-      resumo: 'O jeito mais rápido de fechar a proteína do dia.',
-      corpo: [
-        'Proteína completa e de digestão rápida, com todos os aminoácidos que o músculo usa pra se reconstruir.',
-        'Prático pra quem tem o dia corrido e não consegue comer proteína em toda refeição.',
-      ],
-      tatame: [
-        'Depois do treino, ajuda a consertar o que o rola quebrou.',
-        'Bater a proteína do dia deixa você menos dolorido pro próximo treino.',
-      ],
-      fonte: 'ISSN (posição sobre proteína)' },
-    { id: 'kefir', nome: 'Kefir e probióticos', dose: '1 copo de kefir por dia',
-      resumo: 'Cuida do intestino, que cuida da imunidade.',
-      corpo: [
-        'Aumenta as bactérias boas do intestino.',
-        'Nos estudos com atletas: menos problema de estômago e menos gripe na época de treino pesado.',
-      ],
-      tatame: [
-        'Menos treino perdido por resfriado e mal-estar.',
-        'Ainda soma proteína: um copo tem uns 7 g.',
-      ],
-      fonte: 'ISSN (posição sobre probióticos) e ensaio com jogadoras de futebol, 2025' },
-  ];
+
+  const escolhas = useRef(null);
+  /* o cartão deixa um pedaço do próximo aparecendo, então a posição de
+     cada um vem do próprio cartão, não da largura da trilha */
+  const inicioDo = (el, i) => el.children[i]?.offsetLeft ?? 0;
+  const navegar = (indice) => {
+    const destino = Math.max(0, Math.min(SUPLEMENTOS.length - 1, indice));
+    const el = trilha.current;
+    if (!el) return;
+    el.scrollTo({ left: inicioDo(el, destino), behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+  };
+
+  /* o nome escolhido sempre à vista na faixa de nomes, que também desliza */
+  useEffect(() => {
+    const chip = escolhas.current?.children[atual];
+    const faixa = escolhas.current;
+    if (!chip || !faixa) return;
+    const alvo = chip.offsetLeft - (faixa.clientWidth - chip.offsetWidth) / 2;
+    faixa.scrollTo({ left: Math.max(0, alvo), behavior: 'smooth' });
+  }, [atual]);
+
+  /* A largura muda ao girar o celular: mantém o suplemento selecionado. */
+  useEffect(() => {
+    const el = trilha.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    let largura = el.clientWidth;
+    const observer = new ResizeObserver(() => {
+      if (el.clientWidth !== largura) {
+        largura = el.clientWidth;
+        el.scrollLeft = inicioDo(el, atualRef.current);
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [sanfona]);
+
   return (
-    <Card style={{ marginBottom: 14 }}>
-      <button type="button" className="nutri-sanfona" onClick={() => setSanfona(!sanfona)} aria-expanded={sanfona}>
-        <span className="stat-ico"><Pill size={15} /></span>
+    <Card className="nutri-recomendacoes" style={{ marginBottom: 14 }}>
+      <button type="button" className="nutri-sanfona" onClick={() => { setSanfona(!sanfona); setAtual(0); atualRef.current = 0; setDetalhe(null); }} aria-expanded={sanfona} aria-controls="nutri-suplementos">
+        <span className="stat-ico"><Pill size={18} /></span>
         <div style={{ flex: 1, textAlign: 'left' }}>
-          <div className="eyebrow">Com estudo por trás</div>
-          <h2 className="h-sec">Suplementação: o que ajuda</h2>
+          <div className="eyebrow">Recomendações com base em estudos</div>
+          <h2 className="h-sec">Suplementação pro seu treino</h2>
+          <p className="micro muted" style={{ marginTop: 5 }}>Quando faz sentido, o que esperar e o que considerar antes de usar.</p>
         </div>
-        <ChevronDown size={18} className="muted" style={{ transform: sanfona ? 'rotate(180deg)' : undefined, transition: 'transform .2s' }} />
+        <ChevronDown size={18} className="muted" style={{ transform: sanfona ? 'rotate(180deg)' : undefined }} />
       </button>
-      {sanfona && <div className="col" style={{ gap: 8, marginTop: 12 }}>
-        <p className="micro muted" style={{ margin: 0, lineHeight: 1.6 }}>
-          O que cada um faz no seu corpo e no tatame. Toque num suplemento pra ver os detalhes e a fonte.
-        </p>
-        {lista.map((s) => {
-          const on = aberto === s.id;
-          return (
-            <div key={s.id} className="nutri-supl">
-              <button type="button" className="nutri-supl-cab" onClick={() => setAberto(on ? null : s.id)} aria-expanded={on}>
-                <span className="tiny" style={{ fontWeight: 800, flex: 1, textAlign: 'left' }}>{s.nome}</span>
-                <ChevronDown size={17} className="muted" style={{ transform: on ? 'rotate(180deg)' : undefined, transition: 'transform .2s' }} />
-              </button>
-              <p className="micro" style={{ lineHeight: 1.55 }}>{s.resumo}</p>
-              {menor && SO_COM_NUTRI.has(s.id)
-                ? <div className="micro" style={{ fontWeight: 600, color: 'var(--roar)' }}>Antes dos 18 anos, só com orientação de nutricionista ou médico.</div>
-                : <div className="micro" style={{ fontWeight: 600, color: 'var(--accent)' }}>{s.dose}</div>}
-              {on && (
-                <div className="nutri-ciencia">
-                  <div className="micro" style={{ fontWeight: 700 }}>No corpo</div>
-                  <ul>{s.corpo.map((c) => <li key={c} className="micro">{c}</li>)}</ul>
-                  <div className="micro" style={{ fontWeight: 700, marginTop: 4 }}>No tatame</div>
-                  <ul>{s.tatame.map((c) => <li key={c} className="micro">{c}</li>)}</ul>
-                  <div className="micro muted">Fonte: {s.fonte}</div>
+      {sanfona && <section id="nutri-suplementos" className="nutri-supl-conteudo" aria-label="Recomendações de suplementação" aria-roledescription="carrossel">
+        <p className="micro muted">Deslize pro lado ou toque no nome. Recomendações educativas: a escolha depende da sua rotina e da sua saúde.</p>
+        <div ref={escolhas} className="nutri-supl-escolhas" role="group" aria-label="Escolher suplemento">
+          {SUPLEMENTOS.map((s, i) => <button key={s.id} type="button" className={atual === i ? 'chip on' : 'chip'} aria-pressed={atual === i} onClick={() => navegar(i)}>{s.nome}</button>)}
+        </div>
+        <div ref={trilha} className="nutri-supl-trilha" tabIndex={0} aria-label="Cards de suplementação. Use as setas para navegar."
+          onScroll={(e) => {
+            const el = e.currentTarget;
+            const passo = inicioDo(el, 1) - inicioDo(el, 0);
+            if (passo > 0) {
+              atualRef.current = Math.max(0, Math.min(SUPLEMENTOS.length - 1, Math.round((el.scrollLeft - inicioDo(el, 0)) / passo)));
+              setAtual(atualRef.current);
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.target !== e.currentTarget) return;
+            const destinos = { ArrowRight: atual + 1, ArrowLeft: atual - 1, Home: 0, End: SUPLEMENTOS.length - 1 };
+            if (e.key in destinos) { e.preventDefault(); navegar(destinos[e.key]); }
+          }}>
+          {SUPLEMENTOS.map((s, i) => {
+            const selecionado = atual === i;
+            const aberto = selecionado && detalhe === s.id;
+            const dose = s.id === 'cafeina'
+              ? (cafe ? 'uns ' + cafe.mg + ' mg, 1 hora antes (' + cafe.xicaras + ' ' + (cafe.xicaras === 1 ? 'xícara' : 'xícaras') + ' de café coado, aproximadamente)' : '3 mg por kg, 1 hora antes')
+              : s.dose;
+            return (
+              <article key={s.id} className="nutri-supl" role="group" aria-roledescription="slide" aria-label={(i + 1) + ' de ' + SUPLEMENTOS.length + ': ' + s.nome} aria-hidden={!selecionado} inert={selecionado ? undefined : ''}>
+                <div className="nutri-supl-topo"><span className="eyebrow">{s.foco}</span><span className="num muted">{String(i + 1).padStart(2, '0')}</span></div>
+                <h3 className="nutri-supl-titulo">{s.nome}</h3>
+                <p className="tiny muted">{s.resumo}</p>
+                <span className="nutri-supl-evidencia"><Check size={13} /> {s.evidencia}</span>
+                <div className="nutri-supl-contexto">
+                  <div><h4 className="tiny">Quando faz sentido</h4><p className="micro muted">{s.quando}</p></div>
+                  <div><h4 className="tiny">No tatame</h4><p className="micro muted">{s.tatame}</p></div>
                 </div>
-              )}
-            </div>
-          );
-        })}
-      </div>}
+                <div className="nutri-supl-uso">
+                  <div className="eyebrow">{menor && SO_COM_NUTRI.has(s.id) ? 'Orientação para sua idade' : 'Referência de uso'}</div>
+                  <p className="tiny">{menor && SO_COM_NUTRI.has(s.id) ? 'Antes dos 18 anos, só com orientação de nutricionista ou médico.' : dose}</p>
+                </div>
+                <button type="button" className="btn ghost nutri-supl-detalhes" aria-expanded={aberto} aria-controls={'nutri-estudo-' + s.id} onClick={() => setDetalhe(aberto ? null : s.id)}>
+                  {aberto ? 'Fechar detalhes' : 'Como funciona, cuidados e estudos'}<ChevronDown size={16} style={{ transform: aberto ? 'rotate(180deg)' : undefined }} />
+                </button>
+                {aberto && <div id={'nutri-estudo-' + s.id} className="nutri-ciencia">
+                  <h4 className="tiny">No corpo</h4><p className="micro muted">{s.corpo}</p>
+                  <h4 className="tiny">Na prática</h4><p className="micro muted">{menor && SO_COM_NUTRI.has(s.id) ? 'A escolha e o uso precisam ser avaliados por quem acompanha sua saúde e seu treino.' : s.pratica}</p>
+                  <h4 className="tiny">O que considerar</h4><p className="micro muted">{s.cuidado}</p>
+                  <h4 className="tiny">Até onde vai a evidência</h4><p className="micro muted">{menor && s.id === 'cafeina' ? 'Estudos com adultos não definem uma dose segura pra menores. Os efeitos no sono dependem da dose e do horário.' : s.limite}</p>
+                  <div className="nutri-supl-fontes"><span className="eyebrow">Leia os estudos</span>{s.fontes.map((f) => <a key={f.url} href={f.url} target="_blank" rel="noopener noreferrer">{f.nome} ↗</a>)}</div>
+                </div>}
+              </article>
+            );
+          })}
+        </div>
+        <div className="nutri-supl-nav">
+          <button type="button" className="btn ghost icon" aria-label="Recomendação anterior" disabled={atual === 0} onClick={() => navegar(atual - 1)}><ChevronLeft size={20} /></button>
+          <div className="nutri-supl-pontos">
+            <span className="nutri-supl-bolinhas" aria-hidden="true">
+              {SUPLEMENTOS.map((s, i) => <i key={s.id} className={i === atual ? 'on' : ''} />)}
+            </span>
+            <span className="micro muted" role="status" aria-live="polite" aria-atomic="true">{SUPLEMENTOS[atual].nome} · {atual + 1} de {SUPLEMENTOS.length}</span>
+          </div>
+          <button type="button" className="btn ghost icon" aria-label="Próxima recomendação" disabled={atual === SUPLEMENTOS.length - 1} onClick={() => navegar(atual + 1)}><ChevronRight size={20} /></button>
+        </div>
+      </section>}
     </Card>
   );
 }

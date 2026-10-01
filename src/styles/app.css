@@ -3631,7 +3631,44 @@ body::after {
   width: 5px; height: 5px; border-radius: 99px; background: var(--jade);
 }
 .cal-prot-ponto.legenda { position: static; transform: none; width: 7px; height: 7px; }
-.nutri-supl { display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: var(--r-sm); background: var(--void); border: 1px solid color-mix(in srgb, var(--cor) 30%, var(--seam)); --cor: var(--accent); }
-.nutri-supl-cab { display: flex; align-items: center; gap: 8px; width: 100%; color: inherit; font: inherit; }
-.nutri-ciencia { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--seam); }
-.nutri-ciencia ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 5px; line-height: 1.55; }
+.nutri-recomendacoes { min-width: 0; border-color: color-mix(in srgb, var(--accent) 28%, var(--seam)); }
+.nutri-recomendacoes > .nutri-sanfona > .stat-ico { color: var(--accent); flex: none; }
+.nutri-supl-conteudo { margin-top: 18px; min-width: 0; }
+.nutri-supl-conteudo p { line-height: 1.65; }
+/* os nomes numa faixa só, que desliza pro lado junto com os cartões */
+.nutri-supl-escolhas { display: flex; flex-wrap: nowrap; gap: 8px; margin: 14px 0; overflow-x: auto; scrollbar-width: none; scroll-behavior: smooth; }
+.nutri-supl-escolhas::-webkit-scrollbar { display: none; }
+.nutri-supl-escolhas .chip { min-height: 44px; flex: none; }
+/* o próximo cartão aparece um pedaço na borda: dá pra ver que desliza */
+.nutri-supl-trilha { position: relative; display: flex; align-items: flex-start; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; border-radius: var(--r-sm); }
+.nutri-supl-trilha::-webkit-scrollbar { display: none; }
+.nutri-supl-trilha:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.nutri-supl { flex: 0 0 88%; min-width: 0; box-sizing: border-box; scroll-snap-align: start; scroll-snap-stop: always; display: flex; flex-direction: column; gap: 12px; padding: 22px; border-radius: var(--r-sm); background: linear-gradient(140deg, color-mix(in srgb, var(--accent) 8%, var(--void)), var(--void) 60%); border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--seam)); }
+.nutri-supl-topo { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.nutri-supl-topo .eyebrow { color: var(--accent); }
+.nutri-supl-topo .num { font-size: 22px; }
+.nutri-supl-titulo { font-size: clamp(24px, 4vw, 32px); font-weight: 800; line-height: 1.15; letter-spacing: -.035em; }
+.nutri-supl-evidencia { display: inline-flex; align-items: center; gap: 7px; align-self: flex-start; font-size: 11px; color: var(--jade); padding: 6px 9px; border-radius: 8px; background: color-mix(in srgb, var(--jade) 8%, transparent); }
+.nutri-supl-evidencia svg { flex: none; }
+.nutri-supl-contexto { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 4px; }
+.nutri-supl-contexto p { margin-top: 6px; }
+.nutri-supl-uso { border-left: 3px solid var(--accent); padding: 12px 14px; background: color-mix(in srgb, var(--accent) 6%, var(--void)); border-radius: 0 10px 10px 0; }
+.nutri-supl-uso p { margin-top: 5px; }
+.nutri-supl-detalhes { justify-content: space-between; white-space: normal; text-align: left; min-height: 44px; padding-inline: 0; }
+.nutri-supl-detalhes svg { flex: none; }
+.nutri-ciencia { display: flex; flex-direction: column; gap: 6px; padding-top: 14px; border-top: 1px solid var(--seam); }
+.nutri-ciencia h4:not(:first-child) { margin-top: 10px; }
+.nutri-supl-fontes { display: flex; flex-wrap: wrap; gap: 10px 16px; border-top: 1px solid var(--seam); margin-top: 12px; padding-top: 14px; }
+.nutri-supl-fontes .eyebrow { width: 100%; }
+.nutri-supl-fontes a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; font-size: 12px; padding-block: 8px; }
+.nutri-supl-nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; }
+.nutri-supl-nav .btn { min-width: 44px; min-height: 44px; }
+.nutri-supl-nav [role="status"] { text-align: center; }
+.nutri-supl-pontos { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.nutri-supl-bolinhas { display: flex; gap: 6px; }
+.nutri-supl-bolinhas i { width: 7px; height: 7px; border-radius: 99px; background: var(--seam-hi); transition: width .25s var(--ease), background .25s var(--ease); }
+.nutri-supl-bolinhas i.on { width: 22px; background: var(--accent); }
+@media (max-width: 600px) {
+  .nutri-supl { padding: 16px; }
+  .nutri-supl-contexto { grid-template-columns: 1fr; gap: 14px; }
+}
