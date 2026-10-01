@@ -27,7 +27,24 @@ const lerEnv = () => {
     .map((l) => l.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/)).filter(Boolean)
     .map((m) => [m[1], m[2].replace(/^["']|["']$/g, '')]));
 };
-const url = process.env.SUPABASE_DB_URL || lerEnv().SUPABASE_DB_URL;
+let url = process.env.SUPABASE_DB_URL || lerEnv().SUPABASE_DB_URL;
+/* primeira vez: pergunta o endereço e guarda no .env.local (fora do git) */
+if (!url && process.stdin.isTTY) {
+  const { createInterface } = await import('node:readline/promises');
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  console.log('\nPrimeira vez: preciso do endereço do banco. Só pergunto uma vez.');
+  console.log('1. No Supabase, clique em Connect (botão no topo)');
+  console.log('2. Escolha "Session pooler" e copie a URI');
+  console.log('3. Troque [YOUR-PASSWORD] pela senha do banco (esqueceu? Settings > Database > Reset database password)\n');
+  url = (await rl.question('Cole a URI aqui e aperte Enter: ')).trim();
+  rl.close();
+  if (!/^postgres(ql)?:\/\//.test(url) || url.includes('[YOUR-PASSWORD]')) {
+    console.error('Isso não parece a URI certa (começa com postgresql:// e tem a senha no lugar de [YOUR-PASSWORD]). Nada foi guardado.');
+    process.exit(1);
+  }
+  fs.appendFileSync(path.join(raiz, '.env.local'), `\nSUPABASE_DB_URL=${url}\n`);
+  console.log('Guardado no .env.local (fora do git).\n');
+}
 if (!url) {
   console.error('Falta SUPABASE_DB_URL no .env.local (Supabase > Connect > Session pooler > URI).');
   process.exit(1);
