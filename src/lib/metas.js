@@ -321,6 +321,24 @@ export function horasPeloRitmo({ frequencia, duracaoMin, desde = hoje() }) {
   return { treinos, horas: Math.round((treinos * duracaoMin) / 60), semanas: Math.round(semanas), fim, duracaoMin };
 }
 
+/* A calculadora, no sentido contrário: quantos treinos por semana as
+   horas pedem, do dia de hoje até 31/12, descontando o que já foi feito
+   no ano. O selo diz se a meta conversa com a vida real:
+     ritmo     cabe no ritmo que a pessoa já tem
+     puxado    acima do ritmo, mas até 7 por semana
+     naoFecha  mais de 7 por semana (ou não sobra semana nenhuma) */
+export function ritmoPelasHoras({ horas, duracaoMin, desde = hoje(), jaFeitas = 0, ritmoAtual = 0 }) {
+  const fim = `${desde.slice(0, 4)}-12-31`;
+  const semanas = Math.max(0, diasEntre(desde, fim) + 1) / 7;
+  const faltam = Math.max(0, (Number(horas) || 0) - (Number(jaFeitas) || 0));
+  const treinos = Math.ceil((faltam * 60) / (Number(duracaoMin) || 90));
+  const porSemana = semanas > 0 ? Math.ceil((treinos / semanas) * 10) / 10 : Infinity;
+  const selo = faltam === 0 ? 'ritmo'
+    : semanas < 1 || porSemana > 7 ? 'naoFecha'
+      : porSemana <= (Number(ritmoAtual) || 3) ? 'ritmo' : 'puxado';
+  return { faltam, treinos, porSemana, semanas: Math.round(semanas), fim, selo };
+}
+
 export function modoDasHoras(settings = {}) {
   if (settings.metaAnualHorasModo) return settings.metaAnualHorasModo;
   const n = Number(settings.metaAnualHoras);

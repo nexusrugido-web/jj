@@ -24,6 +24,7 @@ import { POSICOES_INICIAIS } from '../db/scoring';
 import { hoje, fmtData, relativo } from '../lib/utils';
 import { podeVer, LIMITES, pedirOferta } from '../lib/plano';
 import { Convite } from '../components/Plano';
+import CalculadoraHoras from '../components/CalculadoraHoras';
 
 const vazia = () => ({
   tipo: 'frequencia',
@@ -42,6 +43,7 @@ export default function Metas() {
   const { goals, sessions, rolls, partners, techniques, gradings, categories, positions, settings, salvarSettings, irPara, acesso } = useApp();
   const toast = useToast();
   const [edit, setEdit] = useState(null);
+  const [calculadora, setCalculadora] = useState(false);
   const [excluir, setExcluir] = useState(null);
   const [seletorAberto, setSeletorAberto] = useState(false);
   /* a lista abriu porque faltava a técnica: escolher já salva a meta */
@@ -153,7 +155,7 @@ export default function Metas() {
       {aba === 'minhas' && horasNoAno && (
         <Card style={{ marginBottom: 14 }}>
           <LinhaDeMeta titulo={horasNoAno.titulo} p={horasNoAno} />
-          <button className="btn ghost xs" onClick={() => irPara('ajustes')} style={{ marginTop: 6 }}>mudar em Ajustes</button>
+          <button className="btn ghost xs" onClick={() => setCalculadora(true)} style={{ marginTop: 6 }}>calcular e mudar a meta</button>
         </Card>
       )}
 
@@ -504,6 +506,8 @@ export default function Metas() {
           </>
         )}
       </Sheet>
+
+      <CalculadoraHoras aberto={calculadora} onClose={() => setCalculadora(false)} />
 
       <SeletorTecnica
         aberto={seletorAberto} onClose={() => { setSeletorAberto(false); salvarAoEscolher.current = false; }}

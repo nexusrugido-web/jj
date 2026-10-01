@@ -8,7 +8,7 @@ register('./como-vite.mjs', import.meta.url);
    que faltam × duração do treino), e meta que depende de técnica não
    existe sem técnica. Casos pedidos em 30/09/2026.
    ============================================================ */
-const { horasPeloRitmo, alvoDeHoras, ritmoSemanal, modoDasHoras, metaIncompleta, progressoDaMeta } = await import('../src/lib/metas.js');
+const { horasPeloRitmo, alvoDeHoras, ritmoSemanal, modoDasHoras, metaIncompleta, progressoDaMeta, ritmoPelasHoras } = await import('../src/lib/metas.js');
 const { hoje, addDias } = await import('../src/lib/utils.js');
 
 let falhas = 0;
@@ -29,6 +29,16 @@ const out = horasPeloRitmo({ frequencia: 3, duracaoMin: 90, desde: '2026-10-01' 
 ok('em janeiro a meta é do ano inteiro (3x de 1h30: 156 treinos, 234h)', [jan.treinos, jan.horas], [156, 234]);
 ok('em outubro, só o que falta do ano', out.horas < jan.horas / 3, true);
 ok('a duração do treino entra na conta: 1h dá menos que 1h30', horasPeloRitmo({ frequencia: 3, duracaoMin: 60, desde: '2026-10-01' }).horas < out.horas, true);
+
+/* ---------- a calculadora: das horas pro ritmo ---------- */
+const duzentas = ritmoPelasHoras({ horas: 200, duracaoMin: 60, desde: '2026-10-01', ritmoAtual: 4 });
+ok('200h em 1/10 com treino de 1h: não fecha (mais de 7 por semana)', [duzentas.selo, duzentas.porSemana > 7], ['naoFecha', true]);
+const sessenta = ritmoPelasHoras({ horas: 52, duracaoMin: 60, desde: '2026-10-01', ritmoAtual: 4 });
+ok('52h em 1/10 a 1h por treino: 4 por semana, no ritmo', [sessenta.porSemana, sessenta.selo], [4, 'ritmo']);
+ok('acima do ritmo mas possível: puxado', ritmoPelasHoras({ horas: 80, duracaoMin: 60, desde: '2026-10-01', ritmoAtual: 3 }).selo, 'puxado');
+ok('o que já foi feito no ano conta', ritmoPelasHoras({ horas: 52, duracaoMin: 60, desde: '2026-10-01', jaFeitas: 52 }).faltam, 0);
+ok('meta já batida fica no ritmo', ritmoPelasHoras({ horas: 52, duracaoMin: 60, desde: '2026-10-01', jaFeitas: 60 }).selo, 'ritmo');
+ok('31/12 não tem semana sobrando: não fecha', ritmoPelasHoras({ horas: 10, duracaoMin: 60, desde: '2026-12-31' }).selo, 'naoFecha');
 
 /* ---------- de onde vem o alvo ---------- */
 const novo = { metaSemanal: 5, metaAnualHorasModo: 'derivada', metaAnualHorasDesde: '2026-09-30' };

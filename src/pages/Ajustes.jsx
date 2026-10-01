@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../contexto';
 import Plano from '../components/Plano';
+import CalculadoraHoras from '../components/CalculadoraHoras';
 import TesteVideo from '../components/TesteVideo';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, exportAll, importAll, wipeAll, ensureSeed } from '../db/db';
@@ -52,6 +53,7 @@ export default function Ajustes() {
   const [aberto, setAberto] = useState(null);
   /* a versão dos avisos instalada neste aparelho (é ela que monta o texto) */
   const [versaoSw, setVersaoSw] = useState(null);
+  const [calculadoraAberta, setCalculadoraAberta] = useState(false);
   useEffect(() => { if (aberto === 'app') versaoDoAparelho().then(setVersaoSw); }, [aberto]);
   const [apagarConta, setApagarConta] = useState(false);
   const toast = useToast();
@@ -248,6 +250,9 @@ export default function Ajustes() {
                 Calcular pelo meu ritmo
               </button>
             )}
+            <button type="button" className="btn ghost xs" style={{ alignSelf: 'flex-start', marginTop: 6 }} onClick={() => setCalculadoraAberta(true)}>
+              Abrir a calculadora de horas
+            </button>
           </Field>
           <Field label="Duração padrão do rola (min)"><Stepper value={settings.duracaoRolaPadrao} onChange={(v) => set('duracaoRolaPadrao', v)} min={1} max={20} /></Field>
         </div>
@@ -421,6 +426,7 @@ export default function Ajustes() {
         )}
       </Sheet>
 
+      <CalculadoraHoras aberto={calculadoraAberta} onClose={() => setCalculadoraAberta(false)} />
       <ApagarConta aberto={apagarConta} onClose={() => setApagarConta(false)} onBaixarCopia={exportarJSON} />
 
       <Modal
