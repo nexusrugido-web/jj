@@ -48,6 +48,7 @@
     "teste:campeonato": "node scripts/teste-campeonato.mjs",
     "teste:metas": "node scripts/teste-metas.mjs",
     "teste:presente": "node scripts/teste-presente-sql.mjs",
+    "backup": "node scripts/backup-supabase.mjs",
     "teste:checkouts": "node scripts/teste-checkouts-sql.mjs",
     "teste:ofensiva-semanal": "node scripts/teste-ofensiva-semanal.mjs && node scripts/teste-ofensiva-sql.mjs"
   },

@@ -109,6 +109,8 @@ Roda os linters (copy, símbolos, ciclos, chunks), o build e todos os testes, in
 
 Rodar local: `npm install`, `cp .env.example .env.local`, `npm run dev`. Sem `.env.local` funciona igual, só sem nuvem e sem IA.
 
+Backup dos dados: `npm run backup` (precisa do Docker e de `SUPABASE_DB_URL` no `.env.local`, a URI do Session pooler do Supabase). Salva um `.dump` em `Downloads/neurojitsu-v12_7/NEUROJITSU-BACKUPS` (fora do git, ficam os 10 mais novos), com os schemas public e auth; volta com `pg_restore`. `supabase/44-tamanho-do-banco.sql` (só leitura) mostra o uso dos 500 MB do plano grátis.
+
 SQL do Supabase: os arquivos de `supabase/` são a versão sem segredo; os prontos pra colar, com segredo, ficam em `Downloads/neurojitsu-v12_7/NEUROJITSU-COLAR` (fora do git). Desde 25/09 os SQLs novos são numerados em `supabase/NN-*.sql` (25 a 42).
 
 ---
