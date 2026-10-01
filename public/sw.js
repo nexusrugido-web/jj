@@ -33,6 +33,8 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('message', (event) => {
   if (event.data === 'SKIP_WAITING') self.skipWaiting();
+  /* Ajustes pergunta qual versão dos avisos está neste aparelho */
+  if (event.data === 'VERSAO') event.ports?.[0]?.postMessage(VERSION);
 });
 
 /* ============================================================

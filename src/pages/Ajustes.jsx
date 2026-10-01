@@ -17,7 +17,7 @@ import {
 } from '../components/UI';
 import { baixarArquivo, hoje } from '../lib/utils';
 import { alvoDeHoras, modoDasHoras } from '../lib/metas';
-import { ehStandalone, detectarPlataforma } from '../lib/pwa';
+import { ehStandalone, detectarPlataforma, versaoDoAparelho, buscarVersaoNova } from '../lib/pwa';
 import { supabaseConfigurado, sair, apagarMinhaConta } from '../lib/supabase';
 import { limparCursor, sincronizar } from '../lib/sync';
 import { minhasTecnicas } from '../lib/graus';
@@ -50,6 +50,9 @@ export default function Ajustes() {
   const modoHoras = modoDasHoras(settings);
   const [temIA, setTemIA] = useState(null);
   const [aberto, setAberto] = useState(null);
+  /* a versão dos avisos instalada neste aparelho (é ela que monta o texto) */
+  const [versaoSw, setVersaoSw] = useState(null);
+  useEffect(() => { if (aberto === 'app') versaoDoAparelho().then(setVersaoSw); }, [aberto]);
   const [apagarConta, setApagarConta] = useState(false);
   const toast = useToast();
   const fileRef = useRef(null);
@@ -320,6 +323,7 @@ export default function Ajustes() {
           <Chip tone={ehStandalone() ? 'jade' : ''}>{ehStandalone() ? 'Instalado' : 'Rodando no navegador'}</Chip>
           <Chip>{plat.iOS ? 'iOS' : plat.androide ? 'Android' : 'Desktop'}</Chip>
           <Chip tone={navigator.onLine ? 'jade' : 'blood'}>{navigator.onLine ? 'Online' : 'Offline'}</Chip>
+          {versaoSw && <Chip>Versão {versaoSw}</Chip>}
         </div>
         <p className="tiny muted" style={{ lineHeight: 1.65 }}>
           Instalado, o app abre da tela de início e funciona sem internet.
@@ -328,11 +332,13 @@ export default function Ajustes() {
         <div className="row wrap" style={{ gap: 8 }}>
           <Btn variant="primary" icon={Smartphone} onClick={() => { fechar(); abrirInstalar(); }}>Como instalar</Btn>
           <Btn variant="contorno" icon={RefreshCw} onClick={async () => {
-            if ('serviceWorker' in navigator) {
-              const regs = await navigator.serviceWorker.getRegistrations();
-              await Promise.all(regs.map((r) => r.update()));
-            }
             toast('Procurando atualização');
+            const v = await buscarVersaoNova();
+            if (!v?.agora) return toast('Não consegui conferir a versão neste aparelho.', 'err');
+            setVersaoSw(v.agora);
+            /* a tela também precisa da versão nova: recarrega se mudou */
+            if (v.antes && v.agora !== v.antes) { toast(`Atualizado pra ${v.agora}`); setTimeout(() => window.location.reload(), 900); }
+            else toast(`Você já está na versão mais nova (${v.agora})`);
           }}>Buscar atualização</Btn>
         </div>
       </Sheet>

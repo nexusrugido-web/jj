@@ -146,6 +146,35 @@ export function vigiarAtualizacao(aoEncontrar) {
 }
 
 let pediuAtualizar = false;
+/* a versão do service worker que está mandando neste aparelho: é ela
+   que monta os avisos. Sem resposta em 2 s, null. */
+export function versaoDoAparelho() {
+  const ativo = navigator.serviceWorker?.controller;
+  if (!ativo) return Promise.resolve(null);
+  return new Promise((ok) => {
+    const canal = new MessageChannel();
+    const t = setTimeout(() => ok(null), 2000);
+    canal.port1.onmessage = (e) => { clearTimeout(t); ok(String(e.data || '').replace('neurojitsu-', '') || null); };
+    ativo.postMessage('VERSAO', [canal.port2]);
+  });
+}
+
+/* busca a versão nova agora e espera ela assumir: devolve a versão que
+   ficou valendo neste aparelho */
+export async function buscarVersaoNova() {
+  if (!('serviceWorker' in navigator)) return null;
+  const antes = await versaoDoAparelho();
+  const regs = await navigator.serviceWorker.getRegistrations();
+  await Promise.all(regs.map((r) => r.update().catch(() => {})));
+  /* a nova assume sozinha (skipWaiting); dá um tempo pra ela entrar */
+  for (let i = 0; i < 8; i++) {
+    const agora = await versaoDoAparelho();
+    if (agora && agora !== antes) return { antes, agora };
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  return { antes, agora: await versaoDoAparelho() };
+}
+
 function aplicar(reg) {
   pediuAtualizar = true;
   /* a tela seguinte diz que deu certo */
