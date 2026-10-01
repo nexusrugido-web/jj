@@ -364,6 +364,78 @@
         20,
         120
       ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "getfy",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-getfy",
+      "name": "Getfy chama aqui",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -420,
+        -560
+      ],
+      "webhookId": "tatame-getfy"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ddtdnufgafwotgdchedr.supabase.co/rest/v1/rpc/n8n_getfy",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkdGRudWZnYWZ3b3RnZGNoZWRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5Nzg1NDMsImV4cCI6MjEwMjU1NDU0M30.jiXwzxgWgjSsXm08LUexakM_pPiDkpDsqTv__zz9xvg"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkdGRudWZnYWZ3b3RnZGNoZWRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5Nzg1NDMsImV4cCI6MjEwMjU1NDU0M30.jiXwzxgWgjSsXm08LUexakM_pPiDkpDsqTv__zz9xvg"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_token: $json.headers['authorization'] || '', p_corpo: $json.body }) }}",
+        "options": {}
+      },
+      "id": "banco-getfy",
+      "name": "O banco decide (Getfy)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -180,
+        -560
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, feito: $json.feito, detalhe: $json.detalhe }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "ok-getfy",
+      "name": "Diz que recebeu (Getfy)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        60,
+        -560
+      ]
     }
   ],
   "connections": {
@@ -462,6 +534,28 @@
           }
         ],
         []
+      ]
+    },
+    "Getfy chama aqui": {
+      "main": [
+        [
+          {
+            "node": "O banco decide (Getfy)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "O banco decide (Getfy)": {
+      "main": [
+        [
+          {
+            "node": "Diz que recebeu (Getfy)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },

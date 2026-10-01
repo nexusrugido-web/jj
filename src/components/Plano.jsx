@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import { Card, Btn, Chip, Sheet } from './UI';
 import { RECURSOS, LIMITES, diasParaVencer, PRECOS, PILARES, NOVIDADES, pedirOferta, marcarFunil } from '../lib/plano';
-import { HOTMART_MINHAS_COMPRAS } from './Renovacao';
+import { ondeGerenciar } from './Renovacao';
 import { fmtData, diasEntre, hoje } from '../lib/utils';
 import { abrirLink, linkDe } from '../lib/links';
 
@@ -18,7 +18,6 @@ const FORMA = {
   'HOTMART_BALANCE': 'saldo Hotmart', 'GOOGLE_PAY': 'Google Pay', 'SAMSUNG_PAY': 'Samsung Pay',
 };
 const reais = (v, moeda) => (v == null ? '' : Number(v).toLocaleString('pt-BR', { style: 'currency', currency: moeda || 'BRL' }));
-const abrirHotmart = () => window.open(HOTMART_MINHAS_COMPRAS, '_blank', 'noopener');
 
 /* O período pago: quanto já passou e quanto falta, numa barra.
    Mensal conta 30 dias, anual 365, pelo nome do plano. */
@@ -39,12 +38,12 @@ function DiasPagos({ acesso, dias }) {
 }
 
 /* As cobranças que a Hotmart aprovou. Nota e recibo ficam lá. */
-function Faturas({ aberto, onClose, faturas }) {
+function Faturas({ aberto, onClose, faturas, onde }) {
   return (
     <Sheet aberto={aberto} onClose={onClose} titulo="Suas faturas">
       {faturas.length === 0 ? (
         <p className="tiny muted" style={{ lineHeight: 1.65 }}>
-          Nenhuma cobrança chegou por aqui ainda. As compras antigas continuam na Hotmart, em Minhas compras.
+          Nenhuma cobrança chegou por aqui ainda. As compras antigas continuam na {onde.nome}, em Minhas compras.
         </p>
       ) : (
         <div className="list">
@@ -66,7 +65,7 @@ function Faturas({ aberto, onClose, faturas }) {
           ))}
         </div>
       )}
-      <Btn variant="contorno" icon={ExternalLink} onClick={abrirHotmart}>Nota e recibo na Hotmart</Btn>
+      {onde.url && <Btn variant="contorno" icon={ExternalLink} onClick={() => window.open(onde.url, '_blank', 'noopener')}>Nota e recibo na {onde.nome}</Btn>}
     </Sheet>
   );
 }
@@ -79,6 +78,8 @@ export default function Plano({ acesso, compacto = false }) {
   const pagos = Object.entries(RECURSOS).filter(([, r]) => r.premium);
 
   const faturas = acesso?.faturas || [];
+  const onde = ondeGerenciar(acesso);
+  const abrirGerenciar = () => onde.url && window.open(onde.url, '_blank', 'noopener');
 
   if (acesso?.premium && acesso.status === 'presente') {
     return (
@@ -112,7 +113,7 @@ export default function Plano({ acesso, compacto = false }) {
             </div>
             <p className="tiny muted" style={{ marginTop: 6, lineHeight: 1.65 }}>
               {acesso.status === 'carencia'
-                ? `${acesso.motivo} Atualize o cartão ou a forma de pagamento na Hotmart.`
+                ? `${acesso.motivo} Atualize o cartão ou a forma de pagamento na ${onde.nome}.`
                 : !acesso.venceEm
                   ? 'Tudo liberado.'
                   : acesso.renova === false
@@ -123,7 +124,7 @@ export default function Plano({ acesso, compacto = false }) {
 
             <div className="row wrap" style={{ gap: 8, marginTop: 12 }}>
               {acesso.status === 'carencia' && (
-                <Btn size="sm" variant="primary" icon={ExternalLink} onClick={abrirHotmart}>Atualizar o pagamento</Btn>
+                <Btn size="sm" variant="primary" icon={ExternalLink} onClick={abrirGerenciar}>Atualizar o pagamento</Btn>
               )}
               {acesso.status !== 'carencia' && acesso.renova === false && (
                 <Btn size="sm" variant="primary" icon={RefreshCw} onClick={() => pedirOferta(null)}>Renovar o Premium</Btn>
@@ -131,13 +132,13 @@ export default function Plano({ acesso, compacto = false }) {
               <Btn size="sm" variant="contorno" icon={Receipt} onClick={() => setVerFaturas(true)}>Faturas</Btn>
             </div>
 
-            <Btn size="sm" variant="contorno" icon={ExternalLink} onClick={abrirHotmart}>
-              Gerenciar ou cancelar na Hotmart
+            <Btn size="sm" variant="contorno" icon={ExternalLink} onClick={abrirGerenciar} disabled={!onde.url}>
+              Gerenciar ou cancelar na {onde.nome}
             </Btn>
           </div>
         </div>
 
-        <Faturas aberto={verFaturas} onClose={() => setVerFaturas(false)} faturas={faturas} />
+        <Faturas aberto={verFaturas} onClose={() => setVerFaturas(false)} faturas={faturas} onde={onde} />
       </Card>
     );
   }
@@ -217,7 +218,7 @@ export default function Plano({ acesso, compacto = false }) {
         </p>
       </Card>
 
-      <Faturas aberto={verFaturas} onClose={() => setVerFaturas(false)} faturas={faturas} />
+      <Faturas aberto={verFaturas} onClose={() => setVerFaturas(false)} faturas={faturas} onde={onde} />
     </>
   );
 }
@@ -290,7 +291,7 @@ export function OfertaPremium({ recurso = null, onAssinar }) {
 
       <ul className="oferta-garantias">
         <li><Check size={13} /> 7 dias de garantia: não curtiu, o dinheiro volta.</li>
-        <li><Check size={13} /> Cancela quando quiser, direto na Hotmart.</li>
+        <li><Check size={13} /> Cancela quando quiser, direto no checkout em que assinou.</li>
         <li><Check size={13} /> Registrar treino continua grátis pra sempre, e os seus dados nunca travam.</li>
       </ul>
 

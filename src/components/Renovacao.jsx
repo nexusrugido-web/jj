@@ -4,6 +4,7 @@ import { useApp } from '../contexto';
 import { Sheet, Btn, useToast } from './UI';
 import { getMeta, setMeta } from '../db/db';
 import { RECURSOS, diasParaVencer, usarCodigoGuardado, pedirOferta } from '../lib/plano';
+import { linkDe } from '../lib/links';
 import { hoje } from '../lib/utils';
 
 /* ============================================================
@@ -20,6 +21,14 @@ import { hoje } from '../lib/utils';
       há menos de uma semana. Quem renova sozinho nunca vê.
    ============================================================ */
 export const HOTMART_MINHAS_COMPRAS = 'https://consumer.hotmart.com/';
+
+/* onde a pessoa gerencia, cancela e atualiza o pagamento: no checkout em
+   que assinou. A Getfy tem a área de compras no endereço do painel de
+   links (gerenciar_getfy). */
+export function ondeGerenciar(acesso) {
+  if (acesso?.origem === 'getfy') return { nome: 'Getfy', url: linkDe('gerenciar_getfy') };
+  return { nome: 'Hotmart', url: HOTMART_MINHAS_COMPRAS };
+}
 
 export function motivoDeRenovar(acesso) {
   if (!acesso) return null;
@@ -107,7 +116,7 @@ export default function Renovacao() {
         </p>
         <Btn variant="primary" style={{ width: '100%' }} onClick={() => {
           setAberto(null);
-          if (pagamento) window.open(HOTMART_MINHAS_COMPRAS, '_blank', 'noopener');
+          if (pagamento) window.open(ondeGerenciar(acesso).url || HOTMART_MINHAS_COMPRAS, '_blank', 'noopener');
           else pedirOferta(null);
         }}>
           {pagamento ? 'Atualizar o pagamento' : presente ? 'Ver o Premium' : 'Renovar o Premium'}

@@ -1,7 +1,9 @@
 # Hotmart, WhatsApp, banco e app
 
 ```
-Hotmart  ->  n8n  ->  Supabase  ->  app
+Hotmart  -+
+          +->  n8n  ->  Supabase  ->  app
+Getfy    -+
                         |
 Evolution Go  <-  n8n  -+   (mensagens e avisos no WhatsApp)
 ```
@@ -23,7 +25,8 @@ pode ser testada.
 | `supabase/recuperacao.sql` | As sequências de WhatsApp: carrinho, Pix pendente e renovação |
 | `supabase/n8n.sql` | As portas que o n8n usa, cada uma conferindo um segredo |
 | `supabase/vendas.sql` | O livro de eventos, os produtos, os links rastreados e a vigia |
-| `n8n/neurojitsu.json` | O fluxo do n8n, com três entradas |
+| `supabase/42-dois-checkouts.sql` | A porta da Getfy: traduz o evento pro formato da Hotmart e usa o mesmo processamento (`processar_venda`) |
+| `n8n/neurojitsu.json` | O fluxo do n8n, com quatro entradas |
 | `api/r.js` | O link curto `/r/<codigo>`, que conta o clique e manda pra Hotmart |
 
 ## 1. Rodar o SQL
@@ -57,9 +60,10 @@ Ajustes) pra receber lead quente, alarme e venda.
 Importe `neurojitsu.json` e ative. Ele não usa variável de ambiente: chama o
 banco com a chave pública do app, e cada função confere o próprio segredo.
 
-As três entradas:
+As quatro entradas:
 
 - **Hotmart chama aqui** (`/webhook/hotmart`): manda o aviso inteiro pro banco.
+- **Getfy chama aqui** (`/webhook/getfy`): manda o aviso e o token Bearer pro banco (`n8n_getfy`). Na Getfy: Integrações → Webhooks, URL `https://n8n.nexusrugido.com/webhook/getfy`, o token do segredo `getfy` e todos os eventos. Produto da Getfy aparece no painel como `getfy:<id>` e é classificado igual ao da Hotmart; carrinho abandonado da Getfy volta pelo link `checkout_getfy`.
 - **A cada 5 minutos**: pega a fila (avisos pra você e mensagens de
   recuperação) e manda pelo Evolution Go, uma a cada 8 segundos.
 - **WhatsApp chama aqui** (`/webhook/evogo`): manda a mensagem que chegou pro

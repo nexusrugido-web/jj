@@ -152,6 +152,8 @@ export async function sincronizarAcesso() {
       carenciaAte: r?.carencia_ate || null,
       motivo: r?.motivo || '',
       renova: ass ? !!ass.renova : null,
+      /* hotmart ou getfy: é lá que a pessoa gerencia e cancela */
+      origem: ass?.origem || null,
       faturas: ass?.faturas || [],
       checadoEm: new Date().toISOString(),
     };
