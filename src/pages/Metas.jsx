@@ -212,7 +212,12 @@ export default function Metas() {
                 onCompartilhar={(p) => setStory(p.concluida
                   ? { selo: 'meta concluída', grande: tituloDaMeta(g) }
                   : { selo: 'minha meta', grande: p.valor || tituloDaMeta(g), sub: p.valor ? tituloDaMeta(g) : '', pct: p.pct })}
-                onConcluir={async () => { await db.goals.update(g.id, { status: 'concluida', concluidaEm: hoje() }); toast('Meta concluída'); }}
+                onConcluir={async () => {
+                  await db.goals.update(g.id, { status: 'concluida', concluidaEm: hoje() });
+                  toast('Meta concluída');
+                  /* bateu a meta: já abre o story pra divulgar */
+                  setStory({ selo: 'meta batida', grande: tituloDaMeta(g) });
+                }}
                 onContar={async (passo) => {
                   /* meta manual guarda o número inteiro; as outras
                      guardam só o ajuste em cima do que foi contado */
@@ -297,7 +302,7 @@ export default function Metas() {
         )
       )}
 
-      <Figurinha aberto={!!story} onClose={() => setStory(null)} dados={story} tipo="meta" />
+      <Figurinha limpa aberto={!!story} onClose={() => setStory(null)} dados={story} tipo="meta" />
 
       {/* criar a própria meta, ou passar do limite, no grátis */}
       <Sheet aberto={convite} onClose={() => setConvite(false)} titulo="">

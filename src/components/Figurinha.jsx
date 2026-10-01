@@ -32,15 +32,17 @@ export default function Figurinha({ aberto, onClose, dados, tipo = 'marco', link
   const { acesso, settings } = useApp();
   const toast = useToast();
   const [fundo, setFundo] = useState('sem');
-  /* limpa (Conquistas): começa só com o título, sem frase nem a linha de
-     cima; a pessoa liga o que quiser */
+  /* limpa (Conquistas e metas): começa só com a marca e o título, sem
+     frase, linha de cima, detalhe, faixa nem desenho; a pessoa liga o que quiser */
   const [comFrase, setComFrase] = useState(!limpa);
   const [comSelo, setComSelo] = useState(!limpa);
+  const [comSub, setComSub] = useState(!limpa);
+  const [comFaixa, setComFaixa] = useState(!limpa);
   const frases = FRASES[tipo] || FRASES.marco;
   /* começa numa frase qualquer: senão todo mundo posta a mesma */
   const [qualFrase, setQualFrase] = useState(() => Math.floor(Math.random() * frases.length));
   const [tema, setTema] = useState('app');
-  const [desenho, setDesenho] = useState(DESENHO_PADRAO[tipo] || '');
+  const [desenho, setDesenho] = useState(limpa ? '' : DESENHO_PADRAO[tipo] || '');
   const [url, setUrl] = useState(null);
   const blob = useRef(null);
   const chave = JSON.stringify(dados || {});
@@ -57,7 +59,8 @@ export default function Figurinha({ aberto, onClose, dados, tipo = 'marco', link
     if (!aberto) return undefined;
     let vivo = true;
     desenharFigurinha({
-      ...JSON.parse(chave), selo: comSelo ? dados?.selo : '', frase: frase.t, autor: frase.autor,
+      ...JSON.parse(chave), selo: comSelo ? dados?.selo : '', sub: comSub ? dados?.sub || '' : '',
+      faixa: comFaixa ? dados?.faixa || null : null, frase: frase.t, autor: frase.autor,
       tema, corFaixa, desenho, fundo: fundo === 'com',
       divisao: minhaDivisao?.divisao && minhaDivisao.divisao !== 'branca' ? nomeDivisao(minhaDivisao.divisao) : '',
     })
@@ -69,7 +72,7 @@ export default function Figurinha({ aberto, onClose, dados, tipo = 'marco', link
       })
       .catch((e) => console.error('[figurinha]', e));
     return () => { vivo = false; };
-  }, [aberto, fundo, chave, comSelo, frase.t, frase.autor, tema, corFaixa, desenho, minhaDivisao?.divisao]);
+  }, [aberto, fundo, chave, comSelo, comSub, comFaixa, frase.t, frase.autor, tema, corFaixa, desenho, minhaDivisao?.divisao]);
 
   const arquivo = () => new File([blob.current], 'neurojitsu.png', { type: 'image/png' });
   const podeCompartilhar = (() => {
@@ -116,6 +119,16 @@ export default function Figurinha({ aberto, onClose, dados, tipo = 'marco', link
           <button type="button" className={comSelo ? 'on' : ''} aria-pressed={comSelo} onClick={() => setComSelo(!comSelo)}>
             {comSelo ? <Check size={14} /> : <Plus size={14} />} Rótulo
           </button>
+          {dados?.sub && (
+            <button type="button" className={comSub ? 'on' : ''} aria-pressed={comSub} onClick={() => setComSub(!comSub)}>
+              {comSub ? <Check size={14} /> : <Plus size={14} />} Detalhe
+            </button>
+          )}
+          {dados?.faixa && (
+            <button type="button" className={comFaixa ? 'on' : ''} aria-pressed={comFaixa} onClick={() => setComFaixa(!comFaixa)}>
+              {comFaixa ? <Check size={14} /> : <Plus size={14} />} Faixa
+            </button>
+          )}
           <button type="button" className={comFrase ? 'on' : ''} aria-pressed={comFrase} onClick={() => setComFrase(!comFrase)}>
             {comFrase ? <Check size={14} /> : <Plus size={14} />} Frase
           </button>
