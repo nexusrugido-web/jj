@@ -123,6 +123,55 @@ await pg.query('select * from public.fila_de_notificacao()');
 for(const role of ['anon','authenticated']) {
   assert.equal((await pg.query("select has_function_privilege($1,'public.ofensiva_semanal_de(uuid)','EXECUTE') as pode",[role])).rows[0].pode,false);
 }
+// 36: contagem regressiva. No teste, now() vira um relógio que o teste controla.
+await pg.exec(`create table public.relogio(agora timestamptz);
+  create function public.agora() returns timestamptz language sql stable as $$ select agora from public.relogio $$;`);
+const sql36 = (await fs.readFile(new URL('../supabase/36-avisos-contagem-regressiva.sql', import.meta.url), 'utf8')).replaceAll('now()', 'public.agora()');
+await pg.exec("insert into relogio values ('2026-10-01 12:00-03')");
+await pg.exec(sql36);
+await pg.exec(sql36); // reexecução segura
+const u2 = '00000000-0000-0000-0000-000000000002';
+const semanal = '00000000-0000-0000-0000-000000000201';
+await pg.query('insert into perfil(user_id,nome) values($1,$2)', [u2, 'Semanal']);
+await pg.query('insert into registros(id,user_id,tabela,dados) values($1,$2,$3,$4)',
+  [semanal, u2, 'goals', JSON.stringify({ tipo: 'frequencia', titulo: 'Treinar 3x por semana', alvo: 3, status: 'ativa', origem: 'usuario' })]);
+const avisoMeta = async (dia) => (await pg.query('select public.proxima_meta_para_aviso($1,$2) as v', [u2, dia])).rows[0].v;
+// semana de 05/10 (segunda) a 11/10 (domingo), sem treino
+assert.equal(await avisoMeta('2026-10-08'), null, 'quinta: 3 treinos em 4 dias ainda tem folga');
+let sem = await avisoMeta('2026-10-09');
+assert.equal(sem.tipo, `meta:${semanal}`, 'sexta: 3 treinos em 3 dias, sem folga');
+assert.match(sem.corpo, /Faltam 3 dias e 3 treinos/);
+assert.equal(await avisoMeta('2026-10-10'), null, 'sábado: 3 em 2 dias já não fecha, não cobra');
+await pg.query('insert into notificacao_envio(user_id,tipo,dia,enviado_em,respondeu) values($1,$2,$3,$4,false)', [u2, `meta:${semanal}`, '2026-10-09', '2026-10-09 20:00-03']);
+for (const d of ['2026-10-06', '2026-10-07']) await pg.query('insert into registros(user_id,tabela,dados) values($1,$2,$3)', [u2, 'sessions', JSON.stringify({ data: d, tipo: 'gi' })]);
+assert.equal(await avisoMeta('2026-10-11'), null, 'uma vez por semana');
+await pg.query('delete from notificacao_envio where user_id=$1', [u2]);
+sem = await avisoMeta('2026-10-11');
+assert.match(sem.corpo, /Último dia da semana: 1 treino fecha a meta/, 'domingo, faltando 1, com a semana já treinada');
+await pg.query('insert into notificacao_envio(user_id,tipo,dia,enviado_em,respondeu) values($1,$2,$3,$4,false)', [u2, `meta:${semanal}`, '2026-10-09', '2026-10-09 20:00-03']);
+assert.equal((await avisoMeta('2026-10-16')).tipo, `meta:${semanal}`, 'a semana seguinte avisa de novo (antes eram 14 dias)');
+await pg.query('delete from registros where user_id=$1 and tabela=$2', [u2, 'sessions']);
+await pg.query("update registros set dados=jsonb_set(dados,'{alvo}','1') where id=$1", [semanal]);
+assert.equal(await avisoMeta('2026-10-11'), null, 'domingo sem treino nenhum: quem fala é a ofensiva');
+await pg.query("update registros set dados=jsonb_set(dados,'{status}','\"concluida\"') where id=$1", [semanal]);
+// a reta final: domingo 27/09 (hoje_br do teste), ofensiva viva e semana sem treino
+const u3 = '00000000-0000-0000-0000-000000000003';
+await pg.query('insert into perfil(user_id,nome) values($1,$2)', [u3, 'Reta']);
+await pg.query('insert into registros(user_id,tabela,dados) values($1,$2,$3)', [u3, 'sessions', JSON.stringify({ data: '2026-09-14', tipo: 'gi' })]);
+await pg.query("insert into push_inscricao(user_id,endpoint,p256dh,auth,fuso) values($1,'m3','m','m','America/Sao_Paulo')", [u3]);
+const filaDe = async (hora) => {
+  await pg.query('update relogio set agora=$1', [`2026-09-27 ${hora}-03`]);
+  return (await pg.query('select tipo,titulo from public.fila_de_notificacao() where user_id=$1', [u3])).rows;
+};
+assert.deepEqual((await filaDe('18:10')).map((r) => r.tipo), ['ofensiva_semanal'], 'na hora de costume, o aviso normal');
+assert.deepEqual((await filaDe('20:10')).map((r) => r.tipo), [], 'fora da hora, nada');
+const reta = await filaDe('21:10');
+assert.deepEqual(reta.map((r) => r.tipo), ['ofensiva_reta_final'], '21h de Brasília, a reta final');
+assert.match(reta[0].titulo, /Faltam 3 horas: 1 semanas de ofensiva em jogo/);
+assert.deepEqual((await filaDe('22:10')).map((r) => r.tipo), [], 'a reta final é uma vez só');
+await pg.query('insert into registros(user_id,tabela,dados) values($1,$2,$3)', [u3, 'sessions', JSON.stringify({ data: '2026-09-26', tipo: 'gi' })]);
+assert.deepEqual((await filaDe('21:10')).map((r) => r.tipo), [], 'treinou na semana: não cobra');
+
 // O registro excluído deixa de contar sem depender de abrir o aplicativo.
 await pg.exec(`set test.uid='${user}'; update registros set deleted_at=now();`);
 assert.equal((await pg.query('select public.minha_ofensiva_semanal() as o')).rows[0].o.semanas,0);

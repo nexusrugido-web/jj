@@ -79,6 +79,7 @@ try {
     clicar(acharBotao('continuar')); await esperar();
     clicar(acharBotao('menos de 6 meses')); await esperar(600);
     clicar([...raiz.querySelectorAll('button')].find((b) => b.textContent.trim() === '3x')); await esperar(600);
+    clicar([...raiz.querySelectorAll('button')].find((b) => b.textContent.trim() === '1h')); await esperar(600);
     clicar(acharBotao('treinar por prazer')); await esperar(600);
     clicar(acharBotao('pular')); await esperar();
     clicar(acharBotao('pular esta parte')); await esperar();

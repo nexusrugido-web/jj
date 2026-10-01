@@ -362,7 +362,7 @@ export function metaDeHorasNoAno(sessions, alvo, origem = '') {
     conta: true, atual: h, alvo, pct: pct(h, alvo), horas: true,
     valor: deAte(h, alvo, true), periodo, quando: origem || periodo.rotulo,
     /* o prazo no título, com o ano: "até 31/12/2026" */
-    titulo: `Horas de tatame até 31/12/${periodo.ini.slice(0, 4)}`,
+    titulo: `Horas de tatame até o final de ${periodo.ini.slice(0, 4)} - 31/12/${periodo.ini.slice(0, 4)}`,
     texto: h >= alvo ? `${h}h neste ano, meta batida.` : `${h}h de ${alvo}h neste ano.`,
   };
 }

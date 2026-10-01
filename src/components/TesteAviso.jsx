@@ -17,7 +17,8 @@ import { Card, Btn, Field, Input, useToast } from './UI';
    public/sw.js; aqui só diz qual mandar. */
 const AVISOS = [
   { id: 'teste', tipo: 'teste', nome: 'Teste geral', quando: 'Só pra ver se a corrente inteira funciona.' },
-  { id: 'ofensiva', tipo: 'ofensiva_semanal', nome: 'Ofensiva semanal', quando: 'Domingo, na hora de costume, se a semana ainda não tem treino e não está pausada por lesão.' },
+  { id: 'ofensiva', tipo: 'ofensiva_semanal', nome: 'Ofensiva semanal', quando: 'Domingo, na hora de costume (antes das 21h), se a semana ainda não tem treino e não está pausada por lesão.' },
+  { id: 'reta', tipo: 'ofensiva_reta_final', nome: 'Reta final da ofensiva', quando: 'Domingo às 21h de Brasília, 3h antes da semana fechar, com o relógio de quanto falta.' },
   { id: 'liga', tipo: 'liga', nome: 'A liga fecha hoje', quando: 'Domingo às 10h, pra quem está num grupo da liga.' },
   { id: 'resultado', tipo: 'resultado', nome: 'Resultado da liga', quando: 'Segunda às 14h, depois que a semana fecha.' },
   { id: 'volta', tipo: 'volta', nome: 'Volta pro tatame', quando: 'Depois de 7 dias sem nada, no máximo uma vez por mês.' },

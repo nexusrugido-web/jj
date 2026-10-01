@@ -5,7 +5,7 @@
    - fontes externas: cache-first
    Os DADOS ficam no IndexedDB, entao o app inteiro funciona sem internet. */
 
-const VERSION = 'neurojitsu-v12-10';
+const VERSION = 'neurojitsu-v12-11';
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
 
@@ -70,6 +70,20 @@ const ROTA = {
 const doDia = (lista, versao) =>
   lista[(Number.isInteger(versao) ? versao : Math.floor(Date.now() / 86400000)) % lista.length];
 
+/* a semana fecha na virada de domingo pra segunda, horário de Brasília
+   (UTC-3 o ano todo desde 2019). Quanto falta é contado na hora em que o
+   aviso aparece, não na hora em que o servidor mandou: se o celular
+   estava sem sinal e recebeu atrasado, o número continua certo. */
+function fimDaSemana(agora = Date.now()) {
+  const br = new Date(agora - 3 * 3600000);
+  const diasAteSegunda = ((8 - br.getUTCDay()) % 7) || 7;
+  return Date.UTC(br.getUTCFullYear(), br.getUTCMonth(), br.getUTCDate() + diasAteSegunda) + 3 * 3600000;
+}
+function quantoFalta(agora = Date.now()) {
+  const min = Math.floor((fimDaSemana(agora) - agora) / 60000);
+  return min >= 60 ? `${Math.floor(min / 60)}h${String(min % 60).padStart(2, '0')}` : `${min} min`;
+}
+
 function aviso(n) {
   /* o teste do admin escolhe a versão; o aviso de verdade usa a do dia */
   const qual = (lista) => doDia(lista, n.versao);
@@ -80,6 +94,18 @@ function aviso(n) {
       titulo: n.title || 'Sua semana de treino ainda está aberta',
       corpo: n.body || 'Se você treinou nesta semana, registre para manter sua sequência.',
       acoes: [{ acao: 'treino', titulo: 'Registrar treino', rota: ROTA.treino }],
+    };
+  }
+  /* domingo às 21h: igual ao do Duolingo, o relógio na cara */
+  if (tipo === 'ofensiva_reta_final') {
+    const restante = fimDaSemana() - Date.now();
+    return {
+      titulo: restante > 0 && restante <= 6 * 3600000
+        ? `⏳ ${quantoFalta()} pra semana fechar`
+        : 'Sua semana de treino ainda está aberta',
+      corpo: '1 treino registrado = ofensiva segura! ⚠️ Treinou e não registrou? Registra agora.',
+      acoes: [{ acao: 'treino', titulo: 'Salvar ofensiva', rota: ROTA.treino }],
+      ate: fimDaSemana(),
     };
   }
   if (tipo.startsWith('meta:')) {
@@ -174,7 +200,8 @@ self.addEventListener('push', (event) => {
     tag: n.tag || 'neurojitsu',
     renotify: true,
     vibrate: [80, 40, 80],
-    timestamp: Date.now(),
+    /* na reta final, a hora do aviso é a hora do prazo */
+    timestamp: bonito.ate || Date.now(),
     /* os botões embaixo do aviso, como no Duolingo: o toque já leva
        pra ação, sem abrir o app e procurar */
     actions: bonito.acoes.map(({ acao, titulo: t }) => ({ action: acao, title: t })),

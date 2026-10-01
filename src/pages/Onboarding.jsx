@@ -48,6 +48,7 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
     graus: settings.graus || 0,
     tempo: '',
     frequencia: 0,
+    duracao: 0,
     objetivo: '',
     dificuldades: [],
   });
@@ -66,6 +67,7 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
     { id: 'faixa', rotulo: 'Sua faixa' },
     { id: 'tempo', rotulo: 'Seu tempo de tatame' },
     { id: 'frequencia', rotulo: 'Seu ritmo' },
+    { id: 'duracao', rotulo: 'Seu treino' },
     { id: 'objetivo', rotulo: 'O que te move' },
     { id: 'trava', rotulo: 'O que te trava' },
     { id: 'estilo', rotulo: 'Seu estilo' },
@@ -117,6 +119,8 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
         graus: perfil.graus,
         tempoTreino: perfil.tempo,
         metaSemanal: perfil.frequencia,
+        /* vira o padrão do novo treino e a base da conta das horas */
+        duracaoTreinoPadrao: perfil.duracao,
         metaAnualHorasModo: acompanharHoras && perfil.frequencia ? 'derivada' : 'desligada',
         metaAnualHorasDesde: hoje(),
         objetivo: perfil.objetivo || 'lazer',
@@ -158,6 +162,7 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
     : atual === 'faixa' ? faixaValidaNaIdade(perfil.faixa, idadeDe(perfil.anoNascimento))
     : atual === 'tempo' ? !!perfil.tempo
     : atual === 'frequencia' ? perfil.frequencia > 0
+    : atual === 'duracao' ? perfil.duracao > 0
     : atual === 'objetivo' ? !!perfil.objetivo
     : true;
 
@@ -273,6 +278,23 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
                   onClick={() => escolher({ frequencia: n })}>{n}x</button>
               ))}
             </div>
+          </div>
+        )}
+
+        {atual === 'duracao' && (
+          <div className="col" style={{ gap: 16 }}>
+            <Pergunta
+              titulo="Quanto tempo dura 1 treino seu?"
+              texto="Da hora que começa o aquecimento até o último rola. Vira o padrão quando você registra um treino, e é com ele que o app conta suas horas de tatame."
+            />
+            <div className="row wrap" style={{ gap: 8 }}>
+              {[[45, '45 min'], [60, '1h'], [75, '1h15'], [90, '1h30'], [120, '2h']].map(([min, rotulo]) => (
+                <button key={min} type="button" className={`chip ${perfil.duracao === min ? 'on' : ''}`}
+                  style={{ minHeight: 48, minWidth: 72, justifyContent: 'center' }}
+                  onClick={() => escolher({ duracao: min })}>{rotulo}</button>
+              ))}
+            </div>
+            <p className="micro muted">Dá pra mudar depois em Ajustes, e cada treino aceita outra duração na hora de registrar.</p>
           </div>
         )}
 
@@ -394,7 +416,7 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
             )}
 
             {perfil.frequencia >= 1 && (() => {
-              const p = horasPeloRitmo({ frequencia: perfil.frequencia, duracaoMin: Number(settings.duracaoTreinoPadrao) || 90, desde: hoje() });
+              const p = horasPeloRitmo({ frequencia: perfil.frequencia, duracaoMin: perfil.duracao || 90, desde: hoje() });
               const duracao = p.duracaoMin % 60 ? `${Math.floor(p.duracaoMin / 60)}h${String(p.duracaoMin % 60).padStart(2, '0')}` : `${p.duracaoMin / 60}h`;
               return (
                 <button type="button" className={`opcao-meta ${acompanharHoras ? 'on' : ''}`} onClick={() => setAcompanharHoras(!acompanharHoras)}>
@@ -406,7 +428,7 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
                     }}>
                       {acompanharHoras && <Check size={12} color="var(--accent-ink)" strokeWidth={3} />}
                     </span>
-                    <span className="tiny" style={{ fontWeight: 600, flex: 1 }}>Horas de tatame até 31 de dezembro</span>
+                    <span className="tiny" style={{ fontWeight: 600, flex: 1 }}>Horas de tatame até o final de {hoje().slice(0, 4)} - 31/12/{hoje().slice(0, 4)}</span>
                   </div>
                   <div className="onb-ritmo">
                     <div><span className="num">{perfil.frequencia}</span><small>{perfil.frequencia === 1 ? 'treino por semana' : 'treinos por semana'}</small></div>
