@@ -466,7 +466,11 @@ function calcular(meta, dados = {}) {
        parada em 0% por semanas e parecia impossível. Contando dias, ela
        anda todo dia que você treina sem bater, e volta ao zero se bater. */
     const b = buracos.find((x) => x.nome === meta.alvo);
-    const dias = b?.ultima ? Math.max(0, diasEntre(b.ultima, hoje())) : DIAS_SEM_SER_PEGO;
+    /* conta do mais recente entre a última vez que te pegaram e o começo
+       da meta. Antes, "nunca te pegou" valia 30 dias de cara, e a meta
+       recém-criada já nascia batida. */
+    const desde = [b?.ultima, meta.inicio].filter(Boolean).sort().pop();
+    const dias = desde ? Math.max(0, diasEntre(desde, hoje())) : 0;
     const feito = Math.min(dias, DIAS_SEM_SER_PEGO);
     const nome = String(meta.alvo).toLowerCase();
     return {

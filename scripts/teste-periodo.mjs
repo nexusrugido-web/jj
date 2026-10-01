@@ -230,7 +230,7 @@ const primeiraSemana = P.periodoDeDados('semana-atual', { hoje: antes(15) }).ini
 ok('frequência: uma linha por semana fechada, sem a semana atual', [semanas.every((s) => s.data < semanaAgora.ini), semanas[semanas.length - 1].data], [true, primeiraSemana]);
 ok('defesa: diz desde quando, em português', defesa.quando.startsWith('Sem bater pra americana desde'), true);
 ok('defesa: ajuste antigo (da conta invertida) não entra', defesa.atual, 10);
-ok('defesa de quem nunca te pegou é meta batida', prog({ tipo: 'defesa', alvo: 'Kimura' }, { buracos: buracosM }).pct, 100);
+ok('defesa: nunca te pegou, conta desde o começo da meta (30 dias depois, batida)', prog({ tipo: 'defesa', alvo: 'Kimura', inicio: antes(30) }, { buracos: buracosM }).pct, 100);
 ok('pego hoje: a contagem recomeça', prog({ tipo: 'defesa', alvo: 'Americana' }, { buracos: [{ nome: 'Americana', ultima: hoje() }] }).atual, 0);
 
 const sofridas = [antes(29), antes(30), H].map((data) => ({ data }));

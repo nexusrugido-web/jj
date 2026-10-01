@@ -97,6 +97,8 @@ export default function Metas() {
        pego na Americana") em vez de continuar com o título genérico */
     const antes = g.id ? goals.find((x) => x.id === g.id) : null;
     if (!g.titulo || (antes && metaIncompleta(antes))) g.titulo = tituloAutomatico(g);
+    /* ganhou a técnica agora: começa a contar de hoje */
+    if (antes && metaIncompleta(antes)) g.inicio = hoje();
     if (g.id) await db.goals.put(g);
     else await db.goals.add({ ...g, criadoEm: Date.now() });
     setEdit(null);
@@ -311,7 +313,7 @@ export default function Metas() {
       <Sheet
         aberto={!!edit} onClose={() => setEdit(null)}
         titulo={edit?.id ? 'Editar meta' : 'Nova meta'}
-        footer={<><Btn variant="ghost" onClick={() => setEdit(null)}>Cancelar</Btn><Btn variant="primary" icon={Check} onClick={salvar}>Salvar</Btn></>}
+        footer={<><Btn variant="ghost" onClick={() => setEdit(null)}>Cancelar</Btn><Btn variant="primary" icon={Check} onClick={() => salvar()}>Salvar</Btn></>}
       >
         {edit && (
           <>

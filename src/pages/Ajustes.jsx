@@ -83,7 +83,16 @@ export default function Ajustes() {
     e.target.value = '';
   }
 
-  const fechar = () => setAberto(null);
+  /* as configurações salvam sozinhas enquanto a pessoa mexe; ao fechar,
+     se algo mudou, a confirmação aparece (antes fechava calado e parecia
+     que nada tinha sido salvo) */
+  const fotoAoAbrir = useRef(null);
+  const abrir = (qual) => { fotoAoAbrir.current = JSON.stringify(settings); setAberto(qual); };
+  const fechar = () => {
+    if (fotoAoAbrir.current && fotoAoAbrir.current !== JSON.stringify(settings)) toast('Salvo');
+    fotoAoAbrir.current = null;
+    setAberto(null);
+  };
   const faixaNome = FAIXAS.find((f) => f.id === settings.faixa)?.nome || 'Branca';
   const idadeFaixa = idadeDe(settings.anoNascimento);
   const idadeFaixaValida = idadeFaixa != null && idadeFaixa >= IDADE_MINIMA && idadeFaixa < 100;
@@ -118,17 +127,17 @@ export default function Ajustes() {
 
       {/* cada item abre o seu popup: a tela fica curta e cada assunto no seu lugar */}
       <Card className="ajustes-lista" style={{ marginBottom: 14 }}>
-        <LinhaAjuste icone={User} titulo="Perfil" resumo={`${settings.nome || 'Sem nome'} · Faixa ${faixaNome.toLowerCase()}`} onClick={() => setAberto('perfil')} />
-        <LinhaAjuste icone={Palette} titulo="Aparência" resumo="Cor, fundo e o que aparece no Painel" onClick={() => setAberto('aparencia')} />
-        <LinhaAjuste icone={Info} titulo="Como usar" resumo="O passo a passo do app" onClick={() => setAberto('comousar')} />
-        <LinhaAjuste icone={Smartphone} titulo="App no celular" resumo={ehStandalone() ? 'Instalado' : 'Rodando no navegador'} onClick={() => setAberto('app')} />
-        <LinhaAjuste icone={Bell} titulo="Avisos" resumo="Ofensiva e liga, no máximo um por dia" onClick={() => setAberto('avisos')} />
-        <LinhaAjuste icone={Database} titulo="Seus dados" resumo="Tudo salva sozinho" onClick={() => setAberto('dados')} />
+        <LinhaAjuste icone={User} titulo="Perfil" resumo={`${settings.nome || 'Sem nome'} · Faixa ${faixaNome.toLowerCase()}`} onClick={() => abrir('perfil')} />
+        <LinhaAjuste icone={Palette} titulo="Aparência" resumo="Cor, fundo e o que aparece no Painel" onClick={() => abrir('aparencia')} />
+        <LinhaAjuste icone={Info} titulo="Como usar" resumo="O passo a passo do app" onClick={() => abrir('comousar')} />
+        <LinhaAjuste icone={Smartphone} titulo="App no celular" resumo={ehStandalone() ? 'Instalado' : 'Rodando no navegador'} onClick={() => abrir('app')} />
+        <LinhaAjuste icone={Bell} titulo="Avisos" resumo="Ofensiva e liga, no máximo um por dia" onClick={() => abrir('avisos')} />
+        <LinhaAjuste icone={Database} titulo="Seus dados" resumo="Tudo salva sozinho" onClick={() => abrir('dados')} />
         <LinhaAjuste
           icone={sessao ? UserRound : LogIn}
           titulo="Conta"
           resumo={!supabaseConfigurado ? 'Só neste aparelho' : sessao ? sessao.user?.email : 'Entrar ou criar conta'}
-          onClick={() => setAberto('conta')}
+          onClick={() => abrir('conta')}
         />
       </Card>
 

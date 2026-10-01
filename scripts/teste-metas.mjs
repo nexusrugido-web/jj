@@ -8,7 +8,8 @@ register('./como-vite.mjs', import.meta.url);
    que faltam × duração do treino), e meta que depende de técnica não
    existe sem técnica. Casos pedidos em 30/09/2026.
    ============================================================ */
-const { horasPeloRitmo, alvoDeHoras, ritmoSemanal, modoDasHoras, metaIncompleta } = await import('../src/lib/metas.js');
+const { horasPeloRitmo, alvoDeHoras, ritmoSemanal, modoDasHoras, metaIncompleta, progressoDaMeta } = await import('../src/lib/metas.js');
+const { hoje, addDias } = await import('../src/lib/utils.js');
 
 let falhas = 0;
 const ok = (nome, real, esperado) => {
@@ -48,6 +49,12 @@ ok('defesa sem técnica é incompleta', metaIncompleta({ tipo: 'defesa', alvo: '
 ok('técnica sem nome é incompleta', metaIncompleta({ tipo: 'tecnica', alvo: '  ' }), true);
 ok('defesa com técnica acompanha', metaIncompleta({ tipo: 'defesa', alvo: 'Americana' }), false);
 ok('frequência não depende de técnica', metaIncompleta({ tipo: 'frequencia', alvo: 5 }), false);
+
+/* ---------- defesa: conta a partir do começo da meta (o bug de 30/09) ---------- */
+const defesaNova = { tipo: 'defesa', alvo: 'Americana da guarda', origem: 'usuario', status: 'ativa', inicio: hoje() };
+ok('meta de defesa recém-criada, nunca pego: não nasce batida', progressoDaMeta(defesaNova, { buracos: [] }).pct, 0);
+ok('10 dias depois do começo, sem ser pego: 10 de 30', progressoDaMeta({ ...defesaNova, inicio: addDias(hoje(), -10) }, { buracos: [] }).atual, 10);
+ok('pego depois do começo: conta da última vez', progressoDaMeta({ ...defesaNova, inicio: addDias(hoje(), -20) }, { buracos: [{ nome: 'Americana da guarda', ultima: addDias(hoje(), -3) }] }).atual, 3);
 
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);
