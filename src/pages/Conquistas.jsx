@@ -32,7 +32,7 @@ function Compartilhar({ tipo, dados, texto, variante, figura, frases, soIcone = 
       {soIcone
         ? <button type="button" className="btn ghost icon sm" aria-label="Compartilhar" onClick={() => setAberto(true)}><Share2 size={16} /></button>
         : <Btn size="sm" variant={variante} icon={Share2} onClick={() => setAberto(true)}>Compartilhar</Btn>}
-      <Figurinha aberto={aberto} onClose={() => setAberto(false)} dados={figura} tipo={frases} link={{ tipo, dados, texto }} />
+      <Figurinha limpa aberto={aberto} onClose={() => setAberto(false)} dados={figura} tipo={frases} link={{ tipo, dados, texto }} />
     </>
   );
 }
@@ -353,7 +353,7 @@ export default function Conquistas() {
         aviso={faixaNova} tecnica={esteira[0]} onClose={() => setFaixaNova(null)}
         onCompartilhar={() => { setStoryGrad(faixaNova.figura); setFaixaNova(null); }}
       />
-      <Figurinha aberto={!!storyGrad} onClose={() => setStoryGrad(null)} dados={storyGrad} tipo="graduacao" />
+      <Figurinha limpa aberto={!!storyGrad} onClose={() => setStoryGrad(null)} dados={storyGrad} tipo="graduacao" />
 
       <Confirmar
         aberto={!!excluir} onClose={() => setExcluir(null)}
@@ -416,7 +416,7 @@ export function Celebracao({ marco, onFechar }) {
           Compartilhar no story
         </Btn>
       </div>
-      <Figurinha
+      <Figurinha limpa
         aberto={story} onClose={() => setStory(false)}
         dados={{ selo: seloDoMarco(marco.tipo), grande: marco.titulo, sub: marco.texto }}
         tipo={frasesDoMarco(marco.tipo)}

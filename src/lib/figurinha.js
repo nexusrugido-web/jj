@@ -230,24 +230,10 @@ export async function desenharFigurinha({ selo, grande, sub = '', pct = null, fr
     ctx.shadowOffsetY = 3;
   };
 
-  if (fundo) {
-    const g = ctx.createLinearGradient(0, 0, 0, LADO);
-    g.addColorStop(0, '#1d2326');
-    g.addColorStop(1, '#0b0e0f');
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.roundRect(24, 24, LADO - 48, LADO - 48, 64);
-    ctx.fill();
-    /* no tema pago, a borda pega a cor dele */
-    ctx.strokeStyle = tema === 'app' ? 'rgba(255,255,255,0.09)' : acento;
-    ctx.globalAlpha = tema === 'app' ? 1 : 0.55;
-    ctx.lineWidth = tema === 'app' ? 3 : 5;
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-  } else {
-    /* sem fundo, a sombra segura a leitura em cima de qualquer foto */
-    sombra();
-  }
+  /* sem fundo, a sombra segura a leitura em cima de qualquer foto. O
+     cartão escuro (com fundo) é desenhado no fim, do tamanho do que
+     ficou dentro dele */
+  if (!fundo) sombra();
 
   /* o meio fica entre a marca (em cima) e a margem de baixo: o texto
      grande encolhe até tudo caber nesse espaço. O @ saiu: quem posta
@@ -302,13 +288,14 @@ export async function desenharFigurinha({ selo, grande, sub = '', pct = null, fr
     arrumo = { ...m, tg: 84, l: linhas(ctx, grande, LARGURA, 3), topo: 250, tam: 180 };
   }
   const { lSub, lFrase, e: escala } = arrumo;
-  const alturaDe = arrumo.alt;
   const TOPO = arrumo.topo;
   /* o desenho cresce até onde o texto deixa, até 560 */
   const tamDesenho = img ? Math.min(560, TOPO - 40) : 0;
   const tGrande = arrumo.tg;
   const lGrande = arrumo.l;
-  let y = TOPO + Math.max(0, (FUNDO - TOPO - alturaDe(tGrande, lGrande.length)) / 2);
+  /* colado: logo, desenho e texto juntos, sem vão no meio. A altura
+     da figurinha sai do conteúdo (corte no fim) */
+  let y = img ? 28 + tamDesenho + 10 : 230;
 
   /* a marca, em cima */
   const logo = await carregarImagem('/icon-192.png');
@@ -398,7 +385,29 @@ export async function desenharFigurinha({ selo, grande, sub = '', pct = null, fr
     }
   }
 
-  return canvas;
+  /* a figurinha do tamanho do que tem dentro: sem vazio embaixo */
+  const altura = Math.min(LADO, Math.ceil(y + 90));
+  const saida = document.createElement('canvas');
+  saida.width = LADO;
+  saida.height = altura;
+  const out = saida.getContext('2d');
+  if (fundo) {
+    const g = out.createLinearGradient(0, 0, 0, altura);
+    g.addColorStop(0, '#1d2326');
+    g.addColorStop(1, '#0b0e0f');
+    out.fillStyle = g;
+    out.beginPath();
+    out.roundRect(24, 24, LADO - 48, altura - 48, 64);
+    out.fill();
+    /* no tema pago, a borda pega a cor dele */
+    out.strokeStyle = tema === 'app' ? 'rgba(255,255,255,0.09)' : acento;
+    out.globalAlpha = tema === 'app' ? 1 : 0.55;
+    out.lineWidth = tema === 'app' ? 3 : 5;
+    out.stroke();
+    out.globalAlpha = 1;
+  }
+  out.drawImage(canvas, 0, 0, LADO, altura, 0, 0, LADO, altura);
+  return saida;
 }
 
 export const paraPNG = (canvas) => new Promise((ok) => canvas.toBlob(ok, 'image/png'));

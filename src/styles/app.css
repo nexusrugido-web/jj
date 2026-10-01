@@ -2957,7 +2957,8 @@ button.liga-linha:hover { border-color: var(--seam-hi); }
 
 /* ---------- figurinha pro story ---------- */
 .figurinha-previa {
-  display: grid; place-items: center; aspect-ratio: 1; width: 100%; max-width: 340px; margin: 0 auto;
+  /* a altura acompanha a figurinha, que agora tem o tamanho do conteúdo */
+  display: grid; place-items: center; width: 100%; max-width: 340px; min-height: 120px; margin: 0 auto;
   border-radius: var(--r); overflow: hidden; background: #3a4248;
 }
 /* xadrez: mostra que a imagem sai sem fundo */
@@ -2966,7 +2967,7 @@ button.liga-linha:hover { border-color: var(--seam-hi); }
   background-image: conic-gradient(#3a4146 25%, transparent 0 50%, #3a4146 0 75%, transparent 0);
   background-size: 28px 28px;
 }
-.figurinha-previa img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.figurinha-previa img { width: 100%; height: auto; display: block; }
 .figurinha-opcoes { display: flex; flex-direction: column; gap: 8px; }
 /* ---------- a chave e o pódio da categoria ---------- */
 /* uma luta, um atleta por linha, cada um com o troféu do lado */

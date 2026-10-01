@@ -26,13 +26,16 @@ import { useMinhaDivisao, nomeDivisao } from '../lib/liga';
    tipo   qual lista de frases (graduacao, recorde, ofensiva,
           semana, meta, marco)
    link   opcional { tipo, dados, texto }: manda o card como link
+   limpa  começa sem frase e sem a linha de cima (as conquistas)
    ============================================================ */
-export default function Figurinha({ aberto, onClose, dados, tipo = 'marco', link }) {
+export default function Figurinha({ aberto, onClose, dados, tipo = 'marco', link, limpa = false }) {
   const { acesso, settings } = useApp();
   const toast = useToast();
   const [fundo, setFundo] = useState('sem');
-  const [comFrase, setComFrase] = useState(true);
-  const [comSelo, setComSelo] = useState(true);
+  /* limpa (Conquistas): começa só com o título, sem frase nem a linha de
+     cima; a pessoa liga o que quiser */
+  const [comFrase, setComFrase] = useState(!limpa);
+  const [comSelo, setComSelo] = useState(!limpa);
   const frases = FRASES[tipo] || FRASES.marco;
   /* começa numa frase qualquer: senão todo mundo posta a mesma */
   const [qualFrase, setQualFrase] = useState(() => Math.floor(Math.random() * frases.length));
