@@ -120,6 +120,25 @@ export function escadaPosicional(rolls, positions, opcoes = {}) {
   });
 }
 
+/* O mapa mostra cada posição uma vez, com os dois lados: a montada que
+   você pegou (▲) e a que pegaram em você (▼, guardada como "Sob a
+   montada"). Antes eram dois quadros, cada um com um lado sempre zero. */
+const PAR_SOFRIDO = { cem_quilos: 'sob_cem', montada: 'sob_montada', costas: 'costas_tomadas', joelho_barriga: 'sob_joelho' };
+export function escadaPareada(escada, positions) {
+  const donoDe = Object.fromEntries(Object.entries(PAR_SOFRIDO).map(([a, b]) => [b, a]));
+  const porSlug = new Map(positions.map((p) => [p.slug, p]));
+  const saida = new Map();
+  for (const p of escada) {
+    const dono = donoDe[p.slug] && porSlug.get(donoDe[p.slug]);
+    const base = dono || p;
+    const atual = saida.get(base.slug) || { ...base, dom: 0, inf: 0, max: p.max };
+    if (dono) atual.inf += p.dom + p.inf;
+    else { atual.dom += p.dom; atual.inf += p.inf; }
+    saida.set(base.slug, atual);
+  }
+  return [...saida.values()];
+}
+
 /* ---------- buracos no jogo ---------- */
 export function buracosNoJogo(rolls, positions) {
   const sofridas = new Map();

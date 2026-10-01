@@ -20,6 +20,8 @@ export function fmtData(iso, { curto = false } = {}) {
 
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 export const mesNome = (i) => MESES[i];
+/* o nome inteiro, pra título de calendário: 'Outubro' */
+export const mesCompleto = (i) => { const n = MESES_LONGOS[i] || ''; return n.charAt(0).toUpperCase() + n.slice(1); };
 
 const MESES_LONGOS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 /* '2026-09-19' vira "setembro" */

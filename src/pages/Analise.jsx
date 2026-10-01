@@ -12,7 +12,7 @@ import RotuloPeriodo from '../components/RotuloPeriodo';
 import ListaResumida from '../components/ListaResumida';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
-import { resumo, escadaPosicional, buracosNoJogo } from '../lib/stats';
+import { resumo, escadaPosicional, buracosNoJogo, escadaPareada } from '../lib/stats';
 import { placarDaRola } from '../lib/game';
 import { toCSV } from '../db/db';
 import { baixarArquivo, fmtDur, contar, hoje } from '../lib/utils';
@@ -205,7 +205,7 @@ export default function Analise() {
         aberto={mapaAberto} onClose={() => setMapaAberto(false)} wide
         titulo="Mapa de posições" subtitulo={`▲ dominou · ▼ sofreu · ${periodo.rotulo.toLowerCase()}`}
       >
-        <div className="scroll-x"><MatrizPosicoes dados={escada} /></div>
+        <div className="scroll-x"><MatrizPosicoes dados={escadaPareada(escada, positions)} /></div>
       </Sheet>
 
       <Card style={{ marginBottom: 14 }}>

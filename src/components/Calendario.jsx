@@ -8,7 +8,7 @@ import { db } from '../db/db';
 import { bateuODia } from '../lib/nutricao';
 import { Sheet, Chip, Stat, Card, Btn, BeltTag } from './UI';
 import { janelaDoCalendario, mesDoCalendario, rotuloDoPeriodo } from '../lib/periodo';
-import { fmtDur, relativo, mesNome, mesLongo } from '../lib/utils';
+import { fmtDur, relativo, mesCompleto } from '../lib/utils';
 import { placarDaRola, ROTULO_RESULTADO, TOM_RESULTADO } from '../lib/game';
 import { agruparPontos, posInicialPorId, pesoRelPorId } from '../db/scoring';
 import { APRENDIZADO } from './SeletorTecnica';
@@ -52,8 +52,7 @@ export default function Calendario({
     if (!umMes || !ehMesAtual || resumo.treinados > 0) return null;
     const m = mes === 0 ? 11 : mes - 1, a = mes === 0 ? ano - 1 : ano;
     const r = mesDoCalendario(sessions, rolls, a, m).resumo;
-    const nome = mesLongo(`${a}-${String(m + 1).padStart(2, '0')}-01`);
-    return r.treinados > 0 ? { nome: nome[0].toUpperCase() + nome.slice(1), dias: r.treinados } : null;
+    return r.treinados > 0 ? { nome: mesCompleto(m), dias: r.treinados } : null;
   }, [umMes, ehMesAtual, resumo.treinados, sessions, rolls, ano, mes]);
 
   const gradPorDia = useMemo(() => {
@@ -83,7 +82,7 @@ export default function Calendario({
             <ChevronLeft size={16} />
           </button>
           <div className="cal-nav-titulo">
-            <span className="cal-nav-mes">{mesNome(mes)}</span>
+            <span className="cal-nav-mes">{mesCompleto(mes)}</span>
             <span className="cal-nav-ano num">{ano}</span>
           </div>
           <button

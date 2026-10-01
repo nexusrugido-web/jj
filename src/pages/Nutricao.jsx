@@ -13,7 +13,7 @@ import { podeVer } from '../lib/plano';
 import {
   contasDaNutricao, paraFechar, todosOsAlimentos, somarDia, chaveDoAlimento, bateuODia,
 } from '../lib/nutricao';
-import { hoje, addDias, fmtData, relativo, mesNome } from '../lib/utils';
+import { hoje, addDias, fmtData, relativo, mesCompleto } from '../lib/utils';
 import { idadeDe } from '../lib/regras';
 import { SUPLEMENTOS } from '../db/suplementos';
 
@@ -449,7 +449,7 @@ function MesDaProteina({ meta, onDia, diaAberto }) {
       <div className="cal-nav">
         <button className="btn icon" onClick={() => irMes(-1)} aria-label="Mês anterior"><ChevronLeft size={16} /></button>
         <div className="cal-nav-titulo">
-          <span className="cal-nav-mes">{mesNome(mes)}</span>
+          <span className="cal-nav-mes">{mesCompleto(mes)}</span>
           <span className="cal-nav-ano num">{ano}</span>
         </div>
         <button className="btn icon" onClick={() => irMes(1)} disabled={ano === agora.getFullYear() && mes >= agora.getMonth()} aria-label="Próximo mês"><ChevronRight size={16} /></button>
@@ -457,7 +457,7 @@ function MesDaProteina({ meta, onDia, diaAberto }) {
       <p className="tiny muted" style={{ margin: '10px 0' }}>
         {anotados
           ? <>Bateu a proteína em <b style={{ color: 'var(--jade)' }}>{batidos} {batidos === 1 ? 'dia' : 'dias'}</b> de {anotados} anotados.</>
-          : `Nenhum dia anotado em ${mesNome(mes).toLowerCase()}.`}
+          : `Nenhum dia anotado em ${mesCompleto(mes).toLowerCase()}.`}
         {meta ? ` Meta de ${meta} g por dia.` : ''}
       </p>
       <div className="cal-grade solo">
