@@ -3678,3 +3678,21 @@ body::after {
 .onb-ritmo > div { display: flex; flex-direction: column; gap: 2px; padding: 9px 10px; border-radius: 10px; background: var(--void); border: 1px solid var(--seam); }
 .onb-ritmo .num { font-size: 19px; font-weight: 800; color: var(--chalk); }
 .onb-ritmo small { font-size: 11px; color: var(--dim); line-height: 1.3; }
+
+
+/* ---------- aviso de versão nova: cartão, não pílula espremida ---------- */
+.aviso-update {
+  display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 10px 12px;
+  width: min(440px, calc(100vw - 24px)); max-width: none;
+  padding: 14px; border-radius: 18px;
+}
+.aviso-update-marca { width: 38px; height: 38px; border-radius: 11px; }
+.aviso-update-texto { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.aviso-update-texto strong { font-size: 14px; font-weight: 700; color: var(--chalk); }
+.aviso-update-texto span { font-size: 12px; line-height: 1.45; color: var(--dim); }
+.aviso-update-botoes { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.aviso-update-botoes .btn { min-height: 42px; justify-content: center; }
+@media (min-width: 781px) {
+  .aviso-update { grid-template-columns: auto 1fr auto; }
+  .aviso-update-botoes { grid-column: auto; display: flex; }
+}

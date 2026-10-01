@@ -142,6 +142,8 @@ function notaDaSessao(s) {
 
 /* a aba de parceiros, pra abrir por cima do treino sem perder o que foi preenchido */
 const AbaParceiros = lazy(() => import('./Parceiros').then((m) => ({ default: m.AbaParceiros })));
+const SheetAcademia = lazy(() => import('./Parceiros').then((m) => ({ default: m.SheetAcademia })));
+const SheetProfessor = lazy(() => import('./Parceiros').then((m) => ({ default: m.SheetProfessor })));
 
 /* o histórico é a própria tela: carrega de 20 em 20, agrupado por mês */
 const POR_VEZ = 20;
@@ -342,7 +344,7 @@ export default function Treinos() {
       /* na competição o adversário é só o nome, não vira parceiro */
       if (ehCompeticao(tipo)) rola.adversario = String(r.parceiro || '').trim();
       else rola.partnerId = await acharOuCriar('partners', listaParceiros, r.parceiro,
-        { faixa: 'branca', graus: 0, academiaId: null, pesoKg: null, notas: '' });
+        { faixa: 'branca', graus: 0, academiaId: s2.academiaId || null, pesoKg: null, notas: '' });
       rs.push(rola);
     }
 
@@ -1341,6 +1343,8 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
   const set = (k, v) => setS({ ...s, [k]: v });
   const ehPadrao = !!padrao.academiaId && s.academiaId === padrao.academiaId && (s.professorId || null) === (padrao.professorId || null);
   const [trocando, setTrocando] = useState(false);
+  /* cadastrar academia ou professor sem sair do treino */
+  const [cadastro, setCadastro] = useState(null);
   const [rolaAberta, setRolaAberta] = useState(rolas.length ? 0 : null);
   const [seletor, setSeletor] = useState(null);
   const [parceirosAberto, setParceirosAberto] = useState(false);
@@ -1386,9 +1390,13 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
                         <ParceiroRapido
                           valor={r.partnerId}
                           partners={partners}
-                          onEscolher={(id) => setRola(i, { partnerId: id })}
+                          academias={academias}
+                          academiaId={s.academiaId}
+                          onEscolher={(id) => {
+                            const peso = partners.find((p) => p.id === id)?.pesoRel;
+                            setRola(i, { partnerId: id, ...(peso && !r.pesoRel ? { pesoRel: peso } : {}) });
+                          }}
                         />
-                        {!partners.length && <p className="micro muted">Escreva o nome e pronto. Academia e professor ficam pra depois.</p>}
                       </>
                     )}
                     <div className="rola-peso">
@@ -1641,6 +1649,14 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
 
       {forma.aula && (<div className="bloco-cor aula">
       <div className="bloco-cor-titulo"><GraduationCap size={15} /> {forma.aula}</div>
+      {cadastro && (
+        <Suspense fallback={null}>
+          <SheetAcademia aberto={cadastro === 'academia'} onClose={() => setCadastro(null)}
+            onSalva={(id) => { setCadastro(null); setS({ ...s, academiaId: id, professorId: null }); setTrocando(true); }} />
+          <SheetProfessor aberto={cadastro === 'professor'} academiaId={s.academiaId} onClose={() => setCadastro(null)}
+            onSalva={(id) => { setCadastro(null); setS({ ...s, professorId: id }); }} />
+        </Suspense>
+      )}
       {academias.length > 0 && ehPadrao && !trocando ? (
         <div className="row" style={{ gap: 10 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -1687,9 +1703,14 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
               </div>
             </Field>
           )}
-          {forma.professor && s.academiaId && profsDaAcademia.length === 0 && (
-            <p className="micro muted">Nenhum professor cadastrado nessa academia ainda. Cadastre em Parceiros → Professores.</p>
+          {forma.professor && s.academiaId && (
+            <button type="button" className="btn ghost xs" style={{ alignSelf: 'flex-start' }} onClick={() => setCadastro('professor')}>
+              <Plus size={13} /> {profsDaAcademia.length ? 'Outro professor' : 'Cadastrar o professor dessa academia'}
+            </button>
           )}
+          <button type="button" className="btn ghost xs" style={{ alignSelf: 'flex-start' }} onClick={() => setCadastro('academia')}>
+            <Plus size={13} /> Outra academia
+          </button>
           {s.academiaId && !ehPadrao && (
             <button
               type="button" className="btn ghost xs" style={{ alignSelf: 'flex-start' }}
@@ -1703,13 +1724,15 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
           )}
         </>
       ) : (
-        <div className="valida atencao">
+        <button type="button" className="valida atencao" onClick={() => setCadastro('academia')} style={{ width: '100%', textAlign: 'left' }}>
           <Building2 size={15} className="valida-ico" style={{ color: 'var(--roar)' }} />
-          <p className="micro muted">
-            Cadastre sua academia e seus professores em <b style={{ color: 'var(--chalk)' }}>Parceiros → Academias</b> e
-            você seleciona com um clique aqui, sem digitar.
-          </p>
-        </div>
+          <div style={{ flex: 1 }}>
+            <div className="tiny" style={{ fontWeight: 600 }}>Cadastrar sua academia</div>
+            <p className="micro muted" style={{ marginTop: 3, lineHeight: 1.6 }}>
+              Toque aqui. Depois você escolhe a academia e o professor com um clique, sem digitar, e este treino continua aberto.
+            </p>
+          </div>
+        </button>
       )}
 
       <Field label={forma.tecnicas} hint="Escolha uma técnica e marque como foi na aula. O registro aparece no seu histórico; dificuldades também orientam o que revisar em Estudo.">

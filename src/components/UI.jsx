@@ -488,30 +488,40 @@ export function EscolhaChips({ valor, onChange, opcoes, permiteLimpar = true }) 
 /* ============================================================
    PARCEIRO RÁPIDO
 
-   Antes você precisava cadastrar academia, depois professor,
-   depois parceiro, e só então registrar o rola. Isso derrubava
-   gente no primeiro uso. Agora escreve o nome e segue.
+   Nome e faixa, e segue o rola. O parceiro entra na academia do
+   treino; sem academia escolhida, o próprio formulário pergunta
+   (e cadastra, se ainda não existir nenhuma), pra todo parceiro
+   ter academia, como no cadastro completo em Parceiros.
    ============================================================ */
-export function ParceiroRapido({ valor, partners = [], onEscolher }) {
+export function ParceiroRapido({ valor, partners = [], onEscolher, academias = [], academiaId = null }) {
   const [criando, setCriando] = React.useState(false);
   const [nome, setNome] = React.useState('');
   const [faixa, setFaixa] = React.useState('');
+  const [acad, setAcad] = React.useState(null);
+  const [acadNova, setAcadNova] = React.useState('');
+  const doTreino = academias.find((a) => a.id === academiaId);
+  const acadEscolhida = doTreino?.id || acad;
+  const pronto = nome.trim() && (acadEscolhida || acadNova.trim());
   const [salvando, setSalvando] = React.useState(false);
   const toast = useToast();
 
   async function criar() {
     const n = nome.trim();
-    if (!n) return;
+    if (!pronto) return;
     setSalvando(true);
     try {
       const { db } = await import('../db/db');
       const existe = partners.find((p) => p.nome.toLowerCase() === n.toLowerCase());
+      let academia = acadEscolhida;
+      if (!existe && !academia) {
+        academia = Number(await db.academies.add({ nome: acadNova.trim(), cidade: '', equipe: '', notas: '', arquivada: 0, criadoEm: Date.now() }));
+      }
       const id = existe ? existe.id : await db.partners.add({
-        nome: n, faixa: faixa || null, graus: 0, academiaId: null, pesoKg: null,
+        nome: n, faixa: faixa || null, graus: 0, academiaId: academia, pesoRel: null,
         notas: '', criadoEm: Date.now(),
       });
       onEscolher(Number(id));
-      setCriando(false); setNome(''); setFaixa('');
+      setCriando(false); setNome(''); setFaixa(''); setAcad(null); setAcadNova('');
       if (!existe) toast(`${n} adicionado`);
     } catch {
       toast('Não consegui cadastrar o parceiro. Tente de novo.', 'err');
@@ -531,6 +541,24 @@ export function ParceiroRapido({ valor, partners = [], onEscolher }) {
           autoFocus
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); criar(); } }}
         />
+        {doTreino ? (
+          <div className="micro muted">Entra na academia do treino: <b style={{ color: 'var(--chalk)' }}>{doTreino.nome}</b></div>
+        ) : academias.length ? (
+          <>
+            <div className="micro muted">Onde vocês treinam</div>
+            <div className="row wrap" style={{ gap: 6 }}>
+              {academias.map((a) => (
+                <button key={a.id} type="button" className={`chip ${acad === a.id ? 'on' : ''}`}
+                  style={{ minHeight: 36 }} onClick={() => setAcad(a.id)}>{a.nome}</button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="micro muted">Onde vocês treinam (vira a sua primeira academia)</div>
+            <Input value={acadNova} onChange={(e) => setAcadNova(e.target.value)} placeholder="Nome da academia" />
+          </>
+        )}
         <div className="micro muted">Faixa dele, se você souber</div>
         <div className="row wrap" style={{ gap: 6 }}>
           {['', 'branca', 'azul', 'roxa', 'marrom', 'preta'].map((f) => (
@@ -543,7 +571,7 @@ export function ParceiroRapido({ valor, partners = [], onEscolher }) {
           ))}
         </div>
         <div className="row" style={{ gap: 8 }}>
-          <Btn size="sm" variant="primary" onClick={criar} disabled={!nome.trim() || salvando}>
+          <Btn size="sm" variant="primary" onClick={criar} disabled={!pronto || salvando}>
             Adicionar
           </Btn>
           <Btn size="sm" variant="ghost" onClick={() => { setCriando(false); setNome(''); }}>
@@ -571,7 +599,7 @@ export function ParceiroRapido({ valor, partners = [], onEscolher }) {
         <span className="parceiro-rapido-mais"><Plus size={16} /></span>
         <span className="parceiro-rapido-texto">
           <strong>{partners.length ? 'Novo parceiro' : 'Adicionar parceiro'}</strong>
-          <small>Nome e faixa; o resto pode ficar para depois</small>
+          <small>Nome, faixa e onde vocês treinam; o resto pode ficar para depois</small>
         </span>
       </button>
     </div>

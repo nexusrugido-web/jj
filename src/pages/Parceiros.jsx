@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Plus, Users, Trash2, Pencil, Check, Building2, GraduationCap,
@@ -14,6 +14,8 @@ import {
 import { statsParceiro } from '../lib/stats';
 import ListaComHistorico from '../components/ListaComHistorico';
 import { buscaMatch } from '../lib/utils';
+import { PESO_REL, pesoRelPorId } from '../db/scoring';
+import '../styles/treino-rola.css';
 
 export default function Parceiros() {
   const [aba, setAba] = useState('parceiros');
@@ -25,10 +27,11 @@ export default function Parceiros() {
         </div>
       </div>
 
+      {/* na ordem do padrão do treino: a academia, quem dá aula nela, quem treina nela */}
       <Seg value={aba} onChange={setAba} options={[
-        { id: 'parceiros', nome: 'Parceiros' },
         { id: 'academias', nome: 'Academias' },
         { id: 'professores', nome: 'Professores' },
+        { id: 'parceiros', nome: 'Parceiros' },
       ]} />
       <div style={{ height: 14 }} />
 
@@ -40,14 +43,38 @@ export default function Parceiros() {
 }
 
 /* ================= PARCEIROS ================= */
-const vazioP = () => ({ nome: '', faixa: '', graus: 0, pesoKg: '', estilo: '', notas: '', academiaId: null });
+const vazioP = (academiaId = null) => ({ nome: '', faixa: '', graus: 0, pesoRel: null, estilo: '', notas: '', academiaId });
+
+/* o peso do parceiro do mesmo jeito que o rola pergunta: em relação a
+   você. Escolher o parceiro no rola já marca esse peso. */
+function PesoRelativo({ valor, onChange }) {
+  return (
+    <div className="rola-peso">
+      <span className="label">Peso dele em relação a você</span>
+      <div className="rola-peso-opcoes" role="group" aria-label="Peso do parceiro em relação a você">
+        {PESO_REL.map((o) => (
+          <button type="button" key={o.id}
+            className={`rola-peso-opcao ${valor === o.id ? 'selecionada' : ''}`}
+            aria-pressed={valor === o.id}
+            onClick={() => onChange(valor === o.id ? null : o.id)}>
+            <span className="rola-peso-icone" aria-hidden="true">{o.icone}</span>
+            <span>{o.nome}</span>
+            {valor === o.id && <Check size={15} className="rola-peso-check" />}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /* também abre por cima do registro do treino, quando ainda não há parceiro */
 export function AbaParceiros() {
-  const { partners, rolls } = useApp();
+  const { partners, rolls, settings } = useApp();
   const toast = useToast();
   const academias = useLiveQuery(() => db.academies.filter((a) => !a.arquivada).toArray(), [], []) || [];
   const [edit, setEdit] = useState(null);
+  /* criando a academia no meio do cadastro: guarda o parceiro pela metade */
+  const [academiaPara, setAcademiaPara] = useState(null);
   const [excluir, setExcluir] = useState(null);
   const [busca, setBusca] = useState('');
 
@@ -61,8 +88,21 @@ export function AbaParceiros() {
     [partners, rolls, busca]
   );
 
+  /* todo parceiro treina em alguma academia: sem nenhuma cadastrada, o
+     botão de parceiro começa por ela. Com academia, já vem a de sempre. */
+  function novo() {
+    const padrao = academias.find((a) => a.id === settings?.academiaPadraoId) || (academias.length === 1 ? academias[0] : null);
+    if (!academias.length) setAcademiaPara(vazioP());
+    else setEdit(vazioP(padrao?.id || null));
+  }
+  function outraAcademia() {
+    setAcademiaPara(edit);
+    setEdit(null);
+  }
+
   async function salvar() {
     if (!edit.nome.trim()) return toast('Coloca um nome', 'err');
+    if (!edit.academiaId) return toast('Escolhe a academia dele', 'err');
     if (edit.id) await db.partners.put(edit);
     else await db.partners.add({ ...edit, arquivada: 0, criadoEm: Date.now() });
     setEdit(null);
@@ -73,7 +113,7 @@ export function AbaParceiros() {
     <>
       <div className="row wrap" style={{ gap: 8, marginBottom: 14 }}>
         <Busca value={busca} onChange={setBusca} placeholder="Buscar parceiro…" />
-        <Btn variant="primary" icon={Plus} onClick={() => setEdit(vazioP())}>Novo parceiro</Btn>
+        <Btn variant="primary" icon={Plus} onClick={novo}>Novo parceiro</Btn>
       </div>
 
       {lista.length === 0 ? (
@@ -81,8 +121,10 @@ export function AbaParceiros() {
           <Empty
             icon={Users}
             titulo="Nenhum parceiro cadastrado"
-            texto="Cadastre quem você mais rola. Com isso o app mostra contra qual faixa e qual jogo você trava, e o cálculo de domínio passa a pesar a faixa de quem estava do outro lado."
-            acao={<Btn variant="primary" icon={Plus} onClick={() => setEdit(vazioP())}>Cadastrar</Btn>}
+            texto={academias.length
+              ? 'Cadastre quem você mais rola. Com isso o app mostra contra qual faixa e qual jogo você trava, e o cálculo de domínio passa a pesar a faixa de quem estava do outro lado.'
+              : 'Primeiro a academia, depois quem treina nela. Com os parceiros o app mostra contra qual faixa e qual jogo você trava.'}
+            acao={<Btn variant="primary" icon={Plus} onClick={novo}>{academias.length ? 'Cadastrar' : 'Começar pela academia'}</Btn>}
           />
         </Card>
       ) : (
@@ -94,7 +136,7 @@ export function AbaParceiros() {
                   <div style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 16, letterSpacing: '-0.02em' }} className="truncate">{p.nome}</div>
                   <div className="row" style={{ gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
                     {p.faixa ? <BeltTag faixa={p.faixa} graus={p.graus} /> : <Chip>faixa não informada</Chip>}
-                    {p.pesoKg && <Chip>{p.pesoKg} kg</Chip>}
+                    {p.pesoRel ? <Chip>{pesoRelPorId[p.pesoRel]?.icone} {pesoRelPorId[p.pesoRel]?.nome}</Chip> : p.pesoKg ? <Chip>{p.pesoKg} kg</Chip> : null}
                   </div>
                   {acadById[p.academiaId] && <div className="micro muted" style={{ marginTop: 6 }}>{acadById[p.academiaId].nome}</div>}
                 </div>
@@ -128,8 +170,21 @@ export function AbaParceiros() {
       >
         {edit && (
           <>
-            <Field label="Nome"><Input value={edit.nome} onChange={(e) => setEdit({ ...edit, nome: e.target.value })} /></Field>
-            <div className="grid g3" style={{ gap: 12 }}>
+            <Field label="Onde vocês treinam">
+              <div className="row wrap" style={{ gap: 6 }}>
+                {academias.map((a) => (
+                  <button key={a.id} type="button" className={`chip ${edit.academiaId === a.id ? 'on' : ''}`}
+                    style={{ minHeight: 38 }} onClick={() => setEdit({ ...edit, academiaId: a.id })}>
+                    <Building2 size={12} /> {a.nome}
+                  </button>
+                ))}
+                <button type="button" className="chip" style={{ minHeight: 38 }} onClick={outraAcademia}>
+                  <Plus size={12} /> Outra academia
+                </button>
+              </div>
+            </Field>
+            <Field label="Nome"><Input value={edit.nome} onChange={(e) => setEdit({ ...edit, nome: e.target.value })} placeholder="Nome ou apelido" /></Field>
+            <div className="grid g2" style={{ gap: 12 }}>
               <Field label="Faixa">
                 <Select value={edit.faixa || ''} onChange={(e) => setEdit({ ...edit, faixa: e.target.value })}>
                   <option value="">Não sei / não informada</option>
@@ -137,19 +192,26 @@ export function AbaParceiros() {
                 </Select>
               </Field>
               <Field label="Graus"><NumeroInput min="0" max="4" valor={edit.graus} onChange={(v) => setEdit({ ...edit, graus: v })} /></Field>
-              <Field label="Peso (kg)"><Input type="number" inputMode="decimal" value={edit.pesoKg} onChange={(e) => setEdit({ ...edit, pesoKg: e.target.value })} /></Field>
             </div>
-            <Field label="Academia">
-              <Select value={edit.academiaId || ''} onChange={(e) => setEdit({ ...edit, academiaId: e.target.value ? Number(e.target.value) : null })}>
-                <option value="">Escolha</option>
-                {academias.map((a) => <option key={a.id} value={a.id}>{a.nome}</option>)}
-              </Select>
-            </Field>
+            <PesoRelativo valor={edit.pesoRel} onChange={(pesoRel) => setEdit({ ...edit, pesoRel })} />
             <Field label="Estilo de jogo"><Input value={edit.estilo} onChange={(e) => setEdit({ ...edit, estilo: e.target.value })} placeholder="Ex.: passador pesado, guardeiro de laçada" /></Field>
             <Field label="Notas" hint="O que funciona e o que não funciona contra ele."><Textarea value={edit.notas} onChange={(e) => setEdit({ ...edit, notas: e.target.value })} /></Field>
           </>
         )}
       </Sheet>
+
+      <SheetAcademia
+        aberto={!!academiaPara}
+        titulo={academias.length ? 'Nova academia' : 'Primeiro, a academia'}
+        texto={academias.length ? null : 'Todo parceiro treina em algum lugar. Cadastre a academia agora e, em seguida, o parceiro.'}
+        onClose={() => {
+          /* desistiu da academia: volta pro parceiro que estava pela metade */
+          const pend = academiaPara;
+          setAcademiaPara(null);
+          if (pend && academias.length) setEdit(pend);
+        }}
+        onSalva={(id) => { const pend = academiaPara; setAcademiaPara(null); setEdit({ ...(pend || vazioP()), academiaId: id }); }}
+      />
 
       <Confirmar
         aberto={!!excluir} onClose={() => setExcluir(null)}
@@ -164,6 +226,43 @@ export function AbaParceiros() {
 /* ================= ACADEMIAS ================= */
 const vazioA = () => ({ nome: '', cidade: '', equipe: '', notas: '' });
 
+/* o cadastro da academia: na aba Academias, no meio do cadastro do
+   parceiro e por cima do registro do treino (onSalva recebe o id) */
+export function SheetAcademia({ aberto, inicial = null, titulo, texto = null, onClose, onSalva }) {
+  const toast = useToast();
+  const [edit, setEdit] = useState(vazioA());
+  useEffect(() => { if (aberto) setEdit(inicial ? { ...inicial } : vazioA()); }, [aberto]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function salvar() {
+    if (!edit.nome.trim()) return toast('Coloca o nome da academia', 'err');
+    let id = edit.id;
+    if (id) await db.academies.put(edit);
+    else id = Number(await db.academies.add({ ...edit, nome: edit.nome.trim(), arquivada: 0, criadoEm: Date.now() }));
+    toast('Academia salva');
+    onSalva?.(id);
+  }
+
+  return (
+    <Sheet
+      aberto={aberto} onClose={onClose}
+      titulo={titulo || (inicial?.id ? 'Editar academia' : 'Nova academia')}
+      footer={<><Btn variant="ghost" onClick={onClose}>Cancelar</Btn><Btn variant="primary" icon={Check} onClick={salvar}>Salvar</Btn></>}
+    >
+      {aberto && (
+        <>
+          {texto && <p className="tiny muted" style={{ lineHeight: 1.6 }}>{texto}</p>}
+          <Field label="Nome da academia"><Input value={edit.nome} onChange={(e) => setEdit({ ...edit, nome: e.target.value })} placeholder="Ex.: Gracie Barra Catu" /></Field>
+          <div className="grid g2" style={{ gap: 12 }}>
+            <Field label="Cidade"><Input value={edit.cidade} onChange={(e) => setEdit({ ...edit, cidade: e.target.value })} /></Field>
+            <Field label="Equipe"><Input value={edit.equipe} onChange={(e) => setEdit({ ...edit, equipe: e.target.value })} placeholder="Ex.: Alliance" /></Field>
+          </div>
+          <Field label="Notas"><Textarea value={edit.notas} onChange={(e) => setEdit({ ...edit, notas: e.target.value })} placeholder="Horários, dias de no-gi, open mat…" /></Field>
+        </>
+      )}
+    </Sheet>
+  );
+}
+
 function AbaAcademias() {
   const toast = useToast();
   const academias = useLiveQuery(() => db.academies.filter((a) => !a.arquivada).toArray(), [], []) || [];
@@ -171,14 +270,6 @@ function AbaAcademias() {
   const { sessions } = useApp();
   const [edit, setEdit] = useState(null);
   const [excluir, setExcluir] = useState(null);
-
-  async function salvar() {
-    if (!edit.nome.trim()) return toast('Coloca o nome da academia', 'err');
-    if (edit.id) await db.academies.put(edit);
-    else await db.academies.add({ ...edit, arquivada: 0, criadoEm: Date.now() });
-    setEdit(null);
-    toast('Academia salva');
-  }
 
   return (
     <>
@@ -234,22 +325,7 @@ function AbaAcademias() {
         />
       )}
 
-      <Sheet
-        aberto={!!edit} onClose={() => setEdit(null)}
-        titulo={edit?.id ? 'Editar academia' : 'Nova academia'}
-        footer={<><Btn variant="ghost" onClick={() => setEdit(null)}>Cancelar</Btn><Btn variant="primary" icon={Check} onClick={salvar}>Salvar</Btn></>}
-      >
-        {edit && (
-          <>
-            <Field label="Nome da academia"><Input value={edit.nome} onChange={(e) => setEdit({ ...edit, nome: e.target.value })} placeholder="Ex.: Gracie Barra Catu" /></Field>
-            <div className="grid g2" style={{ gap: 12 }}>
-              <Field label="Cidade"><Input value={edit.cidade} onChange={(e) => setEdit({ ...edit, cidade: e.target.value })} /></Field>
-              <Field label="Equipe"><Input value={edit.equipe} onChange={(e) => setEdit({ ...edit, equipe: e.target.value })} placeholder="Ex.: Alliance" /></Field>
-            </div>
-            <Field label="Notas"><Textarea value={edit.notas} onChange={(e) => setEdit({ ...edit, notas: e.target.value })} placeholder="Horários, dias de no-gi, open mat…" /></Field>
-          </>
-        )}
-      </Sheet>
+      <SheetAcademia aberto={!!edit} inicial={edit?.id ? edit : null} onClose={() => setEdit(null)} onSalva={() => setEdit(null)} />
 
       <Confirmar
         aberto={!!excluir} onClose={() => setExcluir(null)}
@@ -264,15 +340,14 @@ function AbaAcademias() {
 /* ================= PROFESSORES ================= */
 const vazioProf = (academiaId) => ({ nome: '', faixa: 'preta', graus: 0, academiaId: academiaId || null, notas: '' });
 
-function AbaProfessores() {
+/* o cadastro do professor: na aba Professores e por cima do registro do
+   treino, já na academia escolhida (onSalva recebe o id) */
+export function SheetProfessor({ aberto, inicial = null, academiaId = null, onClose, onSalva }) {
   const toast = useToast();
   const academias = useLiveQuery(() => db.academies.filter((a) => !a.arquivada).toArray(), [], []) || [];
   const professores = useLiveQuery(() => db.professors.filter((p) => !p.arquivada).toArray(), [], []) || [];
-  const { sessions } = useApp();
-  const [edit, setEdit] = useState(null);
-  const [excluir, setExcluir] = useState(null);
-
-  const acadById = useMemo(() => Object.fromEntries(academias.map((a) => [a.id, a])), [academias]);
+  const [edit, setEdit] = useState(vazioProf(academiaId));
+  useEffect(() => { if (aberto) setEdit(inicial ? { ...inicial } : vazioProf(academiaId)); }, [aberto]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function salvar() {
     if (!edit.nome.trim()) return toast('Coloca o nome do professor', 'err');
@@ -281,24 +356,75 @@ function AbaProfessores() {
       (p) => p.id !== edit.id && p.nome.trim().toLowerCase() === edit.nome.trim().toLowerCase()
     );
     if (jaExiste) {
-      const onde = acadById[jaExiste.academiaId]?.nome || 'outra academia';
+      const onde = academias.find((a) => a.id === jaExiste.academiaId)?.nome || 'outra academia';
       return toast(`"${edit.nome}" já está cadastrado em ${onde}`, 'err');
     }
-    if (edit.id) await db.professors.put(edit);
-    else await db.professors.add({ ...edit, arquivada: 0, criadoEm: Date.now() });
-    setEdit(null);
+    let id = edit.id;
+    if (id) await db.professors.put(edit);
+    else id = Number(await db.professors.add({ ...edit, arquivada: 0, criadoEm: Date.now() }));
     toast('Professor salvo');
+    onSalva?.(id);
   }
+
+  return (
+    <Sheet
+      aberto={aberto} onClose={onClose}
+      titulo={inicial?.id ? 'Editar professor' : 'Novo professor'}
+      footer={<><Btn variant="ghost" onClick={onClose}>Cancelar</Btn><Btn variant="primary" icon={Check} onClick={salvar}>Salvar</Btn></>}
+    >
+      {aberto && (
+        <>
+          <Field label="Academia" hint="Um professor pertence a uma academia só.">
+            <div className="row wrap" style={{ gap: 6 }}>
+              {academias.map((a) => (
+                <button key={a.id} type="button" className={`chip ${edit.academiaId === a.id ? 'on' : ''}`}
+                  style={{ minHeight: 38 }} onClick={() => setEdit({ ...edit, academiaId: a.id })}>
+                  <Building2 size={12} /> {a.nome}
+                </button>
+              ))}
+            </div>
+          </Field>
+          <Field label="Nome"><Input value={edit.nome} onChange={(e) => setEdit({ ...edit, nome: e.target.value })} placeholder="Ex.: Lucas Dantas" /></Field>
+          <div className="grid g2" style={{ gap: 12 }}>
+            <Field label="Faixa">
+              <Select value={edit.faixa} onChange={(e) => setEdit({ ...edit, faixa: e.target.value })}>
+                {FAIXAS.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+              </Select>
+            </Field>
+            <Field label="Graus"><NumeroInput min="0" max="6" valor={edit.graus} onChange={(v) => setEdit({ ...edit, graus: v })} /></Field>
+          </div>
+          <Field label="Notas"><Textarea value={edit.notas} onChange={(e) => setEdit({ ...edit, notas: e.target.value })} placeholder="Estilo de aula, o que ele cobra…" /></Field>
+        </>
+      )}
+    </Sheet>
+  );
+}
+
+function AbaProfessores() {
+  const toast = useToast();
+  const academias = useLiveQuery(() => db.academies.filter((a) => !a.arquivada).toArray(), [], []) || [];
+  const professores = useLiveQuery(() => db.professors.filter((p) => !p.arquivada).toArray(), [], []) || [];
+  const { sessions } = useApp();
+  const [edit, setEdit] = useState(null);
+  const [excluir, setExcluir] = useState(null);
+  const [academiaNova, setAcademiaNova] = useState(false);
+
+  const acadById = useMemo(() => Object.fromEntries(academias.map((a) => [a.id, a])), [academias]);
 
   if (!academias.length) {
     return (
-      <Card>
-        <Empty
-          icon={TriangleAlert}
-          titulo="Cadastre uma academia primeiro"
-          texto="Todo professor pertence a uma academia. Crie a academia na aba ao lado e volte aqui."
-        />
-      </Card>
+      <>
+        <Card>
+          <Empty
+            icon={TriangleAlert}
+            titulo="Cadastre uma academia primeiro"
+            texto="Todo professor pertence a uma academia. Cadastre a academia e, em seguida, o professor."
+            acao={<Btn variant="primary" icon={Plus} onClick={() => setAcademiaNova(true)}>Cadastrar a academia</Btn>}
+          />
+        </Card>
+        <SheetAcademia aberto={academiaNova} titulo="Primeiro, a academia" onClose={() => setAcademiaNova(false)}
+          onSalva={(id) => { setAcademiaNova(false); setEdit(vazioProf(id)); }} />
+      </>
     );
   }
 
@@ -343,32 +469,8 @@ function AbaProfessores() {
         />
       )}
 
-      <Sheet
-        aberto={!!edit} onClose={() => setEdit(null)}
-        titulo={edit?.id ? 'Editar professor' : 'Novo professor'}
-        footer={<><Btn variant="ghost" onClick={() => setEdit(null)}>Cancelar</Btn><Btn variant="primary" icon={Check} onClick={salvar}>Salvar</Btn></>}
-      >
-        {edit && (
-          <>
-            <Field label="Nome"><Input value={edit.nome} onChange={(e) => setEdit({ ...edit, nome: e.target.value })} placeholder="Ex.: Lucas Dantas" /></Field>
-            <Field label="Academia" hint="Um professor pertence a uma academia só.">
-              <Select value={edit.academiaId || ''} onChange={(e) => setEdit({ ...edit, academiaId: e.target.value ? Number(e.target.value) : null })}>
-                <option value="">Escolha…</option>
-                {academias.map((a) => <option key={a.id} value={a.id}>{a.nome}</option>)}
-              </Select>
-            </Field>
-            <div className="grid g2" style={{ gap: 12 }}>
-              <Field label="Faixa">
-                <Select value={edit.faixa} onChange={(e) => setEdit({ ...edit, faixa: e.target.value })}>
-                  {FAIXAS.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
-                </Select>
-              </Field>
-              <Field label="Graus"><NumeroInput min="0" max="6" valor={edit.graus} onChange={(v) => setEdit({ ...edit, graus: v })} /></Field>
-            </div>
-            <Field label="Notas"><Textarea value={edit.notas} onChange={(e) => setEdit({ ...edit, notas: e.target.value })} placeholder="Estilo de aula, o que ele cobra…" /></Field>
-          </>
-        )}
-      </Sheet>
+      <SheetProfessor aberto={!!edit} inicial={edit?.id ? edit : null} academiaId={edit?.academiaId}
+        onClose={() => setEdit(null)} onSalva={() => setEdit(null)} />
 
       <Confirmar
         aberto={!!excluir} onClose={() => setExcluir(null)}

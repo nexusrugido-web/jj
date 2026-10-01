@@ -602,10 +602,16 @@ export default function App() {
         )}
         <InstallPrompt forcarAberto={instalarAberto} onFechar={() => setInstalarAberto(false)} />
         {atualizar && (
-          <div className="aviso-update">
-            <span className="tiny">Tem uma versão nova do app.</span>
-            <button className="btn primary xs" onClick={atualizar}>Atualizar</button>
-            <button className="btn ghost xs" onClick={() => setAtualizar(null)}>Depois</button>
+          <div className="aviso-update" role="status">
+            <span className="aviso-update-marca brand-mark" aria-hidden="true" />
+            <div className="aviso-update-texto">
+              <strong>Versão nova no tatame</strong>
+              <span>Leva 2 segundos. Seus treinos e rolas continuam onde estão.</span>
+            </div>
+            <div className="aviso-update-botoes">
+              <button className="btn ghost sm" onClick={() => setAtualizar(null)}>Depois</button>
+              <button className="btn primary sm" onClick={atualizar}>Atualizar</button>
+            </div>
           </div>
         )}
         <Tour aberto={tourAberto} onClose={() => setTourAberto(false)} onConcluir={() => salvarSettings({ tourVisto: 1 })} />
