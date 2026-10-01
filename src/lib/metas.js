@@ -3,6 +3,7 @@ import { periodoDeDados, dentroDoPeriodo } from './periodo';
 import { grauPorN } from './graus';
 import { posInicialPorId } from '../db/scoring';
 import { faixaDeConteudo } from './faixas';
+import { padraoDoTipo } from './padraoTreino';
 
 /* ============================================================
    METAS COM ORIGEM EXPLÍCITA
@@ -287,15 +288,79 @@ export function historicoDaMeta(meta, { sessions = [], rolls = [], partners = []
   return [];
 }
 
+/* ============================================================
+   AS HORAS DE TATAME NASCEM DO RITMO
+
+   A pessoa conta quantas vezes treina por semana; as horas até o fim
+   do ano são consequência disso, não um número mágico (era 200h pra
+   todo mundo). A conta usa o tempo que falta até 31/12, a partir do
+   dia em que a meta começou, e a mesma duração de treino que o resto
+   do app usa (o padrão do Gi, que vem dos Ajustes):
+
+     treinos por semana × semanas que faltam × duração do treino
+
+   Três modos (settings.metaAnualHorasModo):
+     derivada   calculada pelo ritmo (o padrão)
+     manual     a pessoa escreveu um número em Ajustes: vale ele
+     desligada  a pessoa não quis acompanhar horas
+   Conta antiga sem modo: quem ficou nos 200h que vinham prontos
+   passa pra derivada; quem escreveu outro número, manual.
+   ============================================================ */
+const HORAS_QUE_VINHAM_PRONTAS = 200;
+
+/* o ritmo da pessoa: a meta de frequência que ela assumiu, senão o do cadastro */
+export function ritmoSemanal(settings = {}, goals = []) {
+  const meta = goals.find((g) => g.tipo === 'frequencia' && g.status === 'ativa' && ORIGENS[g.origem]?.conta);
+  return Number(meta?.alvo) || Number(settings.metaSemanal) || 0;
+}
+
+export function horasPeloRitmo({ frequencia, duracaoMin, desde = hoje() }) {
+  const fim = `${desde.slice(0, 4)}-12-31`;
+  const semanas = Math.max(0, diasEntre(desde, fim) + 1) / 7;
+  const treinos = Math.round(frequencia * semanas);
+  return { treinos, horas: Math.round((treinos * duracaoMin) / 60), semanas: Math.round(semanas), fim, duracaoMin };
+}
+
+export function modoDasHoras(settings = {}) {
+  if (settings.metaAnualHorasModo) return settings.metaAnualHorasModo;
+  const n = Number(settings.metaAnualHoras);
+  if (!n) return 'desligada';
+  return n === HORAS_QUE_VINHAM_PRONTAS ? 'derivada' : 'manual';
+}
+
+/* o alvo de horas deste ano e de onde ele veio, pra tela explicar */
+export function alvoDeHoras(settings = {}, goals = [], sessions = [], hojeIso = hoje()) {
+  const modo = modoDasHoras(settings);
+  if (modo === 'desligada') return null;
+  if (modo === 'manual') {
+    const n = Number(settings.metaAnualHoras) || 0;
+    return n > 0 ? { alvo: n, modo, origem: 'o número que você escolheu em Ajustes' } : null;
+  }
+  const frequencia = ritmoSemanal(settings, goals);
+  if (!frequencia) return null;
+  const ano = hojeIso.slice(0, 4);
+  /* começou neste ano: conta dali. Ano novo: o ano inteiro. Conta antiga
+     sem data: do primeiro treino do ano, senão de hoje */
+  const primeiroDoAno = sessions.map((s) => s.data).filter((d) => d && d.startsWith(ano)).sort()[0];
+  const desde = String(settings.metaAnualHorasDesde || '').startsWith(ano) ? settings.metaAnualHorasDesde
+    : settings.metaAnualHorasDesde ? `${ano}-01-01` : (primeiroDoAno || hojeIso);
+  const duracaoMin = Number(padraoDoTipo(settings, 'gi').duracao) || 90;
+  const p = horasPeloRitmo({ frequencia, duracaoMin, desde });
+  return {
+    alvo: Math.max(1, p.horas), modo, ...p, frequencia, desde,
+    origem: `calculada pelo seu ritmo: ${frequencia}x por semana até 31/12`,
+  };
+}
+
 /* "Horas no ano" vem dos Ajustes, não de db.goals, mas é desenhada
    como qualquer outra meta */
-export function metaDeHorasNoAno(sessions, alvo) {
+export function metaDeHorasNoAno(sessions, alvo, origem = '') {
   const periodo = periodoDeDados('ano-atual');
   const min = dentroDoPeriodo(sessions, periodo).reduce((a, s) => a + (Number(s.duracao) || 0), 0);
   const h = Math.round(min / 60);
   return {
     conta: true, atual: h, alvo, pct: pct(h, alvo), horas: true,
-    valor: deAte(h, alvo, true), periodo, quando: periodo.rotulo,
+    valor: deAte(h, alvo, true), periodo, quando: origem ? `${periodo.rotulo} · ${origem}` : periodo.rotulo,
     texto: h >= alvo ? `${h}h neste ano, meta batida.` : `${h}h de ${alvo}h neste ano.`,
   };
 }
@@ -307,6 +372,10 @@ export function metaDeHorasNoAno(sessions, alvo) {
    pessoa não escreveu título, a gente monta um a partir do
    que ela escolheu.
    ============================================================ */
+/* meta que depende de uma técnica e está sem ela: não acompanha nada.
+   Não fica ativa nem aparece como compromisso; pede a técnica primeiro. */
+export const metaIncompleta = (g) => (g?.tipo === 'defesa' || g?.tipo === 'tecnica') && !String(g.alvo || '').trim();
+
 export function tituloDaMeta(meta) {
   if (meta?.titulo?.trim()) return meta.titulo.trim();
 

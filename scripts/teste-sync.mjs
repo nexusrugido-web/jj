@@ -97,5 +97,41 @@ await db.meta.put({ key: 'nuvem_tabelas', value: ['sessions'] });
 await garantirNuvem();
 ok('aparelho que subiu só parte das tabelas passa a ter todas', (await db.meta.get('nuvem_tabelas')).value, TABELAS_SYNC);
 
+/* ---------- trocar de celular: o aparelho A sobe, o B recupera ----------
+   (a nuvem aqui é a lista de linhas que iria pra tabela registros) */
+const { paraRegistros, aplicarLocal } = await import('../src/lib/sync.js');
+const T = Date.parse('2026-09-30T20:00:00Z');
+const doA = [
+  { tabela: 'settings', op: 'upsert', uid: 'settings', updatedAt: T,
+    dados: { nome: 'Batista', anoNascimento: 1995, metaSemanal: 5, metaAnualHorasModo: 'manual', metaAnualHoras: 150, onboardingFeito: 1, tecnicasLiberadas: ['Heel hook'], updatedAt: T } },
+  { tabela: 'goals', op: 'upsert', uid: 'g-americana', updatedAt: T, dados: { uid: 'g-americana', tipo: 'defesa', alvo: 'Americana', status: 'ativa', origem: 'usuario' } },
+  { tabela: 'injuries', op: 'upsert', uid: 'l-joelho', updatedAt: T, dados: { uid: 'l-joelho', regiao: 'Joelho', impacto: 'parado', status: 'ativa', data: '2026-09-28' } },
+];
+const nuvem = paraRegistros(doA, 'conta-1');
+ok('as configurações vão num registro só, com o id da conta', nuvem.filter((l) => l.tabela === 'settings').map((l) => l.id), ['conta-1']);
+
+/* o aparelho B, zerado */
+await db.goals.clear(); await db.injuries.clear();
+await db.meta.put({ key: 'settings', value: { nome: '', onboardingFeito: 0 } });
+await aplicarLocal(nuvem);
+const ajustesB = (await db.meta.get('settings')).value;
+ok('o celular novo recupera as configurações (ano, meta de horas, liberadas, primeiro acesso feito)',
+  [ajustesB.anoNascimento, ajustesB.metaAnualHorasModo, ajustesB.metaAnualHoras, ajustesB.tecnicasLiberadas, ajustesB.onboardingFeito], [1995, 'manual', 150, ['Heel hook'], 1]);
+ok('o celular novo recupera a meta e a lesão', [(await db.goals.toArray()).map((g) => g.alvo), (await db.injuries.toArray()).map((l) => l.regiao)], [['Americana'], ['Joelho']]);
+await aplicarLocal(nuvem);
+ok('sincronizar de novo não duplica nada', [await db.goals.count(), await db.injuries.count()], [1, 1]);
+
+/* celular novo que acabou de aceitar os termos (hora mais nova) ainda recebe a nuvem */
+await db.meta.put({ key: 'settings', value: { aceite: { versao: 'nova' }, onboardingFeito: 0, updatedAt: T + 999999 } });
+await aplicarLocal(nuvem);
+const virgem = (await db.meta.get('settings')).value;
+ok('celular novo no primeiro acesso recebe as configurações da nuvem e guarda o aceite que acabou de dar',
+  [virgem.onboardingFeito, virgem.anoNascimento, virgem.aceite.versao], [1, 1995, 'nova']);
+
+/* o aparelho mudou depois: a versão da nuvem, mais velha, não passa por cima */
+await db.meta.put({ key: 'settings', value: { ...ajustesB, metaAnualHoras: 180, updatedAt: T + 60000 } });
+await aplicarLocal(nuvem);
+ok('configuração mais nova no aparelho não é sobrescrita pela mais velha da nuvem', (await db.meta.get('settings')).value.metaAnualHoras, 180);
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

@@ -8,7 +8,7 @@ import InstallPrompt from './components/InstallPrompt';
 import Tour from './components/Tour';
 import { marcarEngajamento , vigiarAtualizacao } from './lib/pwa';
 import { supabase, supabaseConfigurado, sessaoAtual } from './lib/supabase';
-import { enfileirar, iniciarSync, onSync, garantirNuvem } from './lib/sync';
+import { enfileirar, iniciarSync, onSync, garantirNuvem, enfileirarAjustes } from './lib/sync';
 import { resumo as calcResumo } from './lib/stats';
 import { minhasTecnicas, resumoGraus } from './lib/graus';
 import { sincronizarAcesso, acessoLocal, guardarCodigoDaUrl } from './lib/plano';
@@ -377,10 +377,12 @@ export default function App() {
       catch { atual = DEFAULT_SETTINGS; }
     }
 
-    const novo = { ...DEFAULT_SETTINGS, ...atual, ...patch };
+    const novo = { ...DEFAULT_SETTINGS, ...atual, ...patch, updatedAt: Date.now() };
     settingsRef.current = novo;
     setSettings(novo);
     try { await setMeta('settings', novo); } catch (e) { console.error('[settings]', e); }
+    /* as configurações vão pra conta, pra voltarem num celular novo */
+    enfileirarAjustes(novo).catch(() => {});
 
     /* faixa, graus, nome e ritmo aparecem pros outros na liga.
        Só sobe quando um deles muda, pra não falar com o servidor
@@ -388,6 +390,20 @@ export default function App() {
     if (mexeuNoPerfil(patch)) subirPerfil(novo).catch(() => {});
 
     return novo;
+  }, []);
+
+  /* configurações que chegaram da nuvem (num celular novo, por exemplo):
+     a tela recarrega e, se a pessoa já tinha feito o primeiro acesso,
+     não passa por ele de novo */
+  useEffect(() => {
+    const chegou = (e) => {
+      const novo = { ...DEFAULT_SETTINGS, ...e.detail };
+      settingsRef.current = novo;
+      setSettings(novo);
+      if (novo.onboardingFeito) setOnboarding(false);
+    };
+    window.addEventListener('ajustes-da-nuvem', chegou);
+    return () => window.removeEventListener('ajustes-da-nuvem', chegou);
   }, []);
 
   /* ---------- dados globais ---------- */

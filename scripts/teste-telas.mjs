@@ -221,8 +221,10 @@ w.history.pushState({}, '', '/?go=metas'); w.dispatchEvent(new w.PopStateEvent('
 /* A varredura acima visita todas as abas e pode deixar Concluídas aberta. */
 clicar([...raiz.querySelectorAll('.page .seg button')].find((b) => b.textContent.trim().startsWith('Minhas')));
 await esperar(300);
-/* A meta de posição é a última das 12: o limite visual deixa seis na página. */
-clicar([...raiz.querySelectorAll('.page button')].find((b) => b.textContent.trim() === 'Ver todos (12)'));
+/* A meta de posição fica no fim da lista: o limite visual deixa seis na página.
+   (a de defesa sem técnica não conta: ela fica no bloco "falta escolher a técnica") */
+clicar([...raiz.querySelectorAll('.page button')].find((b) => b.textContent.trim().startsWith('Ver todos (')));
+confere('defesa sem técnica pede a técnica em vez de ficar ativa', raiz.textContent.includes('falta escolher a técnica'));
 await esperar(300);
 confere('meta de posição com nome, não código', w.document.body.textContent.includes('Trabalhar Guarda fechada (por baixo)'));
 

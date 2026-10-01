@@ -63,6 +63,39 @@ export async function enfileirar(tabela, op, registro) {
 }
 
 /* ============================================================
+   AS CONFIGURAÇÕES SOBEM TAMBÉM
+
+   Treino, rola, meta e lesão sempre subiram; as configurações não
+   (ficavam só no aparelho, menos nome, faixa e ritmo, que vão pro
+   perfil da liga). Quem trocava de celular recuperava os treinos,
+   mas perdia o ano de nascimento, a meta de horas, a academia e o
+   professor padrão, a duração do treino, as técnicas liberadas, e
+   ainda caía no primeiro acesso de novo.
+
+   Agora elas vão pro mesmo lugar dos treinos (registros), num
+   registro só por pessoa: o id dele é o id da conta. Vale a versão
+   mais nova, igual ao resto.
+   ============================================================ */
+export const TABELA_AJUSTES = 'settings';
+
+export async function enfileirarAjustes(settings) {
+  /* aparelho que ainda não fez o primeiro acesso não sobe nada: num
+     celular novo, ele subiria configurações em branco por cima das
+     boas que estão na nuvem, antes de baixá-las */
+  if (!supabaseConfigurado || !settings?.onboardingFeito) return;
+  try {
+    await db.outbox.add({
+      tabela: TABELA_AJUSTES, op: 'upsert', uid: TABELA_AJUSTES,
+      dados: settings, updatedAt: settings.updatedAt || Date.now(), criadoEm: Date.now(), tentativas: 0,
+    });
+  } catch {
+    return;
+  }
+  contarPendentes().catch(() => {});
+  agendar();
+}
+
+/* ============================================================
    A BIBLIOTECA NÃO SOBE
 
    Posições, categorias e técnicas da biblioteca nascem iguais em
@@ -132,29 +165,7 @@ async function subir(userId) {
   for (const i of itens) if (!(i.op === 'upsert' && sementeIntacta(i.tabela, i.dados))) mapa.set(i.uid, i);
   const finais = [...mapa.values()];
 
-  const upserts = finais
-    .filter((i) => i.op === 'upsert' && i.dados)
-    .map((i) => ({
-      id: i.uid,
-      user_id: userId,
-      tabela: i.tabela,
-      dados: limpar(i.dados),
-      updated_at: new Date(i.updatedAt || Date.now()).toISOString(),
-      deleted_at: null,
-    }));
-
-  const deletes = finais
-    .filter((i) => i.op === 'delete')
-    .map((i) => ({
-      id: i.uid,
-      user_id: userId,
-      tabela: i.tabela,
-      dados: {},
-      updated_at: new Date(i.updatedAt || Date.now()).toISOString(),
-      deleted_at: new Date().toISOString(),
-    }));
-
-  const lote = [...upserts, ...deletes];
+  const lote = paraRegistros(finais, userId);
   for (let i = 0; i < lote.length; i += 100) {
     const parte = lote.slice(i, i + 100);
     const { error } = await supabase.from('registros').upsert(parte, { onConflict: 'id' });
@@ -164,6 +175,33 @@ async function subir(userId) {
   await db.outbox.bulkDelete(itens.map((i) => i.id));
   await contarPendentes();
   return itens.length;
+}
+
+/* os itens da fila no formato da tabela registros. As configurações
+   usam o id da conta como id do registro: um por pessoa. */
+export function paraRegistros(itens, userId) {
+  const idDe = (i) => (i.tabela === TABELA_AJUSTES ? userId : i.uid);
+  const upserts = itens
+    .filter((i) => i.op === 'upsert' && i.dados)
+    .map((i) => ({
+      id: idDe(i),
+      user_id: userId,
+      tabela: i.tabela,
+      dados: limpar(i.dados),
+      updated_at: new Date(i.updatedAt || Date.now()).toISOString(),
+      deleted_at: null,
+    }));
+  const deletes = itens
+    .filter((i) => i.op === 'delete')
+    .map((i) => ({
+      id: idDe(i),
+      user_id: userId,
+      tabela: i.tabela,
+      dados: {},
+      updated_at: new Date(i.updatedAt || Date.now()).toISOString(),
+      deleted_at: new Date().toISOString(),
+    }));
+  return [...upserts, ...deletes];
 }
 
 /* ---------- BAIXAR (nuvem -> local) ---------- */
@@ -193,9 +231,10 @@ async function baixar(userId) {
   if (maior !== cursor) await db.meta.put({ key: 'sync_cursor', value: maior });
 }
 
-async function aplicarLocal(linhas) {
+export async function aplicarLocal(linhas) {
   for (const linha of linhas) {
     const tabela = linha.tabela;
+    if (tabela === TABELA_AJUSTES) { await aplicarAjustes(linha); continue; }
     if (!TABELAS_SYNC.includes(tabela) || !db[tabela]) continue;
 
     const existente = await db[tabela].where('uid').equals(linha.id).first();
@@ -217,6 +256,24 @@ async function aplicarLocal(linhas) {
       delete registro.id;
       await db[tabela].add(registro);
     }
+  }
+}
+
+/* as configurações que vieram da nuvem: valem se forem mais novas que as
+   do aparelho, e a tela é avisada pra recarregar (num celular novo, isso
+   tira a pessoa do primeiro acesso) */
+async function aplicarAjustes(linha) {
+  if (linha.deleted_at) return;
+  const local = (await db.meta.get('settings'))?.value || {};
+  const remotoEm = new Date(linha.updated_at).getTime();
+  /* aparelho virgem (ainda no primeiro acesso) aceita a nuvem mesmo com
+     hora mais nova: ele só aceitou os termos, não configurou nada */
+  const virgem = !local.onboardingFeito && linha.dados?.onboardingFeito;
+  if (!virgem && (local.updatedAt || 0) >= remotoEm) return;
+  const novo = { ...local, ...linha.dados, aceite: local.aceite || linha.dados?.aceite, updatedAt: Math.max(remotoEm, local.updatedAt || 0) };
+  await db.meta.put({ key: 'settings', value: novo });
+  if (typeof window !== 'undefined' && window.dispatchEvent) {
+    window.dispatchEvent(new CustomEvent('ajustes-da-nuvem', { detail: novo }));
   }
 }
 
@@ -254,6 +311,14 @@ export async function migrarParaNuvem(tabelas = TABELAS_SYNC) {
    antes disto sobe tudo uma vez: é idempotente, o uid não duplica.
    ============================================================ */
 export async function garantirNuvem() {
+  /* as configurações de quem já usava o app sobem uma vez. Sem data de
+     mudança, entram como mais antigas que qualquer outro aparelho, pra
+     não passar por cima de configuração que já esteja na nuvem. */
+  if (!(await db.meta.get('nuvem_ajustes'))?.value) {
+    const s = (await db.meta.get('settings'))?.value;
+    if (s) await enfileirarAjustes({ ...s, updatedAt: s.updatedAt || 1 });
+    await db.meta.put({ key: 'nuvem_ajustes', value: true });
+  }
   const feitas = new Set((await db.meta.get('nuvem_tabelas'))?.value || []);
   const faltam = TABELAS_SYNC.filter((t) => !feitas.has(t));
   if (!faltam.length) return sincronizar({ forcar: true });

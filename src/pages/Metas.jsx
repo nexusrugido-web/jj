@@ -18,7 +18,7 @@ import { minhasTecnicas, meusBuracos, grauPorN, GRAUS } from '../lib/graus';
 import { faltaPara } from '../lib/recomendar';
 import {
   TIPOS_META, tipoPorId, ORIGENS, sugerirMetas, progressoDaMeta, estadoSemMeta, tituloDaMeta, metaDeHorasNoAno,
-  historicoDaMeta,
+  historicoDaMeta, alvoDeHoras, metaIncompleta,
 } from '../lib/metas';
 import { POSICOES_INICIAIS } from '../db/scoring';
 import { hoje, fmtData, relativo } from '../lib/utils';
@@ -69,7 +69,9 @@ export default function Metas() {
     () => goals.filter((g) => g.origem !== 'sugerida' && g.status !== 'arquivada'),
     [goals]
   );
-  const ativas = minhas.filter((g) => g.status === 'ativa');
+  /* meta que depende de técnica e está sem ela não é ativa: pede a técnica */
+  const ativas = minhas.filter((g) => g.status === 'ativa' && !metaIncompleta(g));
+  const incompletas = minhas.filter((g) => g.status === 'ativa' && metaIncompleta(g));
   const feitas = useMemo(() => minhas.filter((g) => g.status === 'concluida')
     .sort((a, b) => (b.concluidaEm || '').localeCompare(a.concluidaEm || '') || (b.criadoEm || 0) - (a.criadoEm || 0)), [minhas]);
 
@@ -87,8 +89,11 @@ export default function Metas() {
 
   async function salvar() {
     const g = { ...edit };
-    if (g.tipo === 'tecnica' && !g.alvo) return toast('Escolhe a técnica', 'err');
-    if (!g.titulo) g.titulo = tituloAutomatico(g);
+    if ((g.tipo === 'tecnica' || g.tipo === 'defesa') && !String(g.alvo || '').trim()) return toast('Escolhe a técnica', 'err');
+    /* a meta que estava sem técnica ganha o nome do alvo ("Parar de ser
+       pego na Americana") em vez de continuar com o título genérico */
+    const antes = g.id ? goals.find((x) => x.id === g.id) : null;
+    if (!g.titulo || (antes && metaIncompleta(antes))) g.titulo = tituloAutomatico(g);
     if (g.id) await db.goals.put(g);
     else await db.goals.add({ ...g, criadoEm: Date.now() });
     setEdit(null);
@@ -116,8 +121,11 @@ export default function Metas() {
 
   const semMeta = estadoSemMeta(faixa, sessions.length > 0);
   const horasNoAno = useMemo(
-    () => (Number(settings.metaAnualHoras) > 0 ? metaDeHorasNoAno(sessions, Number(settings.metaAnualHoras)) : null),
-    [sessions, settings.metaAnualHoras]
+    () => {
+      const a = alvoDeHoras(settings, goals, sessions);
+      return a ? metaDeHorasNoAno(sessions, a.alvo, a.origem) : null;
+    },
+    [sessions, settings, goals]
   );
 
   return (
@@ -143,6 +151,22 @@ export default function Metas() {
           <button className="btn ghost xs" onClick={() => irPara('ajustes')} style={{ marginTop: 6 }}>mudar em Ajustes</button>
         </Card>
       )}
+
+      {/* a de defesa sem técnica (vinha do primeiro acesso) não acompanha nada:
+          fica aqui, pedindo a técnica, e não como meta ativa */}
+      {aba === 'minhas' && incompletas.map((g) => (
+        <Card key={g.id} style={{ marginBottom: 14 }}>
+          <div className="eyebrow">falta escolher a técnica</div>
+          <h3 className="h-sec" style={{ marginTop: 4 }}>{g.tipo === 'defesa' ? 'Parar de ser pego numa técnica' : 'Subir uma técnica de grau'}</h3>
+          <p className="tiny muted" style={{ marginTop: 6, lineHeight: 1.6 }}>
+            Esta meta só começa a contar quando tiver a técnica. {g.tipo === 'defesa' ? 'Escolha a que mais te pega nos rolas.' : 'Escolha a que você quer levar adiante.'}
+          </p>
+          <div className="row wrap" style={{ gap: 8, marginTop: 12 }}>
+            <Btn size="sm" variant="primary" onClick={() => setEdit({ ...g })}>Escolher a técnica</Btn>
+            <Btn size="sm" variant="ghost" onClick={() => db.goals.update(g.id, { status: 'arquivada' })}>Descartar</Btn>
+          </div>
+        </Card>
+      ))}
 
       {aba === 'minhas' && (
         ativas.length === 0 ? (
@@ -371,13 +395,20 @@ export default function Metas() {
             )}
 
             {edit.tipo === 'defesa' && (
-              <Field label="Qual técnica está te pegando">
-                <Select value={edit.alvo || ''} onChange={(e) => setEdit({ ...edit, alvo: e.target.value })}>
-                  <option value="">Escolha</option>
-                  {buracos.map((b) => (
-                    <option key={b.nome} value={b.nome}>{b.nome} ({b.vezes}x)</option>
-                  ))}
-                </Select>
+              <Field label="Qual técnica está te pegando" hint="As que já te pegaram nos rolas aparecem primeiro. Ainda não registrou? Escolha da biblioteca.">
+                {buracos.length > 0 && (
+                  <div className="row wrap" style={{ gap: 7, marginBottom: 8 }}>
+                    {buracos.slice(0, 6).map((b) => (
+                      <button key={b.nome} type="button" className={`chip ${edit.alvo === b.nome ? 'on' : ''}`}
+                        style={{ minHeight: 40, paddingInline: 14 }} onClick={() => setEdit({ ...edit, alvo: b.nome })}>
+                        {b.nome} ({b.vezes}x)
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <Btn icon={Target} onClick={() => setSeletorAberto(true)} style={{ width: '100%', justifyContent: 'flex-start' }}>
+                  {edit.alvo && !buracos.some((b) => b.nome === edit.alvo) ? edit.alvo : 'Escolher da biblioteca'}
+                </Btn>
               </Field>
             )}
 
@@ -472,7 +503,8 @@ export default function Metas() {
       <SeletorTecnica
         aberto={seletorAberto} onClose={() => setSeletorAberto(false)}
         techniques={techniques} categories={categories} positions={positions}
-        faixa={faixa} titulo="Qual técnica você quer subir de grau"
+        faixa={faixa} titulo={edit?.tipo === 'defesa' ? 'Qual finalização está te pegando' : 'Qual técnica você quer subir de grau'}
+        categoriaFiltro={edit?.tipo === 'defesa' ? ['estrangulamento', 'articular', 'perna'] : null}
         onEscolher={(t) => setEdit({ ...edit, alvo: t.nome })}
       />
 

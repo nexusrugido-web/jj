@@ -16,6 +16,7 @@ import {
   Card, Btn, Field, Input, NumeroInput, Select, Switch, Modal, Chip, useToast, Stat, Confirmar, Stepper, Sheet, EscolherData,
 } from '../components/UI';
 import { baixarArquivo, hoje } from '../lib/utils';
+import { alvoDeHoras, modoDasHoras } from '../lib/metas';
 import { ehStandalone, detectarPlataforma } from '../lib/pwa';
 import { supabaseConfigurado, sair, apagarMinhaConta } from '../lib/supabase';
 import { limparCursor, sincronizar } from '../lib/sync';
@@ -43,7 +44,10 @@ const CARDS_DASH = [
 
 export default function Ajustes() {
   const [toquesVersao, setToquesVersao] = useState(0);
-  const { settings, salvarSettings, abrirInstalar, sessao, sync, abrirLogin, erroBoot, abrirTour, refazerOnboarding, acesso, recarregarAcesso, ligada, ehAdmin } = useApp();
+  const { settings, salvarSettings, abrirInstalar, sessao, sync, abrirLogin, erroBoot, abrirTour, refazerOnboarding, acesso, recarregarAcesso, ligada, ehAdmin, goals = [], sessions = [] } = useApp();
+  /* as horas do ano: calculadas pelo ritmo, ou o número que a pessoa fixou */
+  const horas = alvoDeHoras(settings, goals, sessions);
+  const modoHoras = modoDasHoras(settings);
   const [temIA, setTemIA] = useState(null);
   const [aberto, setAberto] = useState(null);
   const [apagarConta, setApagarConta] = useState(false);
@@ -222,7 +226,17 @@ export default function Ajustes() {
           <Field label="Graus"><Stepper value={settings.graus} onChange={(v) => set('graus', v)} min={0} max={4} /></Field>
           <Field label="Comecei a treinar em"><EscolherData valor={settings.inicioTreino || ''} titulo="Quando você começou a treinar" onChange={(v) => set('inicioTreino', v)} /></Field>
           <Field label="Meta de treinos por semana"><Stepper value={settings.metaSemanal} onChange={(v) => set('metaSemanal', v)} min={1} max={14} /></Field>
-          <Field label="Meta de horas no ano" hint="3x/semana de 1h30 dá ~200h."><NumeroInput valor={settings.metaAnualHoras} onChange={(v) => set('metaAnualHoras', v)} /></Field>
+          <Field label="Meta de horas no ano" hint={modoHoras === 'derivada' && horas
+            ? `Calculada pelo seu ritmo: ${horas.frequencia}x por semana até 31/12. Escreva outro número pra fixar.`
+            : modoHoras === 'manual' ? 'Você fixou esse número. O ritmo não mexe nele.' : 'Sem meta de horas. Escreva um número ou calcule pelo ritmo.'}>
+            <NumeroInput valor={horas?.alvo ?? ''} onChange={(v) => salvarSettings({ metaAnualHoras: v, metaAnualHorasModo: Number(v) > 0 ? 'manual' : 'desligada' })} />
+            {modoHoras !== 'derivada' && (
+              <button type="button" className="btn ghost xs" style={{ marginTop: 6 }}
+                onClick={() => salvarSettings({ metaAnualHorasModo: 'derivada', metaAnualHorasDesde: null })}>
+                Calcular pelo meu ritmo
+              </button>
+            )}
+          </Field>
           <Field label="Duração padrão do rola (min)"><Stepper value={settings.duracaoRolaPadrao} onChange={(v) => set('duracaoRolaPadrao', v)} min={1} max={20} /></Field>
         </div>
       </Sheet>

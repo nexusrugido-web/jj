@@ -3672,3 +3672,9 @@ body::after {
   .nutri-supl { padding: 16px; }
   .nutri-supl-contexto { grid-template-columns: 1fr; gap: 14px; }
 }
+
+/* ---------- primeiro acesso: o ritmo vira horas até 31/12 ---------- */
+.onb-ritmo { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 10px 0 0 29px; }
+.onb-ritmo > div { display: flex; flex-direction: column; gap: 2px; padding: 9px 10px; border-radius: 10px; background: var(--void); border: 1px solid var(--seam); }
+.onb-ritmo .num { font-size: 19px; font-weight: 800; color: var(--chalk); }
+.onb-ritmo small { font-size: 11px; color: var(--dim); line-height: 1.3; }

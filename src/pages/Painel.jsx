@@ -16,7 +16,7 @@ import { resumo, escadaPosicional, treinosNaSemana } from '../lib/stats';
 import { relativo, emQuanto } from '../lib/utils';
 import { minhasTecnicas, meusBuracos, jogoPrincipal, grauPorN } from '../lib/graus';
 import { recomendacoesDoAluno, faltaPara } from '../lib/recomendar';
-import { progressoDaMeta, tituloDaMeta, metaDeHorasNoAno } from '../lib/metas';
+import { progressoDaMeta, tituloDaMeta, metaDeHorasNoAno, alvoDeHoras, metaIncompleta } from '../lib/metas';
 import LinhaDeMeta from '../components/LinhaDeMeta';
 import RotuloPeriodo from '../components/RotuloPeriodo';
 import { periodoDeDados } from '../lib/periodo';
@@ -85,7 +85,7 @@ export default function Painel() {
   const metasAtivas = useMemo(() => {
     const dados = { sessions, rolls, tecnicas: esteira, buracos, aulas: vistasAulas, quiz: respostasQuiz };
     return goals
-      .filter((g) => g.status !== 'concluida')
+      .filter((g) => g.status !== 'concluida' && !metaIncompleta(g))
       .map((g) => ({ ...g, p: progressoDaMeta(g, dados) }))
       .filter((g) => g.p.conta)
       .slice(0, 5);
@@ -97,8 +97,12 @@ export default function Painel() {
   );
   const jogo = useMemo(() => analisarJogo(rolls, partners, sessions, settings.faixa), [rolls, partners, sessions, settings.faixa]);
   const horasNoAno = useMemo(
-    () => (Number(settings.metaAnualHoras) > 0 ? metaDeHorasNoAno(sessions, Number(settings.metaAnualHoras)) : null),
-    [sessions, settings.metaAnualHoras]
+    () => {
+      /* as horas nascem do ritmo (ou do número que a pessoa escolheu) */
+      const a = alvoDeHoras(settings, goals || [], sessions);
+      return a ? metaDeHorasNoAno(sessions, a.alvo, a.origem) : null;
+    },
+    [sessions, settings, goals]
   );
 
   const naGame = techniques.filter((t) => t.status === 'game').length;
@@ -710,7 +714,7 @@ function SemanaDoRitmo({ semana, metaFreq, porSemana, ultimoTreino, salvarSettin
           size={104}
         />
         <div style={{ flex: 1, minWidth: 170 }}>
-          <div className="eyebrow">{metaFreq ? 'meta que você criou' : 'o ritmo que você marcou'}</div>
+          <div className="eyebrow">{metaFreq ? (metaFreq.origem === 'usuario' ? 'meta que você criou' : 'meta que você assumiu') : 'o ritmo que você marcou'}</div>
           <div className="h-sec" style={{ marginTop: 4 }}>
             {!alvo
               ? (feito === 0 ? 'Nenhum treino esta semana' : `${feito} ${feito === 1 ? 'treino' : 'treinos'} esta semana`)

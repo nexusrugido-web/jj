@@ -4,11 +4,12 @@ import { Card, Btn, Field, Input, useToast } from '../components/UI';
 import { db } from '../db/db';
 import { QUIZ, estiloDoQuiz, estiloPorId } from '../db/scoring';
 import { hoje } from '../lib/utils';
+import { horasPeloRitmo } from '../lib/metas';
 import { podeVer, LIMITES } from '../lib/plano';
 import { EscolherDificuldades } from '../components/Dificuldades';
 import { idadeDe } from '../lib/regras';
 import { IDADE_MINIMA, IDADE_SEM_RESPONSAVEL } from '../lib/idade';
-import { faixasDaIdade, faixaValidaNaIdade, visualDaFaixa, faixaDeConteudo } from '../lib/faixas';
+import { faixasDaIdade, faixaValidaNaIdade, visualDaFaixa } from '../lib/faixas';
 
 /* ============================================================
    ONBOARDING
@@ -54,6 +55,9 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
   const [quizPasso, setQuizPasso] = useState(0);
   const [estilo, setEstilo] = useState(null);
   const [metasEscolhidas, setMetasEscolhidas] = useState([]);
+  /* as horas de tatame até 31/12 nascem do ritmo escolhido; não contam
+     no limite de metas do grátis, e quem desmarca fica sem meta de horas */
+  const [acompanharHoras, setAcompanharHoras] = useState(true);
   const [salvando, setSalvando] = useState(false);
 
   const PASSOS = [
@@ -92,15 +96,6 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
       porque: `Foi o ritmo que você contou. Registrar isso é o que faz o resto do app ter dado pra trabalhar.`,
     });
   }
-  if (faixaDeConteudo(perfil.faixa) === 'branca') {
-    sugestoes.push({
-      id: 'defesa-branca',
-      tipo: 'defesa',
-      alvo: '',
-      titulo: 'Focar em sair de posição ruim',
-      porque: 'No primeiro ano, saber sair de baixo segura a evolução mais do que qualquer ataque novo. Você marca a técnica depois, quando souber qual mais te pega.',
-    });
-  }
   if (perfil.objetivo === 'competicao') {
     sugestoes.push({
       id: 'comp',
@@ -122,6 +117,8 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
         graus: perfil.graus,
         tempoTreino: perfil.tempo,
         metaSemanal: perfil.frequencia,
+        metaAnualHorasModo: acompanharHoras && perfil.frequencia ? 'derivada' : 'desligada',
+        metaAnualHorasDesde: hoje(),
         objetivo: perfil.objetivo || 'lazer',
         dificuldades: perfil.dificuldades,
         estiloDeclarado: estilo || null,
@@ -268,7 +265,7 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
               titulo="Quantas vezes por semana você treina?"
               texto="Fala o que acontece de verdade, não o que você gostaria. O app usa isso pra sugerir coisa realista."
             />
-            <p className="tiny muted">Sua meta acompanha esse ritmo. Para manter a ofensiva, basta um treino realizado na semana. Treinos e estudos continuam dando XP conforme suas próprias regras.</p>
+            <p className="tiny muted">Sua meta acompanha esse ritmo. Para manter a ofensiva, basta <b style={{ color: 'var(--accent)' }}>1 treino</b> realizado na semana. Treinos e estudos continuam dando XP conforme suas próprias regras.</p>
             <div className="row wrap" style={{ gap: 8 }}>
               {[1, 2, 3, 4, 5, 6, 7].map((n) => (
                 <button key={n} type="button" className={`chip ${perfil.frequencia === n ? 'on' : ''}`}
@@ -396,6 +393,34 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
               </div>
             )}
 
+            {perfil.frequencia >= 1 && (() => {
+              const p = horasPeloRitmo({ frequencia: perfil.frequencia, duracaoMin: Number(settings.duracaoTreinoPadrao) || 90, desde: hoje() });
+              const duracao = p.duracaoMin % 60 ? `${Math.floor(p.duracaoMin / 60)}h${String(p.duracaoMin % 60).padStart(2, '0')}` : `${p.duracaoMin / 60}h`;
+              return (
+                <button type="button" className={`opcao-meta ${acompanharHoras ? 'on' : ''}`} onClick={() => setAcompanharHoras(!acompanharHoras)}>
+                  <div className="row" style={{ gap: 9 }}>
+                    <span style={{
+                      width: 20, height: 20, borderRadius: 6, flex: 'none', display: 'grid', placeItems: 'center',
+                      border: `1.5px solid ${acompanharHoras ? 'var(--accent)' : 'var(--seam-hi)'}`,
+                      background: acompanharHoras ? 'var(--accent)' : 'transparent',
+                    }}>
+                      {acompanharHoras && <Check size={12} color="var(--accent-ink)" strokeWidth={3} />}
+                    </span>
+                    <span className="tiny" style={{ fontWeight: 600, flex: 1 }}>Horas de tatame até 31 de dezembro</span>
+                  </div>
+                  <div className="onb-ritmo">
+                    <div><span className="num">{perfil.frequencia}</span><small>{perfil.frequencia === 1 ? 'treino por semana' : 'treinos por semana'}</small></div>
+                    <div><span className="num">{p.treinos}</span><small>treinos até 31/12</small></div>
+                    <div><span className="num">≈ {p.horas}h</span><small>de tatame</small></div>
+                  </div>
+                  <p className="micro muted" style={{ marginTop: 8, marginLeft: 29, lineHeight: 1.6 }}>
+                    A conta sai do seu ritmo: {perfil.frequencia}x por semana nas {p.semanas} semanas que faltam, com treinos de {duracao}.
+                    Mudou o ritmo, a meta acompanha.
+                  </p>
+                </button>
+              );
+            })()}
+
             <p className="micro muted">
               Dá pra mudar ou trocar as metas quando quiser, na aba Metas.
             </p>
@@ -414,7 +439,11 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
             </Btn>
           ) : (
             <Btn variant="primary" icon={Check} onClick={concluir} disabled={salvando}>
-              {metasEscolhidas.length ? `Começar com ${metasEscolhidas.length} meta${metasEscolhidas.length > 1 ? 's' : ''}` : 'Começar sem meta'}
+              {(() => {
+                /* a meta de horas conta junto: ela também vira compromisso */
+                const n = metasEscolhidas.length + (acompanharHoras && perfil.frequencia ? 1 : 0);
+                return n ? `Começar com ${n} meta${n > 1 ? 's' : ''}` : 'Começar sem meta';
+              })()}
             </Btn>
           )}
         </div>
