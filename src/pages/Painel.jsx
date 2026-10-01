@@ -21,7 +21,7 @@ import LinhaDeMeta from '../components/LinhaDeMeta';
 import RotuloPeriodo from '../components/RotuloPeriodo';
 import { periodoDeDados } from '../lib/periodo';
 import Recomendacao, { VitrineRecomendacao } from '../components/Recomendacao';
-import { resumoSemana, lerSemana } from '../lib/semana';
+import { resumoSemana } from '../lib/semana';
 import useOfensivaSemanal from '../lib/useOfensivaSemanal';
 import { situacao, guiaDeEstudo } from '../lib/lesao';
 import { analisarJogo } from '../lib/game';
@@ -296,12 +296,11 @@ export default function Painel() {
         ultimoTreino={r.streak.ultimo}
         salvarSettings={salvarSettings}
         irPara={irPara}
-        resumo={!recap.vazia && (
+        resumo={recap.subiram.length > 0 && (
           <>
-            <p className="tiny" style={{ lineHeight: 1.7 }}>{lerSemana(recap, settings.faixa)}</p>
             {/* grau é habilidade, ponto é esforço: nunca na mesma linha */}
-            {recap.subiram.length > 0 && (
-              <div className="row wrap" style={{ gap: 6, marginTop: 11 }}>
+            {(
+              <div className="row wrap" style={{ gap: 6 }}>
                 {recap.subiram.map((t) => (
                   <Chip key={t.nome} tone="jade">{t.nome} subiu de grau</Chip>
                 ))}

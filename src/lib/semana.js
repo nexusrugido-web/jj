@@ -2,7 +2,6 @@ import { hoje, addDias, diasEntre } from './utils';
 import { placarDaRola } from './game';
 import { semanaDe } from './xp';
 import { calcularAtaque } from './graus';
-import { faixaDeConteudo } from './faixas';
 
 /* ============================================================
    SEQUÊNCIA E RESUMO DA SEMANA
@@ -101,41 +100,6 @@ export function resumoSemana(sessions, rolls, tecnicas = [], { semana = null, fa
     vazia: doPeriodo.length === 0,
   };
 }
-
-/* ---------- a leitura da semana, em uma frase ---------- */
-export function lerSemana(r, faixa = 'branca') {
-  if (r.vazia) {
-    return 'Nenhum treino registrado nesta semana. Se você foi e esqueceu de anotar, dá pra registrar com a data certa.';
-  }
-
-  const partes = [];
-  partes.push(`${r.treinos} ${r.treinos === 1 ? 'treino' : 'treinos'}`);
-  if (r.horas) partes.push(`${r.horas}h de tatame`);
-  if (r.rolas) partes.push(`${r.rolas} ${r.rolas === 1 ? 'rola' : 'rolas'}`);
-
-  let txt = partes.join(', ') + '.';
-
-  if (r.fin > 0) {
-    txt += ` Você finalizou ${r.fin} ${r.fin === 1 ? 'vez' : 'vezes'}`;
-    txt += r.tap > 0 ? ` e bateu ${r.tap}.` : '.';
-  } else if (r.tap > 0) {
-    txt += ` Bateu ${r.tap} ${r.tap === 1 ? 'vez' : 'vezes'} e não finalizou ninguém, o que é normal quando se está rolando com gente mais graduada.`;
-  }
-
-  if (r.tecnicas >= 5) {
-    txt += ` Apareceram ${r.tecnicas} técnicas diferentes, o que mostra um jogo variado.`;
-  } else if (r.tecnicas > 0 && r.tecnicas <= 2 && faixaDeConteudo(faixa) !== 'branca') {
-    txt += ` Só ${r.tecnicas} ${r.tecnicas === 1 ? 'técnica apareceu' : 'técnicas apareceram'}. Vale abrir o repertório.`;
-  }
-
-  if (r.variacao !== null) {
-    if (r.variacao > 0) txt += ` Foram ${r.variacao} ${r.variacao === 1 ? 'treino' : 'treinos'} a mais que na semana passada.`;
-    else if (r.variacao < 0) txt += ` Foi ${Math.abs(r.variacao)} a menos que na semana passada, e uma semana mais leve faz parte.`;
-  }
-
-  return txt;
-}
-
 
 /* ============================================================
    ESCUDO DE CONSTÂNCIA
