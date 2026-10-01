@@ -130,15 +130,17 @@ export default function Acervo() {
 
   useEffect(() => { buscar(); }, []);
 
-  /* vídeo sem a proporção (em pé ou deitado): pergunta ao YouTube uma
-     vez, em silêncio. Os 680 custam umas 14 perguntas. Antes do SQL
-     23 a coluna não existe e nada acontece. */
-  const completouProporcao = useRef(false);
+  /* vídeo sem a proporção (em pé ou deitado): pergunta ao YouTube.
+     Os 680 custaram umas 14 perguntas. Vale também pro vídeo que
+     entrou depois sem ela (o YouTube não respondeu no cadastro), e
+     cada um só é perguntado uma vez por abertura do painel. Antes do
+     SQL 23 a coluna não existe e nada acontece. */
+  const proporcaoTentada = useRef(new Set());
   useEffect(() => {
-    if (carregando || completouProporcao.current || !lista.length || !('vertical' in lista[0])) return;
-    const faltam = lista.filter((a) => a.vertical == null).map((a) => a.id);
-    completouProporcao.current = true;
+    if (carregando || !lista.length || !('vertical' in lista[0])) return;
+    const faltam = lista.filter((a) => a.vertical == null && !proporcaoTentada.current.has(a.id)).map((a) => a.id);
     if (!faltam.length) return;
+    faltam.forEach((id) => proporcaoTentada.current.add(id));
     /* diz o que aconteceu: antes a falha passava em silêncio e os 680
        continuavam sem proporção sem ninguém saber por quê */
     gravarYoutube(faltam)
@@ -146,7 +148,7 @@ export default function Acervo() {
         const com = [...r.values()].filter((x) => x.vertical != null);
         const emPe = com.filter((x) => x.vertical).length;
         toast(com.length
-          ? `Proporção de ${com.length} vídeos conferida no YouTube: ${emPe} em pé, ${com.length - emPe} deitados`
+          ? `Proporção ${com.length === 1 ? 'de 1 vídeo conferida' : `de ${com.length} vídeos conferida`} no YouTube: ${emPe} em pé, ${com.length - emPe} ${com.length - emPe === 1 ? 'deitado' : 'deitados'}`
           : `O YouTube não mandou a proporção de nenhum dos ${faltam.length} vídeos`, com.length ? '' : 'err');
         buscar();
       })
@@ -373,6 +375,10 @@ export default function Acervo() {
           yt_descricao: v.yt?.descricao || null,
           yt_tags: v.yt?.tags || null,
           yt_status: v.yt?.status || null,
+          /* em pé ou deitado, do mesmo YouTube que deu o título: o player
+             já abre o vídeo novo do jeito certo, sem esperar o painel
+             abrir de novo */
+          vertical: v.yt?.vertical ?? null,
         };
       });
       /* o que já está no acervo só troca título e duração. O que ele
