@@ -27,6 +27,7 @@ import { Convite } from '../components/Plano';
 import CalculadoraHoras from '../components/CalculadoraHoras';
 import ModoCampeonato from '../components/ModoCampeonato';
 import { categoriasDe } from '../lib/campeonato';
+import { ehPosicao } from '../lib/posicoes';
 
 const vazia = () => ({
   tipo: 'frequencia',
@@ -82,17 +83,20 @@ export default function Metas() {
   const feitas = useMemo(() => minhas.filter((g) => g.status === 'concluida')
     .sort((a, b) => (b.concluidaEm || '').localeCompare(a.concluidaEm || '') || (b.criadoEm || 0) - (a.criadoEm || 0)), [minhas]);
 
+  /* meta sugerida e campeonato são de técnica: posição fica de fora (a lista
+     com posição é só pra achar a meta antiga numa posição) */
+  const soTecnicas = useMemo(() => tecnicas.filter((t) => !ehPosicao({ nome: t.nome })), [tecnicas]);
   const dispensadas = new Set(settings.sugestoesDispensadas || []);
   const sugestoes = useMemo(() => sugerirMetas({
     faixa,
     frequenciaTipica: Number(settings.metaSemanal) || 0,
     objetivo: settings.objetivo || 'lazer',
-    tecnicas, buracos, sessions,
+    tecnicas: soTecnicas, buracos, sessions,
   }).filter((s) => {
     const chave = `${s.tipo}:${s.alvo}`;
     if (dispensadas.has(chave)) return false;
     return !minhas.some((m) => m.tipo === s.tipo && String(m.alvo) === String(s.alvo));
-  }), [faixa, settings, tecnicas, buracos, sessions, minhas, dispensadas]);
+  }), [faixa, settings, soTecnicas, buracos, sessions, minhas, dispensadas]);
 
   async function salvar(base = edit) {
     const g = { ...base };
@@ -534,7 +538,7 @@ export default function Metas() {
       </Sheet>
 
       <CalculadoraHoras aberto={calculadora} onClose={() => setCalculadora(false)} />
-      <ModoCampeonato meta={campeonato} esteira={tecnicas} onClose={() => setCampeonato(null)} />
+      <ModoCampeonato meta={campeonato} esteira={soTecnicas} onClose={() => setCampeonato(null)} />
 
       <SeletorTecnica
         aberto={seletorAberto} onClose={() => { setSeletorAberto(false); salvarAoEscolher.current = false; }}

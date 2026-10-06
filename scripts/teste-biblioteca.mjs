@@ -180,6 +180,25 @@ const rx = raioX(7, [
 ok('raio-x: de onde sai o seu ataque nele (só os rolas com ele)', rx.ondePego, [{ nome: posicoes.find((p) => p.slug === 'montada').nome, vezes: 2 }]);
 ok('raio-x: de onde sai o ataque dele em você', rx.ondeEleMePega.map((x) => x.vezes), [1]);
 
+/* ---------- coerência: Meu jogo (por posição) bate com Minhas técnicas (por técnica) ---------- */
+{
+  let semente = 7;
+  const sorteio = (l) => { semente = (semente * 1103515245 + 12345) % 2147483648; return l[semente % l.length]; };
+  const nomesRasp = ['Raspagem de X-guard para trás', 'Raspagem de X-guard para o lado', 'Raspagem de sentar (hip bump)'];
+  const nomesFin = ['Chave de braço da montada', 'Chave de braço (armlock)', 'Mata-leão', 'Kimura dos 100kg', 'De La Riva'];
+  const ses = [{ id: 1, data: '2026-09-01', tipo: 'gi' }, { id: 2, data: '2026-09-02', tipo: 'drill' }, { id: 3, data: '2026-09-03', tipo: 'nogi' }];
+  const rolas = Array.from({ length: 60 }, (_, i) => ({
+    sessionId: sorteio([1, 1, 3, 2]), data: '2026-09-0' + (1 + (i % 3)), partnerId: 1,
+    ptsMeus: ['raspagem'], tecMeus: { raspagem: [sorteio(nomesRasp)] }, subsAplicadas: [sorteio(nomesFin)], subsSofridas: [],
+  }));
+  const porTec = new Map(minhasTecnicas(rolas, [{ id: 1, faixa: 'azul' }], ses, biblioteca, 'azul').map((t) => [t.nome, t.usosResistencia]));
+  const porPos = new Map(repertorioPorPosicao({ rolls: rolas, sessions: ses, techniques: biblioteca, categories: categorias, positions: posicoes })
+    .flatMap((p) => p.tecnicas.map((t) => [t.nome, t.usos])));
+  const diferentes = [...porPos].filter(([n, u]) => porTec.get(n) !== u).map(([n, u]) => `${n}: posição ${u}, técnica ${porTec.get(n)}`);
+  ok('cada técnica tem o mesmo número nas duas telas', diferentes, []);
+  ok('a posição marcada como finalização não entra em nenhuma das duas', [porTec.has('De La Riva'), porPos.has('De La Riva')], [false, false]);
+}
+
 /* ---------- a voz ---------- */
 const { resolverFinalizacao } = await import('../src/lib/golpes.js');
 ok('falou "armlock da montada": a IA mandou o nome certo e ele fica', resolverFinalizacao('Chave de braço da montada', { catalogo: finais }), 'Chave de braço da montada');
