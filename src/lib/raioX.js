@@ -1,6 +1,7 @@
 import { placarDaRola } from './game';
 import { pontosPorId, posInicialPorId } from '../db/scoring';
 import { artigo } from './treinoDeHoje';
+import { repertorioPorPosicao } from './posicoes';
 
 /* ============================================================
    O RAIO-X DO PARCEIRO
@@ -17,8 +18,13 @@ const contar = (lista) => {
   return [...m.entries()].sort((a, b) => b[1] - a[1]).map(([nome, vezes]) => ({ nome, vezes }));
 };
 
-export function raioX(partnerId, rolls = []) {
+export function raioX(partnerId, rolls = [], { techniques = [], categories = [], positions = [] } = {}) {
   const rs = rolls.filter((r) => r.partnerId === partnerId);
+  /* de que posição sai o que entra nele, e o que ele faz em você */
+  const base = { rolls: rs, techniques, categories, positions };
+  const resumo = (l) => l.slice(0, 2).map((p) => ({ nome: p.nome, vezes: p.usos }));
+  const ondePego = resumo(repertorioPorPosicao(base));
+  const ondeEleMePega = resumo(repertorioPorPosicao({ ...base, lado: 'dele' }));
   let venceu = 0, perdeu = 0;
   const porPosicao = new Map();
   for (const r of rs) {
@@ -54,6 +60,7 @@ export function raioX(partnerId, rolls = []) {
   return {
     rolas: rs.length,
     venceu, perdeu, empate: rs.length - venceu - perdeu,
+    ondePego, ondeEleMePega,
     melhor, pior, minhas: minhas.slice(0, 3), dele: dele.slice(0, 3), pontosDele: pontosDele.slice(0, 2), plano,
   };
 }

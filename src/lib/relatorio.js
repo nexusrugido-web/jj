@@ -1,6 +1,7 @@
 import { placarDaRola } from './game';
 import { calcularAtaque } from './graus';
 import { mesCompleto } from './utils';
+import { repertorioPorPosicao } from './posicoes';
 
 /* ============================================================
    O RELATÓRIO DO MÊS (e a retrospectiva do ano)
@@ -50,7 +51,24 @@ function numeros(sessions, rolls, ini, fim) {
   };
 }
 
-export function relatorio({ sessions = [], rolls = [], esteira = [], faixa = 'branca', ini, fim, anteriorIni, anteriorFim }) {
+/* a posição do período e o que entrou no repertório pela primeira vez */
+function porPosicao({ sessions, rolls, techniques, categories, positions, ini, fim }) {
+  if (!techniques?.length) return { posicaoDoMes: null, novasNoRepertorio: [] };
+  const dataDe = new Map(sessions.map((s) => [s.id, s.data]));
+  const base = { sessions, techniques, categories, positions };
+  const doPeriodo = rolls.filter((r) => { const d = dataDe.get(r.sessionId); return d >= ini && d <= fim; });
+  const antes = rolls.filter((r) => { const d = dataDe.get(r.sessionId); return d && d < ini; });
+  const agora = repertorioPorPosicao({ ...base, rolls: doPeriodo });
+  const jaTinha = new Set(repertorioPorPosicao({ ...base, rolls: antes }).flatMap((p) => p.tecnicas.map((t) => t.nome)));
+  const top = agora[0];
+  return {
+    posicaoDoMes: top && top.usos >= 2 ? { nome: top.nome, usos: top.usos, tecnicas: top.tecnicas.length } : null,
+    novasNoRepertorio: agora.flatMap((p) => p.tecnicas.map((t) => ({ nome: t.nome, posicao: p.nome })))
+      .filter((t) => !jaTinha.has(t.nome)).slice(0, 3),
+  };
+}
+
+export function relatorio({ sessions = [], rolls = [], esteira = [], faixa = 'branca', ini, fim, anteriorIni, anteriorFim, techniques = [], categories = [], positions = [] }) {
   const agora = numeros(sessions, rolls, ini, fim);
   const antes = anteriorIni ? numeros(sessions, rolls, anteriorIni, anteriorFim) : null;
 
@@ -74,6 +92,7 @@ export function relatorio({ sessions = [], rolls = [], esteira = [], faixa = 'br
     variacao: antes ? { rolas: agora.rolas - antes.rolas, treinos: agora.treinos - antes.treinos } : null,
     taxaAntes: antes?.taxa ?? null,
     subiram,
+    ...porPosicao({ sessions, rolls, techniques, categories, positions, ini, fim }),
     /* o foco do mês seguinte: sair do que mais te pegou */
     foco: agora.cede && agora.cede.vezes >= 2 ? agora.cede.nome : null,
   };

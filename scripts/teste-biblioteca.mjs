@@ -145,6 +145,41 @@ ok('a passagem conta em "Combatendo a guarda", não na guarda do outro', [daPos.
 ok('o armlock da montada conta na montada, as duas vezes', daPos.montada?.usos, 2);
 ok('a soma das posições bate com as técnicas reconhecidas', rep.reduce((a, p) => a + p.usos, 0), 6);
 
+/* ---------- as telas que leem por posição ---------- */
+const { minhasTecnicas } = await import('../src/lib/graus.js');
+const { posicaoDeHoje } = await import('../src/lib/treinoDeHoje.js');
+const { relatorio } = await import('../src/lib/relatorio.js');
+const { raioX } = await import('../src/lib/raioX.js');
+const sessoesAula = [{ id: 1, data: '2026-09-10', tipo: 'gi', focoTecnicas: [{ nome: 'De La Riva', aprendizado: 'peguei' }, { nome: 'Berimbolo', aprendizado: 'peguei' }] }];
+const semPos = minhasTecnicas([], [], sessoesAula, biblioteca, 'azul').map((t) => t.nome);
+ok('Painel e Conquistas: a posição marcada na aula não conta como técnica', [semPos.includes('De La Riva'), semPos.includes('Berimbolo')], [false, true]);
+const comPos = minhasTecnicas([], [], sessoesAula, biblioteca, 'azul', [], 0, { comPosicoes: true }).map((t) => t.nome);
+ok('Minhas técnicas e Metas ainda enxergam a posição (grau guardado)', comPos.includes('De La Riva'), true);
+ok('posição antiga sem etiqueta também é reconhecida pelo nome', ehPosicao({ nome: 'De La Riva', tags: [] }), true);
+
+const repX = [{ slug: 'x_guard', nome: 'Guarda X', usos: 4, tecnicas: [{ nome: 'Raspagem de X-guard para trás', usos: 4 }] }];
+ok('treino de hoje: a aula da semana que não chegou no rola vem primeiro',
+  posicaoDeHoje({ sessions: [{ data: '2026-10-04', focoPosicoes: ['de_la_riva'] }], repertorio: repX, positions: posicoes, hj: '2026-10-06' })?.texto,
+  'Leva pro rola a aula de De La Riva: nenhuma saída dessa posição entrou ainda');
+ok('treino de hoje: sem aula nova, a posição com 1 saída', posicaoDeHoje({ sessions: [], repertorio: repX, positions: posicoes, hj: '2026-10-06' })?.forte, 'Guarda X');
+
+const sesMes = [{ id: 10, data: '2026-08-20', tipo: 'gi' }, { id: 11, data: '2026-09-15', tipo: 'gi' }];
+const rolMes = [
+  { sessionId: 10, tecMeus: { raspagem: ['Raspagem de X-guard para trás'] } },
+  { sessionId: 11, tecMeus: { raspagem: ['Raspagem de X-guard para trás', 'Raspagem de X-guard para o lado'] } },
+];
+const rel = relatorio({ sessions: sesMes, rolls: rolMes, ini: '2026-09-01', fim: '2026-09-30', techniques: biblioteca, categories: categorias, positions: posicoes });
+ok('relatório: a posição do mês', rel.posicaoDoMes, { nome: 'Guarda X', usos: 2, tecnicas: 2 });
+ok('relatório: só o que entrou no jogo pela primeira vez no mês', rel.novasNoRepertorio.map((t) => t.nome), ['Raspagem de X-guard para o lado']);
+
+const rx = raioX(7, [
+  { partnerId: 7, ptsMeus: ['montada'], subsAplicadas: ['Chave de braço da montada'], subsSofridas: ['Mata-leão'], tecDele: {} },
+  { partnerId: 7, subsAplicadas: ['Americana da montada'], subsSofridas: [] },
+  { partnerId: 9, subsAplicadas: ['Kimura'] },
+], { techniques: biblioteca, categories: categorias, positions: posicoes });
+ok('raio-x: de onde sai o seu ataque nele (só os rolas com ele)', rx.ondePego, [{ nome: posicoes.find((p) => p.slug === 'montada').nome, vezes: 2 }]);
+ok('raio-x: de onde sai o ataque dele em você', rx.ondeEleMePega.map((x) => x.vezes), [1]);
+
 /* ---------- a voz ---------- */
 const { resolverFinalizacao } = await import('../src/lib/golpes.js');
 ok('falou "armlock da montada": a IA mandou o nome certo e ele fica', resolverFinalizacao('Chave de braço da montada', { catalogo: finais }), 'Chave de braço da montada');

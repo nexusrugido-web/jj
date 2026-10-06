@@ -4,6 +4,7 @@ import { Vitrine } from './Plano';
 import { podeVer, pedirOferta } from '../lib/plano';
 import { raioX } from '../lib/raioX';
 import { pesoRelPorId } from '../db/scoring';
+import { useApp } from '../contexto';
 
 /* ============================================================
    A FOLHA DO RAIO-X
@@ -13,13 +14,16 @@ import { pesoRelPorId } from '../db/scoring';
    em você e o plano pro próximo rola.
    ============================================================ */
 export default function RaioXParceiro({ parceiro, rolls, acesso, onClose }) {
-  const rx = useMemo(() => (parceiro ? raioX(parceiro.id, rolls) : null), [parceiro, rolls]);
+  const { techniques, categories, positions } = useApp();
+  const rx = useMemo(() => (parceiro ? raioX(parceiro.id, rolls, { techniques, categories, positions }) : null), [parceiro, rolls, techniques, categories, positions]);
   const livre = podeVer(acesso, 'raioX');
 
   const detalhe = rx && (
     <div className="col" style={{ gap: 10 }}>
       {rx.melhor && <div className="rel-linha">✅ <span>Você vai bem começando <b>{rx.melhor.nome.toLowerCase()}</b> ({rx.melhor.v} de {rx.melhor.n})</span></div>}
       {rx.pior && <div className="rel-linha">🔻 <span>Contra ele, cuidado ao começar <b>{rx.pior.nome.toLowerCase()}</b> ({rx.pior.v} de {rx.pior.n})</span></div>}
+      {rx.ondePego.length > 0 && <div className="rel-linha">📍 <span>Seu ataque nele sai mais de: <b>{rx.ondePego.map((x) => `${x.nome} (${x.vezes}x)`).join(', ')}</b></span></div>}
+      {rx.ondeEleMePega.length > 0 && <div className="rel-linha">📍 <span>O ataque dele em você sai mais de: <b>{rx.ondeEleMePega.map((x) => `${x.nome} (${x.vezes}x)`).join(', ')}</b></span></div>}
       {rx.minhas.length > 0 && <div className="rel-linha">🎯 <span>O que já entrou nele: <b>{rx.minhas.map((x) => `${x.nome} (${x.vezes}x)`).join(', ')}</b></span></div>}
       {rx.dele.length > 0 && <div className="rel-linha">⚠️ <span>Ele te pega com: <b>{rx.dele.map((x) => `${x.nome} (${x.vezes}x)`).join(', ')}</b></span></div>}
       {rx.dele.length === 0 && rx.pontosDele.length > 0 && <div className="rel-linha">⚠️ <span>Ele pontua mais com: <b>{rx.pontosDele.map((x) => x.nome).join(', ')}</b></span></div>}

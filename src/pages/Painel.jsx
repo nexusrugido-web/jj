@@ -15,6 +15,7 @@ import GraficoEvolucao from '../components/GraficoEvolucao';
 import { resumo, escadaPosicional, treinosNaSemana } from '../lib/stats';
 import { relativo, emQuanto, addDias } from '../lib/utils';
 import { minhasTecnicas, meusBuracos, jogoPrincipal, grauPorN, pertoDoGrau } from '../lib/graus';
+import { repertorioPorPosicao } from '../lib/posicoes';
 import { recomendacoesDoAluno, faltaPara } from '../lib/recomendar';
 import { progressoDaMeta, tituloDaMeta, metaDeHorasNoAno, alvoDeHoras, metaIncompleta } from '../lib/metas';
 import LinhaDeMeta from '../components/LinhaDeMeta';
@@ -40,7 +41,7 @@ import { supabase } from '../lib/supabase';
 
 export default function Painel() {
   const [ajudaTec, setAjudaTec] = useState(false);
-  const { sessions, rolls, positions, settings, salvarSettings, irPara, goals, techniques, partners, ligada, sessao, acesso } = useApp();
+  const { sessions, rolls, positions, categories, settings, salvarSettings, irPara, goals, techniques, partners, ligada, sessao, acesso } = useApp();
   const toast = useToast();
   const [analise, setAnalise] = useState(null);
   const [carregandoIa, setCarregandoIa] = useState(false);
@@ -113,9 +114,13 @@ export default function Painel() {
     [esteira, buracos, partners, sessions, rolls, settings.faixa, feitas]
   );
   const jogo = useMemo(() => analisarJogo(rolls, partners, sessions, settings.faixa), [rolls, partners, sessions, settings.faixa]);
+  const repertorio = useMemo(
+    () => repertorioPorPosicao({ rolls, sessions, techniques, categories, positions }),
+    [rolls, sessions, techniques, categories, positions]
+  );
   const hojeNoTatame = useMemo(
-    () => treinoDeHoje({ sessions, esteira, buracos, jogo, metaSemanal: settings.metaSemanal }),
-    [sessions, esteira, buracos, jogo, settings.metaSemanal]
+    () => treinoDeHoje({ sessions, esteira, buracos, jogo, metaSemanal: settings.metaSemanal, repertorio, positions }),
+    [sessions, esteira, buracos, jogo, settings.metaSemanal, repertorio, positions]
   );
   const horasNoAno = useMemo(
     () => {
@@ -310,7 +315,7 @@ export default function Painel() {
       <AvisoDeVolta sessions={sessions} irPara={irPara} />
 
       <TreinoDeHoje hoje={hojeNoTatame} acesso={acesso} />
-      <RelatorioDoMes sessions={sessions} rolls={rolls} esteira={esteira} faixa={settings.faixa} acesso={acesso} />
+      <RelatorioDoMes techniques={techniques} categories={categories} positions={positions} sessions={sessions} rolls={rolls} esteira={esteira} faixa={settings.faixa} acesso={acesso} />
 
       {/* ---- o ritmo da semana ---- */}
       <SemanaDoRitmo

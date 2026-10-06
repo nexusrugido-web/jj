@@ -27,6 +27,7 @@ const AVISOS = [
   { id: 'camp', tipo: 'campeonato', nome: 'Campeonato chegando', quando: 'Faltando 7, 3, 2 e 1 dia pro campeonato da meta, na hora de costume.' },
   { id: 'resumo', tipo: 'resumo', nome: 'Resumo da semana', quando: 'Segunda às 14h: treinos e rolas da semana, a liga e as técnicas que subiram.' },
   { id: 'volta', tipo: 'volta', nome: 'Volta pro tatame', quando: 'Depois de 7 dias sem nada, no máximo uma vez por mês.' },
+  { id: 'dia', tipo: 'dia:0', nome: 'Aviso do dia', quando: 'Todo dia às 21h, se nenhum outro aviso saiu. Um tema por dia da semana: aula rápida, seu jogo, meta, técnica, liga.' },
 ];
 
 /* o e-mail confirmado fica neste navegador, pra não digitar de novo */

@@ -5,7 +5,7 @@
    - fontes externas: cache-first
    Os DADOS ficam no IndexedDB, entao o app inteiro funciona sem internet. */
 
-const VERSION = 'neurojitsu-v12-15';
+const VERSION = 'neurojitsu-v12-16';
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
 
@@ -67,7 +67,20 @@ const ROTA = {
   meta: '/?go=metas',
   painel: '/?go=painel',
   dominio: '/?go=dominio',
+  meujogo: '/?go=meujogo',
 };
+
+/* o aviso do dia (dia:0 = segunda ... dia:6 = domingo): o servidor
+   escreve o texto; aqui sai o botão de cada tema */
+const BOTAO_DO_DIA = [
+  { acao: 'estudar', titulo: 'Ver aula rápida', rota: ROTA.estudar },
+  { acao: 'meujogo', titulo: 'Ver meu jogo', rota: ROTA.meujogo },
+  { acao: 'meta', titulo: 'Ver minha meta', rota: ROTA.meta },
+  { acao: 'dominio', titulo: 'Ver minhas técnicas', rota: ROTA.dominio },
+  { acao: 'estudar', titulo: 'Ver aula rápida', rota: ROTA.estudar },
+  { acao: 'liga', titulo: 'Ver a liga', rota: ROTA.liga },
+  { acao: 'estudar', titulo: 'Ver aula rápida', rota: ROTA.estudar },
+];
 
 /* Com a cara do tatame: brinca, mas cobra. Cada tipo tem algumas
    versões, e o dia escolhe qual sai, pra não virar papel de parede. */
@@ -250,6 +263,7 @@ function aviso(n) {
     amigo: ['🥊 Fulano te passou na liga', 'Bora dar o troco? Faltam 6 pontos pra passar de volta.'],
     grau: ['🥋 Falta pouco pro 2º grau', 'Mais 1 uso da Americana e ela sobe. Bora encaixar hoje?'],
     campeonato: ['🏆 Campeonato em 3 dias', 'Hora de pegar leve no treino e cuidar do peso.'],
+    dia: ['🎬 Aula rápida pra começar', 'Começa a semana com 1 aula rápida. 3 minutos e já mexe no placar da liga.'],
   };
   const doServidor = (acoes) => {
     const ex = n.versao != null ? EXEMPLO[tipo.split(':')[0]] : null;
@@ -260,6 +274,7 @@ function aviso(n) {
   if (tipo.startsWith('amigo:')) return doServidor([{ acao: 'liga', titulo: 'Ver a liga', rota: ROTA.liga }]);
   if (tipo.startsWith('grau:')) return doServidor([{ acao: 'dominio', titulo: 'Ver a técnica', rota: ROTA.dominio }]);
   if (tipo === 'campeonato') return doServidor([{ acao: 'meta', titulo: 'Ver a preparação', rota: ROTA.meta }]);
+  if (tipo.startsWith('dia:')) return doServidor([BOTAO_DO_DIA[Number(tipo.split(':')[1]) || 0] || BOTAO_DO_DIA[0]]);
   if (tipo.startsWith('meta:')) {
     return {
       titulo: n.title || '🎯 Sua meta',

@@ -260,6 +260,34 @@ for (const linha of (await pg.query('select titulo, corpo from public.fila_de_no
   assert.ok([...linha.titulo].length <= 34, `título longo: ${linha.titulo}`);
 }
 
+// 45: todo dia tem aviso. Às 21h, se nada saiu, sai o aviso do dia
+const sql45 = (await fs.readFile(new URL('../supabase/45-aviso-todo-dia.sql', import.meta.url), 'utf8')).replaceAll('now()', 'public.agora()');
+await pg.exec(sql45);
+await pg.exec(sql45); // reexecução segura
+await pg.query('delete from notificacao_envio');
+av = await filaPara(1, '2026-09-23 21:10-03');
+assert.deepEqual(av.map((x) => [x.tipo, x.titulo, x.caminho]), [['dia:2', '🎯 Metade da semana', '/?go=metas']], 'quarta sem aviso: sai o da quarta às 21h');
+assert.deepEqual((await filaPara(1, '2026-09-23 20:10-03')).map((x) => x.tipo), [], 'o do dia é às 21h, não antes');
+assert.deepEqual((await filaPara(1, '2026-09-23 22:10-03')).map((x) => x.tipo), [], 'nada depois das 22h');
+await pg.query("insert into notificacao_envio(user_id,tipo,dia,enviado_em,respondeu) values($1,'meta:x','2026-09-23','2026-09-23 18:00-03',false)", [uid(1)]);
+assert.deepEqual((await filaPara(1, '2026-09-23 21:10-03')).map((x) => x.tipo), [], 'já teve aviso hoje: não sai outro');
+// pós-treino continua ganhando quando é a hora dele
+assert.deepEqual((await filaPara(1, '2026-09-22 20:10-03')).map((x) => x.tipo), [], 'terça já registrou treino');
+// quem ignorou 7 avisos: só o aviso do dia
+await pessoa(12, 'Doze');
+await treino(12, '2026-09-08'); await treino(12, '2026-09-15');
+await pg.query('insert into registros(user_id,tabela,dados) values($1,$2,$3)', [uid(12), 'settings', JSON.stringify({ avisosDoApp: { perto: { nome: 'Kimura', usos: 1, grau: 2 } } })]);
+for (let d = 10; d < 17; d++) await pg.query("insert into notificacao_envio(user_id,tipo,dia,enviado_em,respondeu) values($1,$2,$3,$4,false)", [uid(12), `x${d}`, `2026-09-${d}`, `2026-09-${d} 12:00-03`]);
+assert.deepEqual((await filaPara(12, '2026-09-22 12:10-03')).map((x) => x.tipo), [], 'quem ignora não recebe o da técnica');
+assert.deepEqual((await filaPara(12, '2026-09-22 21:10-03')).map((x) => x.tipo), ['dia:1'], 'mas recebe o aviso do dia');
+// a volta travada (30 dias) não tira o aviso do dia
+await pessoa(13, 'Treze');
+await pg.query("insert into notificacao_envio(user_id,tipo,dia,enviado_em,respondeu) values($1,'volta','2026-09-10','2026-09-10 18:00-03',true)", [uid(13)]);
+assert.deepEqual((await filaPara(13, '2026-09-24 21:10-03')).map((x) => x.tipo), ['dia:3'], 'sumido com a volta travada ainda recebe o do dia');
+for (const linha of (await pg.query("select titulo, corpo from public.fila_de_notificacao() where tipo like 'dia:%'")).rows) {
+  assert.ok([...linha.titulo].length <= 30 && [...linha.corpo].length <= 75, `aviso do dia longo: ${linha.titulo}`);
+}
+
 // O registro excluído deixa de contar sem depender de abrir o aplicativo.
 await pg.exec(`set test.uid='${user}'; update registros set deleted_at=now();`);
 assert.equal((await pg.query('select public.minha_ofensiva_semanal() as o')).rows[0].o.semanas,0);

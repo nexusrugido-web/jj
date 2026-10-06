@@ -2,6 +2,7 @@ import { FAIXA_ORDEM, hoje, diasEntre, addDias } from './utils';
 import { periodoDeDados, dentroDoPeriodo } from './periodo';
 import { SEED } from '../db/seed';
 import { pontosPorId, PESO_REL } from '../db/scoring';
+import { ehPosicao } from './posicoes';
 
 /* ============================================================
    GRAUS POR TÉCNICA
@@ -504,7 +505,10 @@ export function pertoDoGrau(lista = []) {
   return melhor && { nome: melhor.nome, usos: melhor.usos, grau: melhor.grau };
 }
 
-export function minhasTecnicas(rolls, partners, sessions, techniques, faixaUsuario = 'branca', gradings = [], grausAtuais = 0) {
+/* posição (De La Riva, Montada) não é técnica: fica fora da lista, das
+   contas e dos marcos. Minhas técnicas (seção Posições) e Metas (meta
+   antiga numa posição) pedem com comPosicoes. */
+export function minhasTecnicas(rolls, partners, sessions, techniques, faixaUsuario = 'branca', gradings = [], grausAtuais = 0, { comPosicoes = false } = {}) {
   const { ataque, defesa } = lerHistorico(rolls, partners, sessions);
   const porNome = new Map(techniques.map((t) => [t.nome.toLowerCase(), t]));
 
@@ -515,6 +519,7 @@ export function minhasTecnicas(rolls, partners, sessions, techniques, faixaUsuar
       grauMinimo: grauGuardado(usos, faixaUsuario, gradings, grausAtuais),
     });
     const tec = porNome.get(nome.toLowerCase());
+    if (!comPosicoes && ehPosicao({ nome, tags: tec?.tags })) continue;
     linhas.push({
       nome,
       tecnicaId: tec?.id ?? null,

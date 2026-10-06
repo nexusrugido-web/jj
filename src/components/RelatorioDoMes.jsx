@@ -27,16 +27,16 @@ function qualMostrar(hj) {
   return null;
 }
 
-export default function RelatorioDoMes({ sessions, rolls, esteira, faixa, acesso }) {
+export default function RelatorioDoMes({ sessions, rolls, esteira, faixa, acesso, techniques = [], categories = [], positions = [] }) {
   const [aberto, setAberto] = useState(false);
   const [story, setStory] = useState(false);
   const hj = hoje();
   const qual = qualMostrar(hj);
   const r = useMemo(() => {
     if (!qual) return null;
-    const dados = { sessions, rolls, esteira, faixa };
+    const dados = { sessions, rolls, esteira, faixa, techniques, categories, positions };
     return qual.tipo === 'ano' ? retrospectivaDoAno({ ano: qual.ano, ...dados }) : relatorioDoMes({ hj, ...dados });
-  }, [qual?.tipo, qual?.ano, sessions, rolls, esteira, faixa, hj]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [qual?.tipo, qual?.ano, sessions, rolls, esteira, faixa, hj, techniques, categories, positions]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!r || r.vazio) return null;
 
   const ano = qual.tipo === 'ano';
@@ -55,6 +55,12 @@ export default function RelatorioDoMes({ sessions, rolls, esteira, faixa, acesso
 
   const detalhe = (
     <div className="col" style={{ gap: 10 }}>
+      {r.posicaoDoMes && (
+        <div className="rel-linha">📍 <span><b>A posição {ano ? 'do ano' : 'do mês'}:</b> {r.posicaoDoMes.nome}, {r.posicaoDoMes.usos} vezes no rola com {r.posicaoDoMes.tecnicas} {r.posicaoDoMes.tecnicas === 1 ? 'técnica' : 'técnicas'}</span></div>
+      )}
+      {r.novasNoRepertorio.length > 0 && (
+        <div className="rel-linha">🆕 <span><b>Entrou no seu jogo:</b> {r.novasNoRepertorio.map((t) => t.nome).join(', ')}</span></div>
+      )}
       {r.subiram.length > 0 && (
         <div className="rel-linha">⬆️ <span><b>Subiram de grau:</b> {r.subiram.map((t) => `${t.nome} (${t.para}º)`).join(', ')}</span></div>
       )}

@@ -1,3 +1,5 @@
+import { SEED } from '../db/seed';
+
 /* ============================================================
    POSIÇÃO, TÉCNICA E VARIAÇÃO
 
@@ -13,7 +15,10 @@
    passagens, e "De pé" e "Clinch" listam as quedas.
    ============================================================ */
 
-export const ehPosicao = (t) => (t?.tags || []).includes('posicao');
+/* pela etiqueta; e pelo nome do catálogo, pro aparelho que guardou a
+   técnica antes da etiqueta existir */
+const NOMES_DE_POSICAO = new Set(SEED.techniques.filter((t) => (t.tags || []).includes('posicao')).flatMap((t) => [t.pt, t.antigo].filter(Boolean)));
+export const ehPosicao = (t) => (t?.tags || []).includes('posicao') || NOMES_DE_POSICAO.has(t?.nome);
 
 const TEMA_POR_CATEGORIA = {
   passando: ['passagem'],
@@ -71,10 +76,12 @@ export function tecnicasDaPosicao(slug, { techniques, categories, positions, usa
    técnica conta na posição de onde ela sai; passagem conta em
    "Combatendo a guarda" e queda em "De pé" (a origem dela é a
    guarda do outro, não a sua). Rola de drill não conta.
+   lado "dele": o que ele fez em você (técnica dos pontos dele e
+   finalização sofrida), na posição de onde ele atacou.
    ------------------------------------------------------------ */
 const POSICAO_DA_CATEGORIA = { passagem: 'passando', queda: 'em_pe' };
 
-export function repertorioPorPosicao({ rolls = [], sessions = [], techniques = [], categories = [], positions = [] }) {
+export function repertorioPorPosicao({ rolls = [], sessions = [], techniques = [], categories = [], positions = [], lado = 'meu' }) {
   const drill = new Set(sessions.filter((s) => s.tipo === 'drill').map((s) => s.id));
   const catSlug = Object.fromEntries(categories.map((c) => [c.id, c.slug]));
   const posPorId = Object.fromEntries(positions.map((p) => [p.id, p]));
@@ -83,7 +90,9 @@ export function repertorioPorPosicao({ rolls = [], sessions = [], techniques = [
   const mapa = new Map();
   for (const r of rolls) {
     if (r.contexto === 'drill' || drill.has(r.sessionId)) continue;
-    const nomes = [...Object.values(r.tecMeus || {}).flat(), ...(r.subsAplicadas || [])];
+    const nomes = lado === 'dele'
+      ? [...Object.values(r.tecDele || {}).flat(), ...(r.subsSofridas || [])]
+      : [...Object.values(r.tecMeus || {}).flat(), ...(r.subsAplicadas || [])];
     for (const nome of nomes) {
       const t = porNome.get(String(nome).toLowerCase());
       if (!t) continue;

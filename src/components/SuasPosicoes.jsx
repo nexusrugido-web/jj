@@ -48,7 +48,7 @@ export default function SuasPosicoes({ rolls, sessions, techniques, categories, 
         ))}
         {unica && (
           <p className="micro" style={{ lineHeight: 1.6 }}>
-            Da <b>{unica.nome}</b> você só tem 1 saída que entra no rola. Quem lê ela te trava: vale abrir a segunda.
+            Da posição <b>{unica.nome}</b> você só tem 1 saída que entra no rola. Quem lê ela te trava: vale abrir a segunda.
           </p>
         )}
         {!completo && (

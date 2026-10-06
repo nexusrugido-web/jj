@@ -33,7 +33,7 @@ export default function Dominio() {
   const vistas = useLiveQuery(() => db.aulasVistas.toArray(), [], []) || [];
 
   const tecnicas = useMemo(
-    () => minhasTecnicas(rolls, partners, sessions, techniques, faixa, gradings, settings.graus || 0),
+    () => minhasTecnicas(rolls, partners, sessions, techniques, faixa, gradings, settings.graus || 0, { comPosicoes: true }),
     [rolls, partners, sessions, techniques, faixa, gradings, settings.graus]
   );
   const buracos = useMemo(() => meusBuracos(rolls, partners, sessions, faixa), [rolls, partners, sessions, faixa]);
