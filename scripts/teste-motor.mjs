@@ -99,8 +99,8 @@ ok('e a tela diz que ela ensina a defesa', rotuloDaAula(certa[0], pedidoAmerican
    é sair da posição de onde ele sai (100kg, montada), com aviso. */
 const KATA = CATALOGO_KATA();
 function CATALOGO_KATA() { return uid('Katagatame, braço e cabeça'); }
-const pedidoKata = pedidoDaRec({ intencao: 'corrigir', alvo: 'Katagatame (triângulo de braço)' });
-ok('a defesa do katagatame procura a saída de baixo das posições de onde ele sai', pedidoKata.posicoes.sort(), ['cem:baixo', 'montada:baixo']);
+const pedidoKata = pedidoDaRec({ intencao: 'corrigir', alvo: 'Katagatame dos 100kg' });
+ok('a defesa do katagatame procura a saída de baixo da posição de onde ele sai', pedidoKata.posicoes.sort(), ['cem:baixo']);
 const acervoKata = [
   v('O katagatame que apaga', { tecnicas: [KATA], habilidades: ['estrangulamento', 'finalizacao'] }),
   v('defesa-geral', { habilidades: ['defesa'] }),
@@ -110,8 +110,8 @@ const acervoKata = [
 const kata = aulasPara(pedidoKata, { lista: acervoKata, quantidade: 3, soAula: true });
 ok('a aula de aplicar o katagatame não aparece', ids(kata).includes('O katagatame que apaga'), false);
 ok('a saída do 100kg vem antes da defesa em geral', ids(kata), ['Como sair de baixo na 100kg', 'defesa-geral']);
-ok('e a tela explica por que essa aula', rotuloDaAula(kata[0], pedidoKata, 'Katagatame (triângulo de braço)'),
-  'ainda não há aula de defesa de Katagatame (triângulo de braço) · esta ensina a sair do 100kg, de onde ela costuma sair');
+ok('e a tela explica por que essa aula', rotuloDaAula(kata[0], pedidoKata, 'Katagatame dos 100kg'),
+  'ainda não há aula de defesa de Katagatame dos 100kg · esta ensina a sair do 100kg, de onde ela costuma sair');
 const comDefesaDoKata = aulasPara(pedidoKata, { lista: [...acervoKata, v('Defesa do katagatame', { tecnicas: [KATA], habilidades: ['defesa'] })], quantidade: 1, soAula: true });
 ok('quando a aula de defesa do katagatame entrar, ela ganha', ids(comDefesaDoKata), ['Defesa do katagatame']);
 

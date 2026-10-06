@@ -53,7 +53,7 @@ export function pedidoDaRec(rec) {
     const t = TECNICA_POR_UID.get(achadas[0]);
     /* técnicas que viraram uma só (o Katagatame da montada e o do
        100kg) continuam com um uid cada: o pedido leva todos */
-    const tecnicas = [...new Set([...achadas, ...CATALOGO_TECNICAS.filter((x) => t && x.nome === t.nome).map((x) => x.uid)])];
+    const tecnicas = [...new Set([...achadas, ...CATALOGO_TECNICAS.filter((x) => t && x.nome === t.nome).flatMap((x) => x.uids)])];
     /* a família (articular, estrangulamento...) é o que impede o motor
        de responder "defesa contra Americana" com defesa de outra coisa */
     const familia = t?.cat || null;

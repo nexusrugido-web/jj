@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "lint:copy": "node scripts/lint-copy.mjs",
     "lint:ciclos": "node scripts/ciclos.mjs",
-    "check": "npm run lint:copy && npm run lint:simbolos && npm run lint:ciclos && npm run build && npm run lint:chunks && npm run teste:aprendizado && npm run teste:faixas && npm run teste:boot && npm run teste:limites && npm run teste:categorias && npm run teste:estudo && npm run teste:vocab && npm run teste:classificar && npm run teste:motor && npm run teste:grafico && npm run teste:liga && npm run teste:medir && npm run teste:periodo && npm run teste:competicao && npm run teste:ofensiva && npm run teste:ofensiva-semanal && npm run teste:placar && npm run teste:coerencia && npm run teste:telas && npm run teste:login && npm run teste:graus && npm run teste:meujogo && npm run teste:sync && npm run teste:ia && npm run teste:quiz && npm run teste:marcos && npm run teste:nutricao && npm run teste:resultados && npm run teste:renomeios && npm run teste:regras && npm run teste:voz && npm run teste:campeonato && npm run teste:metas && npm run teste:presente && npm run teste:checkouts && npm run teste:fase2",
+    "check": "npm run lint:copy && npm run lint:simbolos && npm run lint:ciclos && npm run build && npm run lint:chunks && npm run teste:aprendizado && npm run teste:faixas && npm run teste:boot && npm run teste:limites && npm run teste:categorias && npm run teste:estudo && npm run teste:vocab && npm run teste:classificar && npm run teste:motor && npm run teste:grafico && npm run teste:liga && npm run teste:medir && npm run teste:periodo && npm run teste:competicao && npm run teste:ofensiva && npm run teste:ofensiva-semanal && npm run teste:placar && npm run teste:coerencia && npm run teste:telas && npm run teste:login && npm run teste:graus && npm run teste:meujogo && npm run teste:sync && npm run teste:ia && npm run teste:quiz && npm run teste:marcos && npm run teste:nutricao && npm run teste:resultados && npm run teste:renomeios && npm run teste:regras && npm run teste:voz && npm run teste:campeonato && npm run teste:metas && npm run teste:presente && npm run teste:checkouts && npm run teste:fase2 && npm run teste:biblioteca",
     "lint:chunks": "node scripts/chunks.mjs",
     "teste:aprendizado": "node scripts/teste-aprendizado.mjs",
     "teste:aprendizado-visual": "node scripts/teste-aprendizado-visual.mjs",
@@ -51,7 +51,8 @@
     "backup": "node scripts/backup-supabase.mjs",
     "teste:checkouts": "node scripts/teste-checkouts-sql.mjs",
     "teste:fase2": "node scripts/teste-fase2.mjs",
-    "teste:ofensiva-semanal": "node scripts/teste-ofensiva-semanal.mjs && node scripts/teste-ofensiva-sql.mjs"
+    "teste:ofensiva-semanal": "node scripts/teste-ofensiva-semanal.mjs && node scripts/teste-ofensiva-sql.mjs",
+    "teste:biblioteca": "node scripts/teste-biblioteca.mjs"
   },
   "dependencies": {
     "@sentry/react": "^10.74.0",

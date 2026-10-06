@@ -25,6 +25,8 @@ const GENERICAS = new Set([
   'chave', 'de', 'da', 'do', 'dos', 'das', 'com', 'para', 'por', 'no', 'na',
   'guarda', 'posicao', 'jiu', 'jitsu', 'tecnica', 'golpe', 'sem', 'como',
   'pegada', 'controle', 'entrada', 'saida', 'defesa', 'ataque', 'reta',
+  /* a origem não é o golpe: "Katagatame dos 100kg" casa por "katagatame" */
+  '100kg',
 ]);
 
 export function palavrasFortes(nome) {

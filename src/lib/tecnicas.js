@@ -25,9 +25,12 @@ export const CATALOGO_TECNICAS = SEED.techniques.map((t) => ({
   de: DE_POSICAO_BIBLIOTECA[t.from] || null,
   posicao: separar(DE_POSICAO_BIBLIOTECA[t.from] || '').posicao || null,
   busca: semAcento(`${t.pt} ${t.en} ${t.antigo || ''}`),
+  /* a cópia repetida que saiu da biblioteca tinha uid próprio: a aula
+     marcada com ele continua achando esta */
+  uids: [uidEstavel(chaveNome('techniques', t.antigo || t.pt)), ...(t.juntou || []).map((n) => uidEstavel(chaveNome('techniques', n)))],
 }));
 
-export const TECNICA_POR_UID = new Map(CATALOGO_TECNICAS.map((t) => [t.uid, t]));
+export const TECNICA_POR_UID = new Map(CATALOGO_TECNICAS.flatMap((t) => t.uids.map((u) => [u, t])));
 export const INDICE_TECNICAS = indiceDeTecnicas(CATALOGO_TECNICAS);
 
 /* as três famílias de finalização da biblioteca */

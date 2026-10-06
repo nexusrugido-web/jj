@@ -217,8 +217,10 @@ export const DEFAULT_SETTINGS = {
 export async function renomearTecnicas() {
   /* v2: a v1 não conhecia os nomes da lista antiga (RENOMEAR, mais
      abaixo), e o "Katagatame (braço-cabeça)" dos rolas ficou pra trás.
-     v3: "100kg (side control)" virou "Controle lateral, 100kg". */
-  if (await getMeta('renomeou_v3', false)) return;
+     v3: "100kg (side control)" virou "Controle lateral, 100kg".
+     v4: o "Katagatame (triângulo de braço)" servia pra montada e pro
+     100kg; virou "Katagatame dos 100kg". */
+  if (await getMeta('renomeou_v4', false)) return;
   const troca = (n) => nomeFinal(n);
   const trocaLista = (l) => (Array.isArray(l) ? l.map(troca) : l);
   const mudou = (a, b) => JSON.stringify(a) !== JSON.stringify(b);
@@ -252,7 +254,45 @@ export async function renomearTecnicas() {
   for (const g of await db.goals.toArray()) {
     if (typeof g.alvo === 'string' && nomeFinal(g.alvo) !== g.alvo) await db.goals.update(g.id, { alvo: nomeFinal(g.alvo) });
   }
-  await setMeta('renomeou_v3', true);
+  await setMeta('renomeou_v4', true);
+}
+
+/* ============================================================
+   A BIBLIOTECA ARRUMADA, NO QUE JÁ ESTÁ NO APARELHO
+
+   As entradas de perna (ashi, saddle, 50/50, SLX) estavam como
+   chave de perna e apareciam na lista de finalização do rola; o
+   leg drag da 50/50 é passagem; a levantada técnica é escapada, não
+   queda; e o katagatame que ficou com o nome do 100kg sai do 100kg.
+   Os rolas apontam pelo nome, então nenhum registro muda: só onde a
+   técnica aparece e como ela conta. Uma vez por aparelho.
+   ============================================================ */
+const ARRUMAR = {
+  'Entrada no ashi garami': { cat: 'transicao' },
+  'Entrada no outside ashi': { cat: 'transicao' },
+  'Entrada no saddle (411)': { cat: 'transicao' },
+  'Entrada no 50/50': { cat: 'transicao' },
+  'Entrada no single leg X': { cat: 'transicao' },
+  'Transição ashi para saddle': { cat: 'transicao' },
+  'Leg drag da 50/50': { cat: 'passagem' },
+  'Levantada técnica': { cat: 'escapada' },
+  'Katagatame dos 100kg': { de: 'cem_quilos' },
+};
+
+export async function arrumarBiblioteca() {
+  if (await getMeta('biblioteca_v1', false)) return;
+  const cat = Object.fromEntries((await db.categories.toArray()).filter((c) => c.slug).map((c) => [c.slug, c.id]));
+  const pos = Object.fromEntries((await db.positions.toArray()).filter((p) => p.slug).map((p) => [p.slug, p.id]));
+  for (const t of await db.techniques.toArray()) {
+    const a = ARRUMAR[t.nome];
+    if (!a) continue;
+    const patch = {};
+    if (a.cat && cat[a.cat]) patch.categoriaId = cat[a.cat];
+    if (a.de && pos[a.de]) patch.origemId = pos[a.de];
+    /* a biblioteca é igual em todo aparelho: fica só aqui, sem subir */
+    if (Object.keys(patch).length) await db.techniques.update(t.id, { ...patch, __local: Math.random() });
+  }
+  await setMeta('biblioteca_v1', true);
 }
 
 /* ---------- seed ---------- */
@@ -343,6 +383,7 @@ export async function ensureSeed() {
   }
 
   await renomearTecnicas();
+  await arrumarBiblioteca();
 
   const v2 = await getMeta('seeded_v2', false);
   if (!v2) {

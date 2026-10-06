@@ -55,8 +55,11 @@ export const RENOMEAR = {
   /* estrangulamentos */
   'Mata-leão de mão única': 'Mata-leão de uma mão só',
   'Estrangulamento de laço (bow and arrow)': 'Arco e flecha (bow and arrow)',
-  'Triângulo de braço': 'Katagatame (triângulo de braço)',
-  'Katagatame, braço e cabeça': 'Katagatame (triângulo de braço)',
+  'Triângulo de braço': 'Katagatame da montada',
+  'Katagatame, braço e cabeça': 'Katagatame dos 100kg',
+  /* o mesmo nome servia pra montada e pro 100kg: o da montada é o
+     "Katagatame da montada", e o que já estava gravado vai pro 100kg */
+  'Katagatame (triângulo de braço)': 'Katagatame dos 100kg',
   'Head and arm da montada (super pressure)': 'Katagatame da montada',
   'Estrangulamento de braço da meia-guarda': 'Katagatame da meia-guarda',
   'Kata gatame de lapela': 'Katagatame de lapela',
