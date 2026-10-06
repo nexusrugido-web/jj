@@ -90,5 +90,23 @@ await db.techniques.update(entrada, { categoriaId: catId.perna, __local: Math.ra
 await arrumarBiblioteca();
 ok('roda uma vez só', (await db.techniques.get(entrada)).categoriaId, catId.perna);
 
+/* ---------- a aula pela posição ---------- */
+const { tecnicasDaPosicao, posicoesRecentes, ehPosicao } = await import('../src/lib/posicoes.js');
+const categorias = await db.categories.toArray();
+const posicoes = await db.positions.toArray();
+const pId = Object.fromEntries(posicoes.map((p) => [p.slug, p.id]));
+const cId = Object.fromEntries(categorias.map((c) => [c.slug, c.id]));
+const biblioteca = SEED.techniques.map((t, i) => ({ id: 1000 + i, nome: t.pt, tags: t.tags || [], categoriaId: cId[t.cat], origemId: pId[t.from], arquivada: 0 }));
+const base = { techniques: biblioteca, categories: categorias, positions: posicoes };
+const daX = tecnicasDaPosicao('x_guard', base).map((t) => t.nome);
+ok('da Guarda X aparecem as variações dela', ['Raspagem de X-guard para trás', 'Raspagem de X-guard para o lado'].every((n) => daX.includes(n)), true);
+ok('a posição não aparece como técnica dela mesma', daX.includes('X-guard'), false);
+ok('"De La Riva" da biblioteca é posição', ehPosicao(biblioteca.find((t) => t.nome === 'De La Riva')), true);
+const passando = tecnicasDaPosicao('passando', base);
+ok('o tema "Combatendo a guarda" traz as passagens', passando.some((t) => t.nome === 'Passagem toureando'), true);
+ok('o que você já usou vem primeiro', tecnicasDaPosicao('x_guard', { ...base, usadas: ['Retenção da X-guard'] })[0].nome, 'Retenção da X-guard');
+ok('a posição da aula mais recente vem primeiro',
+  posicoesRecentes([{ data: '2026-09-01', focoPosicoes: ['montada'] }, { data: '2026-09-20', focoPosicoes: ['de_la_riva', 'montada'] }]), ['de_la_riva', 'montada']);
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

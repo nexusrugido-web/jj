@@ -12,6 +12,7 @@ import { fmtDur, relativo, mesCompleto } from '../lib/utils';
 import { placarDaRola, ROTULO_RESULTADO, TOM_RESULTADO } from '../lib/game';
 import { agruparPontos, posInicialPorId, pesoRelPorId } from '../db/scoring';
 import { APRENDIZADO } from './SeletorTecnica';
+import { PosicoesDoTreino } from './PosicaoDaAula';
 
 const SEMANA = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
 const SEMANA_LONGA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
@@ -251,6 +252,7 @@ function DetalheDia({ d, onClose, rolls, partners, aoAbrirTreino }) {
 
                 {s.foco && <div style={{ fontWeight: 600, fontSize: 14.5, marginBottom: 9 }}>{s.foco}</div>}
 
+                <PosicoesDoTreino slugs={s.focoPosicoes} style={{ marginBottom: 11 }} />
                 {(s.focoTecnicas || []).length > 0 && (
                   <div style={{ marginBottom: 11 }}>
                     <div className="eyebrow" style={{ marginBottom: 7 }}>técnicas da aula</div>

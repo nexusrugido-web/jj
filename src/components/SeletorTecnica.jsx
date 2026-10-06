@@ -8,6 +8,7 @@ import { buscaMatch } from '../lib/utils';
 import { avaliarTecnica } from '../lib/regras';
 import { casaApelido } from '../db/sinonimos';
 import { autopreencherTecnica } from '../lib/ai';
+import { ehPosicao } from '../lib/posicoes';
 import './Aprendizado.css';
 
 /* ============================================================
@@ -29,6 +30,7 @@ export function SeletorTecnica({
   recentes = [],
   multiplo = false,
   jaEscolhidas = [],
+  semPosicoes = false,        // na aula, posição tem o lugar dela: aqui só técnica
 }) {
   const toast = useToast();
   const [busca, setBusca] = useState('');
@@ -47,7 +49,7 @@ export function SeletorTecnica({
   const idsPermitidos = useMemo(() => new Set(catsPermitidas.map((c) => c.id)), [catsPermitidas]);
 
   const lista = useMemo(() => {
-    let l = techniques.filter((t) => !t.arquivada);
+    let l = techniques.filter((t) => !t.arquivada && !(semPosicoes && ehPosicao(t)));
     if (categoriaFiltro) l = l.filter((t) => idsPermitidos.has(t.categoriaId));
     if (cat !== 'todas') l = l.filter((t) => t.categoriaId === Number(cat));
     if (busca) l = l.filter((t) => buscaMatch(`${t.nome} ${t.nomeEn} ${(t.tags || []).join(' ')}`, busca) || casaApelido(t.nome, busca));
@@ -56,14 +58,14 @@ export function SeletorTecnica({
       if (ra !== rb) return (ra < 0 ? 99 : ra) - (rb < 0 ? 99 : rb);
       return a.nome.localeCompare(b.nome);
     }).slice(0, 120);
-  }, [techniques, cat, busca, categoriaFiltro, idsPermitidos, recentes]);
+  }, [techniques, cat, busca, categoriaFiltro, idsPermitidos, recentes, semPosicoes]);
 
   const atalhos = useMemo(
     () => recentes
       .map((n) => techniques.find((t) => t.nome === n))
-      .filter((t) => t && (!categoriaFiltro || idsPermitidos.has(t.categoriaId)))
+      .filter((t) => t && (!categoriaFiltro || idsPermitidos.has(t.categoriaId)) && !(semPosicoes && ehPosicao(t)))
       .slice(0, 6),
-    [recentes, techniques, categoriaFiltro, idsPermitidos]
+    [recentes, techniques, categoriaFiltro, idsPermitidos, semPosicoes]
   );
 
   async function criarComIA() {

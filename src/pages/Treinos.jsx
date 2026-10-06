@@ -14,6 +14,7 @@ import Cronometro from '../components/Cronometro';
 import Voz, { temVoz } from '../components/Voz';
 import { darXp, checarConsistencia } from '../lib/xp';
 import { SeletorTecnica, ListaFoco, APRENDIZADO } from '../components/SeletorTecnica';
+import PosicaoDaAula, { PosicoesDoTreino } from '../components/PosicaoDaAula';
 import {
   Card, Btn, Field, Input, NumeroInput, EscolherData, Textarea, Select, Sheet, Chip, Stepper,
   Empty, Confirmar, useToast, SubsInput, Busca, PontosInput, ParceiroRapido, Seg, Diamante,
@@ -424,9 +425,11 @@ export default function Treinos() {
     // o foco vem das técnicas escolhidas, sem campo duplicado
     if (!s.foco) {
       const nomes = (s.focoTecnicas || []).map((f) => f.nome);
+      /* aula só da posição: o título é a posição */
+      const posicoes = (s.focoPosicoes || []).map((slug) => positions.find((p) => p.slug === slug)?.nome).filter(Boolean);
       s.foco = nomes.length
         ? (nomes.length <= 2 ? nomes.join(' e ') : `${nomes[0]} e mais ${nomes.length - 1}`)
-        : '';
+        : posicoes.length ? `Aula de ${posicoes.join(' e ')}` : '';
     }
     // guarda os nomes também, pra histórico não quebrar se apagar a academia
     s.academia = acadById[s.academiaId]?.nome || s.academia || '';
@@ -680,6 +683,7 @@ export default function Treinos() {
                 </div>
               )}
 
+              <PosicoesDoTreino slugs={s.focoPosicoes} style={{ marginBottom: 12 }} />
               {(s.focoTecnicas || []).length > 0 && (
                 <div style={{ marginBottom: 12 }}>
                   <div className="eyebrow" style={{ marginBottom: 8 }}>técnicas da aula</div>
@@ -892,7 +896,7 @@ export default function Treinos() {
             s={editando} setS={setEditando}
             tela={tela} setTela={setTela}
             rolas={rolasEdit} setRolas={setRolasEdit}
-            partners={partners} positions={positions}
+            partners={partners} positions={positions} sessions={sessions}
             techniques={techniques} categories={categories}
             finalizacoes={finalizacoes} maisUsadas={maisUsadas}
             recentesPorPonto={recentesPorPonto} recentesFoco={recentesFoco}
@@ -1324,7 +1328,7 @@ function BlocoCompeticao({ s, setS, onAbrirRegras }) {
   );
 }
 
-function EditorTreino({ s, setS, rolas, setRolas, partners, positions, techniques, categories, finalizacoes, maisUsadas, recentesPorPonto, recentesFoco, faixa, academias, professores, duracaoPadrao, padraoDe, onSalvarPadrao, idade = null, liberadas = [], onLiberar, tela = 'hub', setTela }) {
+function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions = [], techniques, categories, finalizacoes, maisUsadas, recentesPorPonto, recentesFoco, faixa, academias, professores, duracaoPadrao, padraoDe, onSalvarPadrao, idade = null, liberadas = [], onLiberar, tela = 'hub', setTela }) {
   const padrao = padraoDe(s.tipo);
   /* A REGRA DA TÉCNICA: quando a regra não permite (faixa, idade, Gi ou
      No-Gi), o app avisa e pergunta. Nunca proíbe: o professor pode
@@ -1514,6 +1518,16 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
                 </div>
   );
 
+  /* técnica da aula: toca uma vez marca, toca de novo tira */
+  function alternarFoco(tec) {
+    const atuais = s.focoTecnicas || [];
+    if (atuais.some((x) => x.nome === tec.nome)) {
+      set('focoTecnicas', atuais.filter((x) => x.nome !== tec.nome));
+    } else {
+      checarTecnica(tec.nome, () => set('focoTecnicas', [...atuais, { tecnicaId: tec.id, nome: tec.nome, aprendizado: null }]));
+    }
+  }
+
   const folhasDoEditor = (
     <>
         <SeletorTecnica
@@ -1527,6 +1541,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
           modalidade={modalidadeDoTreino(s)}
           liberadas={liberadas}
           multiplo
+          semPosicoes={seletor?.tipo === 'foco'}
           titulo={seletor?.tipo === 'foco' ? 'Técnicas da aula' : `Qual ${seletor?.ponto?.nome?.toLowerCase() || 'técnica'}?`}
           categoriaFiltro={seletor?.tipo === 'ponto' ? CAT_DO_PONTO[seletor.ponto.id] : null}
           recentes={seletor?.tipo === 'ponto' ? (recentesPorPonto[seletor.ponto.id] || []) : recentesFoco}
@@ -1539,12 +1554,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
           }
           onEscolher={(tec) => {
             if (seletor.tipo === 'foco') {
-              const atuais = s.focoTecnicas || [];
-              if (atuais.some((x) => x.nome === tec.nome)) {
-                set('focoTecnicas', atuais.filter((x) => x.nome !== tec.nome));
-              } else {
-                checarTecnica(tec.nome, () => set('focoTecnicas', [...atuais, { tecnicaId: tec.id, nome: tec.nome, aprendizado: null }]));
-              }
+              alternarFoco(tec);
             } else {
               const r = rolas[seletor.rola];
               const mapa = { ...(r[seletor.lado] || {}) };
@@ -1734,6 +1744,17 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, technique
           </div>
         </button>
       )}
+
+      <Field label="A aula foi de qual posição?" hint="Opcional. Escolhe a posição e as técnicas dela aparecem, é só tocar.">
+        <PosicaoDaAula
+          valor={s.focoPosicoes || []}
+          foco={s.focoTecnicas || []}
+          sessions={sessions} positions={positions} techniques={techniques} categories={categories}
+          recentes={recentesFoco}
+          onChange={(v) => set('focoPosicoes', v)}
+          onTecnica={alternarFoco}
+        />
+      </Field>
 
       <Field label={forma.tecnicas} hint="Escolha uma técnica e marque como foi na aula. O registro aparece no seu histórico; dificuldades também orientam o que revisar em Estudo.">
         <ListaFoco
