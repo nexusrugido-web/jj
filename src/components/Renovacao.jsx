@@ -91,7 +91,7 @@ export default function Renovacao() {
           ? `Seu Premium acaba ${quando(aberto.dias)}`
           : 'Seu Premium acabou';
   const texto = pagamento
-    ? 'A Hotmart não conseguiu cobrar. O Premium continua ligado por uns dias enquanto você atualiza o cartão ou a forma de pagamento.'
+    ? 'A cobrança não passou. O Premium continua ligado por uns dias enquanto você atualiza o cartão ou a forma de pagamento.'
     : aberto.tipo === 'presente'
       ? 'Depois disso, estas partes voltam a travar. Assinando, nada para:'
       : aberto.tipo === 'presente_acabou'

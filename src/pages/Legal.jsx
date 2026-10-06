@@ -58,8 +58,8 @@ export function Termos({ onVoltar }) {
           baixar tudo. O que fica travado são os recursos de análise.
         </p>
         <p>
-          O pagamento é processado pela Hotmart ou pela Getfy, conforme o link que você usar, e
-          cancelamento e reembolso seguem as regras de quem processou e o Código de Defesa do Consumidor.
+          O pagamento é processado por uma plataforma de pagamento parceira, e cancelamento e reembolso
+          seguem as regras dela e o Código de Defesa do Consumidor.
         </p>
         <p>
           No primeiro treino registrado com conta, você ganha 7 dias de Premium de presente. O presente
@@ -131,8 +131,8 @@ export function Privacidade({ onVoltar }) {
             número) e o seu fuso horário, pra o aviso chegar na hora certa. E se você abriu cada aviso.
           </li>
           <li>
-            Se você comprar: nome, e-mail, telefone e a situação da compra, que a Hotmart ou a Getfy nos
-            enviam pra liberar o Premium. Se uma compra ficar pela metade, podemos mandar uma mensagem de
+            Se você comprar: nome, e-mail, telefone e a situação da compra, que a plataforma de
+            pagamento nos envia pra liberar o Premium. Se uma compra ficar pela metade, podemos mandar uma mensagem de
             WhatsApp pra esse telefone lembrando de concluir.
           </li>
           <li>Quando você abre a oferta do Premium e de qual tela veio, em números somados.</li>
@@ -149,7 +149,7 @@ export function Privacidade({ onVoltar }) {
 
       <Bloco titulo="O que não guardamos">
         <ul>
-          <li>Dado de cartão. O pagamento inteiro acontece na Hotmart.</li>
+          <li>Dado de cartão. O pagamento inteiro acontece na plataforma de pagamento.</li>
           <li>Sua localização.</li>
           <li>Seus contatos, fotos ou qualquer coisa fora do app.</li>
         </ul>

@@ -593,7 +593,7 @@ function ApagarConta({ aberto, onClose, onBaixarCopia }) {
         },
         {
           id: 'assinatura', icone: TriangleAlert, titulo: 'Se você assina', resumo: 'Apagar a conta não cancela a cobrança',
-          conteudo: <p>{'A assinatura é cobrada pela Hotmart. Cancele lá antes, senão a cobrança continua mesmo sem a conta.'}</p>,
+          conteudo: <p>{'A assinatura é cobrada fora do app. Cancele antes em Plano, no botão Gerenciar ou cancelar, senão a cobrança continua mesmo sem a conta.'}</p>,
         },
       ]} />
       <Btn variant="contorno" icon={FileJson} onClick={onBaixarCopia}>Baixar uma cópia antes</Btn>
