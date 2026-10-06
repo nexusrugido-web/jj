@@ -296,11 +296,11 @@ function DetalheDia({ d, onClose, rolls, partners, aoAbrirTreino }) {
                               <div className="row wrap" style={{ gap: 5, marginTop: 8 }}>
                                 {agruparPontos(r.ptsMeus).map((x) => {
                                   const tecs = (r.tecMeus || {})[x.id] || [];
-                                  return <Chip key={'pm' + x.id} tone="jade">▲ {tecs.length ? tecs.join(' + ') : x.nome}{x.n > 1 && <b className="num"> ×{x.n}</b>}</Chip>;
+                                  return <Chip key={'pm' + x.id} tone="jade">▲ {tecs.length ? [...new Set(tecs)].join(' + ') : x.nome}{x.n > 1 && <b className="num"> ×{x.n}</b>}</Chip>;
                                 })}
                                 {agruparPontos(r.ptsDele).map((x) => {
                                   const tecs = (r.tecDele || {})[x.id] || [];
-                                  return <Chip key={'pd' + x.id} tone="blood">▼ {tecs.length ? tecs.join(' + ') : x.nome}{x.n > 1 && <b className="num"> ×{x.n}</b>}</Chip>;
+                                  return <Chip key={'pd' + x.id} tone="blood">▼ {tecs.length ? [...new Set(tecs)].join(' + ') : x.nome}{x.n > 1 && <b className="num"> ×{x.n}</b>}</Chip>;
                                 })}
                               </div>
                             )}

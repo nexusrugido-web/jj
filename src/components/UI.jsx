@@ -305,6 +305,7 @@ export function SubsInput({ valor = [], onChange, sugestoes = [], rapidas = [], 
   const [txt, setTxt] = useState('');
   const [trocando, setTrocando] = useState(null);
   const [todas, setTodas] = useState(false);
+  const [dica, setDica] = useState(false);
 
   const grupos = useMemo(() => {
     const m = new Map();
@@ -363,7 +364,15 @@ export function SubsInput({ valor = [], onChange, sugestoes = [], rapidas = [], 
             </span>
           ))}
           <span className="chip" style={{ opacity: 0.7 }}>total {valor.length}</span>
+          {variacoesDe && (
+            <button type="button" className={`chip ${dica ? 'on' : ''}`} aria-expanded={dica} aria-label="Como trocar de onde saiu" onClick={() => setDica(!dica)}>?</button>
+          )}
         </div>
+      )}
+      {dica && (
+        <p className="micro muted" style={{ lineHeight: 1.6 }}>
+          O app escolhe de onde a finalização saiu pelo que aconteceu no rola (montou, pegou as costas...). Errou? Toca no nome dela e escolhe a certa. Cada origem tem o grau dela: o armlock da guarda e o da montada sobem separados.
+        </p>
       )}
 
       {outras.length > 1 && (
@@ -447,13 +456,16 @@ export function PontosInput({ valor = [], onChange, catalogo = [], tone = 'jade'
                   <span className="num pts-n">{n}</span>
                   <button type="button" onClick={() => add(p.id)} aria-label="Mais um"><Plus size={12} /></button>
                 </div>
-                {onNomear && (
-                  <button type="button" className="pts-nomear" onClick={() => onNomear(p)}>
-                    {marcadas.length
-                      ? marcadas.join(', ')
+                {/* uma vaga por ponto: 2 quedas podem ser single leg e baiana.
+                    A vaga i guarda a técnica da i-ésima vez (opcional) */}
+                {onNomear && Array.from({ length: Math.max(n, marcadas.length) }, (_, k) => (
+                  <button key={k} type="button" className="pts-nomear" onClick={() => onNomear(p, Math.min(k, marcadas.length))}>
+                    {n > 1 && <span className="num" style={{ opacity: 0.6, marginRight: 6 }}>{k + 1}ª</span>}
+                    {marcadas[k]
+                      ? marcadas[k]
                       : <span className="muted">qual foi? <span style={{ opacity: .6 }}>(opcional)</span></span>}
                   </button>
-                )}
+                ))}
               </>
             )}
           </div>

@@ -644,7 +644,9 @@ export default function App() {
           </div>
         )}
         {atualizado && <div className="aviso-atualizado" role="status">✓ App atualizado</div>}
-        <Tour aberto={tourAberto} onClose={() => setTourAberto(false)} onConcluir={() => salvarSettings({ tourVisto: 1 })} />
+        {/* fechar também conta como visto: o tour voltava a cada abertura do app
+            pra quem fechava antes do fim (reabre em Como usar) */}
+        <Tour aberto={tourAberto} onClose={() => { setTourAberto(false); salvarSettings({ tourVisto: 1 }); }} onConcluir={() => salvarSettings({ tourVisto: 1 })} />
         <Celebracao marco={celebrar} onFechar={() => setCelebrar(null)} />
         <Renovacao />
         <PremiumNoApp />

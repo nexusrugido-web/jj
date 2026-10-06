@@ -618,8 +618,8 @@ function ApagarConta({ aberto, onClose, onBaixarCopia }) {
    da           o botao, e ele pede a permissao dentro do clique.
 
    Por que nao tem lista de "quero esta, nao quero aquela": sao
-   quatro avisos, no maximo um por dia, e quem nao abre para de
-   receber sozinho. Uma tela de preferencia pra isso seria mais
+   poucos avisos, no maximo um por dia, e quem nao abre fica so com
+   o aviso do dia. Uma tela de preferencia pra isso seria mais
    trabalho pra pessoa do que o problema que resolve.
    ============================================================ */
 function Notificacoes({ sessao }) {
@@ -662,8 +662,9 @@ function Notificacoes({ sessao }) {
   return (
     <>
       <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        A ofensiva avisa no domingo se a semana ainda não tem treino e não está pausada por lesão.
-        Você também pode receber avisos da Liga e do resultado na segunda.
+        Um aviso por dia, nunca entre 22h e 8h: a ofensiva no domingo, a liga, o treino que não entrou, a
+        técnica perto do grau, o campeonato chegando. Nos dias sem nada disso, às 21h chega uma ideia rápida
+        pro seu jogo (uma aula, a sua meta, as suas posições).
       </p>
 
       {!sessao ? (

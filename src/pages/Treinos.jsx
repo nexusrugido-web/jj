@@ -765,7 +765,7 @@ export default function Treinos() {
                               const tecs = (r.tecMeus || {})[x.id] || [];
                               return (
                                 <Chip key={'pm' + x.id} tone="jade">
-                                  ▲ {tecs.length ? tecs.join(' + ') : x.nome}
+                                  ▲ {tecs.length ? [...new Set(tecs)].join(' + ') : x.nome}
                                   {x.n > 1 && <b className="num"> ×{x.n}</b>}
                                 </Chip>
                               );
@@ -774,7 +774,7 @@ export default function Treinos() {
                               const tecs = (r.tecDele || {})[x.id] || [];
                               return (
                                 <Chip key={'pd' + x.id} tone="blood">
-                                  ▼ {tecs.length ? tecs.join(' + ') : x.nome}
+                                  ▼ {tecs.length ? [...new Set(tecs)].join(' + ') : x.nome}
                                   {x.n > 1 && <b className="num"> ×{x.n}</b>}
                                 </Chip>
                               );
@@ -1476,10 +1476,10 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
                       <span className="num micro">{somarPontos(r.ptsMeus)} pts</span>
                     </div>
                     <PontosInput
-                      valor={r.ptsMeus || []} onChange={(v) => setRola(i, { ptsMeus: v })}
+                      valor={r.ptsMeus || []} onChange={(v) => setRola(i, { ptsMeus: v, tecMeus: aparar(r.tecMeus, v) })}
                       catalogo={PONTOS} tone="jade"
                       nomes={r.tecMeus || {}}
-                      onNomear={(p) => setSeletor({ tipo: 'ponto', rola: i, lado: 'tecMeus', ponto: p })}
+                      onNomear={(p, vaga) => setSeletor({ tipo: 'ponto', rola: i, lado: 'tecMeus', ponto: p, vaga })}
                     />
                     <div className="row" style={{ gap: 8, marginTop: 11, alignItems: 'center' }}>
                       <span className="micro muted" style={{ flex: 1 }}>Vantagens, chegou perto, não segurou 3s</span>
@@ -1494,10 +1494,10 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
                       <span className="num micro">{somarPontos(r.ptsDele)} pts</span>
                     </div>
                     <PontosInput
-                      valor={r.ptsDele || []} onChange={(v) => setRola(i, { ptsDele: v })}
+                      valor={r.ptsDele || []} onChange={(v) => setRola(i, { ptsDele: v, tecDele: aparar(r.tecDele, v) })}
                       catalogo={PONTOS} tone="blood"
                       nomes={r.tecDele || {}}
-                      onNomear={(p) => setSeletor({ tipo: 'ponto', rola: i, lado: 'tecDele', ponto: p })}
+                      onNomear={(p, vaga) => setSeletor({ tipo: 'ponto', rola: i, lado: 'tecDele', ponto: p, vaga })}
                     />
                     <div className="row" style={{ gap: 8, marginTop: 11, alignItems: 'center' }}>
                       <span className="micro muted" style={{ flex: 1 }}>Vantagens dele</span>
@@ -1562,6 +1562,10 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
     .flatMap((slug) => tecnicasDaPosicao(slug, { techniques, categories, positions }).map((t) => t.nome)),
   [s.focoPosicoes, techniques, categories, positions]);
 
+  /* tirou um ponto: a técnica da última vez sai junto */
+  const aparar = (tecs, pts) => Object.fromEntries(Object.entries(tecs || {})
+    .map(([k, nomes]) => [k, (nomes || []).slice(0, pts.filter((p) => p === k).length)]));
+
   /* técnica da aula: toca uma vez marca, toca de novo tira */
   function alternarFoco(tec) {
     const atuais = s.focoTecnicas || [];
@@ -1584,7 +1588,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
           idade={idade}
           modalidade={modalidadeDoTreino(s)}
           liberadas={liberadas}
-          multiplo
+          multiplo={seletor?.tipo === 'foco'}
           semPosicoes={seletor?.tipo === 'foco'}
           titulo={seletor?.tipo === 'foco' ? 'Técnicas da aula' : `Qual ${seletor?.ponto?.nome?.toLowerCase() || 'técnica'}?`}
           categoriaFiltro={seletor?.tipo === 'ponto' ? CAT_DO_PONTO[seletor.ponto.id] : null}
@@ -1593,18 +1597,21 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
             seletor?.tipo === 'foco'
               ? (s.focoTecnicas || []).map((x) => x.nome)
               : seletor
-                ? ((rolas[seletor.rola]?.[seletor.lado] || {})[seletor.ponto.id] || [])
+                ? [((rolas[seletor.rola]?.[seletor.lado] || {})[seletor.ponto.id] || [])[seletor.vaga]].filter(Boolean)
                 : []
           }
           onEscolher={(tec) => {
             if (seletor.tipo === 'foco') {
               alternarFoco(tec);
             } else {
+              /* a vaga daquela vez: escolher a mesma técnica de novo tira */
               const r = rolas[seletor.rola];
               const mapa = { ...(r[seletor.lado] || {}) };
-              const lista = mapa[seletor.ponto.id] || [];
-              const tirando = lista.includes(tec.nome);
-              mapa[seletor.ponto.id] = tirando ? lista.filter((n) => n !== tec.nome) : [...lista, tec.nome];
+              const lista = [...(mapa[seletor.ponto.id] || [])];
+              const vaga = Math.min(seletor.vaga ?? lista.length, lista.length);
+              const tirando = lista[vaga] === tec.nome;
+              if (tirando) lista.splice(vaga, 1); else lista[vaga] = tec.nome;
+              mapa[seletor.ponto.id] = lista;
               const aplicar = () => setRola(seletor.rola, { [seletor.lado]: mapa });
               if (tirando || seletor.lado !== 'tecMeus') aplicar();
               else checarTecnica(tec.nome, aplicar);

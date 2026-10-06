@@ -14,7 +14,7 @@ import { Btn } from './UI';
    médico. Juntar os dois numa caixa só enfraquece os dois.
    ============================================================ */
 
-export const VERSAO_DOCS = '2026-09-25.1';
+export const VERSAO_DOCS = '2026-10-06.1';
 
 export default function Aceite({ onAceitar, onSair, irPara }) {
   const [contrato, setContrato] = useState(false);
@@ -59,7 +59,7 @@ export default function Aceite({ onAceitar, onSair, irPara }) {
           </button>
 
           <p className="micro muted" style={{ lineHeight: 1.65 }}>
-            Os seus treinos ficam no seu aparelho e não são mostrados pra ninguém sem você mandar.
+            Os seus treinos ficam no seu aparelho (e na sua conta, se você criar uma) e não são mostrados pra ninguém sem você mandar.
           </p>
         </div>
 

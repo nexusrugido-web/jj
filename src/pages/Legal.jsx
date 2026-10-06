@@ -13,7 +13,7 @@ import { Card, Btn } from '../components/UI';
    entende não protege ninguém, nem a pessoa nem você.
    ============================================================ */
 
-const ATUALIZADO = '19 de setembro de 2026';
+const ATUALIZADO = '6 de outubro de 2026';
 const CONTATO = 'batistavisuais@gmail.com';
 
 export function Termos({ onVoltar }) {
@@ -49,16 +49,21 @@ export function Termos({ onVoltar }) {
 
       <Bloco titulo="Assinatura">
         <p>
-          Registrar treino é grátis e continua grátis. A assinatura libera análise, sincronização e a
-          leitura da IA.
+          Registrar treino é grátis e continua grátis, e a conta sincroniza entre os seus aparelhos
+          também de graça. A assinatura Premium libera as análises (gráficos, Meu jogo por situação,
+          relatório do mês, raio-x dos parceiros), a leitura da IA, registrar falando e os limites maiores.
         </p>
         <p>
           Se a assinatura vencer, você <b>não perde nada do que registrou</b>. Continua vendo e podendo
           baixar tudo. O que fica travado são os recursos de análise.
         </p>
         <p>
-          O pagamento é processado pela Hotmart, e cancelamento e reembolso seguem as regras dela e o
-          Código de Defesa do Consumidor.
+          O pagamento é processado pela Hotmart ou pela Getfy, conforme o link que você usar, e
+          cancelamento e reembolso seguem as regras de quem processou e o Código de Defesa do Consumidor.
+        </p>
+        <p>
+          No primeiro treino registrado com conta, você ganha 7 dias de Premium de presente. O presente
+          acaba sozinho, sem cobrança e sem pedir cartão.
         </p>
       </Bloco>
 
@@ -66,6 +71,14 @@ export function Termos({ onVoltar }) {
         <p>
           As aulas em vídeo são do YouTube e pertencem a quem as publicou. O app apenas organiza e indica
           qual assistir. Não hospedamos nem vendemos esse conteúdo.
+        </p>
+      </Bloco>
+
+      <Bloco titulo="Avisos no celular">
+        <p>
+          Se você ligar os avisos, o app manda no máximo um por dia (a reta final da ofensiva e da liga,
+          domingo à noite, são a exceção), nunca entre 22h e 8h. Dá pra desligar quando quiser, em Ajustes
+          ou nas configurações do celular.
         </p>
       </Bloco>
 
@@ -104,12 +117,28 @@ export function Privacidade({ onVoltar }) {
         <ul>
           <li>Nome e e-mail, se você criar conta.</li>
           <li>O que você registra: treinos, rolas, técnicas, metas, lesões e aulas vistas.</li>
-          <li>Faixa, academia e professor, se você preencher.</li>
+          <li>Faixa, academia, professor e parceiros de treino, se você preencher.</li>
+          <li>Peso e o que você registrar em Nutrição, Lesões e Força, se usar essas partes.</li>
+          <li>A foto de perfil, se você colocar uma.</li>
           <li>O ano em que você nasceu (só o ano): a regra das técnicas e a divisão de campeonato mudam com a idade.</li>
           <li>
             Como você usa o Estudo: que aulas o app te recomendou, quais você abriu e terminou. Serve pra
             melhorar as recomendações e saber que aula falta gravar, e a equipe só vê isso em números somados,
             nunca o de uma pessoa.
+          </li>
+          <li>
+            Se você ligar os avisos, o endereço de aviso do seu aparelho (gerado pelo navegador, não é o seu
+            número) e o seu fuso horário, pra o aviso chegar na hora certa. E se você abriu cada aviso.
+          </li>
+          <li>
+            Se você comprar: nome, e-mail, telefone e a situação da compra, que a Hotmart ou a Getfy nos
+            enviam pra liberar o Premium. Se uma compra ficar pela metade, podemos mandar uma mensagem de
+            WhatsApp pra esse telefone lembrando de concluir.
+          </li>
+          <li>Quando você abre a oferta do Premium e de qual tela veio, em números somados.</li>
+          <li>
+            Quando o app dá erro, um relatório técnico do erro (tela, versão, aparelho) pra gente consertar.
+            Não vai o conteúdo dos seus treinos.
           </li>
         </ul>
         <p>
@@ -147,8 +176,11 @@ export function Privacidade({ onVoltar }) {
           Dá pra desfazer a amizade quando quiser.
         </p>
         <p>
-          Se você usar a leitura da IA, os números do seu treino são enviados para o serviço que processa
-          o texto. Vão números e nomes de técnica, não o seu nome nem o seu e-mail.
+          A IA. Se você usar a leitura da IA ou registrar falando, o que é preciso pra montar a resposta vai
+          pra Groq, o serviço que roda a IA: os números e as técnicas do treino e, no registro falado, o
+          áudio (pra virar texto), o texto e os nomes dos parceiros, professores e academias que você
+          cadastrou (pra reconhecer quem é quem). Não vai o seu e-mail. O áudio não fica guardado: vira
+          texto e é descartado.
         </p>
       </Bloco>
 

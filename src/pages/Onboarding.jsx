@@ -184,7 +184,7 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
 
         {atual === 'nome' && (
           <div className="col" style={{ gap: 16 }}>
-            <Pergunta titulo="Como te chamam?" texto="Isso fica só no seu aparelho, e serve pra o app falar com você do jeito certo." />
+            <Pergunta titulo="Como te chamam?" texto="Serve pra o app falar com você do jeito certo. Na liga aparece só o primeiro nome, e dá pra trocar por apelido." />
             <Input
               value={perfil.nome} onChange={(e) => setPerfil({ ...perfil, nome: e.target.value })}
               onKeyDown={(e) => { if (e.key === 'Enter' && perfil.nome.trim()) setPasso(passo + 1); }}

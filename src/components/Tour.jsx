@@ -27,8 +27,8 @@ const PASSOS = [
     icone: NotebookPen,
     titulo: 'Registrar um treino leva um minuto',
     corpo: [
-      'Você anota a data, quanto tempo durou e as técnicas que o professor passou. Em cada uma marca se pegou, se saiu mais ou menos, ou se não pegou.',
-      'Depois adiciona os rolas. Em cada um você diz com quem foi, o que pontuou, o que sofreu e escreve duas linhas sobre o que aconteceu.',
+      'Você anota a data, quanto tempo durou e a posição da aula. As técnicas daquela posição aparecem sozinhas: toca nas que o professor passou e marca se pegou, se saiu mais ou menos, ou se não pegou.',
+      'Depois adiciona os rolas. Em cada um você diz com quem foi, o que pontuou e o que sofreu. Na finalização é só tocar no golpe: o app já sabe de onde ela saiu pelo que aconteceu no rola, e um toque troca se errou.',
       'Essas duas linhas são o que mais vale quando você voltar aqui daqui a três meses. O resto o app calcula sozinho.',
     ],
   },
@@ -46,6 +46,7 @@ const PASSOS = [
     titulo: 'Cada técnica tem quatro graus',
     corpo: [
       'Funciona igual à ponteira da faixa. A diferença é que a técnica sobe de grau porque ela apareceu nos seus treinos, não porque você marcou que sabe.',
+      'Cada origem conta separado: o armlock da guarda e o da montada têm grau próprio. Posição (De La Riva, montada) não é técnica: ela tem a seção dela, que mostra quantas saídas suas entram no rola.',
       'É isso que faz a evolução ser real. O app trabalha com o que aconteceu de verdade no tatame, então o que você vê aqui não é o que você acha que sabe, é o que você já mostrou que sabe.',
     ],
     graus: true,
