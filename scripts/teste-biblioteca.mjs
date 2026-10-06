@@ -112,15 +112,15 @@ ok('a posição da aula mais recente vem primeiro',
 const { golpeDe, GOLPES, variacaoProvavel, posicoesDoRola, golpesDoRola, variacoes } = await import('../src/lib/golpes.js');
 const finais = SEED.techniques.filter((t) => FINALIZACAO.has(t.cat)).map((t) => ({ nome: t.pt, de: t.from }));
 ok('todo golpe tem o jeito padrão na biblioteca', GOLPES.filter((g) => !finais.some((t) => t.nome === g.padrao)).map((g) => g.id), []);
-ok('armlock da montada e dos 100kg são o mesmo golpe', [golpeDe('Chave de braço da montada'), golpeDe('Chave de braço dos 100kg')], ['armlock', 'armlock']);
+ok('armlock da montada e dos 100kg são o mesmo golpe', [golpeDe('Armlock da montada'), golpeDe('Chave de braço dos 100kg')], ['armlock', 'armlock']);
 ok('o katagatame não vira triângulo', golpeDe('Katagatame da montada'), 'katagatame');
 ok('a raspagem de kimura não é finalização (fica fora do catálogo do rola)', finais.some((t) => t.nome === 'Raspagem de kimura (guarda)'), false);
 
 const rolaMontada = { ptsMeus: ['passagem', 'montada'], posInicial: 'em_pe' };
 ok('o último ponto vem primeiro', posicoesDoRola(rolaMontada, 'meu'), ['montada', 'cem_quilos', 'em_pe']);
 ok('chegou na montada: o armlock é o da montada',
-  variacaoProvavel('armlock', { catalogo: finais, posicoes: posicoesDoRola(rolaMontada, 'meu') }), 'Chave de braço da montada');
-ok('sem ponto nem histórico: o armlock da guarda (o padrão)', variacaoProvavel('armlock', { catalogo: finais }), 'Chave de braço (armlock)');
+  variacaoProvavel('armlock', { catalogo: finais, posicoes: posicoesDoRola(rolaMontada, 'meu') }), 'Armlock da montada');
+ok('sem ponto nem histórico: o armlock da guarda (o padrão)', variacaoProvavel('armlock', { catalogo: finais }), 'Armlock da guarda fechada');
 ok('sem ponto: o que você já registrou ganha do padrão',
   variacaoProvavel('kimura', { catalogo: finais, historico: ['Kimura dos 100kg'] }), 'Kimura dos 100kg');
 ok('da guarda fechada com 4 guilhotinas: a que você usa',
@@ -134,7 +134,7 @@ ok('trocar a origem mostra só o mesmo golpe', variacoes('Americana', finais).ma
 /* ---------- o repertório de cada posição ---------- */
 const { repertorioPorPosicao } = await import('../src/lib/posicoes.js');
 const rolasRep = [
-  { sessionId: 1, tecMeus: { raspagem: ['Raspagem de X-guard para trás'], passagem: ['Passagem toureando'] }, subsAplicadas: ['Chave de braço da montada', 'Chave de braço da montada'] },
+  { sessionId: 1, tecMeus: { raspagem: ['Raspagem de X-guard para trás'], passagem: ['Passagem toureando'] }, subsAplicadas: ['Armlock da montada', 'Armlock da montada'] },
   { sessionId: 1, tecMeus: { raspagem: ['Raspagem de X-guard para trás', 'Raspagem de X-guard para o lado'] }, subsAplicadas: ['Nome que não existe'] },
   { sessionId: 2, tecMeus: { raspagem: ['Raspagem de X-guard para trás'] }, subsAplicadas: [] },
 ];
@@ -173,7 +173,7 @@ ok('relatório: a posição do mês', rel.posicaoDoMes, { nome: 'Guarda X', usos
 ok('relatório: só o que entrou no jogo pela primeira vez no mês', rel.novasNoRepertorio.map((t) => t.nome), ['Raspagem de X-guard para o lado']);
 
 const rx = raioX(7, [
-  { partnerId: 7, ptsMeus: ['montada'], subsAplicadas: ['Chave de braço da montada'], subsSofridas: ['Mata-leão'], tecDele: {} },
+  { partnerId: 7, ptsMeus: ['montada'], subsAplicadas: ['Armlock da montada'], subsSofridas: ['Mata-leão'], tecDele: {} },
   { partnerId: 7, subsAplicadas: ['Americana da montada'], subsSofridas: [] },
   { partnerId: 9, subsAplicadas: ['Kimura'] },
 ], { techniques: biblioteca, categories: categorias, positions: posicoes });
@@ -185,7 +185,7 @@ ok('raio-x: de onde sai o ataque dele em você', rx.ondeEleMePega.map((x) => x.v
   let semente = 7;
   const sorteio = (l) => { semente = (semente * 1103515245 + 12345) % 2147483648; return l[semente % l.length]; };
   const nomesRasp = ['Raspagem de X-guard para trás', 'Raspagem de X-guard para o lado', 'Raspagem de sentar (hip bump)'];
-  const nomesFin = ['Chave de braço da montada', 'Chave de braço (armlock)', 'Mata-leão', 'Kimura dos 100kg', 'De La Riva'];
+  const nomesFin = ['Armlock da montada', 'Armlock da guarda fechada', 'Mata-leão', 'Kimura dos 100kg', 'De La Riva'];
   const ses = [{ id: 1, data: '2026-09-01', tipo: 'gi' }, { id: 2, data: '2026-09-02', tipo: 'drill' }, { id: 3, data: '2026-09-03', tipo: 'nogi' }];
   const rolas = Array.from({ length: 60 }, (_, i) => ({
     sessionId: sorteio([1, 1, 3, 2]), data: '2026-09-0' + (1 + (i % 3)), partnerId: 1,
@@ -201,9 +201,9 @@ ok('raio-x: de onde sai o ataque dele em você', rx.ondeEleMePega.map((x) => x.v
 
 /* ---------- a voz ---------- */
 const { resolverFinalizacao } = await import('../src/lib/golpes.js');
-ok('falou "armlock da montada": a IA mandou o nome certo e ele fica', resolverFinalizacao('Chave de braço da montada', { catalogo: finais }), 'Chave de braço da montada');
+ok('falou "armlock da montada": a IA mandou o nome certo e ele fica', resolverFinalizacao('Armlock da montada', { catalogo: finais }), 'Armlock da montada');
 ok('falou só "armlock" depois de montar: vai o da montada',
-  resolverFinalizacao('Armlock', { catalogo: finais, posicoes: posicoesDoRola({ ptsMeus: ['montada'] }, 'meu') }), 'Chave de braço da montada');
+  resolverFinalizacao('Armlock', { catalogo: finais, posicoes: posicoesDoRola({ ptsMeus: ['montada'] }, 'meu') }), 'Armlock da montada');
 ok('"mata leao" sem acento nem hífen acha o mata-leão', resolverFinalizacao('mata leao', { catalogo: finais }), 'Mata-leão');
 ok('"botinha" acha a chave de pé reta', resolverFinalizacao('botinha', { catalogo: finais }), 'Chave de pé reta (botinha)');
 ok('nome que ninguém conhece fica como foi falado (vira cadastro)', resolverFinalizacao('Chave do Zé', { catalogo: finais }), 'Chave do Zé');

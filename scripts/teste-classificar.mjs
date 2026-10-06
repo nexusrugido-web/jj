@@ -50,7 +50,7 @@ ok('sem acento e minúsculo', nomes(['triangulo']), ['Triângulo']);
 ok('sem o parêntese', nomes(['fuga de quadril']), ['Fuga de quadril (shrimp)']);
 ok('pelo nome em inglês', nomes(['double leg']), ['Baiana (double leg)']);
 ok('pelo que está no parêntese', nomes(['shrimp']).every((n) => /^Fug.* de quadril \(shrimp\)$/.test(n)), true);
-ok('nome solto fica com a técnica mais geral', nomes(['armlock']), ['Chave de braço (armlock)']);
+ok('nome solto fica com a técnica mais geral', nomes(['armlock']), ['Armlock da guarda fechada']);
 ok('nome que não existe some', nomes(['golpe secreto do mestre']), []);
 ok('nome curto demais não arrisca', nomes(['arm']), []);
 ok('a mesma técnica por dois nomes conta uma vez', nomes(['Kimura', 'kimura']), ['Kimura']);

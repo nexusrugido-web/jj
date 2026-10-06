@@ -90,8 +90,8 @@ export const APELIDOS = {
     "fifty fifty",
     "5050"
   ],
-  "Chave de braço, armlock": [
-    "armlock",
+  "Armlock da guarda fechada": [
+    "chave de braço",
     "arm bar",
     "juji gatame",
     "chave no braço"
@@ -160,6 +160,7 @@ export const APELIDOS_GERAIS = {
   'leg drag': ['arraste de perna'],
   'brabo': ["d'arce", 'darce'],
   'chave de pé': ['toe hold', 'americana no pé'],
+  'armlock': ['chave de braço', 'chave de braco', 'arm bar', 'juji gatame'],
 };
 
 const semAcento = (t) => String(t).toLowerCase()

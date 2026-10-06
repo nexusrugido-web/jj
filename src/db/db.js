@@ -219,8 +219,9 @@ export async function renomearTecnicas() {
      abaixo), e o "Katagatame (braço-cabeça)" dos rolas ficou pra trás.
      v3: "100kg (side control)" virou "Controle lateral, 100kg".
      v4: o "Katagatame (triângulo de braço)" servia pra montada e pro
-     100kg; virou "Katagatame dos 100kg". */
-  if (await getMeta('renomeou_v4', false)) return;
+     100kg; virou "Katagatame dos 100kg".
+     v5: todo armlock com o mesmo nome ("Armlock da montada"...). */
+  if (await getMeta('renomeou_v5', false)) return;
   const troca = (n) => nomeFinal(n);
   const trocaLista = (l) => (Array.isArray(l) ? l.map(troca) : l);
   const mudou = (a, b) => JSON.stringify(a) !== JSON.stringify(b);
@@ -254,7 +255,7 @@ export async function renomearTecnicas() {
   for (const g of await db.goals.toArray()) {
     if (typeof g.alvo === 'string' && nomeFinal(g.alvo) !== g.alvo) await db.goals.update(g.id, { alvo: nomeFinal(g.alvo) });
   }
-  await setMeta('renomeou_v4', true);
+  await setMeta('renomeou_v5', true);
 }
 
 /* ============================================================

@@ -145,7 +145,7 @@ Devolva SOMENTE o JSON, sem texto antes ou depois:
       "vantMinhas": 0,
       "vantDele": 0,
       "subsAplicadas": [],
-      "subsSofridas": ["Chave de braço (armlock)"]
+      "subsSofridas": ["Armlock da guarda fechada"]
     }
   ]
 }
@@ -196,7 +196,8 @@ Finalizações:
 - "fui finalizado", "bati", "tomei um", "ele me pegou de" => subsSofridas
 - Use o nome EXATO da lista de finalizações quando reconhecer ("mata leão" => "Mata-leão").
   Se não reconhecer, use como foi falado.
-- O mesmo golpe tem uma versão por posição ("Chave de braço da montada", "Chave de braço dos 100kg").
+- O mesmo golpe tem uma versão por posição ("Armlock da montada", "Armlock dos 100kg").
+  "Chave de braço" é o mesmo que armlock.
   Quando a pessoa disser de onde saiu ("armlock da montada"), use a versão daquela posição.
   Quando NÃO disser, devolva só o nome do golpe como foi falado ("Armlock", "Kimura"): o app escolhe
   a posição pelo resto do rola. Nunca invente a posição.

@@ -19,6 +19,20 @@
    nome nos treinos, nos rolas e nas metas, uma vez só.
    ============================================================ */
 export const RENOMEAR = {
+  /* 06/10/2026: todo armlock com o mesmo nome. Antes só o da guarda
+     tinha "(armlock)" e parecia que os outros não eram armlock */
+  'Chave de braço (armlock)': 'Armlock da guarda fechada',
+  'Chave de braço da montada': 'Armlock da montada',
+  'Chave de braço dos 100kg': 'Armlock dos 100kg',
+  'Chave de braço das costas': 'Armlock das costas',
+  'Chave de braço invertida': 'Armlock invertido',
+  'Chave de braço voadora': 'Armlock voador em pé',
+  'Chave de braço em triângulo': 'Armlock do triângulo',
+  'Crucifixo com chave de braço': 'Armlock do crucifixo',
+  'Chave de braço da guarda aberta': 'Armlock da guarda aberta',
+  'Chave de braço da borboleta': 'Armlock da borboleta',
+  'Chave de braço da tartaruga': 'Armlock da tartaruga',
+  'Chave de braço do joelho na barriga': 'Armlock do joelho na barriga',
   /* quedas */
   'Baiana (duplo)': 'Baiana (double leg)',
   'Solo (single leg)': 'Single leg',
@@ -77,8 +91,8 @@ export const RENOMEAR = {
   'Estrangulamento de lapela sentado (worm)': 'Estrangulamento da worm guard',
   'Estrangulamento de trás com body triangle': 'Mata-leão com body triangle',
   /* articulares e pernas */
-  'Chave de braço, armlock': 'Chave de braço (armlock)',
-  'Estica-braço do joelho na barriga': 'Chave de braço do joelho na barriga',
+  'Chave de braço, armlock': 'Armlock da guarda fechada',
+  'Estica-braço do joelho na barriga': 'Armlock do joelho na barriga',
   'Chave de ombro do norte-sul': 'Kimura do norte-sul',
   'Chave de pé reta': 'Chave de pé reta (botinha)',
   /* como o curso chama: o mesmo nome da posição na escada */

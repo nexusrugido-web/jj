@@ -15,7 +15,7 @@ export const PLANOS_ATAQUE = [
     aviso: '',
     passos: [
       { gatilho: 'ele apoia a mão no seu peito e a postura quebra', acao: 'Quebrar a postura, pegar manga + nuca', detalhe: 'Cotovelos colados, joelhos apertados. Sem quebrar postura não existe ataque.' },
-      { gatilho: 'braço dele cruzou sua linha central', acao: 'Chave de braço (armlock)', seFalhar: 'ele esconde e puxa o braço de volta', detalhe: 'Angula o quadril, perna sobe pela cabeça. Joelhos fechados.' },
+      { gatilho: 'braço dele cruzou sua linha central', acao: 'Armlock da guarda fechada', seFalhar: 'ele esconde e puxa o braço de volta', detalhe: 'Angula o quadril, perna sobe pela cabeça. Joelhos fechados.' },
       { gatilho: 'ele arrancou o braço e ficou com um dentro, um fora', acao: 'Triângulo', seFalhar: 'ele posta a postura e afunda o ombro', detalhe: 'Puxa o braço através, ângulo de 90 graus antes de fechar.' },
       { gatilho: 'ele empurra o joelho e afunda contra você', acao: 'Omoplata', seFalhar: 'ele rola pra frente', proxima: 'Segurar o quadril e voltar pra guarda ou raspar', detalhe: 'Senta de lado, trava o ombro dele com a perna.' },
     ],

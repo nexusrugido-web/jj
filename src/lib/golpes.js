@@ -16,7 +16,7 @@
    ============================================================ */
 
 export const GOLPES = [
-  { id: 'armlock', nome: 'Armlock', re: /chave de bra[cç]o|armlock|arm lock/, padrao: 'Chave de braço (armlock)' },
+  { id: 'armlock', nome: 'Armlock', re: /chave de bra[cç]o|armlock|arm lock/, padrao: 'Armlock da guarda fechada' },
   { id: 'katagatame', nome: 'Katagatame', re: /katagatame/, padrao: 'Katagatame dos 100kg' },
   { id: 'triangulo', nome: 'Triângulo', re: /tri[aâ]ngulo/, padrao: 'Triângulo' },
   { id: 'mata_leao', nome: 'Mata-leão', re: /mata[- ]le[aã]o/, padrao: 'Mata-leão' },

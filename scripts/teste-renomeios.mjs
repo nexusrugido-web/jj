@@ -50,14 +50,14 @@ ok('a técnica guardada ganha o nome novo e mantém o uid', tec.nome, 'Single le
 ok('a biblioteca renomeada continua sendo biblioteca (não sobe pra nuvem)', sementeIntacta('techniques', { ...tec, updatedAt: tec.criadoEm }), true);
 ok('o treino troca o nome da técnica da aula', (await db.sessions.get(sid)).focoTecnicas[0].nome, 'Arco e flecha (bow and arrow)');
 const rola = (await db.rolls.toArray())[0];
-ok('as finalizações do rola trocam de nome, até as da lista mais antiga', [rola.subsAplicadas, rola.subsSofridas], [['Chave de braço (armlock)', 'Americana'], ['Katagatame dos 100kg', 'Katagatame dos 100kg']]);
+ok('as finalizações do rola trocam de nome, até as da lista mais antiga', [rola.subsAplicadas, rola.subsSofridas], [['Armlock da guarda fechada', 'Americana'], ['Katagatame dos 100kg', 'Katagatame dos 100kg']]);
 
 /* a lista antiga roda a cada abertura: não pode desfazer a varredura */
 const arm = await db.techniques.add({ nome: 'Chave de braço (armlock)', arquivada: 0, criadoEm: Date.now(), __local: 1 });
 const kat = await db.techniques.add({ nome: 'Katagatame (braço-cabeça)', arquivada: 0, criadoEm: Date.now(), __local: 1 });
 await renomearAntigos();
 await renomearAntigos();
-ok('abrir o app de novo não volta pro "Chave de braço, armlock"', (await db.techniques.get(arm)).nome, 'Chave de braço (armlock)');
+ok('abrir o app de novo leva o nome velho pro de hoje, e não volta', (await db.techniques.get(arm)).nome, 'Armlock da guarda fechada');
 ok('o nome da lista mais antiga vai direto pro nome de hoje', (await db.techniques.get(kat)).nome, 'Katagatame dos 100kg');
 ok('as técnicas dos pontos trocam de nome', rola.tecMeus, { queda: ['Single leg'], raspagem: ['Raspagem de sentar (hip bump)'] });
 ok('a meta troca o alvo', (await db.goals.toArray())[0].alvo, 'Chave de pé reta (botinha)');
