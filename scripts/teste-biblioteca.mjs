@@ -131,6 +131,20 @@ ok('ele pegou as costas: o mata-leão é das costas', variacaoProvavel('mata_lea
 ok('os seus golpes aparecem primeiro', golpesDoRola(['Omoplata', 'Kimura dos 100kg']).slice(0, 3), ['omoplata', 'kimura', 'armlock']);
 ok('trocar a origem mostra só o mesmo golpe', variacoes('Americana', finais).map((t) => t.nome), ['Americana', 'Americana da montada', 'Americana da guarda']);
 
+/* ---------- o repertório de cada posição ---------- */
+const { repertorioPorPosicao } = await import('../src/lib/posicoes.js');
+const rolasRep = [
+  { sessionId: 1, tecMeus: { raspagem: ['Raspagem de X-guard para trás'], passagem: ['Passagem toureando'] }, subsAplicadas: ['Chave de braço da montada', 'Chave de braço da montada'] },
+  { sessionId: 1, tecMeus: { raspagem: ['Raspagem de X-guard para trás', 'Raspagem de X-guard para o lado'] }, subsAplicadas: ['Nome que não existe'] },
+  { sessionId: 2, tecMeus: { raspagem: ['Raspagem de X-guard para trás'] }, subsAplicadas: [] },
+];
+const rep = repertorioPorPosicao({ rolls: rolasRep, sessions: [{ id: 1, tipo: 'gi' }, { id: 2, tipo: 'drill' }], techniques: biblioteca, categories: categorias, positions: posicoes });
+const daPos = Object.fromEntries(rep.map((p) => [p.slug, p]));
+ok('Guarda X: 2 saídas, 3 vezes (o drill não conta)', [daPos.x_guard?.tecnicas.length, daPos.x_guard?.usos], [2, 3]);
+ok('a passagem conta em "Combatendo a guarda", não na guarda do outro', [daPos.passando?.usos, daPos.guarda_aberta], [1, undefined]);
+ok('o armlock da montada conta na montada, as duas vezes', daPos.montada?.usos, 2);
+ok('a soma das posições bate com as técnicas reconhecidas', rep.reduce((a, p) => a + p.usos, 0), 6);
+
 /* ---------- a voz ---------- */
 const { resolverFinalizacao } = await import('../src/lib/golpes.js');
 ok('falou "armlock da montada": a IA mandou o nome certo e ele fica', resolverFinalizacao('Chave de braço da montada', { catalogo: finais }), 'Chave de braço da montada');

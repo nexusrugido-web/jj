@@ -62,3 +62,41 @@ export function tecnicasDaPosicao(slug, { techniques, categories, positions, usa
   };
   return lista.sort((a, b) => (ordem(a) - ordem(b)) || a.nome.localeCompare(b.nome));
 }
+
+/* ------------------------------------------------------------
+   O REPERTÓRIO DE CADA POSIÇÃO
+
+   Quantas técnicas diferentes de cada posição já entraram em rola
+   (ponto com técnica e finalização aplicada), e quantas vezes. A
+   técnica conta na posição de onde ela sai; passagem conta em
+   "Combatendo a guarda" e queda em "De pé" (a origem dela é a
+   guarda do outro, não a sua). Rola de drill não conta.
+   ------------------------------------------------------------ */
+const POSICAO_DA_CATEGORIA = { passagem: 'passando', queda: 'em_pe' };
+
+export function repertorioPorPosicao({ rolls = [], sessions = [], techniques = [], categories = [], positions = [] }) {
+  const drill = new Set(sessions.filter((s) => s.tipo === 'drill').map((s) => s.id));
+  const catSlug = Object.fromEntries(categories.map((c) => [c.id, c.slug]));
+  const posPorId = Object.fromEntries(positions.map((p) => [p.id, p]));
+  const posPorSlug = Object.fromEntries(positions.filter((p) => p.slug).map((p) => [p.slug, p]));
+  const porNome = new Map(techniques.filter((t) => !ehPosicao(t)).map((t) => [t.nome.toLowerCase(), t]));
+  const mapa = new Map();
+  for (const r of rolls) {
+    if (r.contexto === 'drill' || drill.has(r.sessionId)) continue;
+    const nomes = [...Object.values(r.tecMeus || {}).flat(), ...(r.subsAplicadas || [])];
+    for (const nome of nomes) {
+      const t = porNome.get(String(nome).toLowerCase());
+      if (!t) continue;
+      const slug = POSICAO_DA_CATEGORIA[catSlug[t.categoriaId]] || posPorId[t.origemId]?.slug;
+      const pos = posPorSlug[slug];
+      if (!pos || FORA_DO_TEMA.has(slug)) continue;
+      if (!mapa.has(slug)) mapa.set(slug, { slug, nome: pos.nome, usos: 0, tecnicas: new Map() });
+      const p = mapa.get(slug);
+      p.usos++;
+      p.tecnicas.set(t.nome, (p.tecnicas.get(t.nome) || 0) + 1);
+    }
+  }
+  return [...mapa.values()]
+    .map((p) => ({ ...p, tecnicas: [...p.tecnicas.entries()].map(([nome, usos]) => ({ nome, usos })).sort((a, b) => b.usos - a.usos) }))
+    .sort((a, b) => b.usos - a.usos);
+}

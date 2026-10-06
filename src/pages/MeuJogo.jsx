@@ -14,6 +14,7 @@ import {
 import { minhasTecnicas } from '../lib/graus';
 import { podeVer, pedirOferta } from '../lib/plano';
 import { Vitrine } from '../components/Plano';
+import SuasPosicoes from '../components/SuasPosicoes';
 import FaixaVisual from '../components/FaixaVisual';
 import { FAIXAS } from '../db/seed';
 import { ESTILOS, estiloPorId, QUIZ, estiloDoQuiz } from '../db/scoring';
@@ -24,6 +25,7 @@ const decimal = (x) => String(x).replace('.', ',');
 export default function MeuJogo() {
   const {
     rolls, partners, sessions, techniques, gradings, settings, salvarSettings, irPara, acesso,
+    categories, positions,
   } = useApp();
   const toast = useToast();
   const [quizAberto, setQuizAberto] = useState(false);
@@ -255,6 +257,12 @@ export default function MeuJogo() {
               </div>
             </Card>
           )}
+
+          {/* ---- de onde sai o jogo: o número é grátis, as técnicas são do Premium ---- */}
+          <SuasPosicoes
+            rolls={rolls} sessions={sessions} techniques={techniques} categories={categories} positions={positions}
+            completo={podeVer(acesso, 'meujogo')} onAssinar={() => pedirOferta('meujogo')}
+          />
 
           {/* ---- por situação: é o que o plano pago abre ---- */}
           {podeVer(acesso, 'meujogo')

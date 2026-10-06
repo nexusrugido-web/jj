@@ -18,9 +18,11 @@ import Recomendacao, { VitrineRecomendacao } from '../components/Recomendacao';
 import { buscaMatch, relativo } from '../lib/utils';
 import { posInicialPorId } from '../db/scoring';
 import { podeVer, RECOMENDACOES_NA_TELA, pedirOferta } from '../lib/plano';
+import { ehPosicao, repertorioPorPosicao } from '../lib/posicoes';
+import { golpeDe, nomeDoGolpe } from '../lib/golpes';
 
 export default function Dominio() {
-  const { rolls, partners, sessions, techniques, categories, goals, gradings, settings, irPara, acesso } = useApp();
+  const { rolls, partners, sessions, techniques, categories, positions, goals, gradings, settings, irPara, acesso } = useApp();
   const [filtro, setFiltro] = useState('todas');
   const [busca, setBusca] = useState('');
   const [detalhe, setDetalhe] = useState(null);
@@ -35,8 +37,47 @@ export default function Dominio() {
     [rolls, partners, sessions, techniques, faixa, gradings, settings.graus]
   );
   const buracos = useMemo(() => meusBuracos(rolls, partners, sessions, faixa), [rolls, partners, sessions, faixa]);
-  const resumo = useMemo(() => resumoGraus(tecnicas), [tecnicas]);
-  const principal = useMemo(() => jogoPrincipal(tecnicas), [tecnicas]);
+
+  /* posição (De La Riva, Montada) não é golpe: fica na seção dela, com o
+     grau que já tinha guardado, e não entra na conta das técnicas */
+  const posicaoDoNome = useMemo(() => {
+    const slug = Object.fromEntries(positions.map((p) => [p.id, p.slug]));
+    return new Map(techniques.filter(ehPosicao).map((t) => [t.nome, slug[t.origemId]]));
+  }, [techniques, positions]);
+  const soTecnicas = useMemo(() => tecnicas.filter((t) => !posicaoDoNome.has(t.nome)), [tecnicas, posicaoDoNome]);
+  const secaoPosicoes = useMemo(() => {
+    const rep = Object.fromEntries(repertorioPorPosicao({ rolls, sessions, techniques, categories, positions }).map((p) => [p.slug, p]));
+    const linhas = new Map();
+    const linha = (slug) => {
+      const p = positions.find((x) => x.slug === slug);
+      if (!p) return null;
+      if (!linhas.has(slug)) linhas.set(slug, { slug, nome: p.nome, aulas: 0, grau: 0, ficha: null, rep: rep[slug] || null });
+      return linhas.get(slug);
+    };
+    for (const s of sessions) {
+      const temas = new Set([...(s.focoPosicoes || []), ...(s.focoTecnicas || []).map((f) => posicaoDoNome.get(f.nome)).filter(Boolean)]);
+      for (const slug of temas) { const l = linha(slug); if (l) l.aulas++; }
+    }
+    for (const t of tecnicas) {
+      const l = posicaoDoNome.has(t.nome) && linha(posicaoDoNome.get(t.nome));
+      if (l && t.grau >= l.grau) { l.grau = t.grau; l.ficha = t; }
+    }
+    return [...linhas.values()].sort((a, b) => ((b.rep?.usos || 0) - (a.rep?.usos || 0)) || (b.aulas - a.aulas));
+  }, [rolls, sessions, techniques, categories, positions, tecnicas, posicaoDoNome]);
+
+  const resumo = useMemo(() => resumoGraus(soTecnicas), [soTecnicas]);
+  const principal = useMemo(() => jogoPrincipal(soTecnicas), [soTecnicas]);
+  /* as outras origens do mesmo golpe (armlock da guarda, da montada...) */
+  const variacoesDoGolpe = (nome) => {
+    const g = golpeDe(nome);
+    if (!g) return null;
+    const fin = new Set(categories.filter((c) => ['estrangulamento', 'articular', 'perna'].includes(c.slug)).map((c) => c.id));
+    const minhas = new Map(soTecnicas.map((t) => [t.nome, t]));
+    const outras = techniques.filter((t) => fin.has(t.categoriaId) && t.nome !== nome && golpeDe(t.nome) === g)
+      .map((t) => ({ nome: t.nome, minha: minhas.get(t.nome) || null }))
+      .sort((a, b) => (b.minha?.usosResistencia || 0) - (a.minha?.usosResistencia || 0));
+    return outras.length ? { golpe: nomeDoGolpe(g), outras } : null;
+  };
   const todasRecs = useMemo(
     () => recomendacoesDoAluno({ tecnicas, buracos, partners, sessions, rolls, faixa, feitas, limite: RECOMENDACOES_NA_TELA }),
     [tecnicas, buracos, partners, sessions, rolls, faixa, feitas]
@@ -48,12 +89,12 @@ export default function Dominio() {
   const adesao = useMemo(() => aderencia(feitas), [feitas]);
   const catById = useMemo(() => Object.fromEntries(categories.map((c) => [c.id, c])), [categories]);
 
-  const lista = useMemo(() => tecnicas.filter((t) => {
+  const lista = useMemo(() => soTecnicas.filter((t) => {
     if (filtro !== 'todas' && String(t.grau) !== filtro) return false;
     return buscaMatch(`${t.nome} ${t.nomeEn}`, busca);
-  }), [tecnicas, filtro, busca]);
+  }), [soTecnicas, filtro, busca]);
 
-  if (!tecnicas.length) {
+  if (!tecnicas.length && !secaoPosicoes.length) {
     return (
       <div className="page">
         <Cabecalho onComo={() => setComoFunciona(true)} />
@@ -235,8 +276,48 @@ export default function Dominio() {
         })}
       </div>
 
+      {secaoPosicoes.length > 0 && (
+        <Card style={{ margin: '14px 0' }}>
+          <div className="card-head">
+            <div>
+              <div className="eyebrow">guardas e posições, contadas separado das técnicas</div>
+              <h2 className="h-sec">Posições</h2>
+            </div>
+          </div>
+          <div className="col" style={{ gap: 4 }}>
+            {secaoPosicoes.map((p) => {
+              const conteudo = (
+                <>
+                  <span className="trilha-selo" style={{ color: `var(--${grauPorN(p.grau).cor})` }}>
+                    <Ponteira n={p.grau} vertical />
+                  </span>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="row" style={{ gap: 7, flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 600, fontSize: 14 }}>{p.nome}</span>
+                      {p.ficha && <Chip>{grauPorN(p.grau).curto}</Chip>}
+                    </div>
+                    <div className="micro muted" style={{ marginTop: 3 }}>
+                      {[
+                        p.aulas > 0 && `${p.aulas} ${p.aulas === 1 ? 'aula' : 'aulas'} de tema`,
+                        p.rep ? `${p.rep.tecnicas.length} ${p.rep.tecnicas.length === 1 ? 'saída entra' : 'saídas entram'} no rola, ${p.rep.usos}x` : 'nenhuma saída dela no rola ainda',
+                      ].filter(Boolean).join(' · ')}
+                    </div>
+                  </div>
+                  {p.ficha ? <ChevronRight size={16} className="muted" /> : <span />}
+                </>
+              );
+              return p.ficha
+                ? <button key={p.slug} type="button" className="trilha-item" onClick={() => setDetalhe(p.ficha)}>{conteudo}</button>
+                : <div key={p.slug} className="trilha-item">{conteudo}</div>;
+            })}
+          </div>
+        </Card>
+      )}
+
       <Detalhe
         t={detalhe} onClose={() => setDetalhe(null)}
+        variacoes={detalhe ? variacoesDoGolpe(detalhe.nome) : null}
+        onAbrir={setDetalhe}
         cat={detalhe ? catById[detalhe.categoriaId] : null}
         faixa={faixa} graus={settings.graus || 0} partners={partners} sessions={sessions} goals={goals}
       />
@@ -258,7 +339,7 @@ function Cabecalho({ onComo }) {
 }
 
 /* ================= a ficha da técnica ================= */
-function Detalhe({ t, onClose, cat, faixa, graus = 0, partners, sessions, goals }) {
+function Detalhe({ t, onClose, cat, faixa, graus = 0, partners, sessions, goals, variacoes = null, onAbrir }) {
   if (!t) return null;
   const g = grauPorN(t.grau);
   const falta = faltaPara(t, faixa);
@@ -401,6 +482,23 @@ function Detalhe({ t, onClose, cat, faixa, graus = 0, partners, sessions, goals 
               Ter levado não muda o grau da sua. Atacar e defender são coisas separadas aqui.
             </p>
           )}
+        </div>
+      )}
+
+      {variacoes && (
+        <div>
+          <div className="eyebrow" style={{ marginBottom: 9 }}>o mesmo {variacoes.golpe.toLowerCase()}, de outro lugar</div>
+          <div className="row wrap" style={{ gap: 6 }}>
+            {[...variacoes.outras.filter((v) => v.minha), ...variacoes.outras.filter((v) => !v.minha).slice(0, 4)].map((v) => (v.minha
+              ? <button key={v.nome} type="button" className="chip on" onClick={() => onAbrir(v.minha)}>{v.nome} <Ponteira n={v.minha.grau} mini /></button>
+              : <span key={v.nome} className="chip" style={{ opacity: 0.6 }}>{v.nome}</span>))}
+            {variacoes.outras.filter((v) => !v.minha).length > 4 && (
+              <span className="chip" style={{ opacity: 0.6 }}>e mais {variacoes.outras.filter((v) => !v.minha).length - 4}</span>
+            )}
+          </div>
+          <p className="micro muted" style={{ marginTop: 9, lineHeight: 1.6 }}>
+            Cada origem tem o grau dela: o {variacoes.golpe.toLowerCase()} que entra da guarda não garante o que sai de outra posição.
+          </p>
         </div>
       )}
     </Sheet>
