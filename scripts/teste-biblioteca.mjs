@@ -108,5 +108,28 @@ ok('o que você já usou vem primeiro', tecnicasDaPosicao('x_guard', { ...base, 
 ok('a posição da aula mais recente vem primeiro',
   posicoesRecentes([{ data: '2026-09-01', focoPosicoes: ['montada'] }, { data: '2026-09-20', focoPosicoes: ['de_la_riva', 'montada'] }]), ['de_la_riva', 'montada']);
 
+/* ---------- o rola: golpe e de onde saiu ---------- */
+const { golpeDe, GOLPES, variacaoProvavel, posicoesDoRola, golpesDoRola, variacoes } = await import('../src/lib/golpes.js');
+const finais = SEED.techniques.filter((t) => FINALIZACAO.has(t.cat)).map((t) => ({ nome: t.pt, de: t.from }));
+ok('todo golpe tem o jeito padrão na biblioteca', GOLPES.filter((g) => !finais.some((t) => t.nome === g.padrao)).map((g) => g.id), []);
+ok('armlock da montada e dos 100kg são o mesmo golpe', [golpeDe('Chave de braço da montada'), golpeDe('Chave de braço dos 100kg')], ['armlock', 'armlock']);
+ok('o katagatame não vira triângulo', golpeDe('Katagatame da montada'), 'katagatame');
+ok('a raspagem de kimura não é finalização (fica fora do catálogo do rola)', finais.some((t) => t.nome === 'Raspagem de kimura (guarda)'), false);
+
+const rolaMontada = { ptsMeus: ['passagem', 'montada'], posInicial: 'em_pe' };
+ok('o último ponto vem primeiro', posicoesDoRola(rolaMontada, 'meu'), ['montada', 'cem_quilos', 'em_pe']);
+ok('chegou na montada: o armlock é o da montada',
+  variacaoProvavel('armlock', { catalogo: finais, posicoes: posicoesDoRola(rolaMontada, 'meu') }), 'Chave de braço da montada');
+ok('sem ponto nem histórico: o armlock da guarda (o padrão)', variacaoProvavel('armlock', { catalogo: finais }), 'Chave de braço (armlock)');
+ok('sem ponto: o que você já registrou ganha do padrão',
+  variacaoProvavel('kimura', { catalogo: finais, historico: ['Kimura dos 100kg'] }), 'Kimura dos 100kg');
+ok('da guarda fechada com 4 guilhotinas: a que você usa',
+  variacaoProvavel('guilhotina', { catalogo: finais, posicoes: ['guarda_fechada'], historico: ['Marcelotine'] }), 'Marcelotine');
+const sofri = { ptsDele: ['costas'], posInicial: 'guarda_fechada_cima' };
+ok('finalização sofrida: a posição dele', posicoesDoRola(sofri, 'dele'), ['costas', 'guarda_fechada']);
+ok('ele pegou as costas: o mata-leão é das costas', variacaoProvavel('mata_leao', { catalogo: finais, posicoes: posicoesDoRola(sofri, 'dele') }), 'Mata-leão');
+ok('os seus golpes aparecem primeiro', golpesDoRola(['Omoplata', 'Kimura dos 100kg']).slice(0, 3), ['omoplata', 'kimura', 'armlock']);
+ok('trocar a origem mostra só o mesmo golpe', variacoes('Americana', finais).map((t) => t.nome), ['Americana', 'Americana da montada', 'Americana da guarda']);
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

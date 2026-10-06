@@ -539,6 +539,9 @@ button.chip:not(.on):hover { color: var(--chalk); border-color: var(--dimmer); }
   transition: opacity 0.15s var(--ease), background 0.15s var(--ease);
 }
 .chip-mais:hover, .chip-menos:hover { opacity: 1; background: color-mix(in srgb, currentColor 26%, transparent); }
+/* o nome da finalização que troca a origem com 1 toque */
+.chip-origem { display: inline-flex; align-items: center; gap: 3px; color: inherit; font: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.chip-origem svg { opacity: 0.7; }
 
 /* ---------- faixa de chips rolável ---------- */
 .chips-scroll {

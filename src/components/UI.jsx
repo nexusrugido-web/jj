@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
-import { X, Check, AlertTriangle, Minus, Plus, Search, CalendarDays, Gem } from 'lucide-react';
+import { X, Check, AlertTriangle, Minus, Plus, Search, CalendarDays, Gem, ChevronDown } from 'lucide-react';
 import { useApp } from '../contexto';
 import { hoje, addDias, fmtData } from '../lib/utils';
 import { FAIXAS } from '../db/seed';
@@ -299,8 +299,12 @@ export function EscolherData({ valor, onChange, titulo = 'Quando foi', futuro = 
    Aceita a MESMA finalização várias vezes no mesmo rola.
    Guardado como lista simples (["Triângulo","Triângulo","Kimura"])
    e mostrado agrupado com contador. */
-export function SubsInput({ valor = [], onChange, sugestoes = [], rapidas = [], tone = 'jade', placeholder = 'Ex.: Triângulo' }) {
+/* golpes: [{ id, nome, tecnica }] → toca o golpe, entra a técnica da origem mais provável.
+   variacoesDe(nome): as outras origens do mesmo golpe, pra trocar com 1 toque. */
+export function SubsInput({ valor = [], onChange, sugestoes = [], rapidas = [], tone = 'jade', placeholder = 'Ex.: Triângulo', golpes = null, variacoesDe = null }) {
   const [txt, setTxt] = useState('');
+  const [trocando, setTrocando] = useState(null);
+  const [todas, setTodas] = useState(false);
 
   const grupos = useMemo(() => {
     const m = new Map();
@@ -322,6 +326,15 @@ export function SubsInput({ valor = [], onChange, sugestoes = [], rapidas = [], 
     onChange(novo);
   };
 
+  /* troca a origem de uma (a última) dessa finalização */
+  const trocar = (de, para) => {
+    const i = valor.lastIndexOf(de);
+    if (i >= 0 && de !== para) { const novo = [...valor]; novo[i] = para; onChange(novo); }
+    setTrocando(null);
+    setTodas(false);
+  };
+  const outras = trocando && variacoesDe ? variacoesDe(trocando) : [];
+
   const sug = sugestoes
     .filter((s) => s.toLowerCase().includes(txt.toLowerCase()))
     .slice(0, 6);
@@ -334,7 +347,12 @@ export function SubsInput({ valor = [], onChange, sugestoes = [], rapidas = [], 
         <div className="row wrap" style={{ gap: 6 }}>
           {grupos.map(([nome, n]) => (
             <span key={nome} className={`chip ${tone}`} style={{ paddingRight: 4 }}>
-              {nome}
+              {variacoesDe && variacoesDe(nome).length > 1 ? (
+                <button type="button" className="chip-origem" aria-expanded={trocando === nome} aria-label={`Trocar de onde saiu ${nome}`}
+                  onClick={() => { setTrocando(trocando === nome ? null : nome); setTodas(false); }}>
+                  {nome} <ChevronDown size={11} />
+                </button>
+              ) : nome}
               {n > 1 && <b className="num" style={{ marginLeft: 3 }}>×{n}</b>}
               <button type="button" className="chip-mais" onClick={() => add(nome)} aria-label={`Mais um ${nome}`}>
                 <Plus size={11} />
@@ -345,6 +363,20 @@ export function SubsInput({ valor = [], onChange, sugestoes = [], rapidas = [], 
             </span>
           ))}
           <span className="chip" style={{ opacity: 0.7 }}>total {valor.length}</span>
+        </div>
+      )}
+
+      {outras.length > 1 && (
+        <div className="col" style={{ gap: 6 }}>
+          <span className="micro muted">De onde saiu?</span>
+          <div className="row wrap" style={{ gap: 6 }}>
+            {(todas ? outras : outras.slice(0, 6)).map((o) => (
+              <button key={o} type="button" className={`chip ${o === trocando ? tone : ''}`} aria-pressed={o === trocando} onClick={() => trocar(trocando, o)}>{o}</button>
+            ))}
+            {!todas && outras.length > 6 && (
+              <button type="button" className="chip" onClick={() => setTodas(true)}>ver todas ({outras.length})</button>
+            )}
+          </div>
         </div>
       )}
 
@@ -365,6 +397,10 @@ export function SubsInput({ valor = [], onChange, sugestoes = [], rapidas = [], 
             {sug.map((s) => <button key={s} type="button" className="chip" onClick={() => add(s)}>+ {s}</button>)}
           </div>
         )
+      ) : golpes?.length ? (
+        <div className="chips-scroll">
+          {golpes.map((g) => <button key={g.id} type="button" className="chip" onClick={() => add(g.tecnica)}>+ {g.nome}</button>)}
+        </div>
       ) : atalhos.length > 0 && (
         <div className="chips-scroll">
           {atalhos.map((s) => <button key={s} type="button" className="chip" onClick={() => add(s)}>+ {s}</button>)}

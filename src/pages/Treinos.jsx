@@ -15,6 +15,8 @@ import Voz, { temVoz } from '../components/Voz';
 import { darXp, checarConsistencia } from '../lib/xp';
 import { SeletorTecnica, ListaFoco, APRENDIZADO } from '../components/SeletorTecnica';
 import PosicaoDaAula, { PosicoesDoTreino } from '../components/PosicaoDaAula';
+import { golpesDoRola, nomeDoGolpe, variacaoProvavel, variacoes, posicoesDoRola } from '../lib/golpes';
+import { tecnicasDaPosicao } from '../lib/posicoes';
 import {
   Card, Btn, Field, Input, NumeroInput, EscolherData, Textarea, Select, Sheet, Chip, Stepper,
   Empty, Confirmar, useToast, SubsInput, Busca, PontosInput, ParceiroRapido, Seg, Diamante,
@@ -1496,6 +1498,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
                         checarTecnica(nova, () => setRola(i, { subsAplicadas: v }));
                       }}
                       sugestoes={finalizacoes} rapidas={maisUsadas.apliquei}
+                      golpes={golpesPara(r, 'meu')} variacoesDe={variacoesDe}
                       tone="jade" placeholder="Qual finalização?"
                     />
                   </div>
@@ -1510,6 +1513,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
                       valor={r.subsSofridas || []}
                       onChange={(v) => setRola(i, { subsSofridas: v })}
                       sugestoes={finalizacoes} rapidas={maisUsadas.sofri}
+                      golpes={golpesPara(r, 'dele')} variacoesDe={variacoesDe}
                       tone="blood" placeholder="Qual finalização?"
                     />
                   </div>
@@ -1517,6 +1521,25 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
 
                 </div>
   );
+
+  /* finalização: toca o golpe e entra a origem mais provável desse rola */
+  const catalogoFin = useMemo(() => {
+    const nomes = new Set(finalizacoes);
+    const slug = Object.fromEntries(positions.map((p) => [p.id, p.slug]));
+    return techniques.filter((t) => nomes.has(t.nome) && !t.arquivada).map((t) => ({ nome: t.nome, de: slug[t.origemId] || null }));
+  }, [finalizacoes, techniques, positions]);
+  const golpesPara = (r, lado) => {
+    const historico = lado === 'meu' ? maisUsadas.apliquei : maisUsadas.sofri;
+    const posicoes = posicoesDoRola(r, lado, s.focoPosicoes || []);
+    return golpesDoRola(historico).slice(0, 8)
+      .map((id) => ({ id, nome: nomeDoGolpe(id), tecnica: variacaoProvavel(id, { catalogo: catalogoFin, posicoes, historico }) }))
+      .filter((g) => g.tecnica);
+  };
+  const variacoesDe = (nome) => variacoes(nome, catalogoFin).map((t) => t.nome);
+  /* o ponto do rola sugere primeiro as técnicas da posição da aula */
+  const daAula = useMemo(() => (s.focoPosicoes || [])
+    .flatMap((slug) => tecnicasDaPosicao(slug, { techniques, categories, positions }).map((t) => t.nome)),
+  [s.focoPosicoes, techniques, categories, positions]);
 
   /* técnica da aula: toca uma vez marca, toca de novo tira */
   function alternarFoco(tec) {
@@ -1544,7 +1567,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
           semPosicoes={seletor?.tipo === 'foco'}
           titulo={seletor?.tipo === 'foco' ? 'Técnicas da aula' : `Qual ${seletor?.ponto?.nome?.toLowerCase() || 'técnica'}?`}
           categoriaFiltro={seletor?.tipo === 'ponto' ? CAT_DO_PONTO[seletor.ponto.id] : null}
-          recentes={seletor?.tipo === 'ponto' ? (recentesPorPonto[seletor.ponto.id] || []) : recentesFoco}
+          recentes={seletor?.tipo === 'ponto' ? [...(recentesPorPonto[seletor.ponto.id] || []), ...daAula] : recentesFoco}
           jaEscolhidas={
             seletor?.tipo === 'foco'
               ? (s.focoTecnicas || []).map((x) => x.nome)
