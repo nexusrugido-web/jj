@@ -131,5 +131,14 @@ ok('ele pegou as costas: o mata-leão é das costas', variacaoProvavel('mata_lea
 ok('os seus golpes aparecem primeiro', golpesDoRola(['Omoplata', 'Kimura dos 100kg']).slice(0, 3), ['omoplata', 'kimura', 'armlock']);
 ok('trocar a origem mostra só o mesmo golpe', variacoes('Americana', finais).map((t) => t.nome), ['Americana', 'Americana da montada', 'Americana da guarda']);
 
+/* ---------- a voz ---------- */
+const { resolverFinalizacao } = await import('../src/lib/golpes.js');
+ok('falou "armlock da montada": a IA mandou o nome certo e ele fica', resolverFinalizacao('Chave de braço da montada', { catalogo: finais }), 'Chave de braço da montada');
+ok('falou só "armlock" depois de montar: vai o da montada',
+  resolverFinalizacao('Armlock', { catalogo: finais, posicoes: posicoesDoRola({ ptsMeus: ['montada'] }, 'meu') }), 'Chave de braço da montada');
+ok('"mata leao" sem acento nem hífen acha o mata-leão', resolverFinalizacao('mata leao', { catalogo: finais }), 'Mata-leão');
+ok('"botinha" acha a chave de pé reta', resolverFinalizacao('botinha', { catalogo: finais }), 'Chave de pé reta (botinha)');
+ok('nome que ninguém conhece fica como foi falado (vira cadastro)', resolverFinalizacao('Chave do Zé', { catalogo: finais }), 'Chave do Zé');
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

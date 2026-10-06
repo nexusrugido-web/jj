@@ -131,6 +131,7 @@ Devolva SOMENTE o JSON, sem texto antes ou depois:
   "professor": "nome ou vazio",
   "evento": "nome do campeonato ou vazio",
   "colocacao": "ouro, prata, bronze, participou ou vazio",
+  "posicoes": ["de_la_riva"],
   "tecnicas": [{ "nome": "Raspagem de gancho", "reps": 0 }],
   "nota": "o relato limpo, em primeira pessoa, sem repetição",
   "rolas": [
@@ -139,6 +140,8 @@ Devolva SOMENTE o JSON, sem texto antes ou depois:
       "duracao": 5,
       "ptsMeus": ["queda", "passagem", "montada"],
       "ptsDele": ["raspagem"],
+      "tecMeus": { "passagem": ["Passagem toureando"] },
+      "tecDele": {},
       "vantMinhas": 0,
       "vantDele": 0,
       "subsAplicadas": [],
@@ -183,12 +186,26 @@ O que ele fez (ptsMeus) e o que sofreu (ptsDele), um item por vez que aconteceu:
 - "ele me montou", "pegou minhas costas" => ptsDele: montada / costas
 - "duas vezes" => o item aparece duas vezes.
 - "vantagem" => conte em vantMinhas ou vantDele.
+- Se a pessoa disser COMO fez o ponto, ponha a técnica em tecMeus (ou tecDele), com a chave do ponto:
+  "raspei da X por trás" => tecMeus: { "raspagem": ["Raspagem de X-guard para trás"] };
+  "passei no toureando" => tecMeus: { "passagem": ["Passagem toureando"] }.
+  Só com nome EXATO da lista de técnicas. Se não tiver certeza de qual é, deixe de fora: o ponto já vale.
 
 Finalizações:
 - "finalizei", "peguei de", "bateu pra mim", "fiz ele bater" => subsAplicadas
 - "fui finalizado", "bati", "tomei um", "ele me pegou de" => subsSofridas
 - Use o nome EXATO da lista de finalizações quando reconhecer ("mata leão" => "Mata-leão").
   Se não reconhecer, use como foi falado.
+- O mesmo golpe tem uma versão por posição ("Chave de braço da montada", "Chave de braço dos 100kg").
+  Quando a pessoa disser de onde saiu ("armlock da montada"), use a versão daquela posição.
+  Quando NÃO disser, devolva só o nome do golpe como foi falado ("Armlock", "Kimura"): o app escolhe
+  a posição pelo resto do rola. Nunca invente a posição.
+- Cada finalização que aconteceu é um item: "finalizei ele duas vezes de triângulo" => o item duas vezes.
+
+Posição da aula (posicoes):
+- O tema da aula: "a aula foi de De La Riva", "semana de guarda X", "treinamos passagem" => o id da
+  posição, exatamente como na lista de posições. Pode ser mais de uma. Vazio quando não falar.
+- Posição não é técnica: "De La Riva", "Guarda X", "Montada" vão em posicoes, não em tecnicas.
 
 Técnicas da aula (tecnicas):
 - O que o professor passou na aula ou o que foi drillado: "a aula foi de raspagem de gancho",
@@ -218,7 +235,8 @@ Parceiros cadastrados: ${(p.parceiros || []).slice(0, 300).join(', ') || 'nenhum
 Professores cadastrados: ${(p.professores || []).slice(0, 50).join(', ') || 'nenhum'}
 Academias cadastradas: ${(p.academias || []).slice(0, 50).join(', ') || 'nenhuma'}
 Finalizações conhecidas: ${(p.finalizacoes || []).slice(0, 300).join(', ')}
-Técnicas conhecidas: ${(p.tecnicas || []).slice(0, 700).join(', ')}`,
+Técnicas conhecidas: ${(p.tecnicas || []).slice(0, 700).join(', ')}
+Posições (id: nome): ${(p.posicoes || []).slice(0, 60).join('; ') || 'nenhuma'}`,
   }),
 
   autopreencher: (p) => ({

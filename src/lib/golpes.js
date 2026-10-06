@@ -19,15 +19,15 @@ export const GOLPES = [
   { id: 'armlock', nome: 'Armlock', re: /chave de bra[cç]o|armlock|arm lock/, padrao: 'Chave de braço (armlock)' },
   { id: 'katagatame', nome: 'Katagatame', re: /katagatame/, padrao: 'Katagatame dos 100kg' },
   { id: 'triangulo', nome: 'Triângulo', re: /tri[aâ]ngulo/, padrao: 'Triângulo' },
-  { id: 'mata_leao', nome: 'Mata-leão', re: /mata-le[aã]o/, padrao: 'Mata-leão' },
+  { id: 'mata_leao', nome: 'Mata-leão', re: /mata[- ]le[aã]o/, padrao: 'Mata-leão' },
   { id: 'guilhotina', nome: 'Guilhotina', re: /guilhotina|marcelotine/, padrao: 'Guilhotina' },
   { id: 'kimura', nome: 'Kimura', re: /kimura/, padrao: 'Kimura' },
   { id: 'americana', nome: 'Americana', re: /americana/, padrao: 'Americana' },
   { id: 'omoplata', nome: 'Omoplata', re: /^omoplata/, padrao: 'Omoplata' },
   { id: 'ezequiel', nome: 'Ezequiel', re: /ezequiel/, padrao: 'Estrangulamento Ezequiel' },
   { id: 'cruzada', nome: 'Estrangulamento cruzado', re: /cruzad[oa]/, padrao: 'Estrangulamento cruzado (cruzada)' },
-  { id: 'botinha', nome: 'Botinha', re: /chave de p[eé] reta/, padrao: 'Chave de pé reta (botinha)' },
-  { id: 'heel_hook', nome: 'Heel hook', re: /heel hook/, padrao: 'Heel hook externo (chave de calcanhar)' },
+  { id: 'botinha', nome: 'Botinha', re: /chave de p[eé] reta|botinha/, padrao: 'Chave de pé reta (botinha)' },
+  { id: 'heel_hook', nome: 'Heel hook', re: /heel hook|chave de calcanhar/, padrao: 'Heel hook externo (chave de calcanhar)' },
   { id: 'kneebar', nome: 'Kneebar', re: /kneebar|chave de joelho/, padrao: 'Chave de joelho (kneebar)' },
   { id: 'pulso', nome: 'Chave de pulso', re: /chave de pulso|m[aã]o de vaca/, padrao: 'Chave de pulso (da guarda)' },
 ];
@@ -108,4 +108,15 @@ export function posicoesDoRola(r, lado = 'meu', focoPosicoes = []) {
   if (inicio) l.push(inicio);
   if (lado === 'meu') l.push(...focoPosicoes);
   return [...new Set(l.filter(Boolean))];
+}
+
+/* a finalização que veio falada (da voz): nome da biblioteca fica;
+   só o golpe ("armlock") ganha a origem pelo rola; o resto vira
+   cadastro novo, como sempre */
+const semAcento = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+export function resolverFinalizacao(nome, { catalogo, posicoes = [], historico = [] }) {
+  const exata = catalogo.find((t) => semAcento(t.nome) === semAcento(nome));
+  if (exata) return exata.nome;
+  const g = golpeDe(semAcento(nome));
+  return (g && variacaoProvavel(g, { catalogo, posicoes, historico })) || nome;
 }

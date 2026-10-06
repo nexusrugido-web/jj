@@ -15,8 +15,8 @@ import Voz, { temVoz } from '../components/Voz';
 import { darXp, checarConsistencia } from '../lib/xp';
 import { SeletorTecnica, ListaFoco, APRENDIZADO } from '../components/SeletorTecnica';
 import PosicaoDaAula, { PosicoesDoTreino } from '../components/PosicaoDaAula';
-import { golpesDoRola, nomeDoGolpe, variacaoProvavel, variacoes, posicoesDoRola } from '../lib/golpes';
-import { tecnicasDaPosicao } from '../lib/posicoes';
+import { golpesDoRola, nomeDoGolpe, variacaoProvavel, variacoes, posicoesDoRola, resolverFinalizacao } from '../lib/golpes';
+import { tecnicasDaPosicao, ehPosicao } from '../lib/posicoes';
 import {
   Card, Btn, Field, Input, NumeroInput, EscolherData, Textarea, Select, Sheet, Chip, Stepper,
   Empty, Confirmar, useToast, SubsInput, Busca, PontosInput, ParceiroRapido, Seg, Diamante,
@@ -325,25 +325,45 @@ export default function Treinos() {
       }
     }
 
-    /* as técnicas da aula (ou do drill, com as repetições) */
+    /* as técnicas da aula (ou do drill, com as repetições). Posição falada
+       como técnica ("a aula foi de De La Riva") vai pra posição da aula */
+    const slugDe = Object.fromEntries(positions.map((p) => [p.id, p.slug]));
+    const posicoesFaladas = (d.posicoes || []).filter((x) => positions.some((p) => p.slug === x));
     s2.focoTecnicas = (d.tecnicas || []).map((x) => {
       const nome = nomeAtual(String(x.nome || '').trim());
       const tec = techniques.find((y) => semAcento(y.nome) === semAcento(nome));
+      if (tec && ehPosicao(tec)) { if (slugDe[tec.origemId]) posicoesFaladas.push(slugDe[tec.origemId]); return null; }
       return { tecnicaId: tec?.id || null, nome: tec?.nome || nome, aprendizado: null, ...(Number(x.reps) > 0 ? { reps: Number(x.reps) } : {}) };
-    }).filter((x) => x.nome);
+    }).filter((x) => x?.nome);
+    if (posicoesFaladas.length) s2.focoPosicoes = [...new Set(posicoesFaladas)];
+
+    /* finalização falada só pelo golpe ("armlock") ganha a origem pelo rola */
+    const nomesFin = new Set(finalizacoes);
+    const catalogoFin = techniques.filter((t) => nomesFin.has(t.nome)).map((t) => ({ nome: t.nome, de: slugDe[t.origemId] || null }));
+    const historicoFin = (lado) => rolls.flatMap((x) => (lado === 'meu' ? x.subsAplicadas : x.subsSofridas) || []).reverse();
+    const daBiblioteca = (nome) => techniques.find((y) => semAcento(y.nome) === semAcento(nomeAtual(String(nome || '').trim())))?.nome;
+    const finDoRola = (lista, rola, lado) => (lista || []).map((n) => resolverFinalizacao(nomeAtual(String(n).trim()), {
+      catalogo: catalogoFin, posicoes: posicoesDoRola(rola, lado, s2.focoPosicoes || []), historico: historicoFin(lado),
+    }));
+    const tecDoPonto = (m) => Object.fromEntries(Object.entries(m || {})
+      .filter(([k]) => PONTOS.some((p) => p.id === k))
+      .map(([k, nomes]) => [k, (nomes || []).map(daBiblioteca).filter(Boolean)])
+      .filter(([, nomes]) => nomes.length));
 
     const listaParceiros = [...partners];
     const rs = [];
     for (const r of forma.rolas === 'nunca' ? [] : d.rolas || []) {
       const rola = {
         ...novaRola(Number(r.duracao) || settings.duracaoRolaPadrao || 5, null, tipo),
-        subsAplicadas: (r.subsAplicadas || []).map(nomeAtual),
-        subsSofridas: (r.subsSofridas || []).map(nomeAtual),
         ptsMeus: r.ptsMeus || [],
         ptsDele: r.ptsDele || [],
+        tecMeus: tecDoPonto(r.tecMeus),
+        tecDele: tecDoPonto(r.tecDele),
         vantMinhas: Number(r.vantMinhas) || 0,
         vantDele: Number(r.vantDele) || 0,
       };
+      rola.subsAplicadas = finDoRola(r.subsAplicadas, rola, 'meu');
+      rola.subsSofridas = finDoRola(r.subsSofridas, rola, 'dele');
       /* na competição o adversário é só o nome, não vira parceiro */
       if (ehCompeticao(tipo)) rola.adversario = String(r.parceiro || '').trim();
       else rola.partnerId = await acharOuCriar('partners', listaParceiros, r.parceiro,
@@ -960,6 +980,7 @@ export default function Treinos() {
         onClose={() => setVozAberta(false)}
         techniques={techniques}
         finalizacoes={finalizacoes}
+        positions={positions}
         regra={{ faixa: settings.faixa, idade: idadeDe(settings.anoNascimento), liberadas: settings.tecnicasLiberadas || [] }}
         partners={partners}
         academies={academias}

@@ -7,6 +7,7 @@ import { pontosPorId } from '../db/scoring';
 import { cabecalhoIA } from '../lib/ai';
 import { MAX_SEGUNDOS, formatoDeGravacao, dicaDaTranscricao } from '../lib/voz';
 import { avaliarTecnica, FONTE_DA_REGRA } from '../lib/regras';
+import { ehPosicao, posicoesDoTema } from '../lib/posicoes';
 
 /* ============================================================
    FALAR EM VEZ DE DIGITAR
@@ -61,7 +62,7 @@ const erroDaResposta = (status, corpo) => (
 
 export default function Voz({
   aberto, onClose, onPronto,
-  techniques = [], finalizacoes = [], partners = [], academies = [], professors = [],
+  techniques = [], finalizacoes = [], partners = [], academies = [], professors = [], positions = [],
   regra = {},
 }) {
   const toast = useToast();
@@ -230,7 +231,8 @@ export default function Voz({
         body: JSON.stringify({
           acao: 'ler_treino',
           texto: falado,
-          tecnicas: techniques.map((x) => x.nome),
+          tecnicas: techniques.filter((x) => !ehPosicao(x)).map((x) => x.nome),
+          posicoes: posicoesDoTema(positions).map((p) => `${p.slug}: ${p.nome}`),
           finalizacoes,
           parceiros: partners.map((p) => p.nome),
           academias: academies.map((a) => a.nome),
@@ -240,7 +242,16 @@ export default function Voz({
       const corpo = await resposta.json().catch(() => ({}));
       if (resposta.status === 402 || resposta.status === 401) { setErro(erroDaResposta(resposta.status, corpo)); return; }
       if (!resposta.ok || !corpo?.dados) throw new Error('falhou');
-      setResumo(corpo.dados);
+      /* posição que veio como técnica ("De La Riva") vai pra posição da aula */
+      const slugDe = Object.fromEntries(positions.map((p) => [p.id, p.slug]));
+      const posicao = (nome) => techniques.find((x) => ehPosicao(x) && x.nome.toLowerCase() === String(nome || '').trim().toLowerCase());
+      const tecs = corpo.dados.tecnicas || [];
+      const viraram = tecs.map((t) => slugDe[posicao(t?.nome)?.origemId]).filter(Boolean);
+      setResumo({
+        ...corpo.dados,
+        posicoes: [...new Set([...(corpo.dados.posicoes || []), ...viraram])],
+        tecnicas: tecs.filter((t) => !posicao(t?.nome)),
+      });
     } catch {
       /* sem IA, o que você falou vai pra anotação e você completa */
       onPronto({ nota: falado }, falado);
@@ -262,6 +273,7 @@ export default function Voz({
         partners={partners}
         academies={academies}
         professors={professors}
+        positions={positions}
         regra={regra}
         onVoltar={() => setResumo(null)}
         onConfirmar={(final) => { onPronto(final, texto); onClose(); }}
@@ -369,7 +381,7 @@ export default function Voz({
    que é dele (open mat sem professor, competição com adversário
    pelo nome, drill sem rola).
    ============================================================ */
-function Conferir({ resumo, falado, partners, academies, professors, regra, onVoltar, onConfirmar, onClose }) {
+function Conferir({ resumo, falado, partners, academies, professors, positions = [], regra, onVoltar, onConfirmar, onClose }) {
   const tipoValido = TIPOS_VOZ.some((t) => t.id === resumo.tipo) ? resumo.tipo : 'gi';
   const [d, setD] = useState(() => ({
     duracao: Number(resumo.duracao) || 60,
@@ -379,6 +391,7 @@ function Conferir({ resumo, falado, partners, academies, professors, regra, onVo
     evento: resumo.evento || '',
     colocacao: resumo.colocacao || '',
     tecnicas: (resumo.tecnicas || []).filter((t) => t?.nome),
+    posicoes: Array.isArray(resumo.posicoes) ? resumo.posicoes : [],
     nota: resumo.nota || falado,
     rolas: (resumo.rolas || []).map((r) => ({ ...r })),
   }));
@@ -451,6 +464,18 @@ function Conferir({ resumo, falado, partners, academies, professors, regra, onVo
               </Select>
             </Field>
           </div>
+        )}
+        {d.posicoes.some((x) => positions.some((p) => p.slug === x)) && !competicao && (
+          <Field label={d.posicoes.length > 1 ? 'Posições da aula' : 'Posição da aula'}>
+            <div className="row wrap" style={{ gap: 6 }}>
+              {d.posicoes.map((slug) => positions.find((p) => p.slug === slug)).filter(Boolean).map((p) => (
+                <button key={p.slug} type="button" className="chip on"
+                  onClick={() => setD({ ...d, posicoes: d.posicoes.filter((x) => x !== p.slug) })}>
+                  {p.nome} <X size={11} />
+                </button>
+              ))}
+            </div>
+          </Field>
         )}
         {d.tecnicas.length > 0 && !competicao && (
           <Field label={d.tipo === 'drill' ? 'O que você drillou' : 'Técnicas da aula'}>
