@@ -69,11 +69,9 @@ export default function ResumoDoTipo({ tipo, lista, rolasPorSessao, partners, pr
     drill: [['treinos', r.treinos], ['no tatame', r.horas], ['técnicas', r.tecnicas.length], ['repetições', r.tecnicas.reduce((a, [, n]) => a + n, 0)]],
     openmat: [['rolas', r.rolas], ['parceiros', r.parceiros.length], ['de vitória', r.taxa != null ? `${r.taxa}%` : '·'], ['no tatame', r.horas]],
     privada: [['aulas', r.treinos], ['no tatame', r.horas], ['professores', r.profs.length], ['técnicas', r.tecnicas.length]],
-    competicao: [['campeonatos', r.comp.campeonatos], ['lutas', r.comp.lutas], ['vitórias', r.comp.vitorias], ['finalizações', r.fin]],
+    competicao: [[r.comp.campeonatos === 1 ? 'campeonato' : 'campeonatos', r.comp.campeonatos], [r.comp.lutas === 1 ? 'luta' : 'lutas', r.comp.lutas], [r.comp.vitorias === 1 ? 'vitória' : 'vitórias', r.comp.vitorias], [r.fin === 1 ? 'finalização' : 'finalizações', r.fin]],
   }[tipo];
 
-  /* o pódio da categoria no campeonato mais recente que tem um */
-  const ultimoComPodio = tipo === 'competicao' ? lista.find((s) => s.competicao?.podio) : null;
 
   /* o próximo campeonato, da meta: a contagem regressiva aparece aqui */
   const proximo = metasCamp.filter((g) => g.data && g.data >= hoje()).sort((a, b) => a.data.localeCompare(b.data))[0];
@@ -96,26 +94,17 @@ export default function ResumoDoTipo({ tipo, lista, rolasPorSessao, partners, pr
 
       {tipo === 'competicao' && (
         <>
-          <div className="podio" style={{ marginTop: 6 }}>
-            {[['prata', 2, 'Prata'], ['ouro', 1, 'Ouro'], ['bronze', 3, 'Bronze']].map(([id, lugar, nome]) => (
-              <div key={id} className={`podio-lugar p${lugar}`}>
-                <span className="podio-avatar">
-                  <Medal size={lugar === 1 ? 26 : 22} />
-                  <span className="podio-n">{r.medalhas[id]}</span>
-                </span>
-                <div className="podio-base">
-                  <span className="podio-nome">{nome}</span>
-                  <span className="podio-pts">{r.medalhas[id]} <small>{r.medalhas[id] === 1 ? 'vez' : 'vezes'}</small></span>
-                </div>
+          {/* as medalhas, uma vez cada. O pódio de cada campeonato (quem
+              ficou em 2º, 3º) mora dentro do treino daquele campeonato */}
+          <div className="medalhas">
+            {[['ouro', 'ouro'], ['prata', 'prata'], ['bronze', 'bronze']].map(([id, nome]) => (
+              <div key={id} className={`medalha ${id}${r.medalhas[id] ? '' : ' zero'}`}>
+                <Medal size={18} />
+                <b className="num">{r.medalhas[id]}</b>
+                <span>{nome}</span>
               </div>
             ))}
           </div>
-          {ultimoComPodio && (
-            <div>
-              <div className="eyebrow">pódio · {ultimoComPodio.competicao.evento || 'último campeonato'}</div>
-              <PodioCategoria podio={ultimoComPodio.competicao.podio} />
-            </div>
-          )}
           {proximo && (
             <div className="tipo-proximo">
               <CalendarClock size={16} />

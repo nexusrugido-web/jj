@@ -19,6 +19,7 @@ import { medir, origem as origemDe } from '../lib/medir';
 import { TEMAS_AULA } from '../db/aulas';
 import { EscolherDificuldades, MAX_DIFICULDADES } from '../components/Dificuldades';
 import { acervo, acervoAberto } from '../lib/acervo';
+import AulaQueDestrava, { exclusivaPara } from '../components/AulaQueDestrava';
 import { minhasTecnicas, meusBuracos } from '../lib/graus';
 import { recomendacoesDoAluno, chaveDaRec } from '../lib/recomendar';
 import { estiloPorId } from '../db/scoring';
@@ -102,15 +103,26 @@ export default function Estudo() {
     const blocos = [];
     const usados = new Set();
     /* o Pra você é do premium: só aula longa (com as "só assinantes"), nada de aula rápida */
-    const longas = acervo().filter((a) => a.k === 'aula');
+    /* a exclusiva do Premium não entra na lista comum: ela ganha o cartão
+       dourado da aula que destrava (AulaQueDestrava), em cada assunto */
+    const longas = acervo().filter((a) => a.k === 'aula' && a.acesso !== 'assinantes');
 
     /* Cada recomendação puxa aula do assunto dela, pelo que o
        vídeo ensina, e nenhum vídeo se repete entre os blocos. */
     /* cada bloco diz de onde veio, e se caiu na reserva por não ter
        vídeo do assunto: é o que o painel mostra como pauta de gravação */
-    const bloco = (b, pedido, lista) => blocos.push({
-      ...b, aulas: lista, faltou: lista.every((a) => a.reserva || a.generico), pedidoTexto: descreverPedido(pedido),
-    });
+    /* a exclusiva do Premium que vai direto no assunto (nunca a mesma em dois) */
+    const destravas = new Set();
+    const bloco = (b, pedido, lista) => {
+      const destrava = exclusivaPara(pedido, { faixa, vistas, excluir: [...destravas, ...lista.map((a) => a.id)] });
+      /* sem aula grátis do assunto, a exclusiva sozinha já segura o bloco:
+         é justamente o caso em que só o app tem a resposta */
+      if (!lista.length && !destrava) return;
+      if (destrava) destravas.add(destrava.id);
+      blocos.push({
+        ...b, aulas: lista, destrava, faltou: lista.every((a) => a.reserva || a.generico), pedidoTexto: descreverPedido(pedido),
+      });
+    };
 
     for (const r of recs) {
       const pedido = pedidoDaRec(r);
@@ -122,7 +134,7 @@ export default function Estudo() {
         lista: longas,
       });
       for (const a of lista) usados.add(a.id);
-      if (lista.length) bloco({ motivo: r.titulo, texto: r.texto, origem: origemDe('estudo', 'rec', chaveDaRec(r)) }, pedido, lista);
+      bloco({ motivo: r.titulo, texto: r.texto, origem: origemDe('estudo', 'rec', chaveDaRec(r)) }, pedido, lista);
     }
 
     /* o que a pessoa disse que trava. Vale desde o primeiro dia,
@@ -132,7 +144,7 @@ export default function Estudo() {
       if (!d) continue;
       const lista = aulasPara(d.pedido, { faixa, vistas, excluir: [...usados], quantidade: 3, lista: longas });
       for (const a of lista) usados.add(a.id);
-      if (lista.length) {
+      {
         bloco({
           motivo: d.nome,
           texto: 'Você marcou que isso te trava. Estas aulas vão direto nisso.',
@@ -146,7 +158,7 @@ export default function Estudo() {
       const lista = aulasPara(pedido, {
         faixa, vistas, excluir: [...usados], quantidade: 4, lista: longas,
       });
-      if (lista.length) {
+      {
         bloco({
           motivo: `Combina com o seu jogo`,
           texto: estiloDosRolas
@@ -266,7 +278,7 @@ export default function Estudo() {
         <EscolherDificuldades valor={minhas} onChange={marcarDificuldades} />
       </Sheet>
 
-      {aba === 'pravoce' && <ExclusivasDoApp vistas={vistas} onTocar={(a, tipo) => tocar(a, origemDe('estudo', tipo))} />}
+      {aba === 'pravoce' && <ExclusivasDoApp vistas={vistas} excluir={paraVoce.map((b) => b.destrava?.id).filter(Boolean)} onTocar={(a, tipo) => tocar(a, origemDe('estudo', tipo))} />}
 
       {aba === 'pravoce' && (
         paraVoce.length === 0 ? (
@@ -285,7 +297,19 @@ export default function Estudo() {
             <ListaAulas aulas={entrada} vistas={vistas} onTocar={(a) => tocar(a, origemDe('estudo', 'entrada'))} />
           </Card>
         ) : !praVoceLivre ? (
-          /* no grátis: o primeiro assunto real, borrado, e as outras abas livres */
+          /* no grátis: a aula que destrava o assunto dele, com cadeado, e o
+             primeiro assunto real borrado embaixo */
+          <>
+          {paraVoce.find((b) => b.destrava) && (
+            <div style={{ marginBottom: 14 }}>
+              <AulaQueDestrava
+                aula={paraVoce.find((b) => b.destrava).destrava}
+                motivo={paraVoce.find((b) => b.destrava).motivo.toLowerCase()}
+                livre={false}
+                onAbrir={(a) => tocar(a, origemDe('estudo', 'destrava'))}
+              />
+            </div>
+          )}
           <Vitrine
             recurso="recomendacoes"
             fundo={(
@@ -304,6 +328,7 @@ export default function Estudo() {
             ]}
             onAssinar={() => pedirOferta('aulasIlimitadas')}
           />
+          </>
         ) : (
           <div className="col" style={{ gap: 16 }}>
             <p className="micro muted" style={{ lineHeight: 1.6 }}>
@@ -318,7 +343,12 @@ export default function Estudo() {
                   </div>
                 </div>
                 <p className="tiny muted" style={{ marginBottom: 14, lineHeight: 1.65 }}>{b.texto}</p>
-                <ListaAulas aulas={b.aulas} vistas={vistas} onTocar={(a) => tocar(a, b.origem)} paraVoce />
+                {b.aulas.length > 0 && <ListaAulas aulas={b.aulas} vistas={vistas} onTocar={(a) => tocar(a, b.origem)} paraVoce />}
+                {b.destrava && (
+                  <div style={{ marginTop: 12 }}>
+                    <AulaQueDestrava aula={b.destrava} motivo={b.motivo.toLowerCase()} livre onAbrir={(a) => tocar(a, origemDe('estudo', 'destrava'))} />
+                  </div>
+                )}
               </Card>
             ))}
 
@@ -567,9 +597,10 @@ function ListaAulas({ aulas, vistas, onTocar, rodape = null, paraVoce = false })
 /* ---------- só no app: as exclusivas do Premium e as particulares ----------
    Ficam no topo do Pra você pra todo mundo. Quem é grátis vê o que
    tem do outro lado (o toque abre o convite); quem assina, assiste. */
-function ExclusivasDoApp({ vistas, onTocar }) {
+function ExclusivasDoApp({ vistas, onTocar, excluir = [] }) {
   const todas = acervo();
-  const exclusivas = todas.filter((a) => a.acesso === 'assinantes').slice(0, 6);
+  /* a que já virou a aula que destrava um assunto não repete aqui */
+  const exclusivas = todas.filter((a) => a.acesso === 'assinantes' && !excluir.includes(a.id)).slice(0, 6);
   const particulares = todas.filter((a) => a.acesso === 'avulso').slice(0, 6);
   if (!exclusivas.length && !particulares.length) return null;
   return (

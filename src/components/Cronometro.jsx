@@ -11,6 +11,13 @@ import { Card, Btn, Sheet } from './UI';
    e o celular fica longe. Quando o round acaba, pergunta se
    você quer registrar aquele rola ali mesmo, enquanto está
    fresco na cabeça.
+
+   A conta é pelo relógio, não por "tique": guarda a hora em que a
+   fase acaba e calcula quanto falta. Com o app no fundo o celular
+   congela os tiques, e a contagem antiga atrasava e travava; agora,
+   ao voltar, o número está certo (e as fases que passaram no fundo
+   já passaram). Com o app no fundo e os avisos ligados, o fim do
+   round chega como aviso do celular.
    ============================================================ */
 
 const PRESETS = [
@@ -58,6 +65,16 @@ function vibrar(padrao) {
   try { navigator.vibrate?.(padrao); } catch { /* sem vibração */ }
 }
 
+function avisarNoFundo(titulo, corpo) {
+  try {
+    if (!document.hidden || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    navigator.serviceWorker?.ready?.then((reg) => reg.showNotification(titulo, {
+      body: corpo, tag: 'cronometro', renotify: true, icon: '/icon-192.png', badge: '/badge-96.png',
+      vibrate: [200, 100, 200, 100, 400], data: { navigate: '/?go=treinos', soFocar: true },
+    })).catch(() => {});
+  } catch { /* sem aviso */ }
+}
+
 export default function Cronometro({ aberto, onClose, onRegistrar }) {
   const [preset, setPreset] = useState(PRESETS[0]);
   const [fase, setFase] = useState('parado');   // parado | rola | descanso
@@ -65,62 +82,110 @@ export default function Cronometro({ aberto, onClose, onRegistrar }) {
   const [round, setRound] = useState(1);
   const [som, setSom] = useState(true);
   const [perguntar, setPerguntar] = useState(false);
+  const [pausado, setPausado] = useState(false);
+  const [fechado, setFechado] = useState(0);      // o round que acabou de fechar
 
   const tick = useRef(null);
   const acordado = useRef(null);
+  const fimEm = useRef(0);        // a hora (ms) em que a fase atual acaba
+  const sobrou = useRef(0);       // o que faltava quando pausou (ms)
+  const avisou = useRef(0);       // o último apito de "falta pouco"
+  const noFundo = useRef(null);   // o aviso do celular marcado pro fim da fase
+  const rodando = fase !== 'parado' && !pausado;
 
-  /* mantém a tela ligada durante o round */
+  /* mantém a tela ligada durante o round, e religa ao voltar pro app
+     (o celular solta a trava sempre que o app vai pro fundo) */
   useEffect(() => {
-    if (fase === 'parado') {
-      acordado.current?.release?.().catch(() => {});
-      acordado.current = null;
-      return;
-    }
-    navigator.wakeLock?.request?.('screen')
-      .then((s) => { acordado.current = s; })
-      .catch(() => {});
-    return () => { acordado.current?.release?.().catch(() => {}); };
-  }, [fase]);
+    const soltar = () => { acordado.current?.release?.().catch(() => {}); acordado.current = null; };
+    if (!rodando) { soltar(); return undefined; }
+    const pedir = () => {
+      if (document.hidden) return;
+      navigator.wakeLock?.request?.('screen').then((s) => { acordado.current = s; }).catch(() => {});
+    };
+    pedir();
+    document.addEventListener('visibilitychange', pedir);
+    return () => { document.removeEventListener('visibilitychange', pedir); soltar(); };
+  }, [rodando]);
 
+  /* a conta: quanto falta pra hora marcada. Fase que acabou com o app
+     no fundo já passa direto pra próxima, quantas vezes precisar */
   useEffect(() => {
-    if (fase === 'parado') { clearInterval(tick.current); return; }
+    if (!rodando) { clearInterval(tick.current); clearTimeout(noFundo.current); return undefined; }
+    let faseAgora = fase;
+    let roundAgora = round;
 
-    tick.current = setInterval(() => {
-      setResta((r) => {
-        if (r <= 1) {
-          if (fase === 'rola') {
-            if (som) apito('fim');
-            vibrar([200, 100, 200, 100, 400]);
-            setPerguntar(true);
-            setFase('descanso');
-            return preset.descanso * 60;
-          }
-          if (som) apito('inicio');
-          vibrar([120, 80, 200]);
-          setRound((n) => n + 1);
-          setFase('rola');
-          return preset.rola * 60;
+    const marcarAviso = () => {
+      clearTimeout(noFundo.current);
+      const falta = fimEm.current - Date.now();
+      noFundo.current = setTimeout(() => avisarNoFundo(
+        faseAgora === 'rola' ? '⏱️ Acabou o round' : '🥋 Bora pro próximo round',
+        faseAgora === 'rola' ? 'Hora do descanso. Toca pra anotar o rola.' : 'O descanso acabou.',
+      ), Math.max(0, falta));
+    };
+
+    const conferir = () => {
+      const agora = Date.now();
+      let virou = false;
+      while (agora >= fimEm.current) {
+        virou = true;
+        if (faseAgora === 'rola') {
+          setFechado(roundAgora);
+          setPerguntar(true);
+          faseAgora = 'descanso';
+          fimEm.current += preset.descanso * 60000;
+        } else {
+          roundAgora += 1;
+          faseAgora = 'rola';
+          fimEm.current += preset.rola * 60000;
         }
-        /* um minuto e dez segundos pro fim, o mesmo apito: no tatame
-           alguém grita "1 minuto" e todo mundo acelera o que falta */
-        if ((r === 61 || r === 11) && fase === 'rola' && som) apito('aviso');
-        return r - 1;
-      });
-    }, 1000);
+      }
+      if (virou) {
+        if (som) apito(faseAgora === 'descanso' ? 'fim' : 'inicio');
+        vibrar(faseAgora === 'descanso' ? [200, 100, 200, 100, 400] : [120, 80, 200]);
+        setFase(faseAgora);
+        setRound(roundAgora);
+        marcarAviso();
+      }
+      const r = Math.max(0, Math.ceil((fimEm.current - agora) / 1000));
+      /* um minuto e dez segundos pro fim, o mesmo apito: no tatame
+         alguém grita "1 minuto" e todo mundo acelera o que falta */
+      if ((r === 61 || r === 11) && faseAgora === 'rola' && som && avisou.current !== r) { avisou.current = r; apito('aviso'); }
+      setResta(r);
+    };
 
-    return () => clearInterval(tick.current);
-  }, [fase, preset, som]);
+    marcarAviso();
+    conferir();
+    tick.current = setInterval(conferir, 250);
+    document.addEventListener('visibilitychange', conferir);
+    return () => { clearInterval(tick.current); clearTimeout(noFundo.current); document.removeEventListener('visibilitychange', conferir); };
+  }, [rodando, preset, som]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function comecar() {
     if (som) apito('inicio');
     vibrar([120, 80, 200]);
+    fimEm.current = Date.now() + preset.rola * 60000;
+    avisou.current = 0;
+    setRound(1);
+    setPausado(false);
     setFase('rola');
     setResta(preset.rola * 60);
   }
 
+  function pausar() {
+    sobrou.current = Math.max(0, fimEm.current - Date.now());
+    setPausado(true);
+  }
+
+  function continuar() {
+    fimEm.current = Date.now() + sobrou.current;
+    setPausado(false);
+  }
+
   function zerar() {
     clearInterval(tick.current);
+    clearTimeout(noFundo.current);
     setFase('parado');
+    setPausado(false);
     setRound(1);
     setResta(preset.rola * 60);
     setPerguntar(false);
@@ -150,7 +215,7 @@ export default function Cronometro({ aberto, onClose, onRegistrar }) {
         <div className="crono-centro">
           <div className={`crono-num num ${acabando ? 'piscando' : ''}`}>{mm}:{ss}</div>
           <div className="crono-fase">
-            {fase === 'parado' ? 'pronto' : fase === 'rola' ? `round ${round}` : 'descanso'}
+            {fase === 'parado' ? 'pronto' : pausado ? 'pausado' : fase === 'rola' ? `round ${round}` : 'descanso'}
           </div>
         </div>
       </div>
@@ -188,7 +253,9 @@ export default function Cronometro({ aberto, onClose, onRegistrar }) {
           </Btn>
         ) : (
           <>
-            <Btn icon={Pause} onClick={() => setFase('parado')} style={{ minHeight: 48 }}>Pausar</Btn>
+            {pausado
+              ? <Btn variant="primary" icon={Play} onClick={continuar} style={{ minHeight: 48 }}>Continuar</Btn>
+              : <Btn icon={Pause} onClick={pausar} style={{ minHeight: 48 }}>Pausar</Btn>}
             <Btn variant="ghost" icon={RotateCcw} onClick={zerar} style={{ minHeight: 48 }}>Zerar</Btn>
           </>
         )}
@@ -204,7 +271,7 @@ export default function Cronometro({ aberto, onClose, onRegistrar }) {
 
       {fase !== 'parado' && (
         <p className="micro muted center">
-          A tela fica acesa enquanto o cronômetro roda. Apita dez segundos antes de acabar e de novo no fim.
+          A tela fica acesa enquanto o cronômetro roda. Apita dez segundos antes de acabar e de novo no fim. Se sair do app, a conta continua certa, e com os avisos ligados o fim do round chega no celular.
         </p>
       )}
 
@@ -214,7 +281,7 @@ export default function Cronometro({ aberto, onClose, onRegistrar }) {
           <div className="row" style={{ gap: 11, alignItems: 'flex-start' }}>
             <span className="stat-ico"><Check size={16} /></span>
             <div style={{ flex: 1 }}>
-              <div className="tiny" style={{ fontWeight: 600 }}>Round {round - 1} fechado</div>
+              <div className="tiny" style={{ fontWeight: 600 }}>Round {fechado} fechado</div>
               <p className="micro muted" style={{ marginTop: 4, lineHeight: 1.6 }}>
                 Quer anotar esse rola agora, enquanto está fresco? Leva uns quinze segundos.
               </p>

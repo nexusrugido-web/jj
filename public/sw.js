@@ -5,7 +5,7 @@
    - fontes externas: cache-first
    Os DADOS ficam no IndexedDB, entao o app inteiro funciona sem internet. */
 
-const VERSION = 'neurojitsu-v12-17';
+const VERSION = 'neurojitsu-v12-18';
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
 
@@ -414,7 +414,8 @@ self.addEventListener('notificationclick', (event) => {
       for (const aba of abas) {
         if (new URL(aba.url).origin === self.location.origin) {
           await aba.focus();
-          if ('navigate' in aba) await aba.navigate(destino).catch(() => {});
+          /* o aviso do cronômetro só traz o app de volta: navegar recarregaria e perderia a contagem */
+          if ('navigate' in aba && !dados.soFocar) await aba.navigate(destino).catch(() => {});
           return;
         }
       }

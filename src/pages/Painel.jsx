@@ -38,10 +38,12 @@ import { Sheet, useToast, Diamante } from '../components/UI';
 import { podeVer, pedirOferta } from '../lib/plano';
 import { Convite, Vitrine } from '../components/Plano';
 import { supabase } from '../lib/supabase';
+import AulaQueDestrava, { exclusivaPara } from '../components/AulaQueDestrava';
+import { pedidoDaRec } from '../lib/necessidades';
 
 export default function Painel() {
   const [ajudaTec, setAjudaTec] = useState(false);
-  const { sessions, rolls, positions, categories, settings, salvarSettings, irPara, goals, techniques, partners, ligada, sessao, acesso } = useApp();
+  const { sessions, rolls, positions, categories, settings, salvarSettings, irPara, goals, techniques, partners, ligada, sessao, acesso, acervoVer } = useApp();
   const toast = useToast();
   const [analise, setAnalise] = useState(null);
   const [carregandoIa, setCarregandoIa] = useState(false);
@@ -86,6 +88,10 @@ export default function Painel() {
   const esteira = useMemo(() => minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa, gradings, settings.graus || 0), [rolls, partners, sessions, techniques, settings.faixa, gradings, settings.graus]);
   const recap = useMemo(() => resumoSemana(sessions, rolls, esteira, { faixa: settings.faixa }), [sessions, rolls, esteira, settings.faixa]);
   const buracos = useMemo(() => meusBuracos(rolls, partners, sessions, settings.faixa), [rolls, partners, sessions, settings.faixa]);
+  /* a exclusiva do Premium que ensina a sair do que mais te pega */
+  const destravaDoBuraco = useMemo(() => (buracos[0] && (buracos[0].vezes || 0) >= 2
+    ? exclusivaPara(pedidoDaRec({ intencao: 'corrigir', alvo: buracos[0].nome }), { faixa: settings.faixa })
+    : null), [buracos, settings.faixa, acervoVer]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* o que só o app sabe calcular e os avisos precisam: a técnica perto
      do grau ("falta pouco"), quantas subiram na semana que fechou (o
@@ -322,6 +328,17 @@ export default function Painel() {
       )}
 
       <Destaques resumo={r} onVerTudo={() => irPara('analise')} />
+      {destravaDoBuraco && (
+        <div style={{ marginBottom: 14 }}>
+          <AulaQueDestrava
+            aula={destravaDoBuraco}
+            motivo={buracos[0].nome}
+            texto={`${buracos[0].nome} te pegou ${buracos[0].vezes} vezes. Essa aula ensina a sair, e não está no YouTube nem em lugar nenhum além do app.`}
+            livre={podeVer(acesso, 'aulasIlimitadas')}
+            onAbrir={() => (podeVer(acesso, 'aulasIlimitadas') ? irPara('estudo') : pedirOferta('aulasIlimitadas'))}
+          />
+        </div>
+      )}
 
       <PrimeirosPassos sessions={sessions} rolls={rolls} tecnicas={esteira} irPara={irPara} />
       <AvisoDeVolta sessions={sessions} irPara={irPara} />
