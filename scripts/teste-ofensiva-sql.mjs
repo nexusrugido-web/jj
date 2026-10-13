@@ -288,6 +288,41 @@ for (const linha of (await pg.query("select titulo, corpo from public.fila_de_no
   assert.ok([...linha.titulo].length <= 30 && [...linha.corpo].length <= 75, `aviso do dia longo: ${linha.titulo}`);
 }
 
+// 48: o aviso do dia fala da evolução, com os fatos que o app mandou
+const sql48 = (await fs.readFile(new URL('../supabase/48-avisos-de-evolucao.sql', import.meta.url), 'utf8')).replaceAll('now()', 'public.agora()');
+await pg.exec(sql48);
+await pg.exec(sql48); // reexecução segura
+await pg.query('delete from notificacao_envio');
+av = await filaPara(13, '2026-09-23 21:10-03');
+assert.deepEqual(av.map((x) => [x.tipo, x.titulo, x.caminho]), [['dia:2', '🎯 Meio da semana', '/?go=metas']], 'sem fato nenhum: a frase da quarta');
+assert.ok(!/liga/i.test(av[0].corpo), 'o aviso do dia não fala de liga');
+await pg.query('insert into registros(user_id,tabela,dados) values($1,$2,$3)', [uid(13), 'settings', JSON.stringify({ avisosDoApp: {
+  perto: { nome: 'Armlock da montada', usos: 1, grau: 2 },
+  pega: { nome: 'Mata-leão', vezes: 4 },
+  unica: { nome: 'Guarda X', tecnica: 'Raspagem de X-guard para trás' },
+} })]);
+av = await filaPara(13, '2026-09-23 21:10-03'); // quarta: 2 % 3 fatos = o terceiro
+assert.deepEqual(av.map((x) => [x.tipo, x.titulo, x.caminho]), [['dia:unica', '🧩 Uma saída só é previsível', '/?go=meujogo']]);
+assert.equal(av[0].corpo, 'Da posição Guarda X só sai uma. Quem te leu já tá esperando.');
+av = await filaPara(13, '2026-09-24 21:10-03'); // quinta: 3 % 3 = o primeiro
+assert.deepEqual(av.map((x) => x.tipo), ['dia:perto']);
+assert.equal(av[0].corpo, 'Mais 1 uso de Armlock da montada e ela sobe. Bora caçar hoje?');
+av = await filaPara(13, '2026-09-25 21:10-03'); // sexta: o segundo
+assert.equal(av[0].corpo, 'Mata-leão te pegou 4 vezes. Bora ver a saída?');
+/* nomes compridos ainda cabem no aviso fechado */
+const longo = 'Raspagem de pêndulo invertida com pegada dupla na manga';
+for (const k of ['perto', 'pega', 'unica', 'forte', 'tema']) {
+  const t = (await pg.query('select public.aviso_do_dia($1, $2) as a', [k, JSON.stringify({ [k]: { nome: longo, usos: 2, vezes: 12, tecnica: longo } })])).rows[0].a;
+  assert.ok([...t.titulo].length <= 30 && [...t.corpo].length <= 75, `aviso ${k} longo: ${t.corpo}`);
+}
+for (let d = 0; d < 7; d++) {
+  const t = (await pg.query('select public.aviso_do_dia($1, null) as a', [String(d)])).rows[0].a;
+  assert.ok(t.titulo && [...t.titulo].length <= 30 && [...t.corpo].length <= 75 && !/liga/i.test(t.corpo), `frase do dia ${d}`);
+}
+// o "a liga fecha hoje" de domingo de manhã saiu
+await pg.query('delete from notificacao_envio');
+assert.deepEqual((await filaPara(7, '2026-09-27 10:10-03')).map((x) => x.tipo).filter((x) => x === 'liga'), [], 'domingo de manhã não tem mais aviso de liga');
+
 // O registro excluído deixa de contar sem depender de abrir o aplicativo.
 await pg.exec(`set test.uid='${user}'; update registros set deleted_at=now();`);
 assert.equal((await pg.query('select public.minha_ofensiva_semanal() as o')).rows[0].o.semanas,0);

@@ -27,7 +27,7 @@ import { semanaDe } from '../lib/xp';
 import useOfensivaSemanal from '../lib/useOfensivaSemanal';
 import { situacao, guiaDeEstudo } from '../lib/lesao';
 import { analisarJogo } from '../lib/game';
-import { treinoDeHoje } from '../lib/treinoDeHoje';
+import { treinoDeHoje, posicaoDeHoje } from '../lib/treinoDeHoje';
 import TreinoDeHoje from '../components/TreinoDeHoje';
 import RelatorioDoMes from '../components/RelatorioDoMes';
 import { Ponteira } from '../components/Ponteira';
@@ -88,17 +88,29 @@ export default function Painel() {
   const buracos = useMemo(() => meusBuracos(rolls, partners, sessions, settings.faixa), [rolls, partners, sessions, settings.faixa]);
 
   /* o que só o app sabe calcular e os avisos precisam: a técnica perto
-     do grau ("falta pouco") e quantas subiram na semana que fechou (o
-     resumo de segunda). Vai junto com as configurações, só quando muda. */
+     do grau ("falta pouco"), quantas subiram na semana que fechou (o
+     resumo de segunda) e os fatos da evolução que o aviso do dia usa:
+     o golpe que mais te pega, a posição com uma saída só, a técnica que
+     mais entra e a aula da semana que não chegou no rola. Vai junto com
+     as configurações, só quando muda. */
   useEffect(() => {
     const passada = addDias(semanaDe(), -7);
+    const rep = repertorioPorPosicao({ rolls, sessions, techniques, categories, positions });
+    const pega = buracos.find((b) => (b.vezes || 0) >= 2);
+    const unica = rep.find((p) => p.tecnicas.length === 1 && p.usos >= 3);
+    const forte = jogoPrincipal(esteira, 1)[0];
+    const tema = posicaoDeHoje({ sessions, repertorio: rep, positions });
     const novo = {
       perto: pertoDoGrau(esteira),
       semana: passada,
       subiram: resumoSemana(sessions, rolls, esteira, { semana: passada, faixa: settings.faixa }).subiram.length,
+      pega: pega ? { nome: pega.nome, vezes: pega.vezes } : null,
+      unica: unica ? { nome: unica.nome, tecnica: unica.tecnicas[0].nome } : null,
+      forte: forte ? { nome: forte.nome } : null,
+      tema: tema?.texto?.startsWith('Leva') ? { nome: tema.forte } : null,
     };
     if (JSON.stringify(novo) !== JSON.stringify(settings.avisosDoApp || null)) salvarSettings({ avisosDoApp: novo });
-  }, [esteira, sessions, rolls, settings.faixa]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [esteira, sessions, rolls, settings.faixa, buracos, techniques, categories, positions]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const metasAtivas = useMemo(() => {
     const dados = { sessions, rolls, tecnicas: esteira, buracos, aulas: vistasAulas, quiz: respostasQuiz };

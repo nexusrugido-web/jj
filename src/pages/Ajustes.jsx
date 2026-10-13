@@ -662,9 +662,9 @@ function Notificacoes({ sessao }) {
   return (
     <>
       <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-        Um aviso por dia, nunca entre 22h e 8h: a ofensiva no domingo, a liga, o treino que não entrou, a
-        técnica perto do grau, o campeonato chegando. Nos dias sem nada disso, às 21h chega uma ideia rápida
-        pro seu jogo (uma aula, a sua meta, as suas posições).
+        Um aviso por dia, nunca entre 22h e 8h: a ofensiva no domingo, o treino que não entrou, a técnica
+        perto do grau, o campeonato chegando. Nos dias sem nada disso, às 21h chega um recado sobre o seu
+        jogo: o golpe que mais te pega, a posição em que você só tem uma saída, a aula pra testar no rola.
       </p>
 
       {!sessao ? (
