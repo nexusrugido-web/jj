@@ -213,19 +213,21 @@ export default function Treinos() {
     return techniques.filter((t) => ids.has(t.categoriaId)).map((t) => t.nome).sort();
   }, [techniques, categories]);
 
-  const recentesPorPonto = useMemo(() => {
-    const out = {};
+  /* as técnicas de cada ponto, da mais usada pra menos: as suas
+     (tecMeus), as dele (tecDele) e as duas juntas pra busca */
+  const { recentesPorPonto, maisNoPonto } = useMemo(() => {
+    const conta = { tecMeus: {}, tecDele: {}, juntas: {} };
+    const somar = (m, ponto, n) => { m[ponto] = m[ponto] || new Map(); m[ponto].set(n, (m[ponto].get(n) || 0) + 1); };
     for (const r of rolls) {
-      for (const [ponto, nomes] of Object.entries(r.tecMeus || {})) {
-        out[ponto] = out[ponto] || [];
-        for (const n of nomes) if (!out[ponto].includes(n)) out[ponto].push(n);
-      }
-      for (const [ponto, nomes] of Object.entries(r.tecDele || {})) {
-        out[ponto] = out[ponto] || [];
-        for (const n of nomes) if (!out[ponto].includes(n)) out[ponto].push(n);
+      for (const lado of ['tecMeus', 'tecDele']) {
+        for (const [ponto, nomes] of Object.entries(r[lado] || {})) {
+          for (const n of nomes || []) { somar(conta[lado], ponto, n); somar(conta.juntas, ponto, n); }
+        }
       }
     }
-    return out;
+    const ordenar = (m) => Object.fromEntries(Object.entries(m)
+      .map(([ponto, c]) => [ponto, [...c.entries()].sort((a, b) => b[1] - a[1]).map(([n]) => n)]));
+    return { recentesPorPonto: ordenar(conta.juntas), maisNoPonto: { tecMeus: ordenar(conta.tecMeus), tecDele: ordenar(conta.tecDele) } };
   }, [rolls]);
 
   const recentesFoco = useMemo(() => {
@@ -921,7 +923,7 @@ export default function Treinos() {
             partners={partners} positions={positions} sessions={sessions}
             techniques={techniques} categories={categories}
             finalizacoes={finalizacoes} maisUsadas={maisUsadas}
-            recentesPorPonto={recentesPorPonto} recentesFoco={recentesFoco}
+            recentesPorPonto={recentesPorPonto} maisNoPonto={maisNoPonto} recentesFoco={recentesFoco}
             faixa={settings.faixa}
             academias={academias} professores={professores}
             duracaoPadrao={settings.duracaoRolaPadrao || 5}
@@ -1351,7 +1353,7 @@ function BlocoCompeticao({ s, setS, onAbrirRegras }) {
   );
 }
 
-function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions = [], techniques, categories, finalizacoes, maisUsadas, recentesPorPonto, recentesFoco, faixa, academias, professores, duracaoPadrao, padraoDe, onSalvarPadrao, idade = null, liberadas = [], onLiberar, tela = 'hub', setTela }) {
+function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions = [], techniques, categories, finalizacoes, maisUsadas, recentesPorPonto, maisNoPonto = { tecMeus: {}, tecDele: {} }, recentesFoco, faixa, academias, professores, duracaoPadrao, padraoDe, onSalvarPadrao, idade = null, liberadas = [], onLiberar, tela = 'hub', setTela }) {
   const padrao = padraoDe(s.tipo);
   /* A REGRA DA TÉCNICA: quando a regra não permite (faixa, idade, Gi ou
      No-Gi), o app avisa e pergunta. Nunca proíbe: o professor pode
@@ -1480,6 +1482,8 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
                       catalogo={PONTOS} tone="jade"
                       nomes={r.tecMeus || {}}
                       onNomear={(p, vaga) => setSeletor({ tipo: 'ponto', rola: i, lado: 'tecMeus', ponto: p, vaga })}
+                      rapidas={(id) => maisNoPonto.tecMeus[id] || []}
+                      onRapida={(p, nome) => nomearRapido(i, 'tecMeus', p, nome)}
                     />
                     <div className="row" style={{ gap: 8, marginTop: 11, alignItems: 'center' }}>
                       <span className="micro muted" style={{ flex: 1 }}>Vantagens, chegou perto, não segurou 3s</span>
@@ -1498,6 +1502,8 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
                       catalogo={PONTOS} tone="blood"
                       nomes={r.tecDele || {}}
                       onNomear={(p, vaga) => setSeletor({ tipo: 'ponto', rola: i, lado: 'tecDele', ponto: p, vaga })}
+                      rapidas={(id) => maisNoPonto.tecDele[id] || []}
+                      onRapida={(p, nome) => nomearRapido(i, 'tecDele', p, nome)}
                     />
                     <div className="row" style={{ gap: 8, marginTop: 11, alignItems: 'center' }}>
                       <span className="micro muted" style={{ flex: 1 }}>Vantagens dele</span>
@@ -1518,7 +1524,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
                         if (!nova) { setRola(i, { subsAplicadas: v }); return; }
                         checarTecnica(nova, () => setRola(i, { subsAplicadas: v }));
                       }}
-                      sugestoes={finalizacoes} rapidas={maisUsadas.apliquei}
+                      sugestoes={[...maisUsadas.apliquei, ...finalizacoes.filter((n) => !maisUsadas.apliquei.includes(n))]} rapidas={maisUsadas.apliquei}
                       golpes={golpesPara(r, 'meu')} variacoesDe={variacoesDe}
                       tone="jade" placeholder="Qual finalização?"
                     />
@@ -1533,7 +1539,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
                     <SubsInput
                       valor={r.subsSofridas || []}
                       onChange={(v) => setRola(i, { subsSofridas: v })}
-                      sugestoes={finalizacoes} rapidas={maisUsadas.sofri}
+                      sugestoes={[...maisUsadas.sofri, ...finalizacoes.filter((n) => !maisUsadas.sofri.includes(n))]} rapidas={maisUsadas.sofri}
                       golpes={golpesPara(r, 'dele')} variacoesDe={variacoesDe}
                       tone="blood" placeholder="Qual finalização?"
                     />
@@ -1565,6 +1571,20 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
   /* tirou um ponto: a técnica da última vez sai junto */
   const aparar = (tecs, pts) => Object.fromEntries(Object.entries(tecs || {})
     .map(([k, nomes]) => [k, (nomes || []).slice(0, pts.filter((p) => p === k).length)]));
+
+  /* atalho do ponto: a técnica que você mais usa nesse ponto entra
+     direto na próxima vaga, sem abrir a busca */
+  const nomearRapido = (i, lado, ponto, nome) => {
+    const r = rolas[i];
+    const mapa = { ...(r[lado] || {}) };
+    mapa[ponto.id] = [...(mapa[ponto.id] || []), nome];
+    const aplicar = () => setRola(i, { [lado]: mapa });
+    if (lado !== 'tecMeus') aplicar(); else checarTecnica(nome, aplicar);
+  };
+  /* as técnicas que você mais marca nas aulas, prontas pra tocar */
+  const maisTreinadas = useMemo(() => recentesFoco
+    .filter((n) => !ehPosicao({ nome: n }) && !(s.focoTecnicas || []).some((f) => f.nome === n))
+    .slice(0, 8), [recentesFoco, s.focoTecnicas]);
 
   /* técnica da aula: toca uma vez marca, toca de novo tira */
   function alternarFoco(tec) {
@@ -1808,6 +1828,16 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
       </Field>
 
       <Field label={forma.tecnicas} hint="Escolha uma técnica e marque como foi na aula. O registro aparece no seu histórico; dificuldades também orientam o que revisar em Estudo.">
+        {maisTreinadas.length > 0 && (
+          <div className="col" style={{ gap: 6, marginBottom: 8 }}>
+            <span className="micro muted">As que você mais treina, é só tocar</span>
+            <div className="chips-scroll">
+              {maisTreinadas.map((n) => (
+                <button key={n} type="button" className="chip" onClick={() => alternarFoco(techniques.find((t) => t.nome === n) || { id: null, nome: n })}>+ {n}</button>
+              ))}
+            </div>
+          </div>
+        )}
         <ListaFoco
           itens={s.focoTecnicas || []}
           onChange={(v) => set('focoTecnicas', v)}

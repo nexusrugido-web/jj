@@ -421,7 +421,9 @@ export function SubsInput({ valor = [], onChange, sugestoes = [], rapidas = [], 
 
 /* ---------------- Contador de pontos IBJJF ----------------
    Toca pra marcar, toca no + pra somar. O total sai sozinho. */
-export function PontosInput({ valor = [], onChange, catalogo = [], tone = 'jade', nomes = {}, onNomear }) {
+/* rapidas(id): as técnicas que a pessoa mais usa naquele ponto; aparecem
+   embaixo da vaga vazia e entram com 1 toque (onRapida) */
+export function PontosInput({ valor = [], onChange, catalogo = [], tone = 'jade', nomes = {}, onNomear, rapidas = null, onRapida = null }) {
   const conta = useMemo(() => {
     const m = {};
     for (const id of valor) m[id] = (m[id] || 0) + 1;
@@ -466,6 +468,13 @@ export function PontosInput({ valor = [], onChange, catalogo = [], tone = 'jade'
                       : <span className="muted">qual foi? <span style={{ opacity: .6 }}>(opcional)</span></span>}
                   </button>
                 ))}
+                {onRapida && marcadas.length < n && (rapidas?.(p.id) || []).length > 0 && (
+                  <div className="pts-rapidas">
+                    {rapidas(p.id).slice(0, 3).map((nome) => (
+                      <button key={nome} type="button" className="chip" onClick={() => onRapida(p, nome)}>+ {nome}</button>
+                    ))}
+                  </div>
+                )}
               </>
             )}
           </div>
