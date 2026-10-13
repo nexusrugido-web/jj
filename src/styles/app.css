@@ -3792,3 +3792,31 @@ body::after {
 /* ---------- raio-x do parceiro ---------- */
 .raiox-plano { padding: 12px 14px; border-radius: 12px; font-size: 14px; line-height: 1.55; background: color-mix(in srgb, var(--accent) 10%, var(--void)); border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--seam)); }
 .raiox-plano b { color: var(--chalk); }
+
+/* ---------- o tipo da aula no Estudo ----------
+   dourado: Premium, só no app. Roxo: particular, vendida à parte.
+   Verde: a grátis que o app escolheu pro seu jogo. */
+:root { --ouro: #e9b949; --ouro-soft: #ffd987; --particular: #a07cff; }
+.aula-card.premium { border-color: color-mix(in srgb, var(--ouro) 55%, var(--seam)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--ouro) 18%, transparent), 0 6px 22px -14px var(--ouro); }
+.aula-card.particular { border-color: color-mix(in srgb, var(--particular) 55%, var(--seam)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--particular) 18%, transparent); }
+.aula-card.pravoce { border-color: color-mix(in srgb, var(--jade) 40%, var(--seam)); }
+.aula-selo {
+  position: absolute; right: 5px; top: 5px;
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 7px; border-radius: 99px;
+  font-size: 9.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+  background: rgba(0,0,0,.78); backdrop-filter: blur(3px);
+}
+.aula-selo.premium { color: var(--ouro-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ouro) 60%, transparent); }
+.aula-selo.particular { color: #cdb8ff; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--particular) 60%, transparent); }
+.aula-selo.pravoce { color: var(--jade); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--jade) 50%, transparent); }
+.capa-premium {
+  display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;
+  color: var(--ouro-soft);
+  background: radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--ouro) 35%, transparent), transparent 60%), linear-gradient(135deg, #1d160a, #0b0a08);
+}
+.card.faixa-premium { border-color: color-mix(in srgb, var(--ouro) 35%, var(--seam)); background: linear-gradient(180deg, color-mix(in srgb, var(--ouro) 7%, var(--card, var(--void))), var(--card, var(--void))); }
+.card.faixa-premium .eyebrow { color: var(--ouro-soft); }
+.card.faixa-particular { border-color: color-mix(in srgb, var(--particular) 35%, var(--seam)); }
+.card.faixa-particular .eyebrow { color: #cdb8ff; }
+.capa-particular { color: #cdb8ff; background: radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--particular) 35%, transparent), transparent 60%), linear-gradient(135deg, #150f24, #0a0910); }

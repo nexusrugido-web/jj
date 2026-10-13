@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Play } from 'lucide-react';
-import { capa, SERVIDORES_CAPA } from '../lib/aulas';
+import { Play, Crown, Star } from 'lucide-react';
+import { capa, SERVIDORES_CAPA, chavePaga } from '../lib/aulas';
 
 /* ============================================================
    MINIATURA
@@ -15,12 +15,14 @@ const ESCADA = ['maxres', 'sd', 'hq', 'mq', ''];
 
 /* propria: a miniatura que o administrador cadastrou pro vídeo.
    Ela vem primeiro; se não carregar, o app volta pra do YouTube. */
-export default function Capa({ id, propria = null, alt = '', tamanho = 'hq', className = '', children }) {
+export default function Capa({ id, propria = null, alt = '', tamanho = 'hq', className = '', children, particular = false }) {
   const inicio = Math.max(0, ESCADA.indexOf(tamanho));
   const [passo, setPasso] = useState(inicio);
   const [servidor, setServidor] = useState(0);
   const [morreu, setMorreu] = useState(false);
   const [usarPropria, setUsarPropria] = useState(!!propria);
+  /* aula paga sem capa própria: a arte do Premium, sem buscar no YouTube */
+  const paga = chavePaga(id);
 
   return (
     <div className={`capa ${className}`}>
@@ -33,6 +35,10 @@ export default function Capa({ id, propria = null, alt = '', tamanho = 'hq', cla
           referrerPolicy="no-referrer"
           onError={() => setUsarPropria(false)}
         />
+      ) : paga ? (
+        particular
+          ? <div className="capa-vazia capa-premium capa-particular"><Star size={22} /></div>
+          : <div className="capa-vazia capa-premium"><Crown size={22} /></div>
       ) : !morreu ? (
         <img
           src={capa(id, ESCADA[passo], servidor)}

@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import Capa from '../components/Capa';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
-  Play, Check, BookOpen, ChevronRight, Layers, Lock,
+  Play, Check, BookOpen, ChevronRight, Layers, Lock, Crown, Sparkles, Star,
 } from 'lucide-react';
 import { db } from '../db/db';
 import Player from '../components/Player';
@@ -266,6 +266,8 @@ export default function Estudo() {
         <EscolherDificuldades valor={minhas} onChange={marcarDificuldades} />
       </Sheet>
 
+      {aba === 'pravoce' && <ExclusivasDoApp vistas={vistas} onTocar={(a, tipo) => tocar(a, origemDe('estudo', tipo))} />}
+
       {aba === 'pravoce' && (
         paraVoce.length === 0 ? (
           <Card>
@@ -316,7 +318,7 @@ export default function Estudo() {
                   </div>
                 </div>
                 <p className="tiny muted" style={{ marginBottom: 14, lineHeight: 1.65 }}>{b.texto}</p>
-                <ListaAulas aulas={b.aulas} vistas={vistas} onTocar={(a) => tocar(a, b.origem)} />
+                <ListaAulas aulas={b.aulas} vistas={vistas} onTocar={(a) => tocar(a, b.origem)} paraVoce />
               </Card>
             ))}
 
@@ -514,15 +516,29 @@ function PontosDoEstudo({ aberto, onClose, cobrando }) {
 /* ---------- lista de aulas ----------
    Sempre com a capa grande, em qualquer aba: a aula é o produto,
    e miniatura de lado ao texto some no meio da tela. */
-function ListaAulas({ aulas, vistas, onTocar, rodape = null }) {
+/* o tipo da aula na cara do cartão: dourado é do Premium (só no app),
+   roxo é a particular (vendida à parte), verde é a grátis que o app
+   escolheu pro seu jogo (no Pra você) */
+function seloDaAula(a, paraVoce) {
+  if (a.acesso === 'assinantes') return { classe: 'premium', icone: Crown, nome: 'Premium' };
+  if (a.acesso === 'avulso') return { classe: 'particular', icone: Star, nome: 'Particular' };
+  if (paraVoce) return { classe: 'pravoce', icone: Sparkles, nome: 'Pra você' };
+  return null;
+}
+
+function ListaAulas({ aulas, vistas, onTocar, rodape = null, paraVoce = false }) {
   const v = new Set(vistas);
   if (!aulas.length) return <p className="tiny muted">Nenhuma aula pra mostrar aqui.</p>;
   return (
     <div className="grid g-cards" style={{ gap: 12 }}>
-      {aulas.map((a) => (
-        <button key={a.id} className="aula-card" onClick={() => onTocar(a)}>
+      {aulas.map((a) => {
+        const selo = seloDaAula(a, paraVoce);
+        const Icone = selo?.icone;
+        return (
+        <button key={a.id} className={`aula-card ${selo?.classe || ''}`} onClick={() => onTocar(a)}>
           <div className="aula-capa">
-            <Capa id={a.id} propria={a.capa} tamanho="sd" />
+            <Capa id={a.id} propria={a.capa} tamanho="sd" particular={a.acesso === 'avulso'} />
+            {selo && <span className={`aula-selo ${selo.classe}`}><Icone size={10} /> {selo.nome}</span>}
             <span className="aula-dur">{duracaoTexto(a.d)}</span>
             {v.has(a.id) && <span className="aula-visto"><Check size={11} /></span>}
             <span className="aula-play">{!ehLivre(a) && !jaComprou(a.id) ? <Lock size={15} /> : <Play size={16} />}</span>
@@ -531,11 +547,7 @@ function ListaAulas({ aulas, vistas, onTocar, rodape = null }) {
             <div className="aula-titulo">{a.t}</div>
             <div className="row wrap" style={{ gap: 5, marginTop: 6 }}>
               {a.k === 'short' ? <Chip>aula rápida</Chip> : <Chip tone="warn">aula</Chip>}
-              {!ehLivre(a) && (
-                <Chip tone="roar">
-                  {jaComprou(a.id) ? 'sua' : a.acesso === 'assinantes' ? 'exclusiva' : 'à parte'}
-                </Chip>
-              )}
+              {!ehLivre(a) && jaComprou(a.id) && <Chip tone="roar">sua</Chip>}
               {a.tm?.includes('logica') && <Chip tone="ice">lógica</Chip>}
             </div>
             {a.porque?.length > 0 && (
@@ -546,7 +558,50 @@ function ListaAulas({ aulas, vistas, onTocar, rodape = null }) {
             {rodape && <div className="row wrap" style={{ gap: 6, marginTop: 6 }}>{rodape(a)}</div>}
           </div>
         </button>
-      ))}
+        );
+      })}
+    </div>
+  );
+}
+
+/* ---------- só no app: as exclusivas do Premium e as particulares ----------
+   Ficam no topo do Pra você pra todo mundo. Quem é grátis vê o que
+   tem do outro lado (o toque abre o convite); quem assina, assiste. */
+function ExclusivasDoApp({ vistas, onTocar }) {
+  const todas = acervo();
+  const exclusivas = todas.filter((a) => a.acesso === 'assinantes').slice(0, 6);
+  const particulares = todas.filter((a) => a.acesso === 'avulso').slice(0, 6);
+  if (!exclusivas.length && !particulares.length) return null;
+  return (
+    <div className="col" style={{ gap: 14, marginBottom: 16 }}>
+      {exclusivas.length > 0 && (
+        <Card className="faixa-premium">
+          <div className="card-head">
+            <div>
+              <div className="eyebrow">só no app</div>
+              <h2 className="h-sec">Exclusivas do Premium</h2>
+            </div>
+          </div>
+          <p className="tiny muted" style={{ marginBottom: 12, lineHeight: 1.6 }}>
+            Aulas que você não acha no YouTube nem em lugar nenhum além daqui.
+          </p>
+          <ListaAulas aulas={exclusivas} vistas={vistas} onTocar={(a) => onTocar(a, 'exclusivas')} />
+        </Card>
+      )}
+      {particulares.length > 0 && (
+        <Card className="faixa-particular">
+          <div className="card-head">
+            <div>
+              <div className="eyebrow">aula particular</div>
+              <h2 className="h-sec">Do professor pra você</h2>
+            </div>
+          </div>
+          <p className="tiny muted" style={{ marginBottom: 12, lineHeight: 1.6 }}>
+            Compra única: depois de comprada, a aula fica sua pra sempre.
+          </p>
+          <ListaAulas aulas={particulares} vistas={vistas} onTocar={(a) => onTocar(a, 'particulares')} />
+        </Card>
+      )}
     </div>
   );
 }

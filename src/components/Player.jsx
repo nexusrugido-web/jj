@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Check, Play, Pause, TriangleAlert, Maximize, Minimize, Subtitles } from 'lucide-react';
+import { Check, Play, Pause, TriangleAlert, Maximize, Minimize, Subtitles, Crown } from 'lucide-react';
 import { Btn, Sheet, Bar } from './UI';
 import { embed, duracaoTexto } from '../db/aulas';
+import { chavePaga } from '../lib/aulas';
+import { supabase } from '../lib/supabase';
 import { trechoValido, ondePodeVoltar } from '../lib/aulas';
 
 /* ============================================================
@@ -57,8 +59,24 @@ export default function Player({ aula, onClose, onConcluir }) {
   const ultimo = useRef(0);      // onde a agulha estava na última conferida
   const limite = useRef(0);      // o ponto mais longe que a aula já chegou
 
+  /* o vídeo: na grátis é o próprio id; na paga, o servidor confere se
+     a pessoa pode ver e só então entrega (SQL 49) */
+  const [video, setVideo] = useState(null);
+  const [trancada, setTrancada] = useState(false);
   useEffect(() => {
+    setVideo(null); setTrancada(false);
     if (!aula) return;
+    if (!chavePaga(aula.id)) { setVideo(aula.id); return; }
+    let vivo = true;
+    supabase?.rpc('abrir_aula', { p_chave: aula.id }).then(({ data }) => {
+      if (!vivo) return;
+      if (data) setVideo(data); else setTrancada(true);
+    });
+    return () => { vivo = false; };
+  }, [aula]);
+
+  useEffect(() => {
+    if (!aula || !video) return;
     setPronto(false); setProgresso(0); setConcluida(false);
     setRodando(false); setNaTela(0);
     assistido.current = 0;
@@ -69,7 +87,7 @@ export default function Player({ aula, onClose, onConcluir }) {
     const iniciar = () => {
       if (!ref.current || !window.YT?.Player) return;
       player.current = new window.YT.Player(ref.current, {
-        videoId: aula.id,
+        videoId: video,
         playerVars: {
           rel: 0,             // sem sugestão de outro canal no fim
           controls: 0,        // sem barra pra arrastar
@@ -152,7 +170,7 @@ export default function Player({ aula, onClose, onConcluir }) {
       try { player.current?.destroy?.(); } catch { /* já foi */ }
       player.current = null;
     };
-  }, [aula]);
+  }, [aula, video]);
 
   /* ---------- quando o app não consegue medir ----------
      Sem a API do YouTube não dá pra saber onde a agulha está. Em
@@ -360,9 +378,14 @@ export default function Player({ aula, onClose, onConcluir }) {
       {/* o vídeo fica sozinho, sem nada por cima dele. O YouTube
           exige isso. Os controles ficam embaixo, fora da área. */}
       <div ref={caixa} className={`player-caixa${vertical ? ' vertical' : ''}${cheio ? ' cheio' : ''}`}>
-        {semApi ? (
+        {trancada ? (
+          <div className="capa-vazia capa-premium" style={{ position: 'absolute', inset: 0, flexDirection: 'column', gap: 8, padding: 16, textAlign: 'center' }}>
+            <Crown size={26} />
+            <span className="tiny">Esta aula é do Premium. Entre com a conta que assina pra assistir.</span>
+          </div>
+        ) : semApi ? (
           <iframe
-            src={embed(aula.id)}
+            src={embed(video)}
             title={aula.t}
             allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
           />

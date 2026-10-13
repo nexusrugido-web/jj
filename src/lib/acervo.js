@@ -98,7 +98,8 @@ export async function acervoLocal() {
    lista antiga baixa tudo de novo uma vez, pra limpar o que ficou.
    ------------------------------------------------------------ */
 const CHAVE_FORMATO = 'acervo_formato';
-const FORMATO = 3;
+/* 4: aula paga sem o id do YouTube (SQL 49): o cache velho sai */
+const FORMATO = 4;
 
 /* a regra, sem banco nem rede: o que fica na lista depois de uma
    resposta do servidor. completa = a resposta é o acervo inteiro. */

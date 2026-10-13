@@ -197,6 +197,11 @@ export function aulasDoTema(tema, { faixa, vistas = [], busca = '', tipo = 'todo
 
 export { capa, embed, duracaoTexto, SERVIDORES_CAPA };
 
+/* aula paga chega com uma chave interna ("p" + 15 letras), não com o
+   id do YouTube (SQL 49): o vídeo sai por abrir_aula, e a capa do
+   YouTube não existe pra ela */
+export const chavePaga = (id) => /^p[0-9a-f]{15}$/.test(String(id || ''));
+
 /* ---------- estatística do acervo ---------- */
 export function resumoAcervo(vistas = []) {
   const v = new Set(vistas);
