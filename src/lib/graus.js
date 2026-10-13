@@ -599,7 +599,8 @@ export function posicoesSofridas(rolls, sessions, limite = 6) {
 
     /* e as posições que o parceiro alcançou em você */
     for (const p of r.ptsDele || []) {
-      const chave = { montada: 'montada_baixo', costas: 'costas_sofridas', passagem: 'cem_baixo', joelho: 'joelho_sofrido' }[p];
+      /* a queda que ele deu em você também: quem é derrubado todo rola precisa de defesa de queda */
+      const chave = { montada: 'montada_baixo', costas: 'costas_sofridas', passagem: 'cem_baixo', joelho: 'joelho_sofrido', queda: 'queda_sofrida' }[p];
       if (!chave) continue;
       const c = conta.get(chave) || { vezes: 0, recente: 0 };
       c.vezes += 1;
@@ -627,6 +628,7 @@ export const NOME_POSICAO_SOFRIDA = {
   costas_baixo: 'com as costas entregues',
   costas_sofridas: 'com as costas entregues',
   joelho_sofrido: 'com o joelho na barriga',
+  queda_sofrida: 'tomando queda',
 };
 
 /* e como vira título de recomendação */
@@ -638,4 +640,5 @@ export const TITULO_POSICAO_SOFRIDA = {
   costas_baixo: 'Defender as costas',
   costas_sofridas: 'Defender as costas',
   joelho_sofrido: 'Sair do joelho na barriga',
+  queda_sofrida: 'Defender a queda',
 };

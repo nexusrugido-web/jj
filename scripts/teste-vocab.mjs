@@ -52,8 +52,9 @@ ok('cadastro de vídeo: todas caem numa posição que existe',
   Object.values(V.DE_POSICAO_VIDEO).filter((p) => !posicoes.has(p)), []);
 
 ok('posição sofrida: todas as que a leitura do jogo nomeia têm destino', semMapa(Object.keys(NOME_POSICAO_SOFRIDA), V.DE_POSICAO_SOFRIDA), []);
-ok('posição sofrida: sempre por baixo',
-  Object.values(V.DE_POSICAO_SOFRIDA).filter((v) => V.separar(v).lado !== 'baixo'), []);
+/* a queda sofrida é a exceção: ela acontece em pé */
+ok('posição sofrida: sempre por baixo (menos a queda, que é em pé)',
+  Object.entries(V.DE_POSICAO_SOFRIDA).filter(([k, v]) => k !== 'queda_sofrida' && V.separar(v).lado !== 'baixo').map(([, v]) => v), []);
 
 /* ---------- toda categoria de técnica é habilidade ---------- */
 ok('toda categoria da biblioteca é habilidade', SEED.categories.map((c) => c.slug).filter((s) => !habilidades.has(s)), []);

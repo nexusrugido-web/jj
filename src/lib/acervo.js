@@ -1,6 +1,7 @@
 import { AULAS } from '../db/aulas';
 import { db, getMeta, setMeta } from '../db/db';
 import { supabase } from './supabase';
+import { corrigirClassificacao } from './classificar';
 
 /* ============================================================
    DE ONDE VÊM AS AULAS
@@ -24,7 +25,8 @@ const CHAVE_DATA = 'acervo_ate';
 
 /* o formato curto que as telas usam desde sempre */
 function daTabela(l) {
-  return {
+  /* o lado certo (sair × atacar) por cima do que a IA gravou */
+  return corrigirClassificacao({
     id: l.id,
     t: l.titulo,
     d: l.duracao,
@@ -47,7 +49,7 @@ function daTabela(l) {
     classificacao: l.classificacao || 'legado',
     /* em pé ou deitado (a esteira pergunta ao YouTube): o player segue */
     vertical: l.vertical ?? null,
-  };
+  });
 }
 
 let lista = AULAS;
@@ -98,8 +100,9 @@ export async function acervoLocal() {
    lista antiga baixa tudo de novo uma vez, pra limpar o que ficou.
    ------------------------------------------------------------ */
 const CHAVE_FORMATO = 'acervo_formato';
-/* 4: aula paga sem o id do YouTube (SQL 49): o cache velho sai */
-const FORMATO = 4;
+/* 4: aula paga sem o id do YouTube (SQL 49): o cache velho sai.
+   5: o lado da aula corrigido na leitura (corrigirClassificacao) */
+const FORMATO = 5;
 
 /* a regra, sem banco nem rede: o que fica na lista depois de uma
    resposta do servidor. completa = a resposta é o acervo inteiro. */

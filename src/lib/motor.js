@@ -1,6 +1,6 @@
 import { acervo } from './acervo';
 import { palavrasFortes } from './aulas';
-import { semAcento, TECNICAS_DISTINTAS, grafiasDe } from './classificar';
+import { semAcento, TECNICAS_DISTINTAS, grafiasDe, ehAulaDeDefesa } from './classificar';
 import { familiaDaTecnica, FAMILIAS_DE_FINALIZACAO } from './tecnicas';
 import { faixaDeConteudo } from './faixas';
 import {
@@ -138,6 +138,9 @@ function relevancia(a, pedido) {
   /* "Defesa contra Katagatame" não se responde com a aula de aplicar
      o katagatame: vídeo que não ensina defesa nem saída não entra */
   if (pedido.defesa && !ensinaDefesa(a)) return { r: 0, porque: [] };
+  /* e o contrário: quem quer aprender o golpe não recebe a aula de se
+     defender dele (escapada e retenção são técnica de defesa, essas pode) */
+  if (!pedido.defesa && tecnico && !['escapada', 'defesa', 'retencao'].includes(pedido.familia) && ehAulaDeDefesa(a)) return { r: 0, porque: [] };
 
   /* especifico: o vídeo é da técnica pedida, ou ao menos da família
      dela. Sem isso, num pedido de técnica, ele é resposta geral. */
@@ -165,15 +168,20 @@ function relevancia(a, pedido) {
     if (pedido.situacoes?.length) porque.push(nomeDe(SITUACOES, pedido.situacoes[0]));
   }
 
+  /* pedido de sair de uma posição: aula que não trata dela é resposta em geral */
+  let naPosicao = false;
+  const posicional = !tecnico && (pedido.posicoes || []).length > 0 && (pedido.habilidades || []).includes('escapada');
   for (const pl of pedido.posicoes || []) {
     const { posicao, lado } = separar(pl);
     const doVideo = (a.posicaoLado || []).map(separar).filter((x) => x.posicao === posicao);
     if (!doVideo.length) continue;
     if (doVideo.some((x) => x.lado === lado)) {
+      naPosicao = true;
       r += 14;
       porque.push(nomePosicaoLado(pl));
       if (pedido.defesa && !saidaDe) saidaDe = posicao;
     } else if (lado === 'neutro' || doVideo.some((x) => x.lado === 'neutro')) {
+      naPosicao = true;
       r += 8;
       porque.push(nomeDe(POSICOES, posicao));
     }
@@ -203,7 +211,7 @@ function relevancia(a, pedido) {
     porque.push(nomeDe(FORMATOS, a.formato));
   }
 
-  return { r, porque: [...new Set(porque)], generico: tecnico && !especifico, saidaDe };
+  return { r, porque: [...new Set(porque)], generico: (tecnico && !especifico) || (posicional && !naPosicao), saidaDe };
 }
 
 /* embaralhamento estável da semana: dentro da mesma nota, a ordem

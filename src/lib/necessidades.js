@@ -43,6 +43,12 @@ export function pedidoDaRec(rec) {
 
   if (rec.situacao) return { situacoes: [rec.situacao], palavras: PALAVRAS_DA_SITUACAO[rec.situacao] || [], formatos };
 
+  /* levar queda: só aula que ensina a defender (sprawl, base, pegada),
+     nunca a de dar queda, que também é em pé */
+  if (rec.posicao === 'queda_sofrida') {
+    return { posicoes: ['em_pe:neutro'], habilidades: ['defesa', 'escapada'], defesa: true, nomes: ['queda'], palavras: ['sprawl', 'queda', 'derrub', 'base'], formatos };
+  }
+
   if (rec.posicao) {
     const pl = DE_POSICAO_SOFRIDA[rec.posicao];
     return { posicoes: pl ? [pl] : [], habilidades: ['escapada'], formatos };

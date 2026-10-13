@@ -199,6 +199,38 @@ ok('raio-x: de onde sai o ataque dele em você', rx.ondeEleMePega.map((x) => x.v
   ok('a posição marcada como finalização não entra em nenhuma das duas', [porTec.has('De La Riva'), porPos.has('De La Riva')], [false, false]);
 }
 
+/* ---------- o lado certo da aula (ataque × defesa) ---------- */
+{
+  const { corrigirClassificacao, ehAulaDeDefesa } = await import('../src/lib/classificar.js');
+  const c = (t, posicaoLado, habilidades) => corrigirClassificacao({ t, posicaoLado, habilidades });
+  const sair = c('O que fazer quando pegam suas costas no jiu jitsu', ['costas:baixo'], ['finalizacao', 'controle']);
+  ok('"o que fazer quando pegam suas costas" vira aula de defesa', ['escapada', 'defesa'].every((h) => sair.habilidades.includes(h)), true);
+  ok('estrangulamento nas costas é por cima', c('3 ESTRANGULAMENTOS NAS COSTAS', ['costas:neutro'], ['estrangulamento']).posicaoLado, ['costas:cima']);
+  ok('saindo no começo é fuga', c('SAINDO DA NORTE-SUL', ['norte_sul:neutro'], ['controle']).posicaoLado, ['norte_sul:baixo']);
+  ok('saindo no meio é de onde o golpe sai', c('Triângulo saindo das costas', ['costas:cima'], ['estrangulamento']).posicaoLado, ['costas:cima']);
+  ok('lógica geral da posição continua neutra', c('A lógica da 100kg no jiu jitsu', ['cem:neutro'], ['controle']).posicaoLado, ['cem:neutro']);
+  ok('100kg de peso do corpo não é a posição', c('Emagrecimento: Dica Simples Para Sair dos 100kg!', ['cem:cima'], ['controle']).posicaoLado, []);
+  ok('passar sem dar as costas não é aula de costas', c('Como passar na meia sem dar as costas', ['meia_guarda:cima', 'costas:neutro'], ['passagem']).posicaoLado, ['meia_guarda:cima']);
+  ok('detecta aula de defesa pelo título', [ehAulaDeDefesa({ t: 'Como sair do mata-leão' }), ehAulaDeDefesa({ t: 'Como atacar no mata-leão' })], [true, false]);
+
+  /* o motor separa: quem quer aprender não recebe a de defender, e vice-versa */
+  const { aulasPara } = await import('../src/lib/motor.js');
+  const { pedidoDaRec } = await import('../src/lib/necessidades.js');
+  const ML = TECNICA_POR_UID.get(uidEstavel(chaveNome('techniques', 'Mata-leão'))) ? uidEstavel(chaveNome('techniques', 'Mata-leão')) : null;
+  const v = (t, extra) => ({ id: t, t, d: 400, k: 'aula', tm: ['geral'], p: [], posicaoLado: [], habilidades: [], tecnicas: [], classificacao: 'automatica', ...extra });
+  const acervoTeste = [
+    v('Como sair do mata-leão', { tecnicas: [ML], habilidades: ['escapada', 'defesa'], posicaoLado: ['costas:baixo'] }),
+    v('Como encaixar o mata-leão', { tecnicas: [ML], habilidades: ['estrangulamento', 'finalizacao'], posicaoLado: ['costas:cima'] }),
+    v('Sprawl: como não tomar queda', { habilidades: ['defesa', 'queda'], posicaoLado: ['em_pe:neutro'] }),
+    v('Baiana perfeita', { habilidades: ['queda'], posicaoLado: ['em_pe:neutro'] }),
+  ].map(corrigirClassificacao);
+  /* a de defesa em geral pode vir depois, marcada como geral: aqui só a do assunto */
+  const titulos = (p) => aulasPara(p, { lista: acervoTeste, quantidade: 4 }).filter((a) => !a.reserva && !a.generico).map((a) => a.t);
+  ok('defesa contra mata-leão: só a de sair', titulos(pedidoDaRec({ intencao: 'corrigir', alvo: 'Mata-leão' })), ['Como sair do mata-leão']);
+  ok('aprender o mata-leão: só a de atacar', titulos(pedidoDaRec({ intencao: 'aprender', alvo: 'Mata-leão' })), ['Como encaixar o mata-leão']);
+  ok('levando queda: a de defender, nunca a de dar queda', titulos(pedidoDaRec({ intencao: 'corrigir', posicao: 'queda_sofrida' })), ['Sprawl: como não tomar queda']);
+}
+
 /* ---------- a voz ---------- */
 const { resolverFinalizacao } = await import('../src/lib/golpes.js');
 ok('falou "armlock da montada": a IA mandou o nome certo e ele fica', resolverFinalizacao('Armlock da montada', { catalogo: finais }), 'Armlock da montada');

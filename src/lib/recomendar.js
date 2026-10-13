@@ -202,7 +202,9 @@ export function gerarRecomendacoes({
       alvo: null,
       posicao: presa.posicao,
       titulo: TITULO_POSICAO_SOFRIDA[presa.posicao] || 'Sair de posição ruim',
-      texto: `Você ficou ${nome} em ${presa.vezes} ${presa.vezes === 1 ? 'rola' : 'rolas'}${presa.recente >= 2 ? ', sendo várias no último mês' : ''}. Saber sair daí vale mais que aprender técnica nova.`,
+      texto: presa.posicao === 'queda_sofrida'
+        ? `Você tomou queda em ${presa.vezes} ${presa.vezes === 1 ? 'rola' : 'rolas'}${presa.recente >= 2 ? ', sendo várias no último mês' : ''}. Defender a queda é parar de começar o rola por baixo.`
+        : `Você ficou ${nome} em ${presa.vezes} ${presa.vezes === 1 ? 'rola' : 'rolas'}${presa.recente >= 2 ? ', sendo várias no último mês' : ''}. Saber sair daí vale mais que aprender técnica nova.`,
       evidencia: `${presa.vezes} vezes registradas`,
     });
   }

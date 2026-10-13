@@ -218,6 +218,7 @@ export const DE_POSICAO_SOFRIDA = {
   costas_baixo: 'costas:baixo',
   costas_sofridas: 'costas:baixo',
   joelho_sofrido: 'joelho_barriga:baixo',
+  queda_sofrida: 'em_pe:neutro',
 };
 
 /* os temas antigos do vídeo. "competicao" e "geral" não viram

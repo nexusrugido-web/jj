@@ -268,3 +268,71 @@ export function decidir(video, ia, { indice = null } = {}) {
     revisar: false,
   };
 }
+
+/* ------------------------------------------------------------
+   O LADO CERTO DA AULA
+
+   A IA acerta o assunto e às vezes erra o lado, e o lado é o que
+   separa "sair do mata-leão" de "atacar no mata-leão". Esta regra
+   roda em cima do que está gravado, quando o app lê o acervo:
+
+   1. Nas posições de domínio (costas, montada, 100kg, joelho na
+      barriga, norte-sul) não existe neutro: quem ataca ou controla
+      está por cima, quem sai ou defende está por baixo.
+   2. Defesa nem sempre diz "defesa": "o que fazer quando pegam suas
+      costas", "preso na montada", "por baixo do 100kg". Título assim,
+      numa posição de domínio, é aula de sair: ganha escapada e defesa,
+      que é o que o motor exige pra recomendar aula de defesa.
+   3. "100kg" de peso do corpo (emagrecer, dieta) não é a posição.
+   ------------------------------------------------------------ */
+const DOMINIO = new Set(['costas', 'montada', 'cem', 'joelho_barriga', 'norte_sul']);
+/* "saindo" só é fuga abrindo o título ("Saindo da norte-sul"); no meio,
+   é de onde o golpe sai ("Triângulo saindo das costas") */
+const TITULO_DE_DEFESA = /(^\W*saindo\b)|\b(defes\w*|defend\w*|sair|saida|saidas|escap\w*|fug\w*|evit\w*|preso|presa|por baixo|embaixo|sobreviv\w*|recuper\w*|nao (deixar|tomar|ser|bater|dar)|o que fazer quando|quando (pegam|te pegam|ele pega|pegarem|montam|te montam|estiver|esta|estao))\b/;
+const TITULO_DE_ATAQUE = /\b(atac\w*|ataque\w*|finaliz\w*|pegar as costas|tomar as costas|chegar n\w* costas|ir para as costas|como (pegar|chegar|montar|estrangular|aplicar)|estrangulamentos?|controlar|domin\w*|manter)\b/;
+/* a posição só citada de passagem ("passar sem dar as costas") não é o assunto */
+const SO_CITADA = /\bsem (dar|entregar) as costas\b/;
+const PESO_DO_CORPO =/\b(emagrec\w*|dieta|perder peso|balanca|calorias?|nutric\w*)\b/;
+
+export function corrigirClassificacao(aula) {
+  const t = semAcento(aula?.t || aula?.titulo || '');
+  let pl = [...(aula?.posicaoLado || [])];
+  let hab = [...(aula?.habilidades || [])];
+  if (!pl.length && !hab.length) return aula;
+  const defesa = TITULO_DE_DEFESA.test(t);
+  const ataque = TITULO_DE_ATAQUE.test(t) && !defesa;
+
+  if (PESO_DO_CORPO.test(t)) pl = pl.filter((x) => separar(x).posicao !== 'cem');
+  if (SO_CITADA.test(t)) pl = pl.filter((x) => separar(x).posicao !== 'costas');
+
+  const dominio = pl.filter((x) => DOMINIO.has(separar(x).posicao));
+  if (dominio.length) {
+    /* neutro só vira lado quando a aula diz de que lado está; a de lógica
+       geral ("a lógica da 100kg") serve pros dois e fica neutra */
+    const sair = defesa || ((hab.includes('escapada') || hab.includes('defesa')) && !ataque);
+    const atacar = !sair && (ataque || hab.some((h) => ['finalizacao', 'estrangulamento', 'articular'].includes(h)));
+    pl = pl.map((x) => {
+      const { posicao, lado } = separar(x);
+      if (!DOMINIO.has(posicao) || lado !== 'neutro') return x;
+      return sair ? `${posicao}:baixo` : atacar ? `${posicao}:cima` : x;
+    });
+    if (defesa) {
+      pl = pl.map((x) => {
+        const { posicao, lado } = separar(x);
+        return DOMINIO.has(posicao) && lado === 'cima' ? `${posicao}:baixo` : x;
+      });
+      for (const h of ['escapada', 'defesa']) if (!hab.includes(h)) hab.push(h);
+    }
+  }
+  pl = [...new Set(pl)];
+  const mudou = JSON.stringify(pl) !== JSON.stringify(aula.posicaoLado || []) || JSON.stringify(hab) !== JSON.stringify(aula.habilidades || []);
+  return mudou ? { ...aula, posicaoLado: pl, habilidades: hab } : aula;
+}
+
+/* aula que só ensina a se defender (pelo título): pedido de aprender o
+   golpe não recebe ela, do mesmo jeito que pedido de defesa não recebe
+   a aula de aplicar */
+export function ehAulaDeDefesa(aula) {
+  const t = semAcento(aula?.t || aula?.titulo || '');
+  return TITULO_DE_DEFESA.test(t) && !TITULO_DE_ATAQUE.test(t);
+}

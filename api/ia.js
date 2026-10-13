@@ -301,6 +301,15 @@ POSIÇÕES, no formato "posicao:lado". O lado é o de QUEM ASSISTE e vai usar a 
 Só marque posição que o vídeo trata. Aula de conceito geral pode ficar sem posição.
 ${lista(POSICOES)}
 
+ATAQUE OU DEFESA. É o que mais importa: o app manda "como sair do mata-leão" pra quem bate de mata-leão e "como atacar" pra quem quer aprender.
+- Aula de sair, defender, escapar, evitar, não deixar, "o que fazer quando ele pega / monta / passa / está nas suas costas": habilidades com "escapada" e/ou "defesa", e o lado é "baixo" (de quem está sofrendo). Não marque "finalizacao", "estrangulamento" nem "articular" em aula que só ensina a se defender: o golpe que ela ensina a defender vai em tecnicas.
+- Aula de atacar, aplicar, pegar, chegar, manter, controlar: as habilidades do ataque, e lado "cima" nas posições de domínio.
+- Costas, montada, cem (100kg), joelho_barriga e norte_sul quase nunca são "neutro": quem ataca ou controla está por cima, quem sai ou defende está por baixo. "neutro" ali só pra aula de lógica geral que trata os dois lados.
+- Queda: dar queda => habilidades ["queda"], posicoes ["em_pe:neutro"]. Evitar ou defender queda (sprawl, base, não ser derrubado, defesa de single leg) => habilidades ["defesa","queda"], posicoes ["em_pe:neutro"].
+- "100kg" de peso do corpo (emagrecer, dieta, balança) não é a posição.
+- "saindo" no meio do título é de onde o golpe sai ("Triângulo saindo das costas" é ataque das costas), não fuga.
+- tecnicas: só a técnica que a aula ensina a fazer ou a defender. Técnica citada de passagem não entra.
+
 HABILIDADES (uma ou mais):
 ${lista(HABILIDADES)}
 
@@ -317,7 +326,10 @@ TÉCNICAS: as que o título ou a descrição citam pelo nome, como se fala no ta
 
 QUASE TODO SHORT VEM SEM DESCRIÇÃO. Quando o título já diz o assunto, classifique pelo título e dê certeza alta. Hashtag (#bjj, #jiujitsu) não é assunto.
 Exemplos:
-"Como sair da 100kg #bjj" => posicoes ["cem:baixo"], habilidades ["escapada"], formato "tecnica", certeza 0.8
+"Como sair da 100kg #bjj" => posicoes ["cem:baixo"], habilidades ["escapada","defesa"], formato "tecnica", certeza 0.8
+"O que fazer quando pegam suas costas" => posicoes ["costas:baixo"], habilidades ["escapada","defesa"], tecnicas ["mata-leão"], formato "tecnica", certeza 0.85
+"3 estrangulamentos nas costas" => posicoes ["costas:cima"], habilidades ["estrangulamento","finalizacao"], formato "tecnica", certeza 0.85
+"Como não tomar queda na competição" => posicoes ["em_pe:neutro"], habilidades ["defesa","queda"], formato "tecnica", certeza 0.8
 "A lógica da raspagem tesourinha" => posicoes ["guarda_fechada:baixo"], habilidades ["raspagem"], formato "conceito", tecnicas ["raspagem de tesoura"], certeza 0.85
 "Jiu-jitsu sem força: aprenda isso" => habilidades ["fisico"], formato "conceito", situacoes ["menos_forca"], certeza 0.8
 "Como lutar contra alguém mais pesado" => formato "conceito", situacoes ["contra_pesado"], certeza 0.8
