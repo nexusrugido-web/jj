@@ -57,7 +57,7 @@ returns jsonb language sql immutable as $$
     when '2' then jsonb_build_object('titulo', '🎯 Meio da semana', 'corpo', 'Confere a sua meta. Quem anota evolui mais rápido que quem só sua.', 'caminho', '/?go=metas')
     when '3' then jsonb_build_object('titulo', '🐢 Guarda viva ou tartaruga?', 'corpo', 'Marca o que entrou no rola de hoje: é assim que o app lê o seu jogo.', 'caminho', '/?go=treinos')
     when '4' then jsonb_build_object('titulo', '🎬 Sexta de aula rápida', 'corpo', 'Uma ideia nova pro rola do fim de semana. Prometo que é curta.', 'caminho', '/?go=estudo')
-    when '5' then jsonb_build_object('titulo', '🍖 Sábado: rola e churrasco', 'corpo', 'Treinou hoje? Registra antes da picanha, que depois você esquece.', 'caminho', '/?go=treinos')
+    when '5' then jsonb_build_object('titulo', '🍖 Sábado: treino e churrasco', 'corpo', 'Teve aula ou luta hoje? Registra antes da picanha, que depois esquece.', 'caminho', '/?go=treinos')
     when '6' then jsonb_build_object('titulo', '😴 Domingo é recuperação', 'corpo', 'Mas 1 aula rápida no sofá conta. O jogo evolui até deitado.', 'caminho', '/?go=estudo')
     end
   end;
