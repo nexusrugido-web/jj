@@ -24,7 +24,7 @@ function Linha({ l }) {
   );
 }
 
-export default function TreinoDeHoje({ hoje: t, acesso }) {
+export default function TreinoDeHoje({ hoje: t, acesso, comVitrine = true }) {
   if (!t?.mostrar) return null;
   const livre = podeVer(acesso, 'treinoHoje');
   const [primeira, ...resto] = t.linhas;
@@ -36,7 +36,7 @@ export default function TreinoDeHoje({ hoje: t, acesso }) {
         <Linha l={primeira} />
         {livre && resto.map((l) => <Linha key={l.id} l={l} />)}
       </div>
-      {!livre && resto.length > 0 && (
+      {!livre && comVitrine && resto.length > 0 && (
         <div style={{ marginTop: 12 }}>
           <Vitrine
             recurso="treinoHoje"

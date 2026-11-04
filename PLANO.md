@@ -15,7 +15,7 @@ Decidido em 04/11/2026. Uma tarefa por vez; cada uma termina com `npm run check`
 - 8 "Você cai em" sai da home → Meu Jogo, últimos 30 dias, com aula de defesa → FEITO
 - 9 "Por cima e por baixo" → últimos 90 dias → FEITO
 - 10 Home com 4 coisas (conquistas, o que fazer hoje, metas, ofensiva); resto em "Ver mais", explicação no "?" → FEITO
-- 11 No máximo 1 vitrine Premium por tela
+- 11 No máximo 1 vitrine Premium por tela → FEITO
 
 ## Trilha D: Registro do rola em 10 segundos
 Medir o registro de verdade, mostrar como ficaria antes de mexer.

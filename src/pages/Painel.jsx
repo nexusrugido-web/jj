@@ -157,6 +157,13 @@ export default function Painel() {
     () => treinoDeHoje({ sessions, esteira, buracos, jogo, metaSemanal: settings.metaSemanal, repertorio, positions }),
     [sessions, esteira, buracos, jogo, settings.metaSemanal, repertorio, positions]
   );
+  /* no grátis, uma vitrine por tela, a mais certeira: a aula que
+     destrava o que te pega; sem ela, o resto do treino de hoje; depois
+     as recomendações; por último os gráficos. As outras não aparecem */
+  const vitrine = !podeVer(acesso, 'aulasIlimitadas') && destravaDoBuraco ? 'destrava'
+    : !podeVer(acesso, 'treinoHoje') && hojeNoTatame?.mostrar && hojeNoTatame.linhas.length > 1 ? 'treinoHoje'
+      : recs.length > 0 && !recsLivres ? 'recs'
+        : !graficosLivres ? 'graficos' : null;
   const horasNoAno = useMemo(
     () => {
       /* as horas nascem do ritmo (ou do número que a pessoa escolheu) */
@@ -291,7 +298,7 @@ export default function Painel() {
       <PrimeirosPassos sessions={sessions} rolls={rolls} tecnicas={esteira} irPara={irPara} />
       <AvisoDeVolta sessions={sessions} irPara={irPara} />
 
-      <TreinoDeHoje hoje={hojeNoTatame} acesso={acesso} />
+      <TreinoDeHoje hoje={hojeNoTatame} acesso={acesso} comVitrine={vitrine === 'treinoHoje'} />
       {/* ---- metas, num bloco só e logo no alto ---- */}
       {dash.metas !== false && (
         <Card style={{ marginBottom: 14 }}>
@@ -344,13 +351,6 @@ export default function Painel() {
         </Card>
       )}
 
-      {/* a home fica com o que importa hoje: conquistas e ofensiva no
-          placar, o que fazer hoje e as metas. O resto mora no Ver mais */}
-      <button className="btn ghost ver-mais-painel" onClick={() => mudarVerMais(!verMais)} aria-expanded={verMais}>
-        {verMais ? 'Mostrar menos' : 'Ver mais do seu treino'} <ChevronDown size={15} style={{ transform: verMais ? 'rotate(180deg)' : 'none' }} />
-      </button>
-      {verMais && (<>
-      <Destaques resumo={r} onVerTudo={() => irPara('analise')} />
       {destravaDoBuraco && (
         <div style={{ marginBottom: 14 }}>
           <AulaQueDestrava
@@ -362,6 +362,14 @@ export default function Painel() {
           />
         </div>
       )}
+
+      {/* a home fica com o que importa hoje: conquistas e ofensiva no
+          placar, o que fazer hoje e as metas. O resto mora no Ver mais */}
+      <button className="btn ghost ver-mais-painel" onClick={() => mudarVerMais(!verMais)} aria-expanded={verMais}>
+        {verMais ? 'Mostrar menos' : 'Ver mais do seu treino'} <ChevronDown size={15} style={{ transform: verMais ? 'rotate(180deg)' : 'none' }} />
+      </button>
+      {verMais && (<>
+      <Destaques resumo={r} onVerTudo={() => irPara('analise')} />
 
       <RelatorioDoMes techniques={techniques} categories={categories} positions={positions} sessions={sessions} rolls={rolls} esteira={esteira} faixa={settings.faixa} acesso={acesso} />
 
@@ -445,7 +453,7 @@ export default function Painel() {
             ))}
           </div>
 
-          {recs.length > 0 && !recsLivres && (
+          {vitrine === 'recs' && (
             <div style={{ marginTop: 16 }}>
               <VitrineRecomendacao recs={recs} faixa={settings.faixa} vistas={vistasAulas.map((v) => v.videoId)} onAssinar={() => pedirOferta('recomendacoes')} />
             </div>
@@ -545,7 +553,7 @@ export default function Painel() {
           sessions={sessions} rolls={rolls} partners={partners} gradings={gradings}
         />
       </Card>
-      </>) : !semDados && (
+      </>) : !semDados && vitrine === 'graficos' && (
         /* no grátis os gráficos viram uma vitrine só, com a evolução real borrada */
         <Vitrine
           recurso="analise"
