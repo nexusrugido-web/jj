@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import {
   Flame, Clock, Swords, Target, ArrowRight, Plus, Award, Trophy, Sparkles, Loader, ShieldCheck,
-  HeartPulse, Check, BarChart3, ChevronRight,
+  HeartPulse, Check, BarChart3, ChevronRight, ChevronDown,
 } from 'lucide-react';
 import MinhaOfensiva from '../components/MinhaOfensiva';
 import Guia from '../components/Guia';
@@ -43,6 +43,10 @@ import { pedidoDaRec } from '../lib/necessidades';
 
 export default function Painel() {
   const [ajudaTec, setAjudaTec] = useState(false);
+  /* o Ver mais aberto fica lembrado no aparelho */
+  const [verMais, setVerMais] = useState(() => { try { return localStorage.getItem('painelVerMais') === '1'; } catch { return false; } });
+  const mudarVerMais = (v) => { setVerMais(v); try { localStorage.setItem('painelVerMais', v ? '1' : '0'); } catch { /* vale até fechar */ } };
+  const [ajudaEscada, setAjudaEscada] = useState(false);
   const { sessions, rolls, positions, categories, settings, salvarSettings, irPara, goals, techniques, partners, ligada, sessao, acesso, acervoVer } = useApp();
   const toast = useToast();
   const [analise, setAnalise] = useState(null);
@@ -284,6 +288,10 @@ export default function Painel() {
         );
       })()}
 
+      <PrimeirosPassos sessions={sessions} rolls={rolls} tecnicas={esteira} irPara={irPara} />
+      <AvisoDeVolta sessions={sessions} irPara={irPara} />
+
+      <TreinoDeHoje hoje={hojeNoTatame} acesso={acesso} />
       {/* ---- metas, num bloco só e logo no alto ---- */}
       {dash.metas !== false && (
         <Card style={{ marginBottom: 14 }}>
@@ -336,6 +344,12 @@ export default function Painel() {
         </Card>
       )}
 
+      {/* a home fica com o que importa hoje: conquistas e ofensiva no
+          placar, o que fazer hoje e as metas. O resto mora no Ver mais */}
+      <button className="btn ghost ver-mais-painel" onClick={() => mudarVerMais(!verMais)} aria-expanded={verMais}>
+        {verMais ? 'Mostrar menos' : 'Ver mais do seu treino'} <ChevronDown size={15} style={{ transform: verMais ? 'rotate(180deg)' : 'none' }} />
+      </button>
+      {verMais && (<>
       <Destaques resumo={r} onVerTudo={() => irPara('analise')} />
       {destravaDoBuraco && (
         <div style={{ marginBottom: 14 }}>
@@ -349,10 +363,6 @@ export default function Painel() {
         </div>
       )}
 
-      <PrimeirosPassos sessions={sessions} rolls={rolls} tecnicas={esteira} irPara={irPara} />
-      <AvisoDeVolta sessions={sessions} irPara={irPara} />
-
-      <TreinoDeHoje hoje={hojeNoTatame} acesso={acesso} />
       <RelatorioDoMes techniques={techniques} categories={categories} positions={positions} sessions={sessions} rolls={rolls} esteira={esteira} faixa={settings.faixa} acesso={acesso} />
 
       {/* ---- o ritmo da semana ---- */}
@@ -467,16 +477,13 @@ export default function Painel() {
               <div className="card-head" style={{ marginBottom: 4 }}>
                 <div>
                   <RotuloPeriodo periodo={tresMeses}>sai dos pontos que você marca</RotuloPeriodo>
-                  <h2 className="h-sec">Onde você fica por cima e onde fica por baixo</h2>
+                  <h2 className="h-sec row" style={{ gap: 7 }}>
+                    Onde você fica por cima e onde fica por baixo
+                    <button className="ajuda" onClick={() => setAjudaEscada(true)} aria-label="O que é isso">?</button>
+                  </h2>
                 </div>
                 <span className="micro muted nowrap">pts IBJJF</span>
               </div>
-              <p className="tiny muted" style={{ marginBottom: 10 }}>
-Toda vez que você marca um ponto, o app anota a posição que veio junto. Passagem de guarda coloca
-                você em cima dos 100kg, montada coloca na montada, e assim por diante. Verde é quando você chegou lá,
-                vermelho é quando o outro chegou. A etiqueta da esquerda é quanto a posição vale em pontos (+4 pra
-                quem pega a montada, −4 quando pegam em você), e o número da direita é em quantos rolas aconteceu.
-              </p>
             </div>
             <div style={{ padding: '0 10px 16px' }}>
               <EscadaPosicional dados={escada} compacto />
@@ -554,7 +561,17 @@ Toda vez que você marca um ponto, o app anota a posição que veio junto. Passa
           onAssinar={() => pedirOferta('analise')}
         />
       )}
+      </>)}
 
+      <Sheet aberto={ajudaEscada} onClose={() => setAjudaEscada(false)} titulo="Por cima e por baixo">
+        <p className="tiny muted" style={{ lineHeight: 1.7 }}>
+Toda vez que você marca um ponto, o app anota a posição que veio junto. Passagem de guarda coloca
+                você em cima dos 100kg, montada coloca na montada, e assim por diante. Verde é quando você chegou lá,
+                vermelho é quando o outro chegou. A etiqueta da esquerda é quanto a posição vale em pontos (+4 pra
+                quem pega a montada, −4 quando pegam em você), e o número da direita é em quantos rolas aconteceu.
+              
+        </p>
+      </Sheet>
       <MinhaOfensiva aberto={ofensivaAberta} onClose={() => setOfensivaAberta(false)} />
 
       {/* a IA é do premium: no grátis o botão abre o convite */}

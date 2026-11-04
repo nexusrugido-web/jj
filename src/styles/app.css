@@ -3858,3 +3858,5 @@ body::after {
 .conq-lista { display: flex; flex-wrap: wrap; gap: 8px; margin-top: var(--e3); }
 .conq-chip { display: inline-flex; align-items: baseline; gap: 6px; padding: 7px 11px; border-radius: 999px; border: 1px solid var(--seam); background: color-mix(in srgb, var(--jade) 10%, transparent); font-size: var(--fs-sec); font-weight: 600; }
 .conq-chip b { color: var(--jade); font-weight: 800; }
+/* o botão que abre o resto da home */
+.ver-mais-painel { width: 100%; justify-content: center; gap: 6px; margin: 4px 0 14px; border: 1px dashed var(--seam); }
