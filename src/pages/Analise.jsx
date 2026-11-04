@@ -18,9 +18,11 @@ import { toCSV } from '../db/db';
 import { baixarArquivo, fmtDur, contar, hoje } from '../lib/utils';
 import { podeVer, pedirOferta } from '../lib/plano';
 import { Vitrine } from '../components/Plano';
+import Recomendacao from '../components/Recomendacao';
 
 export default function Analise() {
   const { sessions, rolls, positions, partners, settings, irPara, acesso } = useApp();
+  const vistas = (useLiveQuery(() => db.aulasVistas.toArray(), [], []) || []).map((v) => v.videoId);
   const gradings = useLiveQuery(() => db.gradings.toArray(), [], []) || [];
   const toast = useToast();
   const [periodoId, setPeriodoId] = useState('ultimos-30');
@@ -98,7 +100,7 @@ export default function Analise() {
           {verVitoria ? 'ver conquistas por rola' : 'ver vitória e derrota'}
         </button>
       </Card>
-      <Card><Stat icon={Percent} valor={`${r.subPct}%`} label="rolas com finalização" tone="jade" sub={`${r.tapPct}% com tap sofrido`} /></Card>
+      <Card><Stat icon={Percent} valor={`${r.subPct}%`} label="rolas com finalização" tone="jade" sub={`${100 - r.tapPct}% sem bater`} /></Card>
     </div>
   );
 
@@ -236,11 +238,24 @@ export default function Analise() {
             {(lista) => <BarrasTop dados={lista} tone="jade" vazio="Nenhuma finalização no período." />}
           </ListaResumida>
         </Card>
+        {/* o que te pega vira a próxima defesa: o golpe que mais aparece,
+            sem contar quantas vezes, e a aula de saída do lado */}
         <Card>
-          <div className="card-head"><div><RotuloPeriodo periodo={periodo} /><h2 className="h-sec">O que te pega</h2></div><Chip tone="blood">{r.taps}</Chip></div>
-          <ListaResumida itens={r.sofridas} quantos={5} verTodos="Ver todas" titulo="O que te pega" subtitulo={rotuloDoPeriodo(periodo)}>
-            {(lista) => <BarrasTop dados={lista} tone="blood" vazio="Ninguém te finalizou no período." />}
-          </ListaResumida>
+          <div className="card-head"><div><RotuloPeriodo periodo={periodo} /><h2 className="h-sec">Sua próxima defesa</h2></div></div>
+          {r.sofridas.length === 0 ? (
+            <p className="tiny muted">Ninguém te finalizou no período. Segue assim.</p>
+          ) : (
+            <Recomendacao
+              rec={{
+                intencao: 'corrigir', alvo: r.sofridas[0][0],
+                titulo: r.sofridas[0][0],
+                texto: 'É o que mais apareceu nos seus rolas. Aprender a saída fecha essa porta.',
+              }}
+              faixa={settings.faixa}
+              vistas={vistas}
+              tela="analise"
+            />
+          )}
         </Card>
       </div>
 

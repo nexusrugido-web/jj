@@ -541,15 +541,15 @@ export default function Painel() {
       <Card>
         <div className="card-head">
           <div>
-            <div className="eyebrow">ganhou e perdeu</div>
+            <div className="eyebrow">conquistas por rola</div>
             <h2 className="h-sec">Evolução</h2>
           </div>
           <button className="btn ghost xs" onClick={() => irPara('analise')}>ver tudo <ArrowRight size={12} /></button>
         </div>
-        {/* no Painel, o resumo que mais diz: vitória sobe, derrota desce.
-            O detalhe (como venceu, como perdeu) fica no ver tudo */}
+        {/* no Painel, a régua que sobe mesmo quando você perde: lances
+            conquistados por rola. O resto fica no ver tudo */}
         <GraficoEvolucao
-          compacto periodoInicial="3m" metricaInicial="balanco"
+          compacto periodoInicial="3m" metricaInicial="conquistas"
           sessions={sessions} rolls={rolls} partners={partners} gradings={gradings}
         />
       </Card>

@@ -261,20 +261,20 @@ export default function MeuJogo() {
             <div className="card-head">
               <div>
                 <RotuloPeriodo periodo={ultimos30} />
-                <h2 className="h-sec">O que te pega</h2>
+                <h2 className="h-sec">Sua próxima defesa</h2>
               </div>
             </div>
             {tePega.length === 0 ? (
               <p className="tiny muted">Ninguém te finalizou nos últimos 30 dias. Segue assim.</p>
             ) : (
               <div className="col" style={{ gap: 10 }}>
-                {tePega.map(([nome, vezes]) => (
+                {tePega.map(([nome]) => (
                   <Recomendacao
                     key={nome}
                     rec={{
                       intencao: 'corrigir', alvo: nome,
-                      titulo: `${nome}, ${vezes} ${vezes === 1 ? 'vez' : 'vezes'}`,
-                      texto: 'Saber defender a que mais te pega vale mais que aprender um ataque novo.',
+                      titulo: nome,
+                      texto: 'Anda aparecendo nos seus rolas. Saber a saída vale mais que aprender um ataque novo.',
                     }}
                     faixa={settings.faixa}
                     vistas={vistas}

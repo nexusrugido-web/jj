@@ -65,7 +65,7 @@ export default function TaxaPorFaixa({
         <div className="row" style={{ gap: 14, flexWrap: 'wrap' }}>
           <span className="tiny"><i className="taxa-ponto" style={{ background: 'var(--jade)' }} /><b className="num">{t.total.v}</b> <span className="muted">{t.total.v === 1 ? 'vitória' : 'vitórias'}</span></span>
           {t.total.e > 0 && <span className="tiny"><i className="taxa-ponto" style={{ background: 'var(--dim)' }} /><b className="num">{t.total.e}</b> <span className="muted">{t.total.e === 1 ? 'empate' : 'empates'}</span></span>}
-          <span className="tiny"><i className="taxa-ponto" style={{ background: 'var(--blood)' }} /><b className="num">{t.total.d}</b> <span className="muted">{t.total.d === 1 ? 'derrota' : 'derrotas'}</span></span>
+          <span className="tiny"><i className="taxa-ponto" style={{ background: 'var(--dimmer)' }} /><b className="num">{t.total.d}</b> <span className="muted">{t.total.d === 1 ? 'derrota' : 'derrotas'}</span></span>
         </div>
       </div>
 
@@ -81,14 +81,14 @@ export default function TaxaPorFaixa({
                   {l.acima ? 'acima de você' : l.igual ? 'sua faixa' : 'abaixo de você'}
                 </div>
               </div>
-              <span className="num" style={{ fontSize: 22, fontWeight: 800, color: l.taxa >= 50 ? 'var(--jade)' : 'var(--blood)' }}>{l.taxa}%</span>
+              <span className="num" style={{ fontSize: 22, fontWeight: 800, color: l.taxa >= 50 ? 'var(--jade)' : 'var(--chalk)' }}>{l.taxa}%</span>
             </div>
             <BarraVED v={l.v} e={l.e} d={l.d} />
             <div className="micro muted">{l.n} {l.n === 1 ? 'rola' : 'rolas'} com {l.parceiros} {l.parceiros === 1 ? 'parceiro' : 'parceiros'}: {l.v} {l.v === 1 ? 'vitória' : 'vitórias'}, {l.d} {l.d === 1 ? 'derrota' : 'derrotas'}{l.e ? `, ${l.e} ${l.e === 1 ? 'empate' : 'empates'}` : ''}</div>
             <div className="taxa-numeros">
               <div><b className="num" style={{ color: 'var(--jade)' }}>{l.fin}</b><span>venceu no tap</span></div>
               <div><b className="num" style={{ color: 'var(--jade-claro)' }}>{l.pontos}</b><span>venceu no placar</span></div>
-              <div><b className="num" style={{ color: 'var(--blood)' }}>{l.tap}</b><span>{l.tap === 1 ? 'vez que você bateu' : 'vezes que você bateu'}</span></div>
+              <div><b className="num" style={{ color: 'var(--jade)' }}>{l.semBater}</b><span>{l.semBater === 1 ? 'rola sem bater' : 'rolas sem bater'}</span></div>
             </div>
           </div>
         ))}
@@ -131,7 +131,7 @@ function BarraVED({ v, e, d, grossa = false }) {
     <div className={`taxa-ved${grossa ? ' grossa' : ''}`} role="img" aria-label={`${v} vitórias, ${e} empates, ${d} derrotas`}>
       {v > 0 && <i style={{ flex: v / n, background: 'var(--jade)' }} />}
       {e > 0 && <i style={{ flex: e / n, background: 'var(--dim)' }} />}
-      {d > 0 && <i style={{ flex: d / n, background: 'var(--blood)' }} />}
+      {d > 0 && <i style={{ flex: d / n, background: 'var(--dimmer)' }} />}
     </div>
   );
 }

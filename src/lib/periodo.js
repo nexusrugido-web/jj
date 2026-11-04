@@ -99,28 +99,33 @@ export const METRICAS = [
     ],
   },
   {
-    id: 'derrotas',
-    nome: 'Como você perdeu',
-    pergunta: 'Dos rolas que você perdeu, o que decidiu',
-    desc: 'Só as derrotas, separadas do mesmo jeito. Serve pra ver se você está perdendo por tap ou por controle.',
-    eixoY: 'rolas perdidos',
+    /* o que você faz no rola, por tipo: o retrato do jogo crescendo.
+       Só o seu lado; o que fazem em você vira aula, não número */
+    id: 'lances',
+    nome: 'Seus lances',
+    pergunta: 'O que você conquista nos rolas',
+    desc: 'Cada queda, raspagem, passagem, domínio (montada, costas, joelho na barriga) e finalização que você marcou. Mostra o seu jogo ganhando ferramenta nova.',
+    eixoY: 'lances',
     empilhado: true,
     chaves: [
-      { k: 'fuiFinalizado', nome: 'Fui finalizado', cor: 'var(--blood)', explica: 'Você bateu.' },
-      { k: 'perdiPlacar', nome: 'No placar', cor: 'var(--blood-claro)', explica: 'Ninguém bateu: ele terminou na frente nos pontos, ou empatou nos pontos e ganhou na vantagem.' },
+      { k: 'lQueda', nome: 'Quedas', cor: '#7cc4ff', explica: 'Você derrubou.' },
+      { k: 'lRaspagem', nome: 'Raspagens', cor: '#b892ff', explica: 'Você estava por baixo e inverteu.' },
+      { k: 'lPassagem', nome: 'Passagens', cor: 'var(--accent)', explica: 'Você passou a guarda.' },
+      { k: 'lDominio', nome: 'Domínio', cor: 'var(--roar)', explica: 'Montada, costas ou joelho na barriga.' },
+      { k: 'lFinalizacao', nome: 'Finalizações', cor: 'var(--jade)', explica: 'Você encaixou e ele bateu.' },
     ],
   },
   {
-    id: 'balanco',
-    nome: 'Ganhou e perdeu',
-    pergunta: 'Quantos rolas você ganhou e quantos perdeu',
-    desc: 'As vitórias sobem, as derrotas descem. A linha do meio é o zero a zero.',
+    /* defesa contada pelo lado bom: sobreviver também é evolução */
+    id: 'semBater',
+    nome: 'Rolas sem bater',
+    pergunta: 'Em quantos rolas você não bateu',
+    desc: 'Rola inteiro sem dar tap, ganhando ou não. Quando essa linha sobe, a sua defesa está segurando.',
     eixoY: 'rolas',
-    divergente: true,
     chaves: [
-      { k: 'vitorias', nome: 'Venci', cor: 'var(--jade)', explica: 'Rolas que terminaram a seu favor, por qualquer motivo.' },
-      { k: 'derrotas', desce: true, nome: 'Perdi', cor: 'var(--blood)', explica: 'Rolas que terminaram contra você, por qualquer motivo.' },
+      { k: 'semBater', nome: 'Sem bater', cor: 'var(--jade)', explica: 'Rolas em que você não bateu.' },
     ],
+    extras: [{ k: 'rolas', nome: 'Rolas no total', sufixo: '' }],
   },
   {
     id: 'volume',
@@ -136,27 +141,13 @@ export const METRICAS = [
     extras: [{ k: 'horas', nome: 'Horas', sufixo: 'h' }],
   },
   {
-    id: 'finalizacoes',
-    nome: 'Finalizações',
-    pergunta: 'Quantas você deu e quantas você levou',
-    desc: 'Só os taps, dos dois lados: os que você deu sobem, os que você levou descem.',
-    eixoY: 'finalizações',
-    divergente: true,
-    chaves: [
-      { k: 'subsFeitas', nome: 'Você aplicou', cor: 'var(--jade)', explica: 'Finalizações que você encaixou.' },
-      { k: 'subsSofridas', desce: true, nome: 'Você levou', cor: 'var(--blood)', explica: 'Finalizações que aplicaram em você.' },
-    ],
-  },
-  {
     id: 'pontos',
     nome: 'Pontos IBJJF',
-    pergunta: 'Quantos pontos você fez e quantos sofreu',
+    pergunta: 'Quantos pontos você fez',
     desc: 'Queda 2, raspagem 2, joelho na barriga 2, passagem 3, montada 4, costas 4.',
     eixoY: 'pontos',
-    divergente: true,
     chaves: [
       { k: 'ptsFeitos', nome: 'Você fez', cor: 'var(--jade)', explica: 'Soma dos pontos que você conquistou.' },
-      { k: 'ptsSofridos', desce: true, nome: 'Você sofreu', cor: 'var(--blood)', explica: 'Soma dos pontos que ele conquistou em você.' },
     ],
   },
 ];
@@ -216,6 +207,7 @@ export function serieDoPeriodo(sessions, rolls, partners, periodo) {
     let porFinalizacao = 0, porPontos = 0, porVantagem = 0, empates = 0;
     let fuiFinalizado = 0, perdiPontos = 0, perdiVantagem = 0;
     let ptsFeitos = 0, ptsSofridos = 0, conqTotal = 0;
+    let lQueda = 0, lRaspagem = 0, lPassagem = 0, lDominio = 0, semBater = 0;
 
     for (const r of rs) {
       const pl = placarDaRola(r);
@@ -228,6 +220,13 @@ export function serieDoPeriodo(sessions, rolls, partners, periodo) {
       else empates++;
 
       conqTotal += (r.ptsMeus || []).length + (r.subsAplicadas || []).length;
+      for (const id of r.ptsMeus || []) {
+        if (id === 'queda') lQueda++;
+        else if (id === 'raspagem') lRaspagem++;
+        else if (id === 'passagem') lPassagem++;
+        else if (id === 'montada' || id === 'costas' || id === 'joelho') lDominio++;
+      }
+      if (!(r.subsSofridas || []).length && r.resultado !== 'fui_finalizado' && r.resultado !== 'ambos') semBater++;
       ptsFeitos += somarPontos(r.ptsMeus);
       ptsSofridos += somarPontos(r.ptsDele);
     }
@@ -254,6 +253,8 @@ export function serieDoPeriodo(sessions, rolls, partners, periodo) {
       conqTotal,
       conqPorRola: rs.length ? Math.round((conqTotal / rs.length) * 10) / 10 : 0,
       saldo: ptsFeitos - ptsSofridos,
+      lQueda, lRaspagem, lPassagem, lDominio, semBater,
+      lFinalizacao: rs.flatMap((r) => r.subsAplicadas || []).length,
       subsFeitas: rs.flatMap((r) => r.subsAplicadas || []).length,
       subsSofridas: rs.flatMap((r) => r.subsSofridas || []).length,
       nivelMedio,
@@ -478,7 +479,7 @@ export function taxaPorFaixa(sessions, rolls, partners, periodo, minhaFaixa = 'b
   const faixaDe = new Map(partners.map((x) => [x.id, x.faixa || 'branca']));
   const graus = new Map(partners.map((x) => [x.id, x.graus || 0]));
 
-  const zero = () => ({ n: 0, v: 0, d: 0, e: 0, fin: 0, pontos: 0, tap: 0, parceiros: new Set() });
+  const zero = () => ({ n: 0, v: 0, d: 0, e: 0, fin: 0, pontos: 0, tap: 0, semBater: 0, parceiros: new Set() });
   const mapa = Object.fromEntries(FAIXAS_ORDEM.map((f) => [f, zero()]));
   const total = zero();
 
@@ -500,6 +501,7 @@ export function taxaPorFaixa(sessions, rolls, partners, periodo, minhaFaixa = 'b
       if (pl.resultado === 'finalizei') alvo.fin++;
       if (pl.resultado === 'venci_pontos' || pl.resultado === 'venci_vantagem') alvo.pontos++;
       alvo.tap += (r.subsSofridas || []).length;
+      if (!(r.subsSofridas || []).length && r.resultado !== 'fui_finalizado' && r.resultado !== 'ambos') alvo.semBater++;
       alvo.parceiros.add(r.partnerId);
     }
   }
