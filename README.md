@@ -136,6 +136,7 @@ SQL do Supabase: os arquivos de `supabase/` são a versão sem segredo; os pront
 
 Só as últimas, pra saber o estado atual. O detalhe de cada dia fica em `Downloads/neurojitsu-v12_7/NEUROJITSU-RELATORIOS`.
 
+- **04/11/2026**: o cadastro que falta pulsa com brilho (classe `.brilha` no fim do `app.css`, parada com reduced-motion): adicionar parceiro, cadastrar academia, cadastrar professor, nas Abas de Parceiros e no registro do treino. Parceiro só entra com academia cadastrada pelo cadastro completo (nome, cidade, equipe): no registro do rola, sem nenhuma academia, o parceiro rápido abre o `SheetAcademia` do treino em vez de aceitar um nome solto.
 - **04/11/2026**: escolha marcada fica verde em todas as telas (chip, opção, seletor de período, abas, quiz, oferta): camada "SELECIONADO = VERDE" no fim do `app.css`. Menu e botões de ação continuam na cor da marca.
 - **04/11/2026**: onboarding com 11 telas: faixa e graus viraram duas perguntas. Toda escolha de um toque (faixa, graus, tempo, ritmo, duração, o que te move, teste de estilo) avança sozinha e o botão Continuar some nessas telas; ele fica só onde se digita (nome, ano) ou se marca mais de um (o que te trava, metas).
 - **04/11/2026**: "Drill do plano" no cartão do plano abre um treino de Drill já com a finta e os golpes no foco (`?drillPlano=<uid>` em Treinos); drill não conta como luta nem entra na taxa. Na competição, cada luta usa o mesmo "Usou um plano de ataque?" do rola, então o plano pro adversário da chave fica na própria luta.

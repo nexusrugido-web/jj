@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
-import { X, Check, AlertTriangle, Minus, Plus, Search, CalendarDays, Gem, ChevronDown } from 'lucide-react';
+import { X, Check, AlertTriangle, Minus, Plus, Search, CalendarDays, Gem, ChevronDown, Building2 } from 'lucide-react';
 import { useApp } from '../contexto';
 import { hoje, addDias, fmtData } from '../lib/utils';
 import { FAIXAS } from '../db/seed';
@@ -508,19 +508,19 @@ export function EscolhaChips({ valor, onChange, opcoes, permiteLimpar = true }) 
    PARCEIRO RÁPIDO
 
    Nome e faixa, e segue o rola. O parceiro entra na academia do
-   treino; sem academia escolhida, o próprio formulário pergunta
-   (e cadastra, se ainda não existir nenhuma), pra todo parceiro
-   ter academia, como no cadastro completo em Parceiros.
+   treino; sem academia escolhida, o formulário pede uma das
+   cadastradas. Sem nenhuma, a academia vem antes, pelo cadastro
+   completo (onNovaAcademia abre o SheetAcademia do treino): nada
+   de academia nascendo só de um nome digitado aqui.
    ============================================================ */
-export function ParceiroRapido({ valor, partners = [], onEscolher, academias = [], academiaId = null }) {
+export function ParceiroRapido({ valor, partners = [], onEscolher, academias = [], academiaId = null, onNovaAcademia }) {
   const [criando, setCriando] = React.useState(false);
   const [nome, setNome] = React.useState('');
   const [faixa, setFaixa] = React.useState('');
   const [acad, setAcad] = React.useState(null);
-  const [acadNova, setAcadNova] = React.useState('');
   const doTreino = academias.find((a) => a.id === academiaId);
   const acadEscolhida = doTreino?.id || acad;
-  const pronto = nome.trim() && (acadEscolhida || acadNova.trim());
+  const pronto = nome.trim() && acadEscolhida;
   const [salvando, setSalvando] = React.useState(false);
   const toast = useToast();
 
@@ -531,16 +531,12 @@ export function ParceiroRapido({ valor, partners = [], onEscolher, academias = [
     try {
       const { db } = await import('../db/db');
       const existe = partners.find((p) => p.nome.toLowerCase() === n.toLowerCase());
-      let academia = acadEscolhida;
-      if (!existe && !academia) {
-        academia = Number(await db.academies.add({ nome: acadNova.trim(), cidade: '', equipe: '', notas: '', arquivada: 0, criadoEm: Date.now() }));
-      }
       const id = existe ? existe.id : await db.partners.add({
-        nome: n, faixa: faixa || null, graus: 0, academiaId: academia, pesoRel: null,
+        nome: n, faixa: faixa || null, graus: 0, academiaId: acadEscolhida, pesoRel: null,
         notas: '', criadoEm: Date.now(),
       });
       onEscolher(Number(id));
-      setCriando(false); setNome(''); setFaixa(''); setAcad(null); setAcadNova('');
+      setCriando(false); setNome(''); setFaixa(''); setAcad(null);
       if (!existe) toast(`${n} adicionado`);
     } catch {
       toast('Não consegui cadastrar o parceiro. Tente de novo.', 'err');
@@ -573,10 +569,15 @@ export function ParceiroRapido({ valor, partners = [], onEscolher, academias = [
             </div>
           </>
         ) : (
-          <>
-            <div className="micro muted">Onde vocês treinam (vira a sua primeira academia)</div>
-            <Input value={acadNova} onChange={(e) => setAcadNova(e.target.value)} placeholder="Nome da academia" />
-          </>
+          <button type="button" className="valida atencao brilha" onClick={onNovaAcademia} style={{ width: '100%', textAlign: 'left' }}>
+            <Building2 size={15} className="valida-ico" style={{ color: 'var(--roar)' }} />
+            <div style={{ flex: 1 }}>
+              <div className="tiny" style={{ fontWeight: 600 }}>Primeiro, a academia de vocês</div>
+              <p className="micro muted" style={{ marginTop: 3, lineHeight: 1.6 }}>
+                Toque aqui: nome, cidade e equipe. Depois o parceiro entra nela e o nome dele continua aqui.
+              </p>
+            </div>
+          </button>
         )}
         <div className="micro muted">Faixa dele, se você souber</div>
         <div className="row wrap" style={{ gap: 6 }}>
@@ -614,7 +615,7 @@ export function ParceiroRapido({ valor, partners = [], onEscolher, academias = [
           ))}
         </Select>
       )}
-      <button type="button" className="parceiro-rapido-adicionar" onClick={() => setCriando(true)}>
+      <button type="button" className={`parceiro-rapido-adicionar ${partners.length ? '' : 'brilha'}`} onClick={() => setCriando(true)}>
         <span className="parceiro-rapido-mais"><Plus size={16} /></span>
         <span className="parceiro-rapido-texto">
           <strong>{partners.length ? 'Novo parceiro' : 'Adicionar parceiro'}</strong>

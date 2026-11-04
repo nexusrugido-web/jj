@@ -1442,6 +1442,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
                           partners={partners}
                           academias={academias}
                           academiaId={s.academiaId}
+                          onNovaAcademia={() => setCadastro('academia')}
                           onEscolher={(id) => {
                             const peso = partners.find((p) => p.id === id)?.pesoRel;
                             setRola(i, { partnerId: id, ...(peso && !r.pesoRel ? { pesoRel: peso } : {}) });
@@ -1830,7 +1831,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
             </Field>
           )}
           {forma.professor && s.academiaId && (
-            <button type="button" className="btn ghost xs" style={{ alignSelf: 'flex-start' }} onClick={() => setCadastro('professor')}>
+            <button type="button" className={`btn ghost xs ${profsDaAcademia.length ? '' : 'brilha'}`} style={{ alignSelf: 'flex-start' }} onClick={() => setCadastro('professor')}>
               <Plus size={13} /> {profsDaAcademia.length ? 'Outro professor' : 'Cadastrar o professor dessa academia'}
             </button>
           )}
@@ -1850,7 +1851,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
           )}
         </>
       ) : (
-        <button type="button" className="valida atencao" onClick={() => setCadastro('academia')} style={{ width: '100%', textAlign: 'left' }}>
+        <button type="button" className="valida atencao brilha" onClick={() => setCadastro('academia')} style={{ width: '100%', textAlign: 'left' }}>
           <Building2 size={15} className="valida-ico" style={{ color: 'var(--roar)' }} />
           <div style={{ flex: 1 }}>
             <div className="tiny" style={{ fontWeight: 600 }}>Cadastrar sua academia</div>

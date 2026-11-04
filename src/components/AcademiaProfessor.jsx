@@ -33,7 +33,7 @@ export default function AcademiaProfessor({ valor, onChange, onCadastrar }) {
         <Building2 size={15} className="valida-ico" style={{ color: 'var(--dim)' }} />
         <p className="micro muted" style={{ lineHeight: 1.6 }}>
           Cadastre a sua academia e o seu professor em Parceiros e eles aparecem aqui pra escolher.
-          {onCadastrar && <> <button type="button" className="btn ghost xs" onClick={onCadastrar}>Abrir Parceiros</button></>}
+          {onCadastrar && <> <button type="button" className="btn ghost xs brilha" onClick={onCadastrar}>Abrir Parceiros</button></>}
         </p>
       </div>
     );

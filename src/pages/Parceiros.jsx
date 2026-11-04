@@ -150,7 +150,7 @@ export function AbaParceiros() {
             texto={academias.length
               ? 'Cadastre quem você mais rola. Com isso o app mostra contra qual faixa e qual jogo você trava, e o cálculo de domínio passa a pesar a faixa de quem estava do outro lado.'
               : 'Primeiro a academia, depois quem treina nela. Com os parceiros o app mostra contra qual faixa e qual jogo você trava.'}
-            acao={<Btn variant="primary" icon={Plus} onClick={novo}>{academias.length ? 'Cadastrar' : 'Começar pela academia'}</Btn>}
+            acao={<Btn variant="primary" icon={Plus} onClick={novo} className="brilha">{academias.length ? 'Cadastrar' : 'Começar pela academia'}</Btn>}
           />
         </Card>
       ) : (
@@ -332,7 +332,7 @@ function AbaAcademias() {
           Cadastre aqui e no registro de treino você escolhe com um clique, sem digitar nada.
           Cada professor pertence a <b style={{ color: 'var(--chalk)' }}>uma</b> academia.
         </p>
-        <Btn variant="primary" icon={Plus} onClick={() => setEdit(vazioA())} style={{ marginTop: 12 }}>Nova academia</Btn>
+        <Btn variant="primary" icon={Plus} onClick={() => setEdit(vazioA())} style={{ marginTop: 12 }} className={academias.length ? '' : 'brilha'}>Nova academia</Btn>
       </Card>
 
       {academias.length === 0 ? (
@@ -473,7 +473,7 @@ function AbaProfessores() {
             icon={TriangleAlert}
             titulo="Cadastre uma academia primeiro"
             texto="Todo professor pertence a uma academia. Cadastre a academia e, em seguida, o professor."
-            acao={<Btn variant="primary" icon={Plus} onClick={() => setAcademiaNova(true)}>Cadastrar a academia</Btn>}
+            acao={<Btn variant="primary" icon={Plus} onClick={() => setAcademiaNova(true)} className="brilha">Cadastrar a academia</Btn>}
           />
         </Card>
         <SheetAcademia aberto={academiaNova} titulo="Primeiro, a academia" onClose={() => setAcademiaNova(false)}
@@ -488,7 +488,7 @@ function AbaProfessores() {
         <p className="tiny muted">
           Cada professor fica vinculado a uma academia. Ao registrar o treino, escolher a academia já filtra os professores dela.
         </p>
-        <Btn variant="primary" icon={Plus} onClick={() => setEdit(vazioProf(academias[0]?.id))} style={{ marginTop: 12 }}>Novo professor</Btn>
+        <Btn variant="primary" icon={Plus} onClick={() => setEdit(vazioProf(academias[0]?.id))} style={{ marginTop: 12 }} className={professores.length ? '' : 'brilha'}>Novo professor</Btn>
       </Card>
 
       {professores.length === 0 ? (

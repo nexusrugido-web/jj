@@ -3916,3 +3916,21 @@ body::after {
   border-color: color-mix(in srgb, var(--jade) 65%, transparent);
   background: color-mix(in srgb, var(--jade) 10%, var(--void));
 }
+
+/* ============================================================
+   BRILHA (04/11/2026): o próximo cadastro que falta (parceiro,
+   academia, professor) pulsa com um halo, pra pessoa achar onde
+   tocar. Some sozinho quando o cadastro existe (a tela tira a classe).
+   ============================================================ */
+.brilha {
+  position: relative;
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent) !important;
+  animation: brilha 1.8s ease-in-out infinite;
+}
+@keyframes brilha {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent), 0 0 14px -4px color-mix(in srgb, var(--accent) 50%, transparent); }
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent), 0 0 26px 0 color-mix(in srgb, var(--accent) 55%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brilha { animation: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent); }
+}
