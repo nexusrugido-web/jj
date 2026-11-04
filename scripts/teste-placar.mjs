@@ -52,5 +52,16 @@ ok('rola sem bater conta', c.semBater, 2);
 ok('drill não entra', c.rolas, 3);
 ok('total de lances', c.total, 6);
 
+/* conquistas por rola na série do gráfico: lances / rolas, drill fora */
+const { serieDoPeriodo, periodoDeDados } = await import('../src/lib/periodo.js');
+const { hoje } = await import('../src/lib/utils.js');
+const { serie } = serieDoPeriodo([{ id: 9, data: hoje(), duracao: 60 }], [
+  { sessionId: 9, ptsMeus: ['passagem', 'raspagem'], subsAplicadas: ['Armlock'] },
+  { sessionId: 9, ptsMeus: ['queda'], subsSofridas: ['Americana'] },
+  { sessionId: 9, contexto: 'drill', ptsMeus: ['costas'] },
+], [], periodoDeDados('ultimos-30'));
+const dia = serie.find((b) => b.rolas);
+ok('conquistas por rola no gráfico', [dia.conqTotal, dia.conqPorRola], [4, 2]);
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

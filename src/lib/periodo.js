@@ -69,6 +69,20 @@ export function rotuloDoPeriodo(periodo) {
 
 export const METRICAS = [
   {
+    /* a régua que sobe mesmo quando você perde: mede o que você
+       consegue fazer no rola, não como ele terminou */
+    id: 'conquistas',
+    nome: 'Conquistas por rola',
+    pergunta: 'Quantos lances você conquista em cada rola',
+    desc: 'Cada queda, raspagem, passagem, joelho na barriga, montada, costas e finalização que você marcou, dividido pelos rolas. Sobe mesmo quando você perde.',
+    eixoY: 'lances por rola',
+    /* o número de cima é a média do período, não a soma dos meses */
+    razao: { num: 'conqTotal', den: 'rolas' },
+    chaves: [
+      { k: 'conqPorRola', nome: 'Por rola', cor: 'var(--jade)', explica: 'Lances que você conquistou, em média, em cada rola daquele pedaço do tempo.' },
+    ],
+  },
+  {
     id: 'vitorias',
     nome: 'Como você venceu',
     pergunta: 'Dos rolas que você ganhou, o que decidiu',
@@ -201,7 +215,7 @@ export function serieDoPeriodo(sessions, rolls, partners, periodo) {
 
     let porFinalizacao = 0, porPontos = 0, porVantagem = 0, empates = 0;
     let fuiFinalizado = 0, perdiPontos = 0, perdiVantagem = 0;
-    let ptsFeitos = 0, ptsSofridos = 0;
+    let ptsFeitos = 0, ptsSofridos = 0, conqTotal = 0;
 
     for (const r of rs) {
       const pl = placarDaRola(r);
@@ -213,6 +227,7 @@ export function serieDoPeriodo(sessions, rolls, partners, periodo) {
       else if (pl.resultado === 'perdi_vantagem') perdiVantagem++;
       else empates++;
 
+      conqTotal += (r.ptsMeus || []).length + (r.subsAplicadas || []).length;
       ptsFeitos += somarPontos(r.ptsMeus);
       ptsSofridos += somarPontos(r.ptsDele);
     }
@@ -236,6 +251,8 @@ export function serieDoPeriodo(sessions, rolls, partners, periodo) {
       derrotas, empates, vitorias,
       taxaVitoria: pct(vitorias, rs.length),
       ptsFeitos, ptsSofridos,
+      conqTotal,
+      conqPorRola: rs.length ? Math.round((conqTotal / rs.length) * 10) / 10 : 0,
       saldo: ptsFeitos - ptsSofridos,
       subsFeitas: rs.flatMap((r) => r.subsAplicadas || []).length,
       subsSofridas: rs.flatMap((r) => r.subsSofridas || []).length,

@@ -45,6 +45,9 @@ function curva(pts) {
   return d;
 }
 
+/* 2,8 com vírgula; inteiro fica inteiro */
+const fmtNum = (v) => (Number.isInteger(v) ? v : String(v.toFixed(1)).replace('.', ','));
+
 /* linha ou barras: a linha é o padrão, e a escolha fica guardada no aparelho */
 const lerForma = () => { try { return localStorage.getItem('graficoForma') === 'barras' ? 'barras' : 'linha'; } catch { return 'linha'; } };
 
@@ -165,11 +168,14 @@ export default function GraficoEvolucao({
             <div className="eyebrow">{metrica.pergunta}</div>
             <div className="row" style={{ gap: 14, marginTop: 8, flexWrap: 'wrap', alignItems: 'baseline' }}>
               {metrica.chaves.map((c) => {
-                const total = serie.reduce((a, s) => a + (s[c.k] || 0), 0);
+                const soma = (k) => serie.reduce((a, s) => a + (s[k] || 0), 0);
+                const total = metrica.razao
+                  ? (soma(metrica.razao.den) ? soma(metrica.razao.num) / soma(metrica.razao.den) : 0)
+                  : soma(c.k);
                 return (
                   <div key={c.k} className="graf-total">
                     <span className="graf-total-num num" style={{ color: c.cor }}>
-                      {Number.isInteger(total) ? total : total.toFixed(1)}
+                      {fmtNum(total)}
                     </span>
                     <span className="graf-total-lab">{c.nome}</span>
                   </div>
@@ -397,7 +403,7 @@ export default function GraficoEvolucao({
                     <div key={c.k} className="graf-tip-linha">
                       <span className="graf-tip-cor" style={{ background: c.cor }} />
                       <span className="muted">{c.nome}</span>
-                      <b className="num" style={{ marginLeft: 'auto' }}>{serie[hover][c.k] || 0}</b>
+                      <b className="num" style={{ marginLeft: 'auto' }}>{fmtNum(serie[hover][c.k] || 0)}</b>
                     </div>
                   ))}
                   {(metrica.extras || []).map((c) => (

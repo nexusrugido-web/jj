@@ -13,7 +13,7 @@ import ListaResumida from '../components/ListaResumida';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { resumo, escadaPosicional, buracosNoJogo, escadaPareada } from '../lib/stats';
-import { placarDaRola } from '../lib/game';
+import { placarDaRola, conquistas } from '../lib/game';
 import { toCSV } from '../db/db';
 import { baixarArquivo, fmtDur, contar, hoje } from '../lib/utils';
 import { podeVer, pedirOferta } from '../lib/plano';
@@ -26,6 +26,7 @@ export default function Analise() {
   const [periodoId, setPeriodoId] = useState('ultimos-30');
   const [modo, setModo] = useState('todos');
   const [mapaAberto, setMapaAberto] = useState(false);
+  const [verVitoria, setVerVitoria] = useState(false);
 
   /* um período só, e o mesmo objeto filtra os dados e escreve o
      rótulo de cada bloco: o que está escrito é o que foi contado */
@@ -47,6 +48,7 @@ export default function Analise() {
   const rolasF = useMemo(() => rolls.filter((r) => ids.has(r.sessionId)), [rolls, ids]);
 
   const r = useMemo(() => resumo(filtradas, rolasF), [filtradas, rolasF]);
+  const conq = useMemo(() => conquistas(rolasF), [rolasF]);
   const escada = useMemo(() => escadaPosicional(rolasF, positions), [rolasF, positions]);
   const alertas = useMemo(() => buracosNoJogo(rolasF, positions), [rolasF, positions]);
 
@@ -86,7 +88,16 @@ export default function Analise() {
     <div className="grid g4" style={{ marginBottom: 10 }}>
       <Card><Stat icon={Clock} valor={fmtDur(r.matMin)} label="tempo de tatame" sub={`${r.sessoes} ${r.sessoes === 1 ? 'treino' : 'treinos'}`} /></Card>
       <Card><Stat icon={Swords} valor={r.rolas} label="rolas" sub={`${(r.rolas / Math.max(1, r.sessoes)).toFixed(1)} por treino`} /></Card>
-      <Card><Stat icon={Trophy} valor={`${r.taxaVitoria}%`} label="taxa de vitória" tone={r.rolas && r.taxaVitoria >= 50 ? 'jade' : undefined} sub={`${r.vitorias} vitórias · ${r.derrotas} derrotas`} /></Card>
+      {/* conquistas por rola na frente: sobe mesmo quando você perde.
+          Vitória e derrota continuam a um toque, pra quem quiser */}
+      <Card>
+        {verVitoria
+          ? <Stat icon={Trophy} valor={`${r.taxaVitoria}%`} label="taxa de vitória" tone={r.rolas && r.taxaVitoria >= 50 ? 'jade' : undefined} sub={`${r.vitorias} vitórias · ${r.derrotas} derrotas`} />
+          : <Stat icon={Trophy} valor={String((conq.rolas ? conq.total / conq.rolas : 0).toFixed(1)).replace('.', ',')} label="conquistas por rola" tone="jade" sub={`${conq.total} lances em ${conq.rolas} ${conq.rolas === 1 ? 'rola' : 'rolas'}`} />}
+        <button className="btn ghost xs" style={{ marginTop: 6 }} onClick={() => setVerVitoria((v) => !v)}>
+          {verVitoria ? 'ver conquistas por rola' : 'ver vitória e derrota'}
+        </button>
+      </Card>
       <Card><Stat icon={Percent} valor={`${r.subPct}%`} label="rolas com finalização" tone="jade" sub={`${r.tapPct}% com tap sofrido`} /></Card>
     </div>
   );
@@ -215,7 +226,7 @@ export default function Analise() {
             <h2 className="h-sec">Evolução</h2>
           </div>
         </div>
-        <GraficoEvolucao sessions={porModo} rolls={rolasModo} partners={partners} gradings={gradings} periodo={periodo} />
+        <GraficoEvolucao sessions={porModo} rolls={rolasModo} partners={partners} gradings={gradings} periodo={periodo} metricaInicial="conquistas" />
       </Card>
 
       <div className="split" style={{ marginBottom: 14 }}>

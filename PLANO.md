@@ -7,7 +7,7 @@ Decidido em 04/11/2026. Uma tarefa por vez; cada uma termina com `npm run check`
 ## Trilha A: Placar de conquistas
 1. Home mostra "O que você conquistou esta semana" (só o que fez, cada lance contado, rola sem bater conta); "Fui finalizado" sai da home → FEITO.
 2. Cor neutra pra derrota no histórico → FEITO.
-3. Análise: "Conquistas por rola" ao longo dos meses; vitória × derrota num botão.
+3. Análise: "Conquistas por rola" ao longo dos meses; vitória × derrota num botão → FEITO.
 4. Primeiras vezes (marcos automáticos) com figurinha.
 
 ## Trilha B: Tirar o desânimo
