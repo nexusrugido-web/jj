@@ -29,5 +29,21 @@ ok('3h de tatame num dia vira marco', recordes({ recordeTatameDia: 180 }).map((m
 ok('sem os números novos, nada quebra', recordes({}).length, 0);
 ok('todo tipo de frase tem pelo menos 3 opções', Object.entries(FRASES).filter(([, l]) => l.length < 3).map(([k]) => k), []);
 
+/* primeiras vezes: a primeira de cada lance, num faixa acima e em cada parceiro, drill fora */
+const { primeirasVezes } = await import('../src/lib/milestones.js');
+const pv = primeirasVezes([
+  { sessionId: 2, partnerId: 'b', ptsMeus: ['raspagem', 'raspagem'], subsAplicadas: ['Armlock'] },
+  { sessionId: 1, partnerId: 'a', ptsMeus: ['passagem'] },
+  { sessionId: 1, partnerId: 'a', contexto: 'drill', ptsMeus: ['costas'] },
+], [{ id: 'a', nome: 'Léo', faixa: 'branca' }, { id: 'b', nome: 'Rafa', faixa: 'azul' }],
+[{ id: 1, data: '2026-10-01' }, { id: 2, data: '2026-10-08' }], 'branca').map((m) => m.chave);
+ok('primeiras vezes na ordem do treino', pv, [
+  'primeira_passagem', 'primeira_passagem_parceiro_a',
+  'primeira_raspagem', 'primeira_raspagem_faixa_azul', 'primeira_raspagem_parceiro_b',
+  'primeira_finalizacao_faixa_azul', 'primeira_finalizacao_parceiro_b',
+]);
+ok('primeira finalização não duplica o marco antigo', pv.includes('primeira_finalizacao'), false);
+ok('primeiras entram nos marcos', definirMarcos({ ...base, primeiras: [{ chave: 'x', tipo: 'primeira' }] }).some((m) => m.chave === 'x'), true);
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

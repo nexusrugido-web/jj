@@ -65,6 +65,13 @@ export const FRASES = {
     'Não quero ser o melhor da academia. Quero ser melhor que eu no mês passado.',
     'Um treino de cada vez, até a meta bater.',
   ],
+  primeira: [
+    'A primeira a gente nunca esquece. O parceiro também não.',
+    'Treinei tanto que um dia saiu. Hoje foi o dia.',
+    'Saiu no rola, não no drill. Agora é meu.',
+    'Ontem eu só sobrevivia. Hoje eu passei.',
+    'Primeira de muitas, se Deus e o joelho deixarem.',
+  ],
   marco: [
     { t: 'Assuma que o oponente é maior, mais forte e mais rápido. Aí você aprende a vencer com técnica.', autor: 'Hélio Gracie' },
     'Hora no tatame é a única moeda que o jiu-jitsu aceita.',

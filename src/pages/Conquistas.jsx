@@ -37,11 +37,11 @@ function Compartilhar({ tipo, dados, texto, variante, figura, frases, soIcone = 
   );
 }
 
-const ICONES = { horas: Clock, rolas: Swords, dominio: Award, streak: Flame, tecnica: Sparkles, inicio: Check, pontos: Trophy, recorde: Zap };
+const ICONES = { horas: Clock, rolas: Swords, dominio: Award, streak: Flame, tecnica: Sparkles, inicio: Check, pontos: Trophy, recorde: Zap, primeira: Sparkles };
 
 /* qual lista de frases combina com cada marco */
-const frasesDoMarco = (tipo) => (tipo === 'streak' ? 'ofensiva' : tipo === 'recorde' ? 'recorde' : 'marco');
-const seloDoMarco = (tipo) => (tipo === 'recorde' ? 'recorde pessoal' : 'marco atingido');
+const frasesDoMarco = (tipo) => (tipo === 'streak' ? 'ofensiva' : tipo === 'recorde' ? 'recorde' : tipo === 'primeira' ? 'primeira' : 'marco');
+const seloDoMarco = (tipo) => (tipo === 'recorde' ? 'recorde pessoal' : tipo === 'primeira' ? 'primeira vez' : 'marco atingido');
 
 const nomeDaFaixa = (id) => FAIXAS.find((f) => f.id === id)?.nome || id;
 

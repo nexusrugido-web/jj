@@ -9,11 +9,64 @@ import { FAIXAS, faixaValidaNaIdade, proximaFaixa } from './faixas';
    dominada, primeira finalização, graduação.
    ============================================================ */
 
+/* ---------- primeiras vezes ----------
+   O faixa-branca quase não finaliza, mas raspa, passa e derruba
+   bem antes disso. Cada primeira vez vira marco: a primeira de cada
+   lance, a primeira num faixa acima da sua e, pra passagem, raspagem
+   e finalização, a primeira em cada parceiro. Pela data do treino,
+   drill fora. */
+const PRIMEIRA = {
+  queda: 'Primeira queda',
+  passagem: 'Primeira passagem de guarda',
+  raspagem: 'Primeira raspagem',
+  montada: 'Primeira montada',
+  costas: 'Primeira vez nas costas',
+  joelho: 'Primeiro joelho na barriga',
+  finalizacao: 'Primeira finalização',
+};
+/* em cada parceiro, só o que mais marca: passar, raspar, finalizar */
+const NO_PARCEIRO = ['passagem', 'raspagem', 'finalizacao'];
+const ORDEM_FAIXA = { branca: 0, azul: 1, roxa: 2, marrom: 3, preta: 4 };
+
+export function primeirasVezes(rolls, partners, sessions, minhaFaixa = 'branca') {
+  const dataDe = new Map(sessions.map((s) => [s.id, s.data || '']));
+  const parceiro = new Map(partners.map((p) => [p.id, p]));
+  const minha = ORDEM_FAIXA[minhaFaixa] ?? 0;
+  const lutas = rolls
+    .filter((r) => (r.contexto || 'rola') !== 'drill')
+    .sort((a, b) => (dataDe.get(a.sessionId) || '').localeCompare(dataDe.get(b.sessionId) || ''));
+
+  const lista = [];
+  const visto = new Set();
+  const marca = (chave, titulo, texto) => {
+    if (visto.has(chave)) return;
+    visto.add(chave);
+    lista.push({ chave, titulo, texto, tipo: 'primeira', valor: 1 });
+  };
+  for (const r of lutas) {
+    const lances = new Set([...(r.ptsMeus || []), ...((r.subsAplicadas || []).length ? ['finalizacao'] : [])]);
+    const p = parceiro.get(r.partnerId);
+    const faixa = p?.faixa || null;
+    for (const id of lances) {
+      if (!PRIMEIRA[id]) continue;
+      /* a primeira finalização já tem o marco dela (primeira_finalizacao) */
+      if (id !== 'finalizacao') marca(`primeira_${id}`, `${PRIMEIRA[id]} no rola`, 'Contra alguém resistindo de verdade. A primeira é a mais difícil.');
+      if (faixa && (ORDEM_FAIXA[faixa] ?? 0) > minha) {
+        marca(`primeira_${id}_faixa_${faixa}`, `${PRIMEIRA[id]} num faixa-${faixa}`, 'Fazer isso em quem sabe mais que você é sinal de jogo crescendo.');
+      }
+      if (p?.nome && NO_PARCEIRO.includes(id)) {
+        marca(`primeira_${id}_parceiro_${p.id}`, `${PRIMEIRA[id]} em ${p.nome}`, 'Quem tomou vai lembrar. Você também.');
+      }
+    }
+  }
+  return lista;
+}
+
 export const MARCOS_HORAS = [10, 25, 50, 100, 200, 300, 500, 750, 1000];
 export const MARCOS_ROLAS = [10, 50, 100, 250, 500, 1000];
 
-export function definirMarcos({ matHoras, rolas, sessoes, dominadas, primeiraFinalizacao, streakRecorde, semanasRecorde = 0, pontos, primeiraRaspagemAcima, saldoPositivoPesado, taxaVitoria, rolasComPontos, recordeRolasDia = 0, recordeTatameDia = 0 }) {
-  const lista = [];
+export function definirMarcos({ matHoras, rolas, sessoes, dominadas, primeiraFinalizacao, streakRecorde, semanasRecorde = 0, pontos, primeiraRaspagemAcima, saldoPositivoPesado, taxaVitoria, rolasComPontos, recordeRolasDia = 0, recordeTatameDia = 0, primeiras = [] }) {
+  const lista = [...primeiras];
 
   for (const h of MARCOS_HORAS) {
     if (matHoras >= h) lista.push({

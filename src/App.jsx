@@ -24,7 +24,7 @@ import { carregarAjustes, observarAjustes } from './lib/ajustes';
 import { carregarLinks, observarLinks } from './lib/links';
 import { registrarErro, erroDeAcesso } from './lib/monitor';
 import { carregarChaves, carregarRecado, souAdmin, ligada, observarChaves, todasAsChaves, chavesAntesDaTela } from './lib/chaves';
-import { sincronizarMarcos } from './lib/milestones';
+import { sincronizarMarcos, primeirasVezes } from './lib/milestones';
 import { abriuOApp } from './lib/push';
 import useOfensivaSemanal from './lib/useOfensivaSemanal';
 import { analisarJogo } from './lib/game';
@@ -495,6 +495,7 @@ export default function App() {
         rolasComPontos: jogo.rolas,
         recordeRolasDia: Math.max(0, ...rolasNoDia.values()),
         recordeTatameDia: Math.max(0, ...tatameNoDia.values()),
+        primeiras: primeirasVezes(rolls, partners, sessions, settings.faixa),
       });
 
       if (novos.length && settings.celebrar !== false && marcosChecados.current) {

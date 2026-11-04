@@ -136,6 +136,7 @@ SQL do Supabase: os arquivos de `supabase/` são a versão sem segredo; os pront
 
 Só as últimas, pra saber o estado atual. O detalhe de cada dia fica em `Downloads/neurojitsu-v12_7/NEUROJITSU-RELATORIOS`.
 
+- **04/11/2026**: primeiras vezes viram marco (`primeirasVezes()` em `src/lib/milestones.js`, tipo `primeira`): a primeira de cada lance no rola, a primeira num faixa acima ("Primeira raspagem num faixa-azul") e, pra passagem, raspagem e finalização, a primeira em cada parceiro. Pela data do treino, drill fora. Na tela Conquistas ganham selo "primeira vez" e frases próprias na figurinha (`FRASES.primeira`). Teste em `teste:marcos`.
 - **04/11/2026**: Análise abre em "Conquistas por rola" (lances que você marcou ÷ rolas, por mês ou semana; sobe mesmo quando você perde). Métrica `conquistas` em `METRICAS` (`src/lib/periodo.js`, campo `razao` faz o número de cima ser média e não soma); o quadro de taxa de vitória virou "conquistas por rola" com botão "ver vitória e derrota".
 - **04/11/2026**: derrota sem vermelho no histórico (Treinos e calendário): resultado, placar dele e o que ele fez aparecem em cor neutra; verde marca o que deu certo (`TOM_RESULTADO` em `src/lib/game.js`).
 - **04/11/2026**: no Painel, o placar virou "O que você conquistou esta semana": cada passagem, raspagem, queda, montada, costas, joelho e finalização marcada, contada cada vez, e os rolas sem bater (`conquistas()` em `src/lib/game.js`, teste em `teste:placar`). "Fui finalizado" saiu da home; o que te pega fica no Meu Jogo. Trilhas A a D em `PLANO.md`.
