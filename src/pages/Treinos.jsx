@@ -181,6 +181,24 @@ export default function Treinos() {
   useEffect(() => {
     const q = new URLSearchParams(location.search);
     if (q.get('novo')) { abrirNova(); return; }
+    /* drill do plano: treino de Drill já com os golpes da corrente no foco */
+    const drillPlano = q.get('drillPlano');
+    if (drillPlano) {
+      db.attackPlans.where('uid').equals(drillPlano).first().then((p) => {
+        if (!p) return;
+        const c = correnteDoPlano(p);
+        const nomes = [...new Set([c.finta, ...c.passos.map((x) => x.golpe)].filter(Boolean))];
+        const porNome = new Map(techniques.map((t) => [String(t.nome).toLowerCase(), t]));
+        setEditando({
+          ...novaSessao(settings, 'drill'),
+          foco: `Drill do plano: ${p.nome}`,
+          focoTecnicas: nomes.map((n) => ({ tecnicaId: porNome.get(n.toLowerCase())?.id || null, nome: n, aprendizado: null })),
+        });
+        setRolasEdit([]);
+        setTela('hub');
+      });
+      return;
+    }
     const id = Number(q.get('abrir'));
     if (id) {
       setAberta(id);

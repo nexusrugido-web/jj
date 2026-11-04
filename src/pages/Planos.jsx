@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Plus, Play, Copy, Pencil, Trash2, Route, ChevronRight, RotateCcw, X } from 'lucide-react';
+import { Plus, Play, Copy, Pencil, Trash2, Route, ChevronRight, RotateCcw, X, Repeat } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useApp } from '../contexto';
 import { db } from '../db/db';
@@ -23,7 +23,7 @@ import { PESO_REL } from '../db/scoring';
    pronto) e vê todos os prontos; o Premium não tem limite.
    ============================================================ */
 export default function Planos() {
-  const { positions = [], techniques = [], categories = [], settings, acesso, rolls = [], partners = [] } = useApp();
+  const { positions = [], techniques = [], categories = [], settings, acesso, rolls = [], partners = [], irPara } = useApp();
   const toast = useToast();
   const todos = useLiveQuery(() => db.attackPlans.toArray(), [], []) || [];
   const meus = useMemo(() => meusPlanos(todos), [todos]);
@@ -72,6 +72,7 @@ export default function Planos() {
             {meus.map((p) => (
               <CartaoPlano key={p.id} p={p} onAssistir={() => setAssistindo(p)}
                 acerto={<AcertoDoPlano p={p} rolls={rolls} partners={partners} porTipo={premium} />}>
+                <Btn size="sm" variant="ghost" icon={Repeat} onClick={() => irPara('treinos', { drillPlano: p.uid })}>Drill do plano</Btn>
                 <Btn size="sm" variant="ghost" icon={Pencil} onClick={() => setEdit(paraEditar(p))}>Editar</Btn>
                 <Btn size="sm" variant="ghost" icon={Trash2} onClick={() => setApagar(p)} aria-label="Apagar" />
               </CartaoPlano>
