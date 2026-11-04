@@ -46,9 +46,11 @@ export const ROTULO_RESULTADO = {
   empate: 'Empate',
 };
 
+/* derrota sem vermelho: no histórico, perder de um mais graduado é
+   o normal do treino, não um alarme. Verde marca o que deu certo */
 export const TOM_RESULTADO = {
   finalizei: 'jade', venci_pontos: 'jade', venci_vantagem: 'jade',
-  fui_finalizado: 'blood', perdi_pontos: 'blood', perdi_vantagem: 'blood',
+  fui_finalizado: '', perdi_pontos: '', perdi_vantagem: '',
   ambos: 'warn', empate: '',
 };
 

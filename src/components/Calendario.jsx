@@ -287,7 +287,7 @@ function DetalheDia({ d, onClose, rolls, partners, aoAbrirTreino }) {
                             <div className="row wrap" style={{ gap: 10, marginTop: 9, alignItems: 'center' }}>
                               <span className="num" style={{ fontSize: 19, fontWeight: 700, color: 'var(--jade)' }}>{pl.meus}</span>
                               <span className="micro muted">×</span>
-                              <span className="num" style={{ fontSize: 19, fontWeight: 700, color: 'var(--blood)' }}>{pl.dele}</span>
+                              <span className="num" style={{ fontSize: 19, fontWeight: 700, color: 'var(--dim)' }}>{pl.dele}</span>
                               <Chip tone={TOM_RESULTADO[pl.resultado] || ''}>{ROTULO_RESULTADO[pl.resultado]}</Chip>
                               {r.posInicial && <span className="micro muted">de {posInicialPorId[r.posInicial]?.nome}</span>}
                             </div>
@@ -300,7 +300,7 @@ function DetalheDia({ d, onClose, rolls, partners, aoAbrirTreino }) {
                                 })}
                                 {agruparPontos(r.ptsDele).map((x) => {
                                   const tecs = (r.tecDele || {})[x.id] || [];
-                                  return <Chip key={'pd' + x.id} tone="blood">▼ {tecs.length ? [...new Set(tecs)].join(' + ') : x.nome}{x.n > 1 && <b className="num"> ×{x.n}</b>}</Chip>;
+                                  return <Chip key={'pd' + x.id} tone="">▼ {tecs.length ? [...new Set(tecs)].join(' + ') : x.nome}{x.n > 1 && <b className="num"> ×{x.n}</b>}</Chip>;
                                 })}
                               </div>
                             )}
@@ -308,7 +308,7 @@ function DetalheDia({ d, onClose, rolls, partners, aoAbrirTreino }) {
                             {((r.subsAplicadas || []).length > 0 || (r.subsSofridas || []).length > 0) && (
                               <div className="row wrap" style={{ gap: 5, marginTop: 7 }}>
                                 {(r.subsAplicadas || []).map((x, k) => <Chip key={'a' + k} tone="jade">▲ {x}</Chip>)}
-                                {(r.subsSofridas || []).map((x, k) => <Chip key={'s' + k} tone="blood">▼ {x}</Chip>)}
+                                {(r.subsSofridas || []).map((x, k) => <Chip key={'s' + k} tone="">▼ {x}</Chip>)}
                               </div>
                             )}
 

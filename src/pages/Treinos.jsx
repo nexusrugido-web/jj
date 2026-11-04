@@ -752,7 +752,7 @@ export default function Treinos() {
                           <div className="row wrap" style={{ gap: 9, marginTop: 10, alignItems: 'center' }}>
                             <span className="num" style={{ fontSize: 20, fontWeight: 700, color: 'var(--jade)' }}>{pl.meus}</span>
                             <span className="micro muted">×</span>
-                            <span className="num" style={{ fontSize: 20, fontWeight: 700, color: 'var(--blood)' }}>{pl.dele}</span>
+                            <span className="num" style={{ fontSize: 20, fontWeight: 700, color: 'var(--dim)' }}>{pl.dele}</span>
                             <span className="micro muted">pontos</span>
                             {((r.vantMinhas || 0) > 0 || (r.vantDele || 0) > 0) && (
                               <span className="micro muted num">· vant {r.vantMinhas || 0}×{r.vantDele || 0}</span>
@@ -775,7 +775,7 @@ export default function Treinos() {
                             {agruparPontos(r.ptsDele).map((x) => {
                               const tecs = (r.tecDele || {})[x.id] || [];
                               return (
-                                <Chip key={'pd' + x.id} tone="blood">
+                                <Chip key={'pd' + x.id} tone="">
                                   ▼ {tecs.length ? [...new Set(tecs)].join(' + ') : x.nome}
                                   {x.n > 1 && <b className="num"> ×{x.n}</b>}
                                 </Chip>
@@ -787,14 +787,14 @@ export default function Treinos() {
                         {((r.subsAplicadas || []).length > 0 || (r.subsSofridas || []).length > 0) && (
                           <div className="row wrap" style={{ gap: 5, marginTop: 9 }}>
                             {agrupar(r.subsAplicadas).map(([x, n]) => <Chip key={'a' + x} tone="jade">▲ {x}{n > 1 && <b className="num"> ×{n}</b>}</Chip>)}
-                            {agrupar(r.subsSofridas).map(([x, n]) => <Chip key={'s' + x} tone="blood">▼ {x}{n > 1 && <b className="num"> ×{n}</b>}</Chip>)}
+                            {agrupar(r.subsSofridas).map(([x, n]) => <Chip key={'s' + x} tone="">▼ {x}{n > 1 && <b className="num"> ×{n}</b>}</Chip>)}
                           </div>
                         )}
 
                         {((r.posDominadas || []).length > 0 || (r.posSofridas || []).length > 0) && (
                           <div className="row wrap" style={{ gap: 5, marginTop: 7 }}>
                             {(r.posDominadas || []).map((id) => posById[id] && <Chip key={'pd' + id} tone="jade">{posById[id].nome}</Chip>)}
-                            {(r.posSofridas || []).map((id) => posById[id] && <Chip key={'ps' + id} tone="blood">{posById[id].nome}</Chip>)}
+                            {(r.posSofridas || []).map((id) => posById[id] && <Chip key={'ps' + id} tone="">{posById[id].nome}</Chip>)}
                           </div>
                         )}
 
