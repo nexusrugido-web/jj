@@ -17,8 +17,16 @@ Decidido em 04/11/2026. Uma tarefa por vez; cada uma termina com `npm run check`
 - 10 Home com 4 coisas (conquistas, o que fazer hoje, metas, ofensiva); resto em "Ver mais", explicação no "?" → FEITO
 - 11 No máximo 1 vitrine Premium por tela → FEITO
 
-## Trilha D: Registro do rola em 10 segundos
-Medir o registro de verdade, mostrar como ficaria antes de mexer.
+## Trilha D: Registro do rola em 10 segundos (proposta, aguardando o ok)
+Medido em 04/11/2026 (`corpoDaRola` em `src/pages/Treinos.jsx`): **10 blocos em sequência** (parceiro, peso, duração + de onde começou, plano, anotação, placar, pontos meus + vantagens, pontos dele + vantagens, eu finalizei, ele me finalizou). Um rola comum (passou 1x, raspou 1x, levou 1 passagem) pede ~8 toques e rolar a tela inteira; "de onde começou" é um select (2 toques) e o peso só vem sozinho quando o parceiro tem peso no cadastro.
+
+Proposta:
+1. Topo: parceiro em chips (os 6 mais recentes, 1 toque); peso e altura vêm do cadastro.
+2. Um bloco só, "O que rolou": grade de toques, os meus lances em verde e os dele em neutro; cada toque soma (2x passou = 2 toques). Finalização abre as mais usadas em chips.
+3. Placar ao vivo embaixo da grade.
+4. "Mais detalhes" recolhido: duração, de onde começou, vantagens, técnica de cada ponto, plano de ataque, anotação.
+5. "Próximo rola" já abre o seguinte do mesmo jeito.
+Meta: rola comum em ~4 toques, sem rolar a tela. Verificar: contar os toques antes e depois num teste, e o teste de telas continua verde.
 
 ## Planos de ataque: o que já existe (não refazer)
 - Tabela local `attackPlans` com sync (`src/db/db.js:69`, `src/lib/sync.js:109`) e 16 planos prontos em `src/db/attackPlans.js` (passos `gatilho → acao → seFalhar → proxima`). Nenhuma tela usa.
