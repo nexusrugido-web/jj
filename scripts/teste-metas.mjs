@@ -65,6 +65,28 @@ const defesaNova = { tipo: 'defesa', alvo: 'Americana da guarda', origem: 'usuar
 ok('meta de defesa recém-criada, nunca pego: não nasce batida', progressoDaMeta(defesaNova, { buracos: [] }).pct, 0);
 ok('10 dias depois do começo, sem ser pego: 10 de 30', progressoDaMeta({ ...defesaNova, inicio: addDias(hoje(), -10) }, { buracos: [] }).atual, 10);
 ok('pego depois do começo: conta da última vez', progressoDaMeta({ ...defesaNova, inicio: addDias(hoje(), -20) }, { buracos: [{ nome: 'Americana da guarda', ultima: addDias(hoje(), -3) }] }).atual, 3);
+/* zerou, mas o recorde fica: 17 dias limpos antes de pegar de novo há 3 */
+const pego = progressoDaMeta({ ...defesaNova, inicio: addDias(hoje(), -20) }, {
+  buracos: [{ nome: 'Americana da guarda', ultima: addDias(hoje(), -3) }],
+  sessions: [{ id: 1, data: addDias(hoje(), -3) }],
+  rolls: [{ sessionId: 1, subsSofridas: ['Americana da guarda'] }],
+});
+ok('zerou: o recorde de antes continua', [pego.atual, pego.recorde], [3, 17]);
+ok('o recorde aparece na linha', /recorde: 17 dias/.test(pego.quando), true);
+
+/* volta depois de sumir: o treino da volta é festa, não conta de dias parado */
+const { estadoDeAusencia } = await import('../src/lib/retencao.js');
+const volta = estadoDeAusencia([{ data: addDias(hoje(), -40) }, { data: addDias(hoje(), -2) }]);
+ok('voltou depois de 38 dias', [volta.voltou, volta.parado, volta.sumiu], [true, 38, false]);
+ok('treino normal não vira volta', !!estadoDeAusencia([{ data: addDias(hoje(), -5) }, { data: addDias(hoje(), -2) }]).voltou, false);
+ok('sumido não conta os dias no título', /dias sem/.test(estadoDeAusencia([{ data: addDias(hoje(), -30) }]).titulo), false);
+
+/* campeonato que passou: competiu (registrado) ou "como foi?", nunca "passou" com a barra cheia */
+const camp = { tipo: 'competicao', origem: 'usuario', status: 'ativa', data: addDias(hoje(), -2), criadoEm: addDias(hoje(), -30) };
+ok('campeonato registrado: competiu', progressoDaMeta(camp, { sessions: [{ id: 1, tipo: 'competicao', data: addDias(hoje(), -2) }] }).valor, 'competiu');
+const semReg = progressoDaMeta(camp, { sessions: [] });
+ok('campeonato sem registro: pergunta como foi, sem barra cheia', [semReg.valor, semReg.pct], ['como foi?', 0]);
+ok('no dia: é hoje', progressoDaMeta({ ...camp, data: hoje() }, { sessions: [] }).valor, 'é hoje');
 
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

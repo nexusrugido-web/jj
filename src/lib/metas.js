@@ -491,6 +491,18 @@ function calcular(meta, dados = {}) {
     const dias = desde ? Math.max(0, diasEntre(desde, hoje())) : 0;
     const feito = Math.min(dias, DIAS_SEM_SER_PEGO);
     const nome = String(meta.alvo).toLowerCase();
+    /* o recorde não volta pro zero: a maior sequência sem ser pego
+       desde o começo da meta, contando a de agora. Zerar dói menos
+       quando o "18 dias" que você já fez continua na tela */
+    const alvoMeta = String(meta.alvo).trim();
+    const dataDe = new Map(sessions.map((s) => [s.id, s.data]));
+    const marcos = [...new Set((dados.rolls || [])
+      .filter((r) => (r.subsSofridas || []).some((x) => String(x).trim() === alvoMeta))
+      .map((r) => dataDe.get(r.sessionId))
+      .filter((d) => d && (!meta.inicio || d >= meta.inicio)))].sort();
+    const pontas = [meta.inicio, ...marcos, hoje()].filter(Boolean);
+    let recorde = feito;
+    for (let i = 1; i < pontas.length; i++) recorde = Math.max(recorde, Math.min(DIAS_SEM_SER_PEGO, diasEntre(pontas[i - 1], pontas[i])));
     return {
       conta: true,
       invertida: true,
@@ -499,10 +511,14 @@ function calcular(meta, dados = {}) {
       alvo: DIAS_SEM_SER_PEGO,
       pct: pct(feito, DIAS_SEM_SER_PEGO),
       valor: `${feito} de ${DIAS_SEM_SER_PEGO} dias`,
-      quando: b?.ultima ? `Sem bater pra ${nome} desde ${fmtData(b.ultima)}` : 'Nenhuma vez registrada',
+      recorde,
+      quando: (b?.ultima ? `Sem bater pra ${nome} desde ${fmtData(b.ultima)}` : 'Nenhuma vez registrada')
+        + (recorde > feito ? ` · seu recorde: ${recorde} ${recorde === 1 ? 'dia' : 'dias'}` : ''),
       texto: feito >= DIAS_SEM_SER_PEGO
         ? `${DIAS_SEM_SER_PEGO} dias sem ${nome} te pegar. Meta batida.`
-        : `${feito} ${feito === 1 ? 'dia' : 'dias'} sem ${nome} te pegar. A meta é ${DIAS_SEM_SER_PEGO}; se pegar de novo, a contagem recomeça.`,
+        : recorde > feito
+          ? `${feito} ${feito === 1 ? 'dia' : 'dias'} sem ${nome} te pegar. O seu recorde é ${recorde}, e ele não some: é a prova de que a defesa já existe.`
+          : `${feito} ${feito === 1 ? 'dia' : 'dias'} sem ${nome} te pegar. A meta é ${DIAS_SEM_SER_PEGO}; se pegar de novo, a contagem recomeça e o recorde fica guardado.`,
     };
   }
 
@@ -588,18 +604,34 @@ function calcular(meta, dados = {}) {
        porque ninguém adianta um campeonato no dedo. */
     const dias = meta.data ? diasEntre(hoje(), meta.data) : null;
     const prazo = meta.data ? Math.max(1, diasEntre(meta.criadoEm || hoje(), meta.data)) : 1;
+    /* passou a data: "passou" com a barra cheia parecia meta vencida.
+       Se a competição está registrada, competiu (com ou sem medalha,
+       subir no tatame de campeonato já conta). Se não, a pergunta é
+       como foi, não um prazo estourado */
+    if (dias !== null && dias < 0) {
+      const foi = sessions.find((x) => x.tipo === 'competicao' && Math.abs(diasEntre(meta.data, x.data)) <= 3);
+      return foi ? {
+        conta: true, semBotao: true, atual: 1, alvo: 1, pct: 100,
+        valor: 'competiu', quando: `Campeonato em ${fmtData(foi.data)}`,
+        texto: 'Você subiu no tatame de campeonato. Com ou sem medalha, isso já conta.',
+      } : {
+        conta: true, semBotao: true, atual: 0, alvo: 1, pct: 0,
+        valor: 'como foi?', quando: `Campeonato em ${fmtData(meta.data)}`,
+        texto: 'Registre como foi em Treinos, no tipo Competição. Vale mesmo sem medalha.',
+      };
+    }
     return {
       conta: true, semBotao: true,
       atual: dias === null ? 0 : Math.max(0, prazo - dias),
       alvo: prazo,
-      valor: dias === null ? 'sem data' : dias > 0 ? `${dias} ${dias === 1 ? 'dia' : 'dias'}` : 'passou',
+      valor: dias === null ? 'sem data' : dias > 0 ? `${dias} ${dias === 1 ? 'dia' : 'dias'}` : 'é hoje',
       quando: meta.data ? `Campeonato em ${fmtData(meta.data)}` : 'Sem data definida',
       pct: dias === null ? 0 : dias <= 0 ? 100 : Math.round(((prazo - dias) / prazo) * 100),
       texto: dias === null
         ? 'Sem data definida. Preencha quando souber.'
         : dias > 0
           ? `Faltam ${dias} ${dias === 1 ? 'dia' : 'dias'}.`
-          : 'A data já passou. Registre como foi em Treinos, no tipo Competição.',
+          : 'É hoje. Aquece, respira e luta o seu jogo.',
     };
   }
 

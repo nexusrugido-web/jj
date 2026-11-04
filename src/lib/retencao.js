@@ -55,8 +55,21 @@ export function estadoDeAtivacao(sessions, rolls, tecnicas = []) {
 export function estadoDeAusencia(sessions) {
   if (!sessions.length) return { sumiu: false, dias: null };
 
-  const ultimo = sessions.map((s) => s.data).sort().pop();
+  const datas = [...new Set(sessions.map((s) => s.data))].sort();
+  const ultimo = datas[datas.length - 1];
   const dias = diasEntre(ultimo, hoje());
+
+  /* voltou: treinou nesta semana depois de 3 semanas ou mais longe.
+     A volta merece festa, não a conta dos dias parado */
+  const anterior = datas[datas.length - 2];
+  const parado = anterior ? diasEntre(anterior, ultimo) : 0;
+  if (dias < 7 && parado >= 21) {
+    return {
+      sumiu: false, voltou: true, dias, ultimo, parado,
+      titulo: 'Voltou pro tatame',
+      texto: `Primeiro treino depois de ${parado >= 60 ? `${Math.round(parado / 30)} meses` : `${parado} dias`}. Grau não desce: as suas técnicas e o seu histórico estão do jeito que você deixou. Agora é ir tirando a ferrugem.`,
+    };
+  }
 
   if (dias < 10) return { sumiu: false, dias, ultimo };
 
@@ -72,7 +85,7 @@ export function estadoDeAusencia(sessions) {
   if (dias < 60) {
     return {
       sumiu: true, nivel: 'medio', dias, ultimo,
-      titulo: `${dias} dias sem registro`,
+      titulo: 'O tatame continua aí',
       texto: 'Lesão, trabalho, cabeça cheia, acontece com todo mundo que treina. Quando voltar, o seu histórico está inteiro esperando.',
       acao: 'Ver o que eu já tinha',
     };

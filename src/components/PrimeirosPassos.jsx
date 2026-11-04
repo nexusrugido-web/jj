@@ -61,7 +61,7 @@ export function PrimeirosPassos({ sessions, rolls, tecnicas, irPara }) {
    ============================================================ */
 export function AvisoDeVolta({ sessions, irPara, onDispensar }) {
   const a = useMemo(() => estadoDeAusencia(sessions), [sessions]);
-  if (!a.sumiu) return null;
+  if (!a.sumiu && !a.voltou) return null;
 
   return (
     <Card style={{ marginBottom: 14 }}>
@@ -70,10 +70,10 @@ export function AvisoDeVolta({ sessions, irPara, onDispensar }) {
         <div style={{ flex: 1 }}>
           <div className="h-sec">{a.titulo}</div>
           <p className="tiny muted" style={{ marginTop: 6, lineHeight: 1.7 }}>{a.texto}</p>
-          <div className="row wrap" style={{ gap: 8, marginTop: 13 }}>
-            <Btn size="sm" variant="primary" onClick={() => irPara('treinos', { novo: 1 })}>{a.acao}</Btn>
+          {(a.acao || onDispensar) && <div className="row wrap" style={{ gap: 8, marginTop: 13 }}>
+            {a.acao && <Btn size="sm" variant="primary" onClick={() => irPara('treinos', { novo: 1 })}>{a.acao}</Btn>}
             {onDispensar && <Btn size="sm" variant="ghost" onClick={onDispensar}>Fechar</Btn>}
-          </div>
+          </div>}
         </div>
       </div>
     </Card>
