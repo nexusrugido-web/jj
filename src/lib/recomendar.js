@@ -41,14 +41,14 @@ const NOME_PARCEIRO = (partners, id) => partners.find((p) => p.id === id)?.nome 
 const FALA = {
   corrigir: {
     branca: (d) => [
-      `${d.nome} te pegou ${d.vezes} vezes${d.ondeTxt}. Nessa fase, aprender a sair de posição ruim rende mais do que qualquer ataque novo. Pede pro professor um posicional começando daí.`,
-      `Você bateu ${d.vezes} vezes de ${d.nome}${d.ondeTxt}. Antes de estudar defesa específica, vale garantir a base: proteger o pescoço, o cotovelo colado, e o quadril se mexendo.`,
-      `${d.nome}, ${d.vezes} vezes${d.ondeTxt}. Não é vergonha nenhuma, é o que mais acontece no primeiro ano. Fala com o professor que ele te mostra a saída.`,
+      `${d.nome} anda aparecendo nos seus rolas${d.ondeTxt}. Nessa fase, aprender a sair de posição ruim rende mais do que qualquer ataque novo. Pede pro professor um posicional começando daí.`,
+      `${d.nome} tem aparecido nos seus rolas${d.ondeTxt}. Antes de estudar defesa específica, vale garantir a base: proteger o pescoço, o cotovelo colado, e o quadril se mexendo.`,
+      `${d.nome} tá aparecendo${d.ondeTxt}. Não é vergonha nenhuma, é o que mais acontece no primeiro ano. Fala com o professor que ele te mostra a saída.`,
     ],
-    azul: (d) => `${d.nome} continua te pegando, ${d.vezes} vezes${d.ondeTxt}. Já não é falta de conhecer a saída, é timing. Um posicional repetido começando nessa posição resolve mais rápido do que estudar defesa nova.`,
-    roxa: (d) => `${d.nome} aparece ${d.vezes} vezes contra você${d.ondeTxt}. Nessa altura o furo costuma estar duas etapas antes, na hora que você deixa a pegada nascer. Vale filmar um rola e olhar o começo.`,
-    marrom: (d) => `${d.nome} ainda passa, ${d.vezes} vezes${d.ondeTxt}. Provavelmente é um detalhe de quadril ou de mão, não de conceito. Testa uma variação de frame no posicional.`,
-    preta: (d) => `${d.nome} segue entrando ${d.vezes} vezes${d.ondeTxt}. Vale mapear quem aplica e como, porque nesse nível costuma ser um estilo específico e não uma falha geral.`,
+    azul: (d) => `${d.nome} continua aparecendo${d.ondeTxt}. Já não é falta de conhecer a saída, é timing. Um posicional repetido começando nessa posição resolve mais rápido do que estudar defesa nova.`,
+    roxa: (d) => `${d.nome} aparece contra você${d.ondeTxt}. Nessa altura o furo costuma estar duas etapas antes, na hora que você deixa a pegada nascer. Vale filmar um rola e olhar o começo.`,
+    marrom: (d) => `${d.nome} ainda passa${d.ondeTxt}. Provavelmente é um detalhe de quadril ou de mão, não de conceito. Testa uma variação de frame no posicional.`,
+    preta: (d) => `${d.nome} segue entrando${d.ondeTxt}. Vale mapear quem aplica e como, porque nesse nível costuma ser um estilo específico e não uma falha geral.`,
   },
   repetir: {
     branca: (d) => [
@@ -221,7 +221,7 @@ export function gerarRecomendacoes({
         vezes: buracoQuente.vezes,
         ondeTxt: buracoQuente.inicioComum ? ', quase sempre em rola que começou na mesma posição' : '',
       }),
-      evidencia: `${buracoQuente.vezes} vezes sofrida, ${buracoQuente.recente} no último mês`,
+      evidencia: buracoQuente.recente ? 'apareceu no último mês' : 'apareceu nos seus rolas',
     });
   }
 

@@ -319,6 +319,24 @@ for (let d = 0; d < 7; d++) {
   const t = (await pg.query('select public.aviso_do_dia($1, null) as a', [String(d)])).rows[0].a;
   assert.ok(t.titulo && [...t.titulo].length <= 30 && [...t.corpo].length <= 75 && !/liga/i.test(t.corpo), `frase do dia ${d}`);
 }
+// 51: aviso sem número que desanima
+const sql51 = (await fs.readFile(new URL('../supabase/51-avisos-sem-desanimo.sql', import.meta.url), 'utf8')).replaceAll('now()', 'public.agora()');
+await pg.exec(sql51);
+await pg.exec(sql51); // reexecução segura
+{
+  const pega = (await pg.query('select public.aviso_do_dia($1, $2) as a', ['pega', JSON.stringify({ pega: { nome: 'Mata-leão', vezes: 4 } })])).rows[0].a;
+  assert.equal(pega.corpo, 'Mata-leão tá aparecendo nos rolas. Bora ver a saída?');
+  assert.ok(!/\d/.test(pega.titulo + pega.corpo), 'o aviso do golpe não conta vezes');
+  const t = (await pg.query('select public.aviso_do_dia($1, $2) as a', ['pega', JSON.stringify({ pega: { nome: longo, vezes: 12 } })])).rows[0].a;
+  assert.ok([...t.titulo].length <= 30 && [...t.corpo].length <= 75, `aviso pega longo: ${t.corpo}`);
+  await pg.query("update liga_membro set resultado='desceu' where user_id=$1 and liga_id=71", [uid(10)]);
+  const r = (await pg.query("select public.resumo_da_semana($1, '2026-09-28') as r", [uid(10)])).rows[0].r;
+  assert.equal(r.corpo, 'Divisão nova nesta semana: bora pontuar. 1 técnica subiu de grau.');
+  await pg.query("update registros set deleted_at=public.agora() where user_id=$1 and tabela='sessions'", [uid(10)]);
+  const z = (await pg.query("select public.resumo_da_semana($1, '2026-09-28') as r", [uid(10)])).rows[0].r;
+  assert.deepEqual([z.titulo, z.corpo], ['📊 Sua semana na liga', 'Divisão nova nesta semana: bora pontuar. 1 técnica subiu de grau.']);
+  assert.ok(!/caiu|sem treino/i.test(z.titulo + z.corpo), 'resumo sem caiu e sem semana sem treino');
+}
 // o "a liga fecha hoje" de domingo de manhã saiu
 await pg.query('delete from notificacao_envio');
 assert.deepEqual((await filaPara(7, '2026-09-27 10:10-03')).map((x) => x.tipo).filter((x) => x === 'liga'), [], 'domingo de manhã não tem mais aviso de liga');

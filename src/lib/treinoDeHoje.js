@@ -70,7 +70,7 @@ export function treinoDeHoje({ sessions = [], esteira = [], buracos = [], jogo =
 
   const pega = buracos.find((b) => (b.vezes || 0) >= 2);
   if (pega) {
-    linhas.push({ id: 'cuidado', icone: '⚠️', forte: pega.nome, texto: `Cuidado com ${artigo(pega.nome)} ${pega.nome}: te pegou ${pega.vezes} vezes` });
+    linhas.push({ id: 'cuidado', icone: '⚠️', forte: pega.nome, texto: `Cuidado com ${artigo(pega.nome)} ${pega.nome}: anda aparecendo nos seus rolas` });
   }
 
   /* de onde você mais ganha: posição com 3+ rolas e mais da metade vencida */

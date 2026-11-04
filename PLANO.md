@@ -23,7 +23,7 @@ Decidido em 04/11/2026. Uma tarefa por vez; cada uma termina com `npm run check`
 3. Brilho pulsando no que falta cadastrar: adicionar parceiro, academia, professor. Respeita reduced-motion. → FEITO.
 4. Parceiro só entra com academia cadastrada pelo cadastro completo (nome, cidade, equipe); some o campo de nome solto no registro do treino. → FEITO.
 5. Análise sem contagem de derrota: saem "Como você perdeu", "Ganhou e perdeu" e "Finalizações" (você levou); entram "Seus lances" (o que você faz, por tipo) e "Rolas sem bater". "O que te pega" vira o golpe da vez + aula de defesa, sem número. Faixa: sai "vezes que você bateu". → FEITO.
-6. Avisos (SQL 51): "te pegou N vezes" vira "anda aparecendo, tem aula de saída"; "Caiu de divisão" vira divisão nova; "Semana sem treino" sai.
+6. Avisos (SQL 51): "te pegou N vezes" vira "anda aparecendo, tem aula de saída"; "Caiu de divisão" vira divisão nova; "Semana sem treino" sai. → FEITO (falta colar o 51 no Supabase).
 7. Planos de ataque como mapa: cada tipo com cor própria (posição, finta, reação, golpe, se defender), ramos mostrando as saídas, brilho e profundidade; sai o "Copiar pra mim": o faixa-branca começa com 1 a 3 exemplos já na lista dele e vai montando o próprio; os outros prontos ficam no Premium.
 
 ## Trilha D: Registro do rola em 10 segundos (proposta, aguardando o ok)

@@ -356,7 +356,7 @@ export default function Painel() {
           <AulaQueDestrava
             aula={destravaDoBuraco}
             motivo={buracos[0].nome}
-            texto={`${buracos[0].nome} te pegou ${buracos[0].vezes} vezes. Essa aula ensina a sair, e não está no YouTube nem em lugar nenhum além do app.`}
+            texto={`${buracos[0].nome} anda aparecendo nos seus rolas. Essa aula ensina a sair, e não está no YouTube nem em lugar nenhum além do app.`}
             livre={podeVer(acesso, 'aulasIlimitadas')}
             onAbrir={() => (podeVer(acesso, 'aulasIlimitadas') ? irPara('estudo') : pedirOferta('aulasIlimitadas'))}
           />

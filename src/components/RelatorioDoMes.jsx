@@ -68,7 +68,7 @@ export default function RelatorioDoMes({ sessions, rolls, esteira, faixa, acesso
         <div className="rel-linha">✅ <span>Ganhou <b>{r.venceu} de {r.rolas}</b> rolas ({r.taxa}%){r.taxaAntes != null && <>, era {r.taxaAntes}%</>}</span></div>
       )}
       {r.cede && (
-        <div className="rel-linha">⚠️ <span>Ainda cede: <b>{r.cede.nome}</b>, te pegou {r.cede.vezes} {r.cede.vezes === 1 ? 'vez' : 'vezes'}</span></div>
+        <div className="rel-linha">🛡️ <span>Próxima defesa: <b>{r.cede.nome}</b></span></div>
       )}
       {r.foco && (
         <div className="rel-linha">🎯 <span><b>Pra {proximo}:</b> foca na defesa contra {artigo(r.foco)} {r.foco}</span></div>

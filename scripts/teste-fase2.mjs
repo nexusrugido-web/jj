@@ -33,7 +33,7 @@ let h = treinoDeHoje({ sessions: sessoes, esteira, buracos, jogo, metaSemanal: 5
 ok('mostra no dia de treino, antes de registrar', h.mostrar, true);
 ok('as quatro linhas, na ordem', h.linhas.map((l) => l.id), ['grau', 'cuidado', 'comeco', 'semana']);
 ok('a técnica perto do grau', h.linhas[0].texto, 'Tenta a Americana: falta 1 uso pro 2º grau');
-ok('o que te pega', h.linhas[1].texto, 'Cuidado com o Triângulo: te pegou 6 vezes');
+ok('o que te pega', h.linhas[1].texto, 'Cuidado com o Triângulo: anda aparecendo nos seus rolas');
 ok('de onde ganha (posição com poucos rolas não conta)', h.linhas[2].texto, 'Começa em pé: você ganha 7 de 10 rolas assim');
 ok('o destaque de cada linha está dentro do texto dela', h.linhas.every((l) => l.texto.includes(l.forte)), true);
 ok('a semana (segunda 28/09 já conta)', h.linhas[3].texto, '1 de 5 treinos na semana: hoje conta');
