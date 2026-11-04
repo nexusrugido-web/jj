@@ -48,5 +48,16 @@ ok('Premium cria', podeCriarPlano(lista, true), true);
 ok('arquivado não conta', podeCriarPlano([{ pronto: 0, arquivada: 1 }], false), true);
 ok('pronto não conta como seu', meusPlanos(lista).length, 1);
 
+/* pra quem serve: altura e peso dele em relação a você */
+const { servePara, planosQueServem } = await import('../src/lib/planos.js');
+const altoPesado = { alturaRel: 'alto', pesoRel: 'pesado' };
+ok('plano pra alto e pesado serve', servePara({ paraAltura: ['alto'], paraPeso: ['pesado'] }, altoPesado), true);
+ok('plano pra baixo não serve pra alto', servePara({ paraAltura: ['baixo'] }, altoPesado), false);
+ok('plano sem etiqueta não entra na lista', servePara({}, altoPesado), false);
+ok('parceiro sem altura: vale o peso', servePara({ paraAltura: ['alto'], paraPeso: ['pesado'] }, { pesoRel: 'pesado' }), true);
+ok('a lista do parceiro junta meus e prontos', planosQueServem([
+  { nome: 'a', pronto: 0, paraPeso: ['pesado'] }, { nome: 'b', pronto: 1, paraAltura: ['alto'] }, { nome: 'c', pronto: 1 },
+], altoPesado).map((p) => p.nome), ['a', 'b']);
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

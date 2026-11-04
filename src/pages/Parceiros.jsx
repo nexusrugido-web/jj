@@ -17,6 +17,7 @@ import { buscaMatch } from '../lib/utils';
 import { PESO_REL, pesoRelPorId } from '../db/scoring';
 import '../styles/treino-rola.css';
 import RaioXParceiro from '../components/RaioXParceiro';
+import { ALTURA_REL, alturaRelPorId, planosQueServem } from '../lib/planos';
 
 export default function Parceiros() {
   const [aba, setAba] = useState('parceiros');
@@ -44,7 +45,7 @@ export default function Parceiros() {
 }
 
 /* ================= PARCEIROS ================= */
-const vazioP = (academiaId = null) => ({ nome: '', faixa: '', graus: 0, pesoRel: null, estilo: '', notas: '', academiaId });
+const vazioP = (academiaId = null) => ({ nome: '', faixa: '', graus: 0, pesoRel: null, alturaRel: null, estilo: '', notas: '', academiaId });
 
 /* o peso do parceiro do mesmo jeito que o rola pergunta: em relação a
    você. Escolher o parceiro no rola já marca esse peso. */
@@ -68,12 +69,34 @@ function PesoRelativo({ valor, onChange }) {
   );
 }
 
+/* a altura dele em relação a você: é ela que diz quais planos servem */
+function AlturaRelativa({ valor, onChange }) {
+  return (
+    <div className="rola-peso">
+      <span className="label">Altura dele em relação a você</span>
+      <div className="rola-peso-opcoes" role="group" aria-label="Altura do parceiro em relação a você">
+        {ALTURA_REL.map((o) => (
+          <button type="button" key={o.id}
+            className={`rola-peso-opcao ${valor === o.id ? 'selecionada' : ''}`}
+            aria-pressed={valor === o.id}
+            onClick={() => onChange(valor === o.id ? null : o.id)}>
+            <span className="rola-peso-icone" aria-hidden="true">{o.icone}</span>
+            <span>{o.nome}</span>
+            {valor === o.id && <Check size={15} className="rola-peso-check" />}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* também abre por cima do registro do treino, quando ainda não há parceiro */
 export function AbaParceiros() {
   const { partners, rolls, settings, acesso } = useApp();
   const [raio, setRaio] = useState(null);
   const toast = useToast();
   const academias = useLiveQuery(() => db.academies.filter((a) => !a.arquivada).toArray(), [], []) || [];
+  const planos = useLiveQuery(() => db.attackPlans.toArray(), [], []) || [];
   const [edit, setEdit] = useState(null);
   /* criando a academia no meio do cadastro: guarda o parceiro pela metade */
   const [academiaPara, setAcademiaPara] = useState(null);
@@ -139,6 +162,7 @@ export function AbaParceiros() {
                   <div className="row" style={{ gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
                     {p.faixa ? <BeltTag faixa={p.faixa} graus={p.graus} /> : <Chip>faixa não informada</Chip>}
                     {p.pesoRel ? <Chip>{pesoRelPorId[p.pesoRel]?.icone} {pesoRelPorId[p.pesoRel]?.nome}</Chip> : p.pesoKg ? <Chip>{p.pesoKg} kg</Chip> : null}
+                    {p.alturaRel && <Chip>{alturaRelPorId[p.alturaRel]?.icone} {alturaRelPorId[p.alturaRel]?.nome}</Chip>}
                   </div>
                   {acadById[p.academiaId] && <div className="micro muted" style={{ marginTop: 6 }}>{acadById[p.academiaId].nome}</div>}
                 </div>
@@ -149,6 +173,14 @@ export function AbaParceiros() {
               </div>
 
               {p.estilo && <p className="micro muted">{p.estilo}</p>}
+              {(() => {
+                const servem = planosQueServem(planos, p);
+                return servem.length > 0 && (
+                  <p className="micro muted" style={{ marginTop: 6 }}>
+                    Planos que servem pra ele: {servem.slice(0, 3).map((x) => x.nome).join(', ')}{servem.length > 3 ? ` e mais ${servem.length - 3}` : ''}
+                  </p>
+                );
+              })()}
 
               {p.s.rolas > 0 && (
                 <button type="button" className="btn contorno sm" onClick={() => setRaio(p)} style={{ alignSelf: 'flex-start' }}>
@@ -202,6 +234,7 @@ export function AbaParceiros() {
               <Field label="Graus"><NumeroInput min="0" max="4" valor={edit.graus} onChange={(v) => setEdit({ ...edit, graus: v })} /></Field>
             </div>
             <PesoRelativo valor={edit.pesoRel} onChange={(pesoRel) => setEdit({ ...edit, pesoRel })} />
+            <AlturaRelativa valor={edit.alturaRel} onChange={(alturaRel) => setEdit({ ...edit, alturaRel })} />
             <Field label="Estilo de jogo"><Input value={edit.estilo} onChange={(e) => setEdit({ ...edit, estilo: e.target.value })} placeholder="Ex.: passador pesado, guardeiro de laçada" /></Field>
             <Field label="Notas" hint="O que funciona e o que não funciona contra ele."><Textarea value={edit.notas} onChange={(e) => setEdit({ ...edit, notas: e.target.value })} /></Field>
           </>

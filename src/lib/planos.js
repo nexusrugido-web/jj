@@ -44,8 +44,9 @@ export function copiaDoPronto(p) {
 }
 
 /* o plano novo que a tela salva */
-export function planoNovo({ nome, posicao, posicaoId = null, finta = '', passos = [] }) {
+export function planoNovo({ nome, posicao, posicaoId = null, finta = '', passos = [], paraAltura = [], paraPeso = [] }) {
   return {
+    paraAltura, paraPeso,
     nome: String(nome || '').trim() || 'Meu plano',
     posicao: posicao || '',
     posicaoId,
@@ -58,3 +59,30 @@ export function planoNovo({ nome, posicao, posicaoId = null, finta = '', passos 
     pronto: 0, favorito: 0, arquivada: 0,
   };
 }
+
+/* ---------- pra quem serve ----------
+   Altura e peso dele em relação a você. Plano sem etiqueta serve pra
+   qualquer um e não entra na lista do parceiro: a lista é dos que
+   foram pensados pra gente daquele tamanho. */
+export const ALTURA_REL = [
+  { id: 'alto', nome: 'Mais alto que eu', icone: '↑' },
+  { id: 'parecida', nome: 'Altura parecida', icone: '=' },
+  { id: 'baixo', nome: 'Mais baixo que eu', icone: '↓' },
+];
+export const alturaRelPorId = Object.fromEntries(ALTURA_REL.map((a) => [a.id, a]));
+
+export function servePara(plano, parceiro) {
+  const dims = [['paraAltura', 'alturaRel'], ['paraPeso', 'pesoRel']];
+  let bateu = 0;
+  for (const [tag, campo] of dims) {
+    const tags = plano?.[tag] || [];
+    if (!tags.length) continue;
+    if (!parceiro?.[campo]) continue;
+    if (!tags.includes(parceiro[campo])) return false;
+    bateu++;
+  }
+  return bateu > 0;
+}
+
+export const planosQueServem = (planos, parceiro) =>
+  [...meusPlanos(planos), ...planosProntos(planos)].filter((p) => servePara(p, parceiro));

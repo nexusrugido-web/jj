@@ -9,9 +9,10 @@ import {
 import { SeletorTecnica } from '../components/SeletorTecnica';
 import { podeVer, pedirOferta } from '../lib/plano';
 import {
-  meusPlanos, planosProntos, podeCriarPlano, correnteDoPlano, copiaDoPronto, planoNovo, MAX_PASSOS,
+  meusPlanos, planosProntos, podeCriarPlano, correnteDoPlano, copiaDoPronto, planoNovo, MAX_PASSOS, ALTURA_REL,
 } from '../lib/planos';
 import { FAIXAS } from '../lib/faixas';
+import { PESO_REL } from '../db/scoring';
 
 /* ============================================================
    PLANOS DE ATAQUE
@@ -116,11 +117,14 @@ export default function Planos() {
   );
 }
 
-const rascunho = () => ({ nome: '', posicaoId: '', posicao: '', finta: '', passos: [{ reacao: '', golpe: '' }] });
+const rascunho = () => ({ nome: '', posicaoId: '', posicao: '', finta: '', paraAltura: [], paraPeso: [], passos: [{ reacao: '', golpe: '' }] });
 const paraEditar = (p) => ({
   id: p.id, nome: p.nome, posicaoId: p.posicaoId || '', posicao: p.posicao || '', finta: p.finta || '',
+  paraAltura: p.paraAltura || [], paraPeso: p.paraPeso || [],
   passos: correnteDoPlano(p).passos.map((x) => ({ reacao: x.reacao, golpe: x.golpe })),
 });
+
+const alternar = (lista, id) => (lista.includes(id) ? lista.filter((x) => x !== id) : [...lista, id]);
 
 /* o cartão: nome, posição e a corrente em miniatura */
 function CartaoPlano({ p, onAssistir, children }) {
@@ -180,6 +184,19 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
         <button type="button" className="input plano-escolher" onClick={() => setEscolhendo('finta')}>
           {edit.finta || 'Escolher a finta'}
         </button>
+      </Field>
+
+      <Field label="Pra quem serve (opcional)" hint="O parceiro com essa altura ou esse peso vê o plano na ficha dele.">
+        <div className="row wrap" style={{ gap: 6 }}>
+          {ALTURA_REL.map((o) => (
+            <Chip key={o.id} on={edit.paraAltura.includes(o.id)} onClick={() => setEdit({ ...edit, paraAltura: alternar(edit.paraAltura, o.id) })}>{o.nome}</Chip>
+          ))}
+        </div>
+        <div className="row wrap" style={{ gap: 6, marginTop: 6 }}>
+          {PESO_REL.map((o) => (
+            <Chip key={o.id} on={edit.paraPeso.includes(o.id)} onClick={() => setEdit({ ...edit, paraPeso: alternar(edit.paraPeso, o.id) })}>{o.nome}</Chip>
+          ))}
+        </div>
       </Field>
 
       <div className="col" style={{ gap: 12, marginTop: 6 }}>
