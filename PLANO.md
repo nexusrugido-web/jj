@@ -17,6 +17,14 @@ Decidido em 04/11/2026. Uma tarefa por vez; cada uma termina com `npm run check`
 - 10 Home com 4 coisas (conquistas, o que fazer hoje, metas, ofensiva); resto em "Ver mais", explicação no "?" → FEITO
 - 11 No máximo 1 vitrine Premium por tela → FEITO
 
+## Trilha E: Guiar o toque e tirar o número que desanima (04/11/2026)
+1. Onboarding: faixa e graus viram 2 telas; toda escolha de um toque avança sozinha e o "Continuar" some nelas. Verificar: teste de telas, contador "X de 11". → FEITO.
+2. Botão selecionado verde em todas as telas (chip, opção, seletor, quiz). Menu lateral continua na cor da marca. Verificar: print.
+3. Brilho pulsando no que falta cadastrar: adicionar parceiro, academia, professor. Respeita reduced-motion.
+4. Parceiro só entra com academia cadastrada pelo cadastro completo (nome, cidade, equipe); some o campo de nome solto no registro do treino.
+5. Análise sem contagem de derrota: saem "Como você perdeu", "Ganhou e perdeu" e "Finalizações" (você levou); entram "Seus lances" (o que você faz, por tipo) e "Rolas sem bater". "O que te pega" vira o golpe da vez + aula de defesa, sem número. Faixa: sai "vezes que você bateu".
+6. Avisos (SQL 51): "te pegou N vezes" vira "anda aparecendo, tem aula de saída"; "Caiu de divisão" vira divisão nova; "Semana sem treino" sai.
+
 ## Trilha D: Registro do rola em 10 segundos (proposta, aguardando o ok)
 Medido em 04/11/2026 (`corpoDaRola` em `src/pages/Treinos.jsx`): **10 blocos em sequência** (parceiro, peso, duração + de onde começou, plano, anotação, placar, pontos meus + vantagens, pontos dele + vantagens, eu finalizei, ele me finalizou). Um rola comum (passou 1x, raspou 1x, levou 1 passagem) pede ~8 toques e rolar a tela inteira; "de onde começou" é um select (2 toques) e o peso só vem sozinho quando o parceiro tem peso no cadastro.
 

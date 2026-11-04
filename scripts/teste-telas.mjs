@@ -162,8 +162,10 @@ if (raiz.innerHTML.includes('login-card') || raiz.innerHTML.includes('entrada-ca
   Object.getOwnPropertyDescriptor(w.HTMLInputElement.prototype, 'value').set.call(ano, '1995');
   ano.dispatchEvent(new w.Event('input', { bubbles: true })); await esperar();
   clicar(acharBotao('continuar')); await esperar();
-  // uma pergunta por tela: faixa, tempo, ritmo, objetivo, trava, estilo, metas
-  clicar(acharBotao('continuar')); await esperar();
+  // uma pergunta por tela: faixa, graus, tempo, ritmo, objetivo, trava, estilo, metas
+  // (escolha de um toque avança sozinha, sem Continuar)
+  clicar(acharBotao('branca')); await esperar(600);
+  clicar([...raiz.querySelectorAll('button')].find((b) => b.textContent.trim() === '0')); await esperar(600);
   clicar(acharBotao('menos de 6 meses')); await esperar(600);
   clicar([...raiz.querySelectorAll('button')].find((b) => b.textContent.trim() === '3x')); await esperar(600);
   clicar([...raiz.querySelectorAll('button')].find((b) => b.textContent.trim() === '1h')); await esperar(600);

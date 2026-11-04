@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Check, ChevronRight, ChevronLeft, Dna, Sparkles } from 'lucide-react';
-import { Card, Btn, Field, Input, useToast } from '../components/UI';
+import { Card, Btn, Input, useToast } from '../components/UI';
 import { db } from '../db/db';
 import { QUIZ, estiloDoQuiz, estiloPorId } from '../db/scoring';
 import { hoje } from '../lib/utils';
@@ -65,6 +65,7 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
     { id: 'nome', rotulo: 'Quem é você' },
     { id: 'idade', rotulo: 'Sua idade' },
     { id: 'faixa', rotulo: 'Sua faixa' },
+    { id: 'graus', rotulo: 'Seus graus' },
     { id: 'tempo', rotulo: 'Seu tempo de tatame' },
     { id: 'frequencia', rotulo: 'Seu ritmo' },
     { id: 'duracao', rotulo: 'Seu treino' },
@@ -75,11 +76,16 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
   ];
   const atual = PASSOS[passo].id;
   const ultimo = passo === PASSOS.length - 1;
-  /* escolha de um toque só: marca e já passa pra próxima */
+  /* escolha de um toque só: marca e já passa pra próxima
+     (dois toques rápidos não pulam a tela seguinte) */
   const escolher = (mudanca) => {
     setPerfil((p) => ({ ...p, ...mudanca }));
-    setTimeout(() => setPasso((x) => Math.min(x + 1, PASSOS.length - 1)), 260);
+    const alvo = Math.min(passo + 1, PASSOS.length - 1);
+    setTimeout(() => setPasso((x) => Math.max(x, alvo)), 260);
   };
+  /* nessas telas o toque já avança: o botão Continuar some */
+  const umToque = ['faixa', 'graus', 'tempo', 'frequencia', 'duracao', 'objetivo'].includes(atual)
+    || (atual === 'estilo' && !estilo);
   const Pergunta = ({ titulo, texto }) => (
     <div>
       <h2 style={{ fontSize: 21, fontWeight: 800, letterSpacing: '-0.02em' }}>{titulo}</h2>
@@ -232,21 +238,25 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
               {faixasDaIdade(idadeDe(perfil.anoNascimento)).map((f) => (
                 <button key={f.id} type="button" className={`chip ${perfil.faixa === f.id ? 'on' : ''}`}
                   style={{ minHeight: 44, paddingInline: 16 }}
-                  onClick={() => setPerfil({ ...perfil, faixa: f.id })}>
+                  onClick={() => escolher({ faixa: f.id })}>
                   <span style={{ width: 14, height: 7, borderRadius: 2, background: visualDaFaixa(f.id), border: f.id === 'preta' ? '1px solid #4a5250' : 'none' }} />
                   {f.nome}
                 </button>
               ))}
             </div>
-            <Field label="Graus">
-              <div className="row wrap" style={{ gap: 7 }}>
-                {[0, 1, 2, 3, 4].map((n) => (
-                  <button key={n} type="button" className={`chip ${perfil.graus === n ? 'on' : ''}`}
-                    style={{ minHeight: 42, paddingInline: 17 }}
-                    onClick={() => setPerfil({ ...perfil, graus: n })}>{n}</button>
-                ))}
-              </div>
-            </Field>
+          </div>
+        )}
+
+        {atual === 'graus' && (
+          <div className="col" style={{ gap: 16 }}>
+            <Pergunta titulo="Quantos graus na faixa?" texto="Os graus que o professor já te deu nessa faixa. Sem grau ainda, é o zero." />
+            <div className="row wrap" style={{ gap: 8 }}>
+              {[0, 1, 2, 3, 4].map((n) => (
+                <button key={n} type="button" className={`chip ${perfil.graus === n ? 'on' : ''}`}
+                  style={{ minHeight: 48, minWidth: 56, justifyContent: 'center' }}
+                  onClick={() => escolher({ graus: n })}>{n}</button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -455,7 +465,7 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
             <Btn variant="ghost" icon={ChevronLeft} onClick={() => setPasso(passo - 1)}>Voltar</Btn>
           )}
           <span className="spacer" />
-          {!ultimo ? (
+          {umToque ? null : !ultimo ? (
             <Btn variant="primary" onClick={() => setPasso(passo + 1)} disabled={!podeAvancar}>
               {atual === 'trava' && !perfil.dificuldades.length ? 'Pular' : 'Continuar'} <ChevronRight size={15} />
             </Btn>
