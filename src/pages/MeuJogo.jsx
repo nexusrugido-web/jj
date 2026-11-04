@@ -12,6 +12,12 @@ import {
   analisarJogo, lerJogo, compararEstilo, porqueDoEstilo, oQueMaisCede, MIN_ROLAS_ESTILO,
 } from '../lib/game';
 import { minhasTecnicas } from '../lib/graus';
+import { periodoDeDados, dentroDoPeriodo } from '../lib/periodo';
+import { contar } from '../lib/utils';
+import Recomendacao from '../components/Recomendacao';
+import RotuloPeriodo from '../components/RotuloPeriodo';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../db/db';
 import { podeVer, pedirOferta } from '../lib/plano';
 import { Vitrine } from '../components/Plano';
 import SuasPosicoes from '../components/SuasPosicoes';
@@ -35,6 +41,18 @@ export default function MeuJogo() {
   const notas = useMemo(() => lerJogo(a), [a]);
   const comparacao = useMemo(() => compararEstilo(settings.estiloDeclarado, a), [settings.estiloDeclarado, a]);
   const cede = useMemo(() => oQueMaisCede(a), [a]);
+
+  /* o que te pega, só dos últimos 30 dias: o que te pegava na época
+     de branca não precisa ficar na tela pra sempre. Cada golpe vem
+     com a aula pra defender do lado */
+  const ultimos30 = periodoDeDados('ultimos-30');
+  const tePega = useMemo(() => {
+    const ids = new Set(dentroDoPeriodo(sessions, ultimos30).map((s) => s.id));
+    return contar(rolls
+      .filter((r) => ids.has(r.sessionId) && (r.contexto || 'rola') !== 'drill')
+      .flatMap((r) => r.subsSofridas || [])).slice(0, 3);
+  }, [sessions, rolls, ultimos30.ini]); // eslint-disable-line react-hooks/exhaustive-deps
+  const vistas = (useLiveQuery(() => db.aulasVistas.toArray(), [], []) || []).map((v) => v.videoId);
 
   /* o grau de cada técnica, pra técnica mais usada de cada ponto
      mostrar o mesmo número que a tela Técnicas */
@@ -235,6 +253,35 @@ export default function MeuJogo() {
               <p className="micro muted" style={{ marginTop: 14, lineHeight: 1.6 }}>
                 E {a.vantDele} {a.vantDele === 1 ? 'vantagem' : 'vantagens'} pro parceiro: ele chegou e você saiu antes dos 3 segundos.
               </p>
+            )}
+          </Card>
+
+          {/* ---- o que te pega, com a saída do lado ---- */}
+          <Card style={{ marginBottom: 14 }}>
+            <div className="card-head">
+              <div>
+                <RotuloPeriodo periodo={ultimos30} />
+                <h2 className="h-sec">O que te pega</h2>
+              </div>
+            </div>
+            {tePega.length === 0 ? (
+              <p className="tiny muted">Ninguém te finalizou nos últimos 30 dias. Segue assim.</p>
+            ) : (
+              <div className="col" style={{ gap: 10 }}>
+                {tePega.map(([nome, vezes]) => (
+                  <Recomendacao
+                    key={nome}
+                    rec={{
+                      intencao: 'corrigir', alvo: nome,
+                      titulo: `${nome}, ${vezes} ${vezes === 1 ? 'vez' : 'vezes'}`,
+                      texto: 'Saber defender a que mais te pega vale mais que aprender um ataque novo.',
+                    }}
+                    faixa={settings.faixa}
+                    vistas={vistas}
+                    tela="meujogo"
+                  />
+                ))}
+              </div>
             )}
           </Card>
 

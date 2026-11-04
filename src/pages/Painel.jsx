@@ -489,12 +489,10 @@ Toda vez que você marca um ponto, o app anota a posição que veio junto. Passa
                 <Chip tone="jade">{r.finalizacoes}</Chip>
               </div>
               <BarrasTop dados={r.topAplicadas} tone="jade" vazio="Marque as finalizações nos rolas." />
-              <div className="divider" style={{ margin: '16px 0 14px' }} />
-              <div className="card-head">
-                <h2 className="h-sec">Você cai em</h2>
-                <Chip tone="blood">{r.taps}</Chip>
-              </div>
-              <BarrasTop dados={r.topSofridas} tone="blood" vazio="Nada registrado, ou você é um monstro." />
+              {/* o que te pega mora no Meu Jogo, dos últimos 30 dias, com a aula de defesa */}
+              <button className="btn ghost xs" style={{ marginTop: 12, paddingLeft: 0 }} onClick={() => irPara('meujogo')}>
+                O que te pega e como defender <ArrowRight size={12} />
+              </button>
             </Card>
           )}
         </div>
