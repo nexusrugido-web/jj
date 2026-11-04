@@ -59,5 +59,25 @@ ok('a lista do parceiro junta meus e prontos', planosQueServem([
   { nome: 'a', pronto: 0, paraPeso: ['pesado'] }, { nome: 'b', pronto: 1, paraAltura: ['alto'] }, { nome: 'c', pronto: 1 },
 ], altoPesado).map((p) => p.nome), ['a', 'b']);
 
+/* taxa de acerto, onde morre, por tipo e rodízio */
+const { taxaDoPlano, taxaPorTipo, rodizio } = await import('../src/lib/planos.js');
+const A = { uid: 'A', nome: 'A', pronto: 0 }, B = { uid: 'B', nome: 'B', pronto: 0 }, C = { uid: 'C', nome: 'C', pronto: 0 };
+const sess = [{ id: 1, data: '2026-10-01' }, { id: 2, data: '2026-10-08' }];
+const rs = [
+  { sessionId: 1, partnerId: 7, plano: { uid: 'A', ate: 1, encaixou: false } },
+  { sessionId: 1, partnerId: 7, plano: { uid: 'A', ate: 1, encaixou: false } },
+  { sessionId: 2, partnerId: 7, plano: { uid: 'A', ate: 2, encaixou: true }, pesoRel: 'pesado' },
+  { sessionId: 2, partnerId: 8, plano: { uid: 'B', ate: 0, encaixou: true } },
+  { sessionId: 2, partnerId: 7, contexto: 'drill', plano: { uid: 'A', ate: 0, encaixou: true } },
+];
+const tA = taxaDoPlano(A, rs);
+ok('taxa: 1 de 3, drill fora', [tA.usos, tA.encaixes, tA.taxa], [3, 1, 33]);
+ok('morre mais no golpe 2 (índice 1)', tA.morreNo, { passo: 1, vezes: 2 });
+ok('por tipo: contra pesado', taxaPorTipo(A, rs, [{ id: 7, alturaRel: 'alto' }]).pesado, { usos: 1, encaixes: 1 });
+const rod = rodizio([A, B, C], rs, sess, { id: 7 });
+ok('rodízio: último contra ele foi A', rod.ultimo?.uid, 'A');
+ok('rodízio: o próximo é um que ele ainda não viu', ['B', 'C'].includes(rod.proximo?.uid), true);
+ok('com 1 plano só, não tem próximo', rodizio([A], rs, sess, { id: 7 }).proximo, null);
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

@@ -10,6 +10,7 @@ import { SeletorTecnica } from '../components/SeletorTecnica';
 import { podeVer, pedirOferta } from '../lib/plano';
 import {
   meusPlanos, planosProntos, podeCriarPlano, correnteDoPlano, copiaDoPronto, planoNovo, MAX_PASSOS, ALTURA_REL,
+  taxaDoPlano, taxaPorTipo,
 } from '../lib/planos';
 import { FAIXAS } from '../lib/faixas';
 import { PESO_REL } from '../db/scoring';
@@ -22,7 +23,7 @@ import { PESO_REL } from '../db/scoring';
    pronto) e vê todos os prontos; o Premium não tem limite.
    ============================================================ */
 export default function Planos() {
-  const { positions = [], techniques = [], categories = [], settings, acesso } = useApp();
+  const { positions = [], techniques = [], categories = [], settings, acesso, rolls = [], partners = [] } = useApp();
   const toast = useToast();
   const todos = useLiveQuery(() => db.attackPlans.toArray(), [], []) || [];
   const meus = useMemo(() => meusPlanos(todos), [todos]);
@@ -69,7 +70,8 @@ export default function Planos() {
         ) : (
           <div className="col" style={{ gap: 10 }}>
             {meus.map((p) => (
-              <CartaoPlano key={p.id} p={p} onAssistir={() => setAssistindo(p)}>
+              <CartaoPlano key={p.id} p={p} onAssistir={() => setAssistindo(p)}
+                acerto={<AcertoDoPlano p={p} rolls={rolls} partners={partners} porTipo={premium} />}>
                 <Btn size="sm" variant="ghost" icon={Pencil} onClick={() => setEdit(paraEditar(p))}>Editar</Btn>
                 <Btn size="sm" variant="ghost" icon={Trash2} onClick={() => setApagar(p)} aria-label="Apagar" />
               </CartaoPlano>
@@ -124,10 +126,26 @@ const paraEditar = (p) => ({
   passos: correnteDoPlano(p).passos.map((x) => ({ reacao: x.reacao, golpe: x.golpe })),
 });
 
+/* a taxa de acerto do plano: de graça; contra que tipo de adversário, no Premium */
+const NOME_TIPO = { leve: 'mais leve', similar: 'peso parecido', pesado: 'mais pesado', alto: 'mais alto', parecida: 'altura parecida', baixo: 'mais baixo' };
+function AcertoDoPlano({ p, rolls, partners, porTipo }) {
+  const t = taxaDoPlano(p, rolls);
+  if (!t.usos) return <p className="micro muted" style={{ marginTop: 8 }}>Ainda sem rola com ele. Marque no registro do rola quando usar.</p>;
+  const c = correnteDoPlano(p);
+  const tipos = porTipo ? Object.entries(taxaPorTipo(p, rolls, partners)) : [];
+  return (
+    <div className="micro muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
+      Encaixou em <b style={{ color: 'var(--chalk)' }}>{t.encaixes} de {t.usos}</b> {t.usos === 1 ? 'rola' : 'rolas'} ({t.taxa}%)
+      {t.morreNo && c.passos[t.morreNo.passo] ? ` · para mais no ${c.passos[t.morreNo.passo].golpe}` : ''}
+      {tipos.length > 0 && <div>{tipos.map(([k, v]) => `${NOME_TIPO[k] || k}: ${v.encaixes} de ${v.usos}`).join(' · ')}</div>}
+    </div>
+  );
+}
+
 const alternar = (lista, id) => (lista.includes(id) ? lista.filter((x) => x !== id) : [...lista, id]);
 
 /* o cartão: nome, posição e a corrente em miniatura */
-function CartaoPlano({ p, onAssistir, children }) {
+function CartaoPlano({ p, onAssistir, acerto = null, children }) {
   const c = correnteDoPlano(p);
   const faixa = FAIXAS.find((f) => f.id === p.faixa);
   return (
@@ -150,6 +168,7 @@ function CartaoPlano({ p, onAssistir, children }) {
           </React.Fragment>
         ))}
       </div>
+      {acerto}
       {children && <div className="row wrap" style={{ gap: 6, marginTop: 8 }}>{children}</div>}
     </div>
   );

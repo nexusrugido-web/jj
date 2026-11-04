@@ -17,7 +17,8 @@ import { buscaMatch } from '../lib/utils';
 import { PESO_REL, pesoRelPorId } from '../db/scoring';
 import '../styles/treino-rola.css';
 import RaioXParceiro from '../components/RaioXParceiro';
-import { ALTURA_REL, alturaRelPorId, planosQueServem } from '../lib/planos';
+import { ALTURA_REL, alturaRelPorId, planosQueServem, rodizio } from '../lib/planos';
+import { podeVer } from '../lib/plano';
 
 export default function Parceiros() {
   const [aba, setAba] = useState('parceiros');
@@ -92,7 +93,7 @@ function AlturaRelativa({ valor, onChange }) {
 
 /* também abre por cima do registro do treino, quando ainda não há parceiro */
 export function AbaParceiros() {
-  const { partners, rolls, settings, acesso } = useApp();
+  const { partners, rolls, sessions, settings, acesso } = useApp();
   const [raio, setRaio] = useState(null);
   const toast = useToast();
   const academias = useLiveQuery(() => db.academies.filter((a) => !a.arquivada).toArray(), [], []) || [];
@@ -175,10 +176,20 @@ export function AbaParceiros() {
               {p.estilo && <p className="micro muted">{p.estilo}</p>}
               {(() => {
                 const servem = planosQueServem(planos, p);
-                return servem.length > 0 && (
-                  <p className="micro muted" style={{ marginTop: 6 }}>
-                    Planos que servem pra ele: {servem.slice(0, 3).map((x) => x.nome).join(', ')}{servem.length > 3 ? ` e mais ${servem.length - 3}` : ''}
-                  </p>
+                /* rodízio: o último plano contra ele é de graça; o próximo é do Premium */
+                const rod = rodizio(planos, rolls, sessions, p);
+                return (
+                  <>
+                    {servem.length > 0 && (
+                      <p className="micro muted" style={{ marginTop: 6 }}>
+                        Planos que servem pra ele: {servem.slice(0, 3).map((x) => x.nome).join(', ')}{servem.length > 3 ? ` e mais ${servem.length - 3}` : ''}
+                      </p>
+                    )}
+                    {rod.ultimo && <p className="micro muted" style={{ marginTop: 4 }}>Último plano contra ele: {rod.ultimo.nome}</p>}
+                    {rod.proximo && podeVer(acesso, 'planos') && (
+                      <p className="micro" style={{ marginTop: 4, color: 'var(--accent)', fontWeight: 600 }}>Hoje vai de {rod.proximo.nome}</p>
+                    )}
+                  </>
                 );
               })()}
 

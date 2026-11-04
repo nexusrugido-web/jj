@@ -86,3 +86,63 @@ export function servePara(plano, parceiro) {
 
 export const planosQueServem = (planos, parceiro) =>
   [...meusPlanos(planos), ...planosProntos(planos)].filter((p) => servePara(p, parceiro));
+
+/* ---------- taxa de acerto ----------
+   Sai do "usou qual plano?" do rola. Drill não conta: o parceiro
+   colabora. Onde morre: o golpe em que a corrente parou nos rolas
+   que não encaixaram. */
+const ehLuta = (r) => (r.contexto || 'rola') !== 'drill';
+const usosDo = (plano, rolls) => rolls.filter((r) => ehLuta(r) && r.plano?.uid && r.plano.uid === plano.uid);
+
+export function taxaDoPlano(plano, rolls = []) {
+  const usos = usosDo(plano, rolls);
+  const encaixes = usos.filter((r) => r.plano.encaixou).length;
+  const morre = {};
+  for (const r of usos) if (!r.plano.encaixou) morre[r.plano.ate || 0] = (morre[r.plano.ate || 0] || 0) + 1;
+  const [passo, vezes] = Object.entries(morre).sort((a, b) => b[1] - a[1])[0] || [];
+  return {
+    usos: usos.length,
+    encaixes,
+    taxa: usos.length ? Math.round((encaixes / usos.length) * 100) : 0,
+    morreNo: passo === undefined ? null : { passo: Number(passo), vezes },
+  };
+}
+
+/* contra que tipo de adversário: pelo peso e pela altura do parceiro */
+export function taxaPorTipo(plano, rolls = [], partners = []) {
+  const parceiro = new Map(partners.map((p) => [p.id, p]));
+  const conta = {};
+  for (const r of usosDo(plano, rolls)) {
+    const p = parceiro.get(r.partnerId);
+    for (const chave of [r.pesoRel || p?.pesoRel, p?.alturaRel].filter(Boolean)) {
+      conta[chave] = conta[chave] || { usos: 0, encaixes: 0 };
+      conta[chave].usos++;
+      if (r.plano.encaixou) conta[chave].encaixes++;
+    }
+  }
+  return conta;
+}
+
+/* ---------- rodízio por parceiro ----------
+   O último plano que você usou contra ele, e o próximo: o seu plano
+   usado há mais tempo contra ele (nunca usado vem primeiro), com
+   preferência pro que serve pro tamanho dele e, no empate, o que mais
+   encaixa. Repetir sempre o mesmo ensina o parceiro a defender. */
+export function rodizio(planos = [], rolls = [], sessions = [], parceiro = null) {
+  const meus = meusPlanos(planos);
+  if (!parceiro || !meus.length) return { ultimo: null, proximo: null };
+  const dataDe = new Map(sessions.map((s) => [s.id, s.data || '']));
+  const contra = rolls
+    .filter((r) => ehLuta(r) && r.partnerId === parceiro.id && r.plano?.uid)
+    .sort((a, b) => (dataDe.get(a.sessionId) || '').localeCompare(dataDe.get(b.sessionId) || ''));
+  const ultimaVez = new Map();
+  contra.forEach((r, i) => ultimaVez.set(r.plano.uid, i));
+  const ultimoUid = contra[contra.length - 1]?.plano.uid || null;
+  const ultimo = meus.find((p) => p.uid === ultimoUid) || null;
+  const candidatos = meus.length > 1 ? meus.filter((p) => p.uid !== ultimoUid) : meus;
+  const proximo = [...candidatos].sort((a, b) =>
+    (ultimaVez.get(a.uid) ?? -1) - (ultimaVez.get(b.uid) ?? -1)
+    || Number(servePara(b, parceiro)) - Number(servePara(a, parceiro))
+    || taxaDoPlano(b, rolls).taxa - taxaDoPlano(a, rolls).taxa)[0] || null;
+  return { ultimo, proximo: proximo && proximo.uid !== ultimoUid ? proximo : null };
+}
