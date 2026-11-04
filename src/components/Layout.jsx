@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   LayoutDashboard, NotebookPen, ChartNoAxesColumn, Target, Dumbbell, HeartPulse,
   Trophy, Users, Settings as Cog, MoreHorizontal, Download, Award, Apple, CloudOff, Cloud,
-  RefreshCw, Dna, GraduationCap, Flame, Shield, Megaphone, CircleHelp, X, UsersRound,
+  RefreshCw, Dna, GraduationCap, Flame, Shield, Megaphone, CircleHelp, X, UsersRound, Route,
 } from 'lucide-react';
 import { Modal, Diamante } from './UI';
 
@@ -14,6 +14,7 @@ export const ROTAS_TODAS = [
   { id: 'amigos', nome: 'Amigos', icon: UsersRound, grupo: 'No tatame' },
 
   { id: 'meujogo', nome: 'Meu jogo', icon: Dna, grupo: 'Evolução' },
+  { id: 'planos', nome: 'Planos de ataque', icon: Route, grupo: 'Evolução' },
   { id: 'dominio', nome: 'Minhas técnicas', icon: Award, grupo: 'Evolução' },
   { id: 'analise', nome: 'Análise', icon: ChartNoAxesColumn, grupo: 'Evolução', premium: true },
   { id: 'conquistas', nome: 'Conquistas', icon: Trophy, grupo: 'Evolução' },

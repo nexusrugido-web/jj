@@ -3860,3 +3860,25 @@ body::after {
 .conq-chip b { color: var(--jade); font-weight: 800; }
 /* o botão que abre o resto da home */
 .ver-mais-painel { width: 100%; justify-content: center; gap: 6px; margin: 4px 0 14px; border: 1px dashed var(--seam); }
+
+/* ---------- planos de ataque ---------- */
+.plano-cartao { padding: 12px; border: 1px solid var(--seam); border-radius: 14px; background: var(--ink-2, transparent); }
+.plano-mini { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 10px; }
+.plano-escolher { text-align: left; cursor: pointer; color: var(--chalk); }
+.plano-passo-edit { display: grid; gap: 8px; padding: 10px; border: 1px dashed var(--seam); border-radius: 12px; }
+/* a corrente em cena: cartões empilhados com profundidade, entrando em cascata */
+.plano-cena { display: grid; gap: 10px; perspective: 900px; }
+.plano-carta {
+  position: relative; padding: 14px 16px; border-radius: 16px; border: 1px solid var(--seam);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%);
+  box-shadow: 0 10px 24px -14px rgba(0, 0, 0, .7);
+  animation: plano-entra .5s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 40ms);
+  transform-origin: top center;
+}
+.plano-carta::before { content: ''; position: absolute; left: -1px; top: 14px; bottom: 14px; width: 3px; border-radius: 3px; background: var(--accent); }
+.plano-carta.finta::before { background: var(--roar); }
+.plano-carta.reacao::before { background: var(--dimmer); }
+.plano-carta.golpe::before { background: var(--jade); }
+.plano-carta-titulo { font-family: var(--display); font-weight: 800; font-size: 19px; letter-spacing: -0.02em; margin-top: 4px; line-height: 1.2; }
+@keyframes plano-entra { from { opacity: 0; transform: translateY(14px) rotateX(-18deg) scale(.97); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .plano-carta { animation: none; } }

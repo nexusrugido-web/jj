@@ -53,6 +53,7 @@ const Admin = lazy(() => import('./pages/Admin'));
 const Termos = lazy(() => import('./pages/Legal').then((m) => ({ default: m.Termos })));
 const Privacidade = lazy(() => import('./pages/Legal').then((m) => ({ default: m.Privacidade })));
 const MeuJogo = lazy(() => import('./pages/MeuJogo'));
+const Planos = lazy(() => import('./pages/Planos'));
 const Metas = lazy(() => import('./pages/Metas'));
 const LigaPagina = lazy(() => import('./pages/Liga'));
 const AmigosPagina = lazy(() => import('./pages/Amigos'));
@@ -68,7 +69,7 @@ import Onboarding from './pages/Onboarding';
 const PAGINAS = {
   painel: Painel, treinos: Treinos,
   estudo: Estudo, liga: LigaPagina, amigos: AmigosPagina, admin: Admin,
-  termos: Termos, privacidade: Privacidade, dominio: Dominio, meujogo: MeuJogo, analise: Analise, conquistas: Conquistas,
+  termos: Termos, privacidade: Privacidade, dominio: Dominio, meujogo: MeuJogo, planos: Planos, analise: Analise, conquistas: Conquistas,
   metas: Metas, parceiros: Parceiros,
   academia: Academia, nutricao: Nutricao,
   lesoes: Lesoes, ajustes: Ajustes,
