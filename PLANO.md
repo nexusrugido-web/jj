@@ -13,7 +13,7 @@ Decidido em 04/11/2026. Uma tarefa por vez; cada uma termina com `npm run check`
 ## Trilha B: Tirar o desânimo
 - 2 Meta que zerou · 3 Volta depois de sumir · 4 Liga, "você desceu" · 7 Campeonato vencido
 - 8 "Você cai em" sai da home → Meu Jogo, últimos 30 dias, com aula de defesa → FEITO
-- 9 "Por cima e por baixo" → últimos 90 dias
+- 9 "Por cima e por baixo" → últimos 90 dias → FEITO
 - 10 Home com 4 coisas (conquistas, o que fazer hoje, metas, ofensiva); resto em "Ver mais", explicação no "?"
 - 11 No máximo 1 vitrine Premium por tela
 

@@ -74,7 +74,13 @@ export default function Painel() {
     const ids = new Set(dentroDoPeriodo(sessions, estaSemana).map((s) => s.id));
     return conquistas(rolls.filter((x) => ids.has(x.sessionId)));
   }, [sessions, rolls, estaSemana.ini]); // eslint-disable-line react-hooks/exhaustive-deps
-  const escada = useMemo(() => escadaPosicional(rolls, positions), [rolls, positions]);
+  /* por cima e por baixo dos últimos 3 meses: o vermelho da época de
+     branca não fica pra sempre, a escada mostra o jogo de agora */
+  const tresMeses = periodoDeDados('3m');
+  const escada = useMemo(() => {
+    const ids = new Set(dentroDoPeriodo(sessions, tresMeses).map((s) => s.id));
+    return escadaPosicional(rolls.filter((x) => ids.has(x.sessionId)), positions);
+  }, [sessions, rolls, positions, tresMeses.ini]); // eslint-disable-line react-hooks/exhaustive-deps
   const semana = useMemo(() => treinosNaSemana(sessions), [sessions]);
   const paraRevisar = [];
   /* O progresso é calculado, não guardado. Antes o Painel lia um
@@ -460,7 +466,7 @@ export default function Painel() {
             <div style={{ padding: '18px 18px 4px' }}>
               <div className="card-head" style={{ marginBottom: 4 }}>
                 <div>
-                  <RotuloPeriodo periodo={periodoDeDados('desde-inicio')}>sai dos pontos que você marca</RotuloPeriodo>
+                  <RotuloPeriodo periodo={tresMeses}>sai dos pontos que você marca</RotuloPeriodo>
                   <h2 className="h-sec">Onde você fica por cima e onde fica por baixo</h2>
                 </div>
                 <span className="micro muted nowrap">pts IBJJF</span>

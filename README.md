@@ -136,6 +136,7 @@ SQL do Supabase: os arquivos de `supabase/` são a versão sem segredo; os pront
 
 Só as últimas, pra saber o estado atual. O detalhe de cada dia fica em `Downloads/neurojitsu-v12_7/NEUROJITSU-RELATORIOS`.
 
+- **04/11/2026**: no Painel, "Onde você fica por cima e onde fica por baixo" conta só os últimos 3 meses (rótulo do período no card); a Análise continua com o seletor de período.
 - **04/11/2026**: "Você cai em" saiu do Painel (lá fica um link "O que te pega e como defender"). No Meu Jogo, card "O que te pega" com as 3 finalizações que mais te pegaram nos últimos 30 dias, cada uma com a aula de defesa do lado (reusa `Recomendacao` com `intencao: corrigir`).
 - **04/11/2026**: primeiras vezes viram marco (`primeirasVezes()` em `src/lib/milestones.js`, tipo `primeira`): a primeira de cada lance no rola, a primeira num faixa acima ("Primeira raspagem num faixa-azul") e, pra passagem, raspagem e finalização, a primeira em cada parceiro. Pela data do treino, drill fora. Na tela Conquistas ganham selo "primeira vez" e frases próprias na figurinha (`FRASES.primeira`). Teste em `teste:marcos`.
 - **04/11/2026**: Análise abre em "Conquistas por rola" (lances que você marcou ÷ rolas, por mês ou semana; sobe mesmo quando você perde). Métrica `conquistas` em `METRICAS` (`src/lib/periodo.js`, campo `razao` faz o número de cima ser média e não soma); o quadro de taxa de vitória virou "conquistas por rola" com botão "ver vitória e derrota".
