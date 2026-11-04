@@ -20,7 +20,7 @@ import { recomendacoesDoAluno, faltaPara } from '../lib/recomendar';
 import { progressoDaMeta, tituloDaMeta, metaDeHorasNoAno, alvoDeHoras, metaIncompleta } from '../lib/metas';
 import LinhaDeMeta from '../components/LinhaDeMeta';
 import RotuloPeriodo from '../components/RotuloPeriodo';
-import { periodoDeDados } from '../lib/periodo';
+import { periodoDeDados, dentroDoPeriodo } from '../lib/periodo';
 import Recomendacao, { VitrineRecomendacao } from '../components/Recomendacao';
 import { resumoSemana } from '../lib/semana';
 import { semanaDe } from '../lib/xp';
@@ -67,6 +67,14 @@ export default function Painel() {
   }, [convidarPraLiga, sessao]);
 
   const r = useMemo(() => resumo(sessions, rolls), [sessions, rolls]);
+  /* finalizações só da semana: 300 contra 900 de uma vida inteira
+     desanima; o total mora na Análise ("desde o início") */
+  const estaSemana = periodoDeDados('semana-atual');
+  const rSemana = useMemo(() => {
+    const ses = dentroDoPeriodo(sessions, estaSemana);
+    const ids = new Set(ses.map((s) => s.id));
+    return resumo(ses, rolls.filter((x) => ids.has(x.sessionId)));
+  }, [sessions, rolls, estaSemana.ini]); // eslint-disable-line react-hooks/exhaustive-deps
   const escada = useMemo(() => escadaPosicional(rolls, positions), [rolls, positions]);
   const semana = useMemo(() => treinosNaSemana(sessions), [sessions]);
   const paraRevisar = [];
@@ -232,14 +240,14 @@ export default function Painel() {
             sub={`em ${r.sessoes} ${r.sessoes === 1 ? 'treino' : 'treinos'}`} />
           <QuadroDoPlacar icone={Swords} rotulo={r.rolas === 1 ? 'Luta' : 'Lutas'} valor={<Contador valor={r.rolas} />}
             sub={r.sessoes ? `${String((r.rolas / r.sessoes).toFixed(1)).replace('.', ',')} por treino` : 'nenhum treino ainda'} />
-          <QuadroDoPlacar icone={Trophy} tom="jade" rotulo="Finalizei" valor={<Contador valor={r.finalizacoes} />}
-            sub={r.finalizacoes === 1 ? 'vez que fiz bater' : 'vezes que fiz bater'} />
-          <QuadroDoPlacar icone={ShieldCheck} tom="blood" rotulo="Fui finalizado" valor={<Contador valor={r.taps} />}
-            sub={r.taps === 1 ? 'vez que bati' : 'vezes que bati'} />
+          <QuadroDoPlacar icone={Trophy} tom="jade" rotulo="Finalizei" valor={<Contador valor={rSemana.finalizacoes} />}
+            sub={rSemana.finalizacoes === 1 ? 'vez nesta semana' : 'vezes nesta semana'} />
+          <QuadroDoPlacar icone={ShieldCheck} tom="blood" rotulo="Fui finalizado" valor={<Contador valor={rSemana.taps} />}
+            sub={rSemana.taps === 1 ? 'vez nesta semana' : 'vezes nesta semana'} />
         </div>
         </div>
         <div className="placar-fin">
-          <Finalizacoes dadas={r.finalizacoes} sofridas={r.taps} />
+          <Finalizacoes dadas={rSemana.finalizacoes} sofridas={rSemana.taps} periodo={estaSemana} />
         </div>
       </Card>
 
@@ -653,13 +661,13 @@ Toda vez que você marca um ponto, o app anota a posição que veio junto. Passa
    ruim, nem de onde vinha. Agora os dois números aparecem
    lado a lado, com quem está na frente em destaque.
    ============================================================ */
-function Finalizacoes({ dadas = 0, sofridas = 0 }) {
+function Finalizacoes({ dadas = 0, sofridas = 0, periodo }) {
   const [ajuda, setAjuda] = useState(false);
   const total = dadas + sofridas;
   const dif = dadas - sofridas;
 
   const leitura = !total
-    ? 'Nenhuma finalização registrada ainda.'
+    ? 'Nenhuma finalização nesta semana ainda. Zerou na segunda, o placar é novo.'
     : dif > 0
       ? `Você finaliza mais do que bate, por ${dif}.`
       : dif < 0
@@ -669,7 +677,7 @@ function Finalizacoes({ dadas = 0, sofridas = 0 }) {
   return (
     <>
       <div className="row" style={{ gap: 8 }}>
-        <span className="placar-rot" style={{ flex: 1 }}>Quem fez mais bater</span>
+        <span className="placar-rot" style={{ flex: 1 }}>Quem fez mais bater · {periodo.rotulo.toLowerCase()}</span>
         <button className="ajuda" onClick={() => setAjuda(true)} aria-label="O que é isso">?</button>
       </div>
 
@@ -687,6 +695,9 @@ function Finalizacoes({ dadas = 0, sofridas = 0 }) {
         <p className="tiny muted" style={{ lineHeight: 1.7 }}>
           Levar mais do que aplicar é o normal no começo, e continua normal se você rola com gente
           mais graduada que você. O que importa é ver esses dois números se aproximarem ao longo dos meses.
+        </p>
+        <p className="tiny muted" style={{ lineHeight: 1.7 }}>
+          Aqui conta só a semana, que começa na segunda. O total desde o primeiro treino fica na Análise, em "Desde o início".
         </p>
       </Sheet>
     </>

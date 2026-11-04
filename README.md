@@ -136,6 +136,8 @@ SQL do Supabase: os arquivos de `supabase/` são a versão sem segredo; os pront
 
 Só as últimas, pra saber o estado atual. O detalhe de cada dia fica em `Downloads/neurojitsu-v12_7/NEUROJITSU-RELATORIOS`.
 
+- **04/11/2026**: no placar do Painel, Finalizei / Fui finalizado e a barra "Quem fez mais bater" contam só a semana atual (300 contra 900 de uma vida inteira desanima); o total fica na Análise, "Desde o início". Planos de ataque com tela nova estão em `PLANO.md`.
+
 - **30/09/2026** (continuação do trabalho do Codex)
   - Metas coerentes (`teste:metas`): as horas de tatame nascem do ritmo (`alvoDeHoras` em metas.js: treinos por semana × semanas que faltam até 31/12 × duração do Gi; modos `derivada`, `manual`, `desligada` em `settings.metaAnualHorasModo`), com o cartão no último passo do onboarding e a origem escrita em Metas, Painel e Ajustes. Meta que depende de técnica não existe sem técnica (`metaIncompleta`): sai do onboarding, não fica ativa e pede a técnica (biblioteca de finalizações também). "1 treino" mantém a ofensiva, em número.
   - Configurações sobem pra conta (`enfileirarAjustes`, registro `settings` com o id da conta em `registros`): celular novo recupera ano, metas de horas, academia, liberadas e não repete o primeiro acesso. Aparelho virgem nunca sobe configuração em branco e aceita a da nuvem. `teste:sync` cobre aparelho A → nuvem → aparelho B, sem duplicar e sem sobrescrever o mais novo.
