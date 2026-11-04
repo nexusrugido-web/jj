@@ -65,7 +65,7 @@ export const RECURSOS = {
   nutricao:      { premium: true, nome: 'Combustível pro jiu-jitsu', desc: 'Proteína, carboidrato e água calculados pelo seu peso, o seu dia de comida com rotinas, e os suplementos que têm estudo por trás.' },
   temasFigurinha:{ premium: true, nome: 'Cores da figurinha', desc: 'A figurinha do story na cor da sua faixa ou em dourado. Na cor do app ela é de graça.' },
   voz:           { premium: true, nome: 'Registrar falando', desc: 'Conta como foi o treino e o app monta tudo: tipo, professor, técnicas e cada rola. Digitar continua grátis.' },
-  planos:        { premium: true, nome: 'Planos de ataque sem limite', desc: 'No grátis você tem 1 plano seu, criado ou copiado dos prontos. No Premium, quantos quiser.' },
+  planos:        { premium: true, nome: 'Planos de ataque sem limite', desc: 'No grátis você tem os 3 exemplos da sua faixa e 1 plano seu. No Premium, quantos quiser e a biblioteca inteira de prontos.' },
   metas:         { premium: true, nome: 'Metas sem limite', desc: `No grátis você assume até ${LIMITES.metasAtivas} metas que o app sugere pra você. Criar as suas e ter mais ativas é do Premium.` },
 };
 

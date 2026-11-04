@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, Suspense } from 'react';
 import { lazy } from '../lib/lazy';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { meusPlanos, correnteDoPlano } from '../lib/planos';
+import { planosDaPessoa, correnteDoPlano } from '../lib/planos';
 import {
   Plus, Trash2, Pencil, NotebookPen, Timer, ChevronDown, ChevronRight, Copy, Check,
   MessageSquare, Building2, GraduationCap, Trophy, Weight, Mic, Users, History, ShieldAlert, CircleHelp,
@@ -1375,7 +1375,7 @@ function BlocoCompeticao({ s, setS, onAbrirRegras }) {
 function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions = [], techniques, categories, finalizacoes, maisUsadas, recentesPorPonto, maisNoPonto = { tecMeus: {}, tecDele: {} }, recentesFoco, faixa, academias, professores, duracaoPadrao, padraoDe, onSalvarPadrao, idade = null, liberadas = [], onLiberar, tela = 'hub', setTela }) {
   const padrao = padraoDe(s.tipo);
   /* os planos de ataque do aluno, pro "usou qual plano?" do rola */
-  const meusPlanosDeAtaque = meusPlanos(useLiveQuery(() => db.attackPlans.toArray(), [], []) || []);
+  const meusPlanosDeAtaque = planosDaPessoa(useLiveQuery(() => db.attackPlans.toArray(), [], []) || [], faixa);
   /* A REGRA DA TÉCNICA: quando a regra não permite (faixa, idade, Gi ou
      No-Gi), o app avisa e pergunta. Nunca proíbe: o professor pode
      liberar, e "não avisar mais" guarda isso pra aquela técnica. */

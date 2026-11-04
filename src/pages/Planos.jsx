@@ -1,15 +1,17 @@
 import React, { useMemo, useState } from 'react';
-import { Plus, Play, Copy, Pencil, Trash2, Route, ChevronRight, RotateCcw, X, Repeat } from 'lucide-react';
+import { Plus, Play, Pencil, Trash2, Route, ChevronRight, RotateCcw, X, Repeat, ArrowDown, Check } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useApp } from '../contexto';
 import { db } from '../db/db';
 import {
-  Card, Btn, Field, Input, Select, Sheet, Chip, Empty, Confirmar, useToast,
+  Card, Btn, Field, Input, Select, Sheet, Chip, Confirmar, useToast,
 } from '../components/UI';
+import Guia, { Passos } from '../components/Guia';
+import { Vitrine } from '../components/Plano';
 import { SeletorTecnica } from '../components/SeletorTecnica';
 import { podeVer, pedirOferta } from '../lib/plano';
 import {
-  meusPlanos, planosProntos, podeCriarPlano, correnteDoPlano, copiaDoPronto, planoNovo, MAX_PASSOS, ALTURA_REL,
+  meusPlanos, planosProntos, exemplosDaFaixa, podeCriarPlano, correnteDoPlano, planoNovo, MAX_PASSOS, ALTURA_REL,
   taxaDoPlano, taxaPorTipo,
 } from '../lib/planos';
 import { FAIXAS } from '../lib/faixas';
@@ -19,15 +21,20 @@ import { PESO_REL } from '../db/scoring';
    PLANOS DE ATAQUE
 
    Da posição, a finta; ele reage; vem o golpe; se defender, o
-   próximo. O grátis tem 1 plano seu (criado ou copiado de um
-   pronto) e vê todos os prontos; o Premium não tem limite.
+   próximo. Cada um começa com 3 exemplos da faixa dele na lista
+   (não contam no limite) e vai montando os seus: o grátis tem 1
+   plano seu, o Premium não tem limite e abre a biblioteca inteira.
    ============================================================ */
 export default function Planos() {
   const { positions = [], techniques = [], categories = [], settings, acesso, rolls = [], partners = [], irPara } = useApp();
   const toast = useToast();
   const todos = useLiveQuery(() => db.attackPlans.toArray(), [], []) || [];
   const meus = useMemo(() => meusPlanos(todos), [todos]);
-  const prontos = useMemo(() => planosProntos(todos), [todos]);
+  const exemplos = useMemo(() => exemplosDaFaixa(todos, settings?.faixa), [todos, settings?.faixa]);
+  const biblioteca = useMemo(() => {
+    const ja = new Set(exemplos.map((p) => p.slug));
+    return planosProntos(todos).filter((p) => !ja.has(p.slug));
+  }, [todos, exemplos]);
   const premium = podeVer(acesso, 'planos');
 
   const [edit, setEdit] = useState(null);
@@ -39,12 +46,15 @@ export default function Planos() {
     pedirOferta('planos');
     return false;
   };
-
-  async function copiar(p) {
-    if (!liberado()) return;
-    await db.attackPlans.add({ ...copiaDoPronto(p), criadoEm: Date.now() });
-    toast('Copiado pros seus planos');
-  }
+  /* ajustar um pronto ao jogo dele: abre o editor já preenchido e,
+     ao salvar, vira plano dele (esse conta no limite) */
+  const ajustar = (p) => liberado() && setEdit({ ...paraEditar(p), id: undefined, copiadoDe: p.slug || null });
+  const acoesDoPronto = (p) => (
+    <>
+      <Btn size="sm" variant="ghost" icon={Repeat} onClick={() => irPara('treinos', { drillPlano: p.uid })}>Drill do plano</Btn>
+      <Btn size="sm" variant="ghost" icon={Pencil} onClick={() => ajustar(p)}>Ajustar ao meu jogo</Btn>
+    </>
+  );
 
   return (
     <div className="page">
@@ -56,43 +66,72 @@ export default function Planos() {
         <Btn variant="primary" icon={Plus} onClick={() => liberado() && setEdit(rascunho())}>Criar plano</Btn>
       </div>
 
+      <div style={{ marginBottom: 14 }}>
+        <Guia topicos={[{
+          id: 'como', icone: Route, titulo: 'Como funciona um plano de ataque',
+          resumo: 'Uma corrente: cada defesa dele abre o seu próximo golpe',
+          conteudo: (
+            <>
+              <LegendaDoMapa />
+              <Passos itens={[
+                'Posição: de onde a corrente começa (guarda fechada, montada, costas).',
+                'Finta: o movimento que faz ele reagir do jeito que você quer.',
+                'Reação dele: o que ele faz pra se defender da finta.',
+                'Golpe: o que você encaixa em cima dessa reação.',
+                'Se ele defender: a defesa dele abre o golpe seguinte. Até 4 golpes.',
+              ]} />
+              <p className="micro muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
+                Os 3 exemplos da sua faixa já estão na sua lista. Assiste, testa no rola e, quando quiser, ajusta um ao seu jogo ou monta o seu do zero.
+              </p>
+            </>
+          ),
+        }]} />
+      </div>
+
       <Card style={{ marginBottom: 14 }}>
         <div className="card-head">
           <h2 className="h-sec">Meus planos</h2>
-          {!premium && <span className="micro muted">{meus.length} de 1 no grátis</span>}
+          {!premium && <span className="micro muted">{meus.length} de 1 seu no grátis</span>}
         </div>
-        {meus.length === 0 ? (
-          <Empty
-            icon={Route}
-            titulo="Nenhum plano seu ainda"
-            texto="Monte a sua corrente ou copie um dos prontos aqui embaixo e ajuste pro seu jogo."
-          />
-        ) : (
-          <div className="col" style={{ gap: 10 }}>
-            {meus.map((p) => (
-              <CartaoPlano key={p.id} p={p} onAssistir={() => setAssistindo(p)}
-                acerto={<AcertoDoPlano p={p} rolls={rolls} partners={partners} porTipo={premium} />}>
-                <Btn size="sm" variant="ghost" icon={Repeat} onClick={() => irPara('treinos', { drillPlano: p.uid })}>Drill do plano</Btn>
-                <Btn size="sm" variant="ghost" icon={Pencil} onClick={() => setEdit(paraEditar(p))}>Editar</Btn>
-                <Btn size="sm" variant="ghost" icon={Trash2} onClick={() => setApagar(p)} aria-label="Apagar" />
-              </CartaoPlano>
-            ))}
-          </div>
-        )}
+        <div className="col" style={{ gap: 12 }}>
+          {meus.map((p) => (
+            <CartaoPlano key={p.id} p={p} onAssistir={() => setAssistindo(p)}
+              acerto={<AcertoDoPlano p={p} rolls={rolls} partners={partners} porTipo={premium} />}>
+              <Btn size="sm" variant="ghost" icon={Repeat} onClick={() => irPara('treinos', { drillPlano: p.uid })}>Drill do plano</Btn>
+              <Btn size="sm" variant="ghost" icon={Pencil} onClick={() => setEdit(paraEditar(p))}>Editar</Btn>
+              <Btn size="sm" variant="ghost" icon={Trash2} onClick={() => setApagar(p)} aria-label="Apagar" />
+            </CartaoPlano>
+          ))}
+          {exemplos.map((p) => (
+            <CartaoPlano key={p.id} p={p} exemplo onAssistir={() => setAssistindo(p)}
+              acerto={<AcertoDoPlano p={p} rolls={rolls} partners={partners} porTipo={premium} />}>
+              {acoesDoPronto(p)}
+            </CartaoPlano>
+          ))}
+        </div>
       </Card>
 
       <Card>
         <div className="card-head">
-          <h2 className="h-sec">Prontos</h2>
-          <span className="micro muted">{prontos.length} planos</span>
+          <h2 className="h-sec">Biblioteca de planos</h2>
+          <span className="micro muted">{biblioteca.length} planos</span>
         </div>
-        <div className="col" style={{ gap: 10 }}>
-          {prontos.map((p) => (
-            <CartaoPlano key={p.id} p={p} onAssistir={() => setAssistindo(p)}>
-              <Btn size="sm" variant="ghost" icon={Copy} onClick={() => copiar(p)}>Copiar pra mim</Btn>
-            </CartaoPlano>
-          ))}
-        </div>
+        {premium ? (
+          <div className="col" style={{ gap: 12 }}>
+            {biblioteca.map((p) => (
+              <CartaoPlano key={p.id} p={p} onAssistir={() => setAssistindo(p)}>{acoesDoPronto(p)}</CartaoPlano>
+            ))}
+          </div>
+        ) : (
+          <Vitrine
+            recurso="planos"
+            fundo={<div className="col" style={{ gap: 12 }}>{biblioteca.slice(0, 2).map((p) => <CartaoPlano key={p.id} p={p} />)}</div>}
+            titulo="A biblioteca inteira de planos"
+            texto={`Mais ${biblioteca.length} planos prontos, da branca à roxa, pra ver o mapa e ajustar ao seu jogo.`}
+            itens={['Planos de todas as faixas, com finta e reação', 'Quantos planos seus você quiser', 'Taxa de acerto por tipo de adversário']}
+            onAssinar={() => pedirOferta('planos')}
+          />
+        )}
       </Card>
 
       <EditorPlano
@@ -145,27 +184,31 @@ function AcertoDoPlano({ p, rolls, partners, porTipo }) {
 
 const alternar = (lista, id) => (lista.includes(id) ? lista.filter((x) => x !== id) : [...lista, id]);
 
-/* o cartão: nome, posição e a corrente em miniatura */
-function CartaoPlano({ p, onAssistir, acerto = null, children }) {
+/* o cartão: nome, posição e a corrente em miniatura, cada peça na cor do seu tipo */
+function CartaoPlano({ p, exemplo = false, onAssistir, acerto = null, children }) {
   const c = correnteDoPlano(p);
   const faixa = FAIXAS.find((f) => f.id === p.faixa);
   return (
     <div className="plano-cartao">
       <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="tiny" style={{ fontWeight: 700 }}>{p.nome}</div>
+          <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+            <span className="tiny" style={{ fontWeight: 700 }}>{p.nome}</span>
+            {exemplo && <span className="plano-selo">exemplo da sua faixa</span>}
+          </div>
           <div className="micro muted" style={{ marginTop: 2 }}>
-            {c.posicao || 'Sem posição'}{p.pronto && faixa ? ` · a partir da ${faixa.nome.toLowerCase()}` : ''}
+            {p.pronto && faixa ? `a partir da ${faixa.nome.toLowerCase()}` : 'seu plano'}
           </div>
         </div>
-        <Btn size="sm" variant="contorno" icon={Play} onClick={onAssistir}>Assistir</Btn>
+        {onAssistir && <Btn size="sm" variant="contorno" icon={Play} onClick={onAssistir}>Ver o mapa</Btn>}
       </div>
       <div className="plano-mini">
-        {c.finta && <Chip tone="warn">finta: {c.finta}</Chip>}
+        <span className="plano-peca t-posicao">{c.posicao || 'Sem posição'}</span>
+        {c.finta && <><ChevronRight size={13} className="muted" /><span className="plano-peca t-finta">{c.finta}</span></>}
         {c.passos.map((x, i) => (
           <React.Fragment key={i}>
-            {(i > 0 || c.finta) && <ChevronRight size={13} className="muted" />}
-            <Chip>{x.golpe}</Chip>
+            <ChevronRight size={13} className="muted" />
+            <span className="plano-peca t-golpe">{x.golpe}</span>
           </React.Fragment>
         ))}
       </div>
@@ -259,43 +302,80 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
 }
 
 /* ============================================================
-   MODO ASSISTIR
-   A corrente em cena, um cartão por vez, entrando em cascata.
+   O MAPA DO PLANO
+   Uma árvore que desce: posição, finta, reação, golpe. Em cada
+   golpe a corrente se abre em duas: encaixou (acabou) ou ele
+   defendeu (desce pro próximo). Cada tipo tem a sua cor.
    ============================================================ */
-function AssistirPlano({ plano, onClose }) {
-  const [ate, setAte] = useState(0);
-  if (!plano) return null;
+const TIPOS_DO_MAPA = [
+  { id: 'posicao', nome: 'Posição' },
+  { id: 'finta', nome: 'Finta' },
+  { id: 'reacao', nome: 'Reação dele' },
+  { id: 'golpe', nome: 'Golpe' },
+  { id: 'defende', nome: 'Se ele defender' },
+];
+function LegendaDoMapa() {
+  return (
+    <div className="mapa-legenda">
+      {TIPOS_DO_MAPA.map((t) => <span key={t.id} className={`mapa-tipo t-${t.id}`}><i />{t.nome}</span>)}
+    </div>
+  );
+}
+
+function nosDoMapa(plano) {
   const c = correnteDoPlano(plano);
-  const cenas = [
-    { tipo: 'posicao', rotulo: 'de onde começa', titulo: c.posicao || 'A posição' },
-    ...(c.finta ? [{ tipo: 'finta', rotulo: 'a finta', titulo: c.finta }] : []),
-    ...c.passos.flatMap((x, i) => [
-      ...(x.reacao ? [{ tipo: 'reacao', rotulo: i === 0 ? 'ele reage' : 'ele defende', titulo: x.reacao }] : []),
-      { tipo: 'golpe', rotulo: i === 0 ? 'o golpe' : `golpe ${i + 1}`, titulo: x.golpe, detalhe: x.detalhe },
-    ]),
-    ...(c.fim ? [{ tipo: 'fim', rotulo: 'se tudo falhar', titulo: c.fim }] : []),
-  ];
-  const fechar = () => { setAte(0); onClose(); };
-  const acabou = ate >= cenas.length - 1;
+  const nos = [{ tipo: 'posicao', rotulo: 'De onde começa', titulo: c.posicao || 'A posição' }];
+  if (c.finta) nos.push({ tipo: 'finta', rotulo: 'A finta', titulo: c.finta });
+  c.passos.forEach((x, i) => {
+    if (i > 0) nos.push({ tipo: 'defende', rotulo: 'Se ele defender', titulo: '' });
+    if (x.reacao) nos.push({ tipo: 'reacao', rotulo: i === 0 ? 'Ele reage' : 'A defesa dele', titulo: x.reacao });
+    nos.push({ tipo: 'golpe', rotulo: c.passos.length > 1 ? `Golpe ${i + 1}` : 'O golpe', titulo: x.golpe, detalhe: x.detalhe });
+  });
+  nos.push({ tipo: 'fim', rotulo: 'Se ele defender tudo', titulo: c.fim || 'Volta pra posição e recomeça a corrente' });
+  return nos;
+}
+
+function MapaDoPlano({ plano, ate = Infinity }) {
+  const nos = nosDoMapa(plano).slice(0, ate + 1);
+  return (
+    <div className="mapa">
+      {nos.map((n, i) => (n.tipo === 'defende' ? (
+        <div key={i} className="mapa-defende t-defende" style={{ '--i': i }}>
+          <ArrowDown size={13} /> {n.rotulo}
+        </div>
+      ) : (
+        <div key={i} className={`mapa-no t-${n.tipo}`} style={{ '--i': i }}>
+          <span className="mapa-rotulo">{n.rotulo}</span>
+          <div className="mapa-titulo">{n.titulo}</div>
+          {n.detalhe && <p className="micro muted" style={{ marginTop: 4, lineHeight: 1.55 }}>{n.detalhe}</p>}
+          {n.tipo === 'golpe' && <span className="mapa-encaixou"><Check size={12} /> Encaixou</span>}
+        </div>
+      )))}
+    </div>
+  );
+}
+
+function AssistirPlano({ plano, onClose }) {
+  /* abre com o mapa inteiro, entrando em cascata; o passo a passo
+     revela um nó por toque, pra ensaiar de cabeça */
+  const [ate, setAte] = useState(Infinity);
+  if (!plano) return null;
+  const total = nosDoMapa(plano).length;
+  const fechar = () => { setAte(Infinity); onClose(); };
+  const passoAPasso = ate !== Infinity;
+  const acabou = !passoAPasso || ate >= total - 1;
 
   return (
-    <Sheet aberto onClose={fechar} titulo={plano.nome} subtitulo="o plano em cena">
-      <div className="plano-cena">
-        {cenas.slice(0, ate + 1).map((x, i) => (
-          <div key={i} className={`plano-carta ${x.tipo}`} style={{ '--i': i }}>
-            <span className="eyebrow">{x.rotulo}</span>
-            <div className="plano-carta-titulo">{x.titulo}</div>
-            {x.detalhe && <p className="micro muted" style={{ marginTop: 4, lineHeight: 1.55 }}>{x.detalhe}</p>}
-          </div>
-        ))}
-      </div>
+    <Sheet aberto onClose={fechar} titulo={plano.nome} subtitulo="o mapa do plano">
+      <LegendaDoMapa />
+      <MapaDoPlano key={passoAPasso ? 'passo' : 'tudo'} plano={plano} ate={ate} />
       <div className="row" style={{ gap: 8, marginTop: 14 }}>
         {acabou ? (
-          <Btn variant="contorno" icon={RotateCcw} style={{ flex: 1 }} onClick={() => setAte(0)}>Ver de novo</Btn>
+          <Btn variant="contorno" icon={RotateCcw} style={{ flex: 1 }} onClick={() => setAte(0)}>Ver passo a passo</Btn>
         ) : (
           <>
             <Btn variant="primary" icon={ChevronRight} style={{ flex: 1 }} onClick={() => setAte((n) => n + 1)}>Próximo</Btn>
-            <Btn variant="ghost" onClick={() => setAte(cenas.length - 1)}>Ver tudo</Btn>
+            <Btn variant="ghost" onClick={() => setAte(Infinity)}>Ver tudo</Btn>
           </>
         )}
       </div>

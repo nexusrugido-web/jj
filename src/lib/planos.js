@@ -16,8 +16,26 @@ export const PLANOS_NO_GRATIS = 1;
 export const meusPlanos = (planos = []) => planos.filter((p) => !p.pronto && !p.arquivada);
 export const planosProntos = (planos = []) => planos.filter((p) => p.pronto && !p.arquivada);
 
-/* o grátis tem 1 plano seu (próprio ou copiado de um pronto) */
+/* o grátis tem 1 plano seu (próprio ou ajustado de um pronto) */
 export const podeCriarPlano = (planos, premium) => premium || meusPlanos(planos).length < PLANOS_NO_GRATIS;
+
+/* os exemplos que já vêm na lista de cada um: 3 da faixa dele.
+   São prontos, então não contam no limite do grátis. Marrom e preta
+   recebem os da roxa; faixa infantil, os da branca. O exemplo que a
+   pessoa ajustou pro jogo dela sai da lista (fica a versão dela). */
+const EXEMPLOS = {
+  branca: ['cg-trindade', 'cg-hipbump-kimura', 'montada-gi'],
+  azul: ['passagem-meia', 'meia-oldschool', 'borboleta'],
+  roxa: ['dlr', 'montada-ezequiel', 'aranha'],
+};
+export function exemplosDaFaixa(planos = [], faixa = 'branca') {
+  const slugs = EXEMPLOS[faixa] || (faixa === 'marrom' || faixa === 'preta' ? EXEMPLOS.roxa : EXEMPLOS.branca);
+  const prontos = planosProntos(planos);
+  const ajustados = new Set(meusPlanos(planos).map((p) => p.copiadoDe).filter(Boolean));
+  return slugs.map((s) => prontos.find((p) => p.slug === s)).filter((p) => p && !ajustados.has(p.slug));
+}
+/* a lista da pessoa: os planos dela e os exemplos da faixa */
+export const planosDaPessoa = (planos, faixa) => [...meusPlanos(planos), ...exemplosDaFaixa(planos, faixa)];
 
 /* o que a tela desenha, venha do pronto ou do aluno */
 export function correnteDoPlano(p) {
@@ -44,9 +62,9 @@ export function copiaDoPronto(p) {
 }
 
 /* o plano novo que a tela salva */
-export function planoNovo({ nome, posicao, posicaoId = null, finta = '', passos = [], paraAltura = [], paraPeso = [] }) {
+export function planoNovo({ nome, posicao, posicaoId = null, finta = '', passos = [], paraAltura = [], paraPeso = [], copiadoDe = null }) {
   return {
-    paraAltura, paraPeso,
+    paraAltura, paraPeso, copiadoDe,
     nome: String(nome || '').trim() || 'Meu plano',
     posicao: posicao || '',
     posicaoId,

@@ -3862,26 +3862,100 @@ body::after {
 .ver-mais-painel { width: 100%; justify-content: center; gap: 6px; margin: 4px 0 14px; border: 1px dashed var(--seam); }
 
 /* ---------- planos de ataque ---------- */
-.plano-cartao { padding: 12px; border: 1px solid var(--seam); border-radius: 14px; background: var(--ink-2, transparent); }
 .plano-mini { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 10px; }
 .plano-escolher { text-align: left; cursor: pointer; color: var(--chalk); }
 .plano-passo-edit { display: grid; gap: 8px; padding: 10px; border: 1px dashed var(--seam); border-radius: 12px; }
-/* a corrente em cena: cartões empilhados com profundidade, entrando em cascata */
-.plano-cena { display: grid; gap: 10px; perspective: 900px; }
-.plano-carta {
-  position: relative; padding: 14px 16px; border-radius: 16px; border: 1px solid var(--seam);
-  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%);
-  box-shadow: 0 10px 24px -14px rgba(0, 0, 0, .7);
-  animation: plano-entra .5s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 40ms);
-  transform-origin: top center;
+/* ---------- o mapa do plano: cada tipo com a sua cor ---------- */
+.t-posicao { --c: #6cb8ff; }
+.t-finta { --c: var(--roar); }
+.t-reacao { --c: #b48cff; }
+.t-golpe { --c: var(--jade); }
+.t-defende { --c: #ff7a6b; }
+.t-fim { --c: var(--dim); }
+
+/* o cartão da lista: borda com o degradê da corrente */
+.plano-cartao {
+  position: relative; padding: 14px; border-radius: 16px; border: 1px solid transparent;
+  background:
+    linear-gradient(var(--mat-hi, #161616), var(--mat-hi, #161616)) padding-box,
+    linear-gradient(120deg, color-mix(in srgb, #6cb8ff 55%, transparent), color-mix(in srgb, var(--roar) 40%, transparent) 40%, color-mix(in srgb, var(--jade) 55%, transparent)) border-box;
+  box-shadow: 0 14px 30px -22px color-mix(in srgb, var(--jade) 60%, transparent);
 }
-.plano-carta::before { content: ''; position: absolute; left: -1px; top: 14px; bottom: 14px; width: 3px; border-radius: 3px; background: var(--accent); }
-.plano-carta.finta::before { background: var(--roar); }
-.plano-carta.reacao::before { background: var(--dimmer); }
-.plano-carta.golpe::before { background: var(--jade); }
-.plano-carta-titulo { font-family: var(--display); font-weight: 800; font-size: 19px; letter-spacing: -0.02em; margin-top: 4px; line-height: 1.2; }
-@keyframes plano-entra { from { opacity: 0; transform: translateY(14px) rotateX(-18deg) scale(.97); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .plano-carta { animation: none; } }
+.plano-selo {
+  font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px;
+  color: var(--jade); background: color-mix(in srgb, var(--jade) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--jade) 35%, transparent);
+}
+.plano-peca {
+  display: inline-flex; align-items: center; min-height: 28px; padding: 3px 10px; border-radius: 99px;
+  font-size: 12px; font-weight: 650; color: var(--chalk);
+  background: color-mix(in srgb, var(--c) 14%, var(--void));
+  border: 1px solid color-mix(in srgb, var(--c) 50%, transparent);
+  box-shadow: 0 0 14px -8px var(--c);
+}
+
+/* a legenda: uma bolinha de cada cor */
+.mapa-legenda { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-bottom: 12px; }
+.mapa-tipo { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--dim); }
+.mapa-tipo i { width: 9px; height: 9px; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px var(--c); }
+
+/* a árvore: uma espinha que desce, com uma luz correndo por ela */
+.mapa { position: relative; padding-left: 28px; display: grid; gap: 10px; }
+.mapa::before {
+  content: ''; position: absolute; left: 11px; top: 14px; bottom: 14px; width: 2px; border-radius: 2px;
+  background: linear-gradient(#6cb8ff, var(--roar) 25%, #b48cff 45%, var(--jade) 70%, #ff7a6b);
+  opacity: .55;
+}
+.mapa::after {
+  content: ''; position: absolute; left: 8px; top: 10px; width: 8px; height: 46px; border-radius: 8px;
+  background: radial-gradient(closest-side, #fff, color-mix(in srgb, var(--jade) 70%, transparent), transparent);
+  filter: blur(1px); animation: mapa-luz 3.2s cubic-bezier(.5, 0, .5, 1) infinite;
+}
+@keyframes mapa-luz { from { top: 10px; opacity: 0; } 15% { opacity: .9; } 85% { opacity: .9; } to { top: calc(100% - 56px); opacity: 0; } }
+.mapa-no {
+  position: relative; padding: 12px 14px; border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--c) 45%, var(--seam));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--c) 16%, var(--void)), var(--void) 72%);
+  box-shadow: 0 0 26px -14px var(--c), inset 0 1px 0 rgba(255, 255, 255, .04);
+  animation: mapa-entra .55s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 90ms);
+}
+/* o nó na espinha */
+.mapa-no::before {
+  content: ''; position: absolute; left: -22px; top: 16px; width: 10px; height: 10px; border-radius: 50%;
+  background: var(--c); box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 22%, transparent), 0 0 14px var(--c);
+}
+/* o fio do nó até o cartão */
+.mapa-no::after {
+  content: ''; position: absolute; left: -12px; top: 20px; width: 12px; height: 2px;
+  background: color-mix(in srgb, var(--c) 60%, transparent);
+}
+.mapa-rotulo { font-size: 12px; font-weight: 700; color: var(--c); }
+.mapa-titulo { font-family: var(--display); font-weight: 800; font-size: 18px; letter-spacing: -0.02em; margin-top: 3px; line-height: 1.25; }
+.t-golpe .mapa-titulo { text-shadow: 0 0 18px color-mix(in srgb, var(--jade) 45%, transparent); }
+.t-fim .mapa-titulo { font-size: 15px; color: var(--dim); }
+.t-reacao .mapa-titulo { font-family: inherit; font-size: 15px; font-weight: 650; letter-spacing: 0; }
+/* o ramo de saída do golpe: encaixou, acabou */
+.mapa-encaixou {
+  display: inline-flex; align-items: center; gap: 5px; margin-top: 8px; padding: 3px 9px; border-radius: 99px;
+  font-size: 12px; font-weight: 700; color: var(--jade);
+  background: color-mix(in srgb, var(--jade) 12%, transparent); border: 1px dashed color-mix(in srgb, var(--jade) 50%, transparent);
+}
+/* a virada: ele defendeu, desce pro próximo */
+.mapa-defende {
+  position: relative; justify-self: start; display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 11px; border-radius: 99px; font-size: 12px; font-weight: 700; color: var(--c);
+  background: color-mix(in srgb, var(--c) 12%, var(--void)); border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
+  animation: mapa-entra .55s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 90ms);
+}
+.mapa-defende::before {
+  content: ''; position: absolute; left: -21px; top: 50%; width: 8px; height: 8px; margin-top: -4px; transform: rotate(45deg);
+  background: var(--c); box-shadow: 0 0 10px var(--c);
+}
+@keyframes mapa-entra { from { opacity: 0; transform: translateY(12px) scale(.97); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .mapa-no, .mapa-defende { animation: none; }
+  .mapa::after { display: none; }
+}
 
 /* ============================================================
    SELECIONADO = VERDE (04/11/2026)

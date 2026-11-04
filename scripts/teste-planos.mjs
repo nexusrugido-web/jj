@@ -79,5 +79,18 @@ ok('rodízio: último contra ele foi A', rod.ultimo?.uid, 'A');
 ok('rodízio: o próximo é um que ele ainda não viu', ['B', 'C'].includes(rod.proximo?.uid), true);
 ok('com 1 plano só, não tem próximo', rodizio([A], rs, sess, { id: 7 }).proximo, null);
 
+/* exemplos da faixa: 3 na lista de cada um, fora do limite do grátis */
+const { exemplosDaFaixa, planosDaPessoa } = await import('../src/lib/planos.js');
+const semente = PLANOS_ATAQUE.map((p, i) => ({ ...p, id: i + 1, uid: p.slug, pronto: 1, arquivada: 0 }));
+ok('branca recebe 3 exemplos de branca', exemplosDaFaixa(semente, 'branca').map((p) => p.faixa), ['branca', 'branca', 'branca']);
+ok('azul recebe 3 exemplos de azul', exemplosDaFaixa(semente, 'azul').map((p) => p.faixa), ['azul', 'azul', 'azul']);
+ok('preta recebe os da roxa', exemplosDaFaixa(semente, 'preta').length, 3);
+ok('faixa infantil recebe os da branca', exemplosDaFaixa(semente, 'cinza').map((p) => p.slug), exemplosDaFaixa(semente, 'branca').map((p) => p.slug));
+ok('exemplo não conta no limite do grátis', podeCriarPlano(semente, false), true);
+const ajustado = [...semente, { ...planoNovo({ nome: 'Minha trindade', passos: [{ golpe: 'Armlock' }], copiadoDe: 'cg-trindade' }), id: 99 }];
+ok('exemplo ajustado sai da lista e fica a versão dele', exemplosDaFaixa(ajustado, 'branca').some((p) => p.slug === 'cg-trindade'), false);
+ok('a lista da pessoa junta os dela e os exemplos', planosDaPessoa(ajustado, 'branca').map((p) => p.nome)[0], 'Minha trindade');
+ok('o ajustado conta no limite', podeCriarPlano(ajustado, false), false);
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);
