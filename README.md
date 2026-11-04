@@ -136,6 +136,7 @@ SQL do Supabase: os arquivos de `supabase/` são a versão sem segredo; os pront
 
 Só as últimas, pra saber o estado atual. O detalhe de cada dia fica em `Downloads/neurojitsu-v12_7/NEUROJITSU-RELATORIOS`.
 
+- **04/11/2026**: liga: quem cai de divisão vê "Nesta semana você corre na Academia" em cor neutra, sem seta pra baixo (`resultadoEmPalavras` em `src/lib/liga.js`). O push do domingo ("Caiu de divisão...", `supabase/40-avisos-do-tatame.sql`) não mudou.
 - **04/11/2026**: uma vitrine Premium por tela no Painel (`vitrine` em `Painel.jsx`): a aula que destrava o que te pega (agora na home, fora do Ver mais); sem ela, o resto do treino de hoje (`TreinoDeHoje comVitrine`); depois recomendações; por último gráficos. As outras não aparecem no grátis. Em Treinos já era uma por vez (histórico cortado).
 - **04/11/2026**: home enxuta: placar (conquistas da semana + ofensiva), avisos de situação (lesão, primeiros passos, volta), o que fazer hoje e metas. O resto (destaques, relatório do mês, ritmo da semana, técnicas, gráficos) fica atrás do botão "Ver mais do seu treino", lembrado no aparelho (`painelVerMais`). A explicação da escada foi pro "?".
 - **04/11/2026**: no Painel, "Onde você fica por cima e onde fica por baixo" conta só os últimos 3 meses (rótulo do período no card); a Análise continua com o seletor de período.

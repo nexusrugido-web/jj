@@ -124,7 +124,7 @@ function RelogioDaSemana() {
    divisão, e o pódio do grupo. Segunda de manhã, antes do
    fechamento, mostra a posição parcial e a hora do resultado.
    ============================================================ */
-const ICONE_DO_RESULTADO = { subiu: ArrowUp, desceu: ArrowDown, ficou: Minus };
+const ICONE_DO_RESULTADO = { subiu: ArrowUp, ficou: Minus };
 
 function ResultadoDaSemana({ r, grande = false, minhaFoto = null }) {
   const { settings } = useApp();

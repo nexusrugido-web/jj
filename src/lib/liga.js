@@ -264,7 +264,9 @@ export function resultadoEmPalavras(r) {
   }
   switch (r.resultado) {
     case 'subiu': return { tom: 'jade', titulo: `Você subiu ${praDivisao(r.divisao_depois)}`, texto: `Terminou em ${lugar}, com ${pts}. Nesta semana você corre num grupo da nova divisão.` };
-    case 'desceu': return { tom: 'blood', titulo: `Você desceu ${praDivisao(r.divisao_depois)}`, texto: `Terminou em ${lugar}, com ${pts}. Uma semana boa e você volta.` };
+    /* sem vermelho e sem "desceu" no título: semana fraca acontece
+       (lesão, viagem, trabalho), e o grupo novo é de gente do seu ritmo */
+    case 'desceu': return { tom: '', titulo: `Nesta semana você corre ${naDivisao(r.divisao_depois)}`, texto: `Terminou em ${lugar}, com ${pts}. Grupo novo, gente do seu ritmo: uma semana boa e você sobe de novo.` };
     case 'ficou': {
       const min = minimoPraSubir(r.divisao_antes);
       const faltou = r.posicao === 1 && min && r.xp < min;

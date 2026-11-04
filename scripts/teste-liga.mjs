@@ -56,7 +56,7 @@ ok('quanto falta, em palavras', [faltaTexto(2 * 864e5 + 5 * 36e5), faltaTexto(5 
 ok('a divisão com o artigo certo', [praDivisao('branca'), praDivisao('roxa'), naDivisao('branca'), naDivisao('azul')], ['pra Academia', 'pro Nacional', 'na Academia', 'no Estadual']);
 const base = { fechada: true, posicao: 1, total: 4, xp: 250, divisao_antes: 'azul' };
 ok('subiu', resultadoEmPalavras({ ...base, resultado: 'subiu', divisao_depois: 'roxa' }).titulo, 'Você subiu pro Nacional');
-ok('desceu pra Academia', resultadoEmPalavras({ ...base, posicao: 4, resultado: 'desceu', divisao_depois: 'branca' }).titulo, 'Você desceu pra Academia');
+ok('desceu pra Academia, sem dizer desceu', resultadoEmPalavras({ ...base, posicao: 4, resultado: 'desceu', divisao_depois: 'branca' }).titulo, 'Nesta semana você corre na Academia');
 ok('ficou', resultadoEmPalavras({ ...base, posicao: 2, resultado: 'ficou', divisao_depois: 'azul' }).titulo, 'Você continua no Estadual');
 ok('sozinho não correu', resultadoEmPalavras({ ...base, total: 1, resultado: 'sozinho', divisao_depois: 'azul' }).titulo, 'Ninguém correu com você');
 ok('semana ainda aberta: apurando, com a posição parcial', resultadoEmPalavras({ ...base, fechada: false, posicao: 3, xp: 90 }).texto.startsWith('Você está em 3º de 4, com 90 pontos.'), true);
