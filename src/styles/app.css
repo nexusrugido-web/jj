@@ -3882,3 +3882,37 @@ body::after {
 .plano-carta-titulo { font-family: var(--display); font-weight: 800; font-size: 19px; letter-spacing: -0.02em; margin-top: 4px; line-height: 1.2; }
 @keyframes plano-entra { from { opacity: 0; transform: translateY(14px) rotateX(-18deg) scale(.97); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .plano-carta { animation: none; } }
+
+/* ============================================================
+   SELECIONADO = VERDE (04/11/2026)
+   Toda escolha marcada fica verde, em qualquer tela: chip, opção,
+   seletor, aba, quiz. O menu e os botões de ação seguem na cor
+   da marca; verde aqui quer dizer "é este que está marcado".
+   ============================================================ */
+.chip.on,
+.bloco-cor .chip.on {
+  background: color-mix(in srgb, var(--jade) 16%, var(--void));
+  border-color: color-mix(in srgb, var(--jade) 55%, transparent);
+  color: var(--jade);
+}
+.opcao-meta.on,
+.quiz-op.on,
+.opcao-quiz.on,
+.oferta-plano.on {
+  border-color: var(--jade);
+  background: color-mix(in srgb, var(--jade) 10%, var(--void));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--jade) 12%, transparent);
+}
+.seletor-pill button.on,
+.seg button.on,
+.graf-forma button.on {
+  background: color-mix(in srgb, var(--jade) 18%, var(--mat-top));
+  color: var(--jade);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--jade) 45%, transparent);
+}
+.figurinha-liga button.on,
+.figurinha-desenhos button.on {
+  color: var(--jade);
+  border-color: color-mix(in srgb, var(--jade) 65%, transparent);
+  background: color-mix(in srgb, var(--jade) 10%, var(--void));
+}

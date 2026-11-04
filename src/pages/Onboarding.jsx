@@ -411,10 +411,10 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
                       <div className="row" style={{ gap: 9 }}>
                         <span style={{
                           width: 20, height: 20, borderRadius: 6, flex: 'none', display: 'grid', placeItems: 'center',
-                          border: `1.5px solid ${on ? 'var(--accent)' : 'var(--seam-hi)'}`,
-                          background: on ? 'var(--accent)' : 'transparent',
+                          border: `1.5px solid ${on ? 'var(--jade)' : 'var(--seam-hi)'}`,
+                          background: on ? 'var(--jade)' : 'transparent',
                         }}>
-                          {on && <Check size={12} color="var(--accent-ink)" strokeWidth={3} />}
+                          {on && <Check size={12} color="#04140f" strokeWidth={3} />}
                         </span>
                         <span className="tiny" style={{ fontWeight: 600, flex: 1 }}>{s.titulo}</span>
                       </div>
@@ -433,10 +433,10 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
                   <div className="row" style={{ gap: 9 }}>
                     <span style={{
                       width: 20, height: 20, borderRadius: 6, flex: 'none', display: 'grid', placeItems: 'center',
-                      border: `1.5px solid ${acompanharHoras ? 'var(--accent)' : 'var(--seam-hi)'}`,
-                      background: acompanharHoras ? 'var(--accent)' : 'transparent',
+                      border: `1.5px solid ${acompanharHoras ? 'var(--jade)' : 'var(--seam-hi)'}`,
+                      background: acompanharHoras ? 'var(--jade)' : 'transparent',
                     }}>
-                      {acompanharHoras && <Check size={12} color="var(--accent-ink)" strokeWidth={3} />}
+                      {acompanharHoras && <Check size={12} color="#04140f" strokeWidth={3} />}
                     </span>
                     <span className="tiny" style={{ fontWeight: 600, flex: 1 }}>Horas de tatame até o final de {hoje().slice(0, 4)} - 31/12/{hoje().slice(0, 4)}</span>
                   </div>
