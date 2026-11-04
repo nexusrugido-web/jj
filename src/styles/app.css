@@ -3319,8 +3319,8 @@ body::after {
 .placar-fin .fin-num { font-size: 30px; }
 .placar-fin .fin-rot { font-family: var(--body); font-size: var(--fs-meta); letter-spacing: 0; text-transform: none; color: var(--dim); }
 @media (min-width: 781px) {
-  /* no computador cabe tudo numa linha: os três e as finalizações ao lado */
-  .painel-placar .placar-grade { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  /* no computador os dois quadros dividem a linha */
+  .painel-placar .placar-grade { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 780px) { .placar-item .placar-rot .lucide { display: none; } }
 @media (max-width: 380px) {
@@ -3853,3 +3853,8 @@ body::after {
 .destrava-titulo { font-size: 14px; font-weight: 700; line-height: 1.35; margin: 4px 0 6px; }
 .destrava-txt { min-width: 0; }
 @media (max-width: 420px) { .destrava { grid-template-columns: 1fr; } }
+
+/* o que você conquistou esta semana: um chip por lance, só o que aconteceu */
+.conq-lista { display: flex; flex-wrap: wrap; gap: 8px; margin-top: var(--e3); }
+.conq-chip { display: inline-flex; align-items: baseline; gap: 6px; padding: 7px 11px; border-radius: 999px; border: 1px solid var(--seam); background: color-mix(in srgb, var(--jade) 10%, transparent); font-size: var(--fs-sec); font-weight: 600; }
+.conq-chip b { color: var(--jade); font-weight: 800; }

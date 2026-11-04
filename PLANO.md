@@ -1,8 +1,26 @@
-# PLANO — Planos de ataque + tirar o desânimo
+# PLANO — Placar de conquistas, tirar o desânimo, planos de ataque, registro rápido
+
+Ordem aprovada em 04/11/2026: Trilha A → B → C → D. Um commit por item.
 
 Decidido em 04/11/2026. Uma tarefa por vez; cada uma termina com `npm run check` verde, README atualizado e push.
 
-## O que já existe (não refazer)
+## Trilha A: Placar de conquistas
+1. Home mostra "O que você conquistou esta semana" (só o que fez, cada lance contado, rola sem bater conta); "Fui finalizado" sai da home → FEITO.
+2. Cor neutra pra derrota no histórico.
+3. Análise: "Conquistas por rola" ao longo dos meses; vitória × derrota num botão.
+4. Primeiras vezes (marcos automáticos) com figurinha.
+
+## Trilha B: Tirar o desânimo
+- 2 Meta que zerou · 3 Volta depois de sumir · 4 Liga, "você desceu" · 7 Campeonato vencido
+- 8 "Você cai em" sai da home → Meu Jogo, últimos 30 dias, com aula de defesa
+- 9 "Por cima e por baixo" → últimos 90 dias
+- 10 Home com 4 coisas (conquistas, o que fazer hoje, metas, ofensiva); resto em "Ver mais", explicação no "?"
+- 11 No máximo 1 vitrine Premium por tela
+
+## Trilha D: Registro do rola em 10 segundos
+Medir o registro de verdade, mostrar como ficaria antes de mexer.
+
+## Planos de ataque: o que já existe (não refazer)
 - Tabela local `attackPlans` com sync (`src/db/db.js:69`, `src/lib/sync.js:109`) e 16 planos prontos em `src/db/attackPlans.js` (passos `gatilho → acao → seFalhar → proxima`). Nenhuma tela usa.
 - Parceiro já tem `pesoRel`, `pesoKg`, `estilo`. Falta altura.
 - Raio-X do parceiro (`components/RaioXParceiro.jsx`, premium) já fala do "plano pro próximo rola".
@@ -14,7 +32,7 @@ Decidido em 04/11/2026. Uma tarefa por vez; cada uma termina com `npm run check`
 - **Premium** (`RECURSOS.planos`): planos sem limite, rodízio por parceiro ("hoje vai de B"), taxa por tipo de adversário.
 - Visual: sequência de cartões com profundidade e entrada em cascata, só CSS no SISTEMA NEURO. Sem three.js, sem MCP de design. Respeita `prefers-reduced-motion`.
 
-## Tarefas
+## Trilha C: Planos de ataque com finta
 1. **Placar da semana na home** → FEITO. Finalizei/Fui finalizado e a barra contam só a semana atual; total na Análise.
 2. **Tela Planos de ataque** (menu, lista: Meus planos + Prontos; criar/editar a corrente; trava de 1 no grátis). Verificar: criar, editar, copiar pronto, segundo plano no grátis abre a oferta.
 3. **Modo assistir** (o plano em cena, passo a passo, animado). Verificar: print headless e reduced-motion.
@@ -23,5 +41,4 @@ Decidido em 04/11/2026. Uma tarefa por vez; cada uma termina com `npm run check`
 6. **Taxa de acerto + rodízio** (lib pura com teste em `scripts/`): por plano, por passo onde morre, por tipo de adversário; sugestão do próximo plano por parceiro.
 7. **Competição e drill**: escolher o plano pro adversário da chave; "drill do plano" registra como drill (não conta como luta).
 
-## Tirar o desânimo (achados da varredura, decidir com o usuário)
-Ver a resposta do chat de 04/11/2026; itens aprovados entram aqui como tarefas.
+

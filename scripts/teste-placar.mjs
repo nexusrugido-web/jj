@@ -39,5 +39,18 @@ const r = resumo([{ id: 1, data: '2026-09-10' }], [
 ok('2 a 1 entra em rolas com finalização', r.subPct, 100);
 ok('2 a 1 entra em rolas com tap sofrido', r.tapPct, 100);
 
+/* conquistas: conta cada lance, só o que aconteceu, drill fora */
+const { conquistas } = await import('../src/lib/game.js');
+const c = conquistas([
+  { ptsMeus: ['passagem', 'passagem', 'raspagem'], subsAplicadas: ['Armlock'] },
+  { ptsMeus: ['queda'], subsSofridas: ['Americana'] },
+  { ptsMeus: ['passagem'] },
+  { contexto: 'drill', ptsMeus: ['costas'] },
+]);
+ok('conquistas contam cada vez', c.itens.map((i) => `${i.id}:${i.vezes}`), ['queda:1', 'passagem:3', 'raspagem:1', 'finalizacao:1']);
+ok('rola sem bater conta', c.semBater, 2);
+ok('drill não entra', c.rolas, 3);
+ok('total de lances', c.total, 6);
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

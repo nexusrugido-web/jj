@@ -136,6 +136,7 @@ SQL do Supabase: os arquivos de `supabase/` são a versão sem segredo; os pront
 
 Só as últimas, pra saber o estado atual. O detalhe de cada dia fica em `Downloads/neurojitsu-v12_7/NEUROJITSU-RELATORIOS`.
 
+- **04/11/2026**: no Painel, o placar virou "O que você conquistou esta semana": cada passagem, raspagem, queda, montada, costas, joelho e finalização marcada, contada cada vez, e os rolas sem bater (`conquistas()` em `src/lib/game.js`, teste em `teste:placar`). "Fui finalizado" saiu da home; o que te pega fica no Meu Jogo. Trilhas A a D em `PLANO.md`.
 - **04/11/2026**: no placar do Painel, Finalizei / Fui finalizado e a barra "Quem fez mais bater" contam só a semana atual (300 contra 900 de uma vida inteira desanima); o total fica na Análise, "Desde o início". Planos de ataque com tela nova estão em `PLANO.md`.
 
 - **30/09/2026** (continuação do trabalho do Codex)

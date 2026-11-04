@@ -73,6 +73,27 @@ export const LANCES = [
     dica: 'Escolha um ataque de cada posição e busque só ele por umas semanas.' },
 ];
 
+/* ---------- o que você conquistou ----------
+   O placar do faixa-branca está no meio do rola, não no fim: cada
+   passagem, raspagem e queda conta, e sobreviver sem bater também.
+   Conta cada vez (três raspagens num rola são três), drill fica de
+   fora. Só volta o que aconteceu, pra tela não mostrar zero. */
+export function conquistas(rolls) {
+  const lutas = rolls.filter((r) => (r.contexto || 'rola') !== 'drill');
+  const vezes = {};
+  for (const r of lutas) {
+    for (const id of r.ptsMeus || []) vezes[id] = (vezes[id] || 0) + 1;
+    vezes.finalizacao = (vezes.finalizacao || 0) + (r.subsAplicadas || []).length;
+  }
+  const semBater = lutas.filter((r) => !(r.subsSofridas || []).length
+    && r.resultado !== 'fui_finalizado' && r.resultado !== 'ambos').length;
+  const itens = LANCES
+    .map((l) => ({ id: l.id, rotulo: l.meu, vezes: vezes[l.id] || 0 }))
+    .filter((i) => i.vezes > 0);
+  const total = itens.reduce((a, i) => a + i.vezes, 0);
+  return { itens, semBater, rolas: lutas.length, total };
+}
+
 /* o que fazer com o que você mais cede */
 const DICA_DO_QUE_CEDE = {
   queda: 'Postura e pegada vêm antes de qualquer defesa de queda.',

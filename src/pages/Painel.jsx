@@ -26,7 +26,7 @@ import { resumoSemana } from '../lib/semana';
 import { semanaDe } from '../lib/xp';
 import useOfensivaSemanal from '../lib/useOfensivaSemanal';
 import { situacao, guiaDeEstudo } from '../lib/lesao';
-import { analisarJogo } from '../lib/game';
+import { analisarJogo, conquistas } from '../lib/game';
 import { treinoDeHoje, posicaoDeHoje } from '../lib/treinoDeHoje';
 import TreinoDeHoje from '../components/TreinoDeHoje';
 import RelatorioDoMes from '../components/RelatorioDoMes';
@@ -67,13 +67,12 @@ export default function Painel() {
   }, [convidarPraLiga, sessao]);
 
   const r = useMemo(() => resumo(sessions, rolls), [sessions, rolls]);
-  /* finalizações só da semana: 300 contra 900 de uma vida inteira
-     desanima; o total mora na Análise ("desde o início") */
+  /* o placar da home é o que você conquistou na semana: o que te pega
+     mora no Meu Jogo, com a saída do lado */
   const estaSemana = periodoDeDados('semana-atual');
-  const rSemana = useMemo(() => {
-    const ses = dentroDoPeriodo(sessions, estaSemana);
-    const ids = new Set(ses.map((s) => s.id));
-    return resumo(ses, rolls.filter((x) => ids.has(x.sessionId)));
+  const conqSemana = useMemo(() => {
+    const ids = new Set(dentroDoPeriodo(sessions, estaSemana).map((s) => s.id));
+    return conquistas(rolls.filter((x) => ids.has(x.sessionId)));
   }, [sessions, rolls, estaSemana.ini]); // eslint-disable-line react-hooks/exhaustive-deps
   const escada = useMemo(() => escadaPosicional(rolls, positions), [rolls, positions]);
   const semana = useMemo(() => treinosNaSemana(sessions), [sessions]);
@@ -240,14 +239,10 @@ export default function Painel() {
             sub={`em ${r.sessoes} ${r.sessoes === 1 ? 'treino' : 'treinos'}`} />
           <QuadroDoPlacar icone={Swords} rotulo={r.rolas === 1 ? 'Luta' : 'Lutas'} valor={<Contador valor={r.rolas} />}
             sub={r.sessoes ? `${String((r.rolas / r.sessoes).toFixed(1)).replace('.', ',')} por treino` : 'nenhum treino ainda'} />
-          <QuadroDoPlacar icone={Trophy} tom="jade" rotulo="Finalizei" valor={<Contador valor={rSemana.finalizacoes} />}
-            sub={rSemana.finalizacoes === 1 ? 'vez nesta semana' : 'vezes nesta semana'} />
-          <QuadroDoPlacar icone={ShieldCheck} tom="blood" rotulo="Fui finalizado" valor={<Contador valor={rSemana.taps} />}
-            sub={rSemana.taps === 1 ? 'vez nesta semana' : 'vezes nesta semana'} />
         </div>
         </div>
         <div className="placar-fin">
-          <Finalizacoes dadas={rSemana.finalizacoes} sofridas={rSemana.taps} periodo={estaSemana} />
+          <ConquistasDaSemana c={conqSemana} aoVerJogo={() => irPara('meujogo')} />
         </div>
       </Card>
 
@@ -655,50 +650,50 @@ Toda vez que você marca um ponto, o app anota a posição que veio junto. Passa
 
 
 /* ============================================================
-   FINALIZAÇÕES
+   O QUE VOCÊ CONQUISTOU ESTA SEMANA
 
-   O "saldo de taps" confundia: ninguém sabia se menos um era
-   ruim, nem de onde vinha. Agora os dois números aparecem
-   lado a lado, com quem está na frente em destaque.
+   Só o que você fez, contado cada vez. Pro faixa-branca o rola
+   quase nunca acaba em finalização dele: o prazer está no meio
+   (passou, raspou, derrubou) e em sair sem bater. O que te pega
+   fica no Meu Jogo, com a aula de defesa do lado.
    ============================================================ */
-function Finalizacoes({ dadas = 0, sofridas = 0, periodo }) {
+function ConquistasDaSemana({ c, aoVerJogo }) {
   const [ajuda, setAjuda] = useState(false);
-  const total = dadas + sofridas;
-  const dif = dadas - sofridas;
-
-  const leitura = !total
-    ? 'Nenhuma finalização nesta semana ainda. Zerou na segunda, o placar é novo.'
-    : dif > 0
-      ? `Você finaliza mais do que bate, por ${dif}.`
-      : dif < 0
-        ? `Você bate mais do que finaliza, por ${Math.abs(dif)}. Normal quando se rola com gente mais graduada.`
-        : 'Empatado entre dar e levar.';
+  const leitura = !c.rolas
+    ? 'Nenhum rola nesta semana ainda. Zerou na segunda, o placar é novo.'
+    : !c.total && !c.semBater
+      ? 'Nenhum lance marcado nesta semana. No próximo rola, marca o que você conseguiu, até a pegada que virou queda.'
+      : null;
 
   return (
     <>
       <div className="row" style={{ gap: 8 }}>
-        <span className="placar-rot" style={{ flex: 1 }}>Quem fez mais bater · {periodo.rotulo.toLowerCase()}</span>
+        <span className="placar-rot" style={{ flex: 1 }}>O que você conquistou esta semana</span>
         <button className="ajuda" onClick={() => setAjuda(true)} aria-label="O que é isso">?</button>
       </div>
 
-      <div className="fin-barra">
-        <i style={{ width: `${total ? (dadas / total) * 100 : 50}%`, background: 'var(--jade)' }} />
-        <i style={{ width: `${total ? (sofridas / total) * 100 : 50}%`, background: 'var(--blood)' }} />
-      </div>
+      {leitura ? (
+        <p className="micro muted" style={{ marginTop: 8, lineHeight: 1.5 }}>{leitura}</p>
+      ) : (
+        <div className="conq-lista">
+          {c.itens.map((i) => (
+            <span key={i.id} className="conq-chip"><b className="num">{i.vezes}x</b> {i.rotulo}</span>
+          ))}
+          {c.semBater > 0 && (
+            <span className="conq-chip"><b className="num">{c.semBater}</b> {c.semBater === 1 ? 'rola sem bater' : 'rolas sem bater'}</span>
+          )}
+        </div>
+      )}
 
-      <p className="micro muted" style={{ marginTop: 8, lineHeight: 1.5 }}>{leitura}</p>
-
-      <Sheet aberto={ajuda} onClose={() => setAjuda(false)} titulo="Finalizações">
+      <Sheet aberto={ajuda} onClose={() => setAjuda(false)} titulo="O que você conquistou">
         <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-          À esquerda, quantas vezes você fez alguém bater. À direita, quantas vezes você bateu.
+          Cada passagem, raspagem, queda, montada e pegada nas costas que você marcou nos rolas da semana, contada cada vez.
+          Rola sem bater também entra: sair inteiro de um rola com alguém mais graduado é vitória.
         </p>
         <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-          Levar mais do que aplicar é o normal no começo, e continua normal se você rola com gente
-          mais graduada que você. O que importa é ver esses dois números se aproximarem ao longo dos meses.
+          A semana começa na segunda. O que te pega fica no Meu Jogo, com a aula pra defender do lado.
         </p>
-        <p className="tiny muted" style={{ lineHeight: 1.7 }}>
-          Aqui conta só a semana, que começa na segunda. O total desde o primeiro treino fica na Análise, em "Desde o início".
-        </p>
+        <Btn size="sm" variant="contorno" onClick={() => { setAjuda(false); aoVerJogo(); }}>Ver o Meu Jogo</Btn>
       </Sheet>
     </>
   );
