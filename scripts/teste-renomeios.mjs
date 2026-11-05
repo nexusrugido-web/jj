@@ -85,6 +85,7 @@ ok('roda uma vez só', (await db.techniques.get(tec.id)).nome, 'Solo (single leg
   const bsUid = uidEstavel(chaveNome('techniques', 'Backside 50/50'));
   const bs = await db.techniques.add({ nome: 'Backside 50/50', uid: bsUid, categoriaId: perna, origemId: g50, destinoId: fim, tags: [], status: 'aprendendo', arquivada: 0 });
   const ce = await db.techniques.add({ nome: 'Cadeira elétrica (finalização)', categoriaId: art, destinoId: fim, arquivada: 0 });
+  const bi = await db.techniques.add({ nome: 'Chave de bíceps (bicep slicer)', uid: 'uid-bicep', categoriaId: art, faixaMin: 'marrom', arquivada: 0 });
   await arrumarBiblioteca();
   const comp = (await db.categories.toArray()).find((c) => c.slug === 'compressao');
   const t = await db.techniques.get(bs);
@@ -92,8 +93,10 @@ ok('roda uma vez só', (await db.techniques.get(tec.id)).nome, 'Solo (single leg
   ok('Backside 50/50 vira posição, mesmo uid, o que a pessoa marcou fica',
     [t.categoriaId === guarda, t.destinoId === g50, t.tags, t.uid === bsUid, t.status], [true, true, ['posicao'], true, 'aprendendo']);
   ok('Cadeira elétrica vai pra Compressões', (await db.techniques.get(ce)).categoriaId === comp.id, true);
+  const bt = await db.techniques.get(bi);
+  ok('Bicep slicer vai pra Compressões, mesmo uid e mesma faixa', [bt.categoriaId === comp.id, bt.uid, bt.faixaMin], [true, 'uid-bicep', 'marrom']);
   await arrumarBiblioteca();
-  ok('roda uma vez só', [await getMeta('biblioteca_v2', false), (await db.categories.toArray()).filter((c) => c.slug === 'compressao').length], [true, 1]);
+  ok('roda uma vez só', [await getMeta('biblioteca_v3', false), (await db.categories.toArray()).filter((c) => c.slug === 'compressao').length], [true, 1]);
 }
 
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');

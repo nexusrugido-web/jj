@@ -252,7 +252,7 @@ const techniques = [
   { "pt": "Chave de ombro da guarda (whip)", "en": "Whip / shoulder lock", "cat": "articular", "from": "guarda_fechada", "to": "finalizacao" },
   { "pt": "Chave de pulso (da guarda)", "en": "Wrist lock from guard", "cat": "articular", "fam": "fam:pulso", "from": "guarda_fechada", "to": "finalizacao", "faixaMin": "azul", "restricao": "IBJJF: permitida a partir da faixa azul." },
   { "pt": "Chave de pulso (por cima)", "en": "Wrist lock from top", "cat": "articular", "fam": "fam:pulso", "from": "cem_quilos", "to": "finalizacao", "faixaMin": "azul", "restricao": "IBJJF: permitida a partir da faixa azul." },
-  { "pt": "Chave de bíceps (bicep slicer)", "en": "Bicep slicer", "cat": "articular", "from": "guarda_fechada", "to": "finalizacao", "faixaMin": "marrom", "restricao": "IBJJF: proibida até faixa roxa." },
+  { "pt": "Chave de bíceps (bicep slicer)", "en": "Bicep slicer", "cat": "compressao", "from": "guarda_fechada", "to": "finalizacao", "faixaMin": "marrom", "restricao": "IBJJF: proibida até faixa roxa." },
   { "pt": "Compressão de panturrilha (calf slicer)", "en": "Calf slicer", "cat": "compressao", "from": "ashi", "to": "finalizacao", "faixaMin": "marrom", "restricao": "IBJJF: proibida até faixa roxa." },
   { "pt": "Armlock do triângulo", "antigo": "Chave de braço em triângulo", "en": "Triangle armbar", "cat": "articular", "fam": "fam:armlock", "from": "guarda_fechada", "to": "finalizacao" },
   { "pt": "Kimura do norte-sul", "antigo": "Chave de ombro do norte-sul", "en": "North-south kimura", "cat": "articular", "fam": "fam:kimura", "from": "norte_sul", "to": "finalizacao" },

@@ -1,7 +1,7 @@
 -- 52: COMPRESSÃO COMO HABILIDADE DE AULA
 --
 -- O catálogo ganhou a categoria Compressões (Cadeira elétrica, Banana
--- split, Calf slicer): finalização que esmaga ou abre à força, e não
+-- split, Calf slicer, Bicep slicer): finalização que esmaga ou abre à força, e não
 -- chave de articulação. A aula agora pode ser marcada com "compressao",
 -- e a recomendação de defesa contra essas técnicas não cai mais em
 -- aula de chave de perna.

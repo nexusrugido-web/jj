@@ -61,9 +61,11 @@ const bs = SEED.techniques.find((t) => t.pt === 'Backside 50/50');
 ok('Backside 50/50 é posição: Guardas e posições, da 50/50 pra 50/50, sem família', [bs.cat, bs.from, bs.to, (bs.tags || []).includes('posicao'), fam(bs.pt)], ['guarda', 'g50', 'g50', true, null]);
 ok('o uid do Backside 50/50 não muda', CATALOGO_TECNICAS.find((t) => t.nome === 'Backside 50/50').uid, uidEstavel(chaveNome('techniques', 'Backside 50/50')));
 ok('Compressões existe e é finalização', [SEED.categories.some((c) => c.slug === 'compressao' && c.nome === 'Compressões'), FAMILIAS_DE_FINALIZACAO.has('compressao')], [true, true]);
-ok('nas compressões: Cadeira elétrica, Banana split e Calf slicer',
+ok('nas compressões: Cadeira elétrica, Banana split, Calf slicer e Bicep slicer',
   SEED.techniques.filter((t) => t.cat === 'compressao').map((t) => t.pt).sort(),
-  ['Banana split', 'Cadeira elétrica (finalização)', 'Compressão de panturrilha (calf slicer)']);
+  ['Banana split', 'Cadeira elétrica (finalização)', 'Chave de bíceps (bicep slicer)', 'Compressão de panturrilha (calf slicer)']);
+const bicep = SEED.techniques.find((t) => t.pt === 'Chave de bíceps (bicep slicer)');
+ok('Bicep slicer mantém faixa e regra de competição', [bicep.faixaMin, bicep.restricao], ['marrom', 'IBJJF: proibida até faixa roxa.']);
 ok('a Cadeira elétrica (posição) continua posição', SEED.techniques.find((t) => t.pt === 'Cadeira elétrica (posição)').cat, 'guarda');
 
 /* ---------- o que a pessoa lê ---------- */

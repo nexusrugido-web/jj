@@ -273,6 +273,8 @@ export async function renomearTecnicas() {
    finalização; o rola antigo continua mostrando o nome gravado), e
    nasce a categoria Compressões, com as finalizações que esmagam ou
    abrem à força em vez de girar uma articulação.
+   v3: o bicep slicer entra em Compressões; quem já tinha rodado a v2
+   roda de novo (os ajustes são idempotentes).
    ============================================================ */
 const ARRUMAR = {
   'Entrada no ashi garami': { cat: 'transicao' },
@@ -288,10 +290,11 @@ const ARRUMAR = {
   'Cadeira elétrica (finalização)': { cat: 'compressao' },
   'Banana split': { cat: 'compressao' },
   'Compressão de panturrilha (calf slicer)': { cat: 'compressao' },
+  'Chave de bíceps (bicep slicer)': { cat: 'compressao' },
 };
 
 export async function arrumarBiblioteca() {
-  if (await getMeta('biblioteca_v2', false)) return;
+  if (await getMeta('biblioteca_v3', false)) return;
   const cat = Object.fromEntries((await db.categories.toArray()).filter((c) => c.slug).map((c) => [c.slug, c.id]));
   /* categoria que nasceu depois da instalação */
   for (const c of SEED.categories) {
@@ -310,7 +313,7 @@ export async function arrumarBiblioteca() {
     /* a biblioteca é igual em todo aparelho: fica só aqui, sem subir */
     if (Object.keys(patch).length) await db.techniques.update(t.id, { ...patch, __local: Math.random() });
   }
-  await setMeta('biblioteca_v2', true);
+  await setMeta('biblioteca_v3', true);
 }
 
 /* ---------- seed ---------- */
