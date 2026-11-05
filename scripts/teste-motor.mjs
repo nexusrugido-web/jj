@@ -212,6 +212,7 @@ ok('perde igual contra todo mundo: não é o peso', contraMaisPesado([...[1, 1, 
 const recs = gerarRecomendacoes({ rolls: rolasPesados, sessions: [], limite: 9 });
 const recPesado = recs.find((r) => r.situacao === 'contra_pesado');
 ok('vira recomendação com nome', recPesado?.titulo, 'Contra quem é mais pesado');
+ok('sem contar derrota no texto', /\d/.test(`${recPesado?.texto} ${recPesado?.evidencia}`), false);
 ok('com chave própria, que não se confunde com a da posição', chaveDaRec(recPesado), 'corrigir:contra_pesado');
 ok('e puxa vídeo pela situação', pedidoDaRec(recPesado).situacoes, ['contra_pesado']);
 

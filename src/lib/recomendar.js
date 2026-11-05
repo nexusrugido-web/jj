@@ -249,8 +249,9 @@ export function gerarRecomendacoes({
       alvo: null,
       situacao: 'contra_pesado',
       titulo: 'Contra quem é mais pesado',
-      texto: `Contra gente mais pesada você perdeu ${pesado.perdas} de ${pesado.n} rolas${pesado.outros !== null ? `, e contra o resto do pessoal, ${pesado.outros}% das vezes` : ''}. Contra peso, posição e alavanca rendem mais que força.`,
-      evidencia: `${pesado.perdas} de ${pesado.n} rolas contra mais pesados`,
+      /* sem contar derrota: o número fica aqui dentro, só pra decidir se aparece */
+      texto: `Contra gente mais pesada o rola tem ficado mais duro${pesado.outros !== null ? ' do que contra o resto do pessoal' : ''}. Faz parte: contra peso, posição e alavanca rendem mais que força, e dá pra treinar isso.`,
+      evidencia: 'apareceu nos seus rolas contra mais pesados',
     });
   }
 
