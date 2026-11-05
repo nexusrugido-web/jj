@@ -3902,72 +3902,102 @@ body::after {
 .mapa-tipo { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--dim); }
 .mapa-tipo i { width: 9px; height: 9px; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px var(--c); }
 
-/* a árvore: os golpes alternam de lado; os fios são um SVG por baixo */
+/* o mapa mental: a posição na esquerda, os galhos abrindo pra direita */
 .mapa {
   --mp-posicao: #6cb8ff; --mp-finta: var(--roar); --mp-reacao: #b48cff; --mp-golpe: var(--jade);
   --mp-defende: #ff7a6b; --mp-fim: var(--dim); --mp-encaixou: var(--jade);
-  position: relative; display: grid; gap: 30px; padding: 4px 0 6px;
+  --tr-0: var(--jade); --tr-1: #f5c542; --tr-2: #b48cff; --tr-3: #ff8fb8;
+  position: relative;
 }
 .mapa-fios { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .mapa-fio-traco {
-  fill: none; stroke-width: 2.2; stroke-linecap: round;
+  fill: none; stroke-width: 2.8; stroke-linecap: round;
   stroke-dasharray: 1; stroke-dashoffset: 1;
   filter: drop-shadow(0 0 4px color-mix(in srgb, var(--jade) 35%, transparent));
-  animation: mapa-desenha .7s cubic-bezier(.4, 0, .2, 1) forwards; animation-delay: calc(var(--i, 0) * 110ms + 150ms);
+  animation: mapa-desenha .7s cubic-bezier(.4, 0, .2, 1) forwards; animation-delay: calc(var(--i, 0) * 90ms + 150ms);
 }
-/* a luz que corre pelo fio */
+/* a luz que corre pelo galho */
 .mapa-fio-luz {
   fill: none; stroke: #fff; stroke-width: 2.6; stroke-linecap: round; opacity: .85;
   stroke-dasharray: .07 1; stroke-dashoffset: 1.07;
   filter: drop-shadow(0 0 5px #fff);
   animation: mapa-corre 2.6s cubic-bezier(.5, 0, .5, 1) infinite; animation-delay: calc(var(--i, 0) * 350ms + 900ms);
 }
-.mapa-fio-ponta { opacity: 0; animation: mapa-aparece .3s ease forwards; animation-delay: calc(var(--i, 0) * 110ms + 700ms); }
 @keyframes mapa-desenha { to { stroke-dashoffset: 0; } }
 @keyframes mapa-aparece { to { opacity: 1; } }
 @keyframes mapa-corre { from { stroke-dashoffset: 1.07; } 70%, to { stroke-dashoffset: 0; } }
-
-.mapa-no {
-  position: relative; z-index: 1; min-width: 0; padding: 12px 14px; border-radius: 14px;
-  border: 1px solid color-mix(in srgb, var(--c) 45%, var(--seam));
-  background: linear-gradient(135deg, color-mix(in srgb, var(--c) 16%, var(--void)), var(--void) 72%);
-  box-shadow: 0 0 26px -14px var(--c), inset 0 1px 0 rgba(255, 255, 255, .04);
-  overflow-wrap: anywhere;
-  animation: mapa-entra .55s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 110ms);
-}
-.mapa-rotulo { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: var(--c); }
-.mapa-titulo { font-family: var(--display); font-weight: 800; font-size: 17px; letter-spacing: -0.02em; margin-top: 3px; line-height: 1.25; }
-.mapa-no[class*='trilho-'] .mapa-titulo { text-shadow: 0 0 18px color-mix(in srgb, var(--c) 45%, transparent); }
-/* o ramo de saída: encaixou */
-.mapa-folha {
-  position: relative; z-index: 1; justify-self: center; display: inline-flex; align-items: center; gap: 5px;
-  padding: 6px 11px; border-radius: 99px; font-size: 12.5px; font-weight: 700; color: var(--jade); white-space: nowrap;
-  background: color-mix(in srgb, var(--jade) 13%, var(--void)); border: 1px solid color-mix(in srgb, var(--jade) 50%, transparent);
-  box-shadow: 0 0 18px -6px var(--jade);
-  animation: mapa-entra .55s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 110ms + 250ms);
-}
-.mapa-folha.segue { flex-direction: column; align-items: flex-start; gap: 3px; white-space: normal; border-radius: 12px; padding: 7px 10px; overflow-wrap: anywhere; }
-.mapa-segue { font-size: 12px; font-weight: 600; color: var(--chalk); line-height: 1.3; }
 @keyframes mapa-entra { from { opacity: 0; transform: translateY(12px) scale(.97); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
 
-/* ---------- os trilhos: cada plano (A, B, C, D) com a sua cor ---------- */
+.mapa-rotulo { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: var(--c); }
+.mapa-rotulo.encaixou { color: var(--jade); }
+.mapa-rotulo.defendeu { color: var(--mp-defende, #ff7a6b); }
+.mapa-titulo { font-family: var(--display); font-weight: 800; font-size: 17px; letter-spacing: -0.02em; margin-top: 3px; line-height: 1.25; }
+.mapa-deixa {
+  margin-top: 6px; padding-left: 8px; border-left: 2px solid #b48cff;
+  font-size: 13px; line-height: 1.4; color: var(--chalk); opacity: .85; font-style: italic;
+}
+
+/* cada plano (A, B, C, D) com a sua cor */
 .trilho-0 { --c: var(--jade); }
 .trilho-1 { --c: #f5c542; }
 .trilho-2 { --c: #b48cff; }
 .trilho-3 { --c: #ff8fb8; }
-.mapa.trilhos {
-  --tr-0: var(--jade); --tr-1: #f5c542; --tr-2: #b48cff; --tr-3: #ff8fb8;
-  gap: 14px; padding-left: calc(var(--nt, 1) * 18px + 12px);
+
+.mente-quadro {
+  position: relative; border: 1px solid var(--seam); border-radius: 16px; overflow: hidden;
+  background: radial-gradient(circle at 12% 30%, color-mix(in srgb, var(--jade) 9%, transparent), transparent 55%), var(--void);
 }
-.mapa-estacao { stroke: var(--void); stroke-width: 2.5; }
-.mapa-ramal { stroke-width: 1.4; stroke-dasharray: 2 3; opacity: .55; }
-.mapa-rotulo.encaixou { color: var(--jade); }
-.mapa-rotulo.defendeu { color: var(--mp-defende); }
-.mapa-deixa {
-  margin-top: 6px; padding-left: 8px; border-left: 2px solid var(--mp-reacao);
-  font-size: 13px; line-height: 1.4; color: var(--chalk); opacity: .85; font-style: italic;
+.mente-tela { overflow: auto; max-height: min(64vh, 600px); cursor: grab; overscroll-behavior: contain; touch-action: pan-x pan-y; }
+.mente-tela:active { cursor: grabbing; }
+.mente-palco { position: relative; }
+.mente-mundo { transform-origin: 0 0; }
+.mente-lugar { position: absolute; left: 0; top: 0; }
+.mente-no {
+  position: relative; z-index: 1; display: grid; gap: 3px; width: 100%; text-align: left; padding: 9px 11px;
+  border-radius: 13px; border: 1px solid color-mix(in srgb, var(--c) 50%, var(--seam)); color: var(--chalk); font: inherit; cursor: pointer;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--c) 18%, var(--void)), var(--void) 75%);
+  box-shadow: 0 0 22px -12px var(--c), inset 0 1px 0 rgba(255, 255, 255, .04);
+  overflow-wrap: anywhere; user-select: none;
+  animation: mapa-entra .5s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 90ms);
 }
-.mapa-chegada { color: #f5c542; border-color: color-mix(in srgb, #f5c542 55%, transparent); background: color-mix(in srgb, #f5c542 12%, var(--void)); box-shadow: 0 0 18px -6px #f5c542; }
+.mente-no.aberto { box-shadow: 0 0 0 2px var(--c), 0 0 26px -8px var(--c); }
+.mente-no .mapa-rotulo { font-size: 11px; }
+.mente-titulo { font-family: var(--display); font-weight: 800; font-size: 14.5px; line-height: 1.25; letter-spacing: -0.01em; text-shadow: 0 0 16px color-mix(in srgb, var(--c) 40%, transparent); }
+.mente-deixa {
+  font-size: 11.5px; line-height: 1.35; color: var(--dim); font-style: italic;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+/* a folha: onde o galho termina (encaixou, chegou lá, ou recomeça) */
+.mente-folha {
+  position: relative; z-index: 1; display: inline-grid; gap: 2px; max-width: 100%; padding: 5px 10px; border-radius: 12px;
+  font-size: 12px; font-weight: 700; color: var(--jade); overflow-wrap: anywhere;
+  background: color-mix(in srgb, var(--jade) 12%, var(--void)); border: 1px solid color-mix(in srgb, var(--jade) 50%, transparent);
+  box-shadow: 0 0 16px -6px var(--jade);
+  animation: mapa-entra .5s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 90ms);
+}
+.mente-folha.chegada { color: #f5c542; background: color-mix(in srgb, #f5c542 12%, var(--void)); border-color: color-mix(in srgb, #f5c542 55%, transparent); box-shadow: 0 0 18px -4px #f5c542; }
+.mente-folha.fim { color: #ff7a6b; background: color-mix(in srgb, #ff7a6b 9%, var(--void)); border-color: color-mix(in srgb, #ff7a6b 40%, transparent); border-style: dashed; box-shadow: none; }
+.mente-folha-txt { font-size: 11.5px; font-weight: 600; line-height: 1.3; color: var(--chalk); }
+.mente-finta { font-size: 11.5px; font-weight: 700; line-height: 1.35; color: var(--roar); }
+/* o selo no meio do galho: encaixou ou ele defendeu */
+.mente-selo {
+  position: absolute; z-index: 2; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--void); border: 1.5px solid currentColor; box-shadow: 0 0 10px -2px currentColor;
+  opacity: 0; animation: mapa-aparece .3s ease forwards; animation-delay: calc(var(--i, 0) * 90ms + 550ms);
+}
+.mente-selo.encaixou { color: var(--jade); }
+.mente-selo.defendeu { color: #ff7a6b; }
+.mente-zoom { display: flex; justify-content: flex-end; gap: 4px; margin-bottom: 6px; }
+.mente-zoom button {
+  min-width: 30px; height: 30px; padding: 0 9px; border-radius: 9px; border: 1px solid var(--seam); cursor: pointer;
+  background: color-mix(in srgb, var(--void) 85%, transparent); color: var(--chalk); font: inherit; font-weight: 700; font-size: 13px;
+  backdrop-filter: blur(6px);
+}
+.mente-detalhe {
+  margin-top: 10px; padding: 12px 14px; border-radius: 14px; overflow-wrap: anywhere;
+  border: 1px solid color-mix(in srgb, var(--c) 45%, var(--seam));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--c) 14%, var(--void)), var(--void) 72%);
+}
 .mapa-objetivo, .plano-objetivo { display: flex; align-items: center; gap: 7px; color: var(--dim); line-height: 1.4; }
 .mapa-objetivo { margin-bottom: 14px; padding: 9px 12px; border-radius: 12px; font-size: 13px; border: 1px solid color-mix(in srgb, #f5c542 35%, var(--seam)); }
 .mapa-objetivo svg, .plano-objetivo svg { color: #f5c542; flex-shrink: 0; }
@@ -3984,14 +4014,9 @@ body::after {
 .plano-via.defendeu { color: #ff7a6b; }
 .btn.plano-mais.encaixou { color: var(--jade); border: 1px dashed color-mix(in srgb, var(--jade) 50%, transparent); }
 .btn.plano-mais.defendeu { color: #ff7a6b; border: 1px dashed color-mix(in srgb, #ff7a6b 50%, transparent); }
-@media (max-width: 420px) {
-  .mapa-no { padding: 10px 12px; }
-  .mapa-titulo { font-size: 15.5px; }
-  .mapa-folha { padding: 5px 9px; font-size: 12px; }
-}
 @media (prefers-reduced-motion: reduce) {
-  .mapa-no, .mapa-folha { animation: none; }
-  .mapa-fio-traco, .mapa-fio-ponta { animation: none; stroke-dashoffset: 0; opacity: 1; }
+  .mente-no { animation: none; }
+  .mapa-fio-traco, .mente-selo { animation: none; stroke-dashoffset: 0; opacity: 1; }
   .mapa-fio-luz { display: none; }
 }
 

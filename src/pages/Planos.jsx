@@ -1,4 +1,4 @@
-import React, { useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Plus, Play, Pencil, Trash2, Route, ChevronRight, RotateCcw, X, Repeat, Check, Ruler, Weight, Flag, CircleHelp,
   Sparkles, Target, Shield, Users,
@@ -426,13 +426,18 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
 
 /* ============================================================
    O MAPA DO PLANO
-   Trilhos, tipo mapa de metrô: cada plano (A, B, C, D) é um trilho
-   com cor própria. Encaixou desce no mesmo trilho; se ele defender,
-   o fio faz a curva pro trilho do plano seguinte. As linhas são
-   desenhadas por cima, medindo onde cada peça caiu.
+   Mapa mental: a posição na esquerda e os golpes abrindo pra
+   direita. Cada golpe abre dois galhos: encaixou em cima (segue no
+   mesmo plano) e, se ele defender, embaixo (o plano seguinte, com
+   outra cor). Os cartões são medidos e a árvore é arrumada em cima
+   dessas alturas; dá pra arrastar, dar zoom e tocar num golpe pra
+   ler tudo dele.
    ============================================================ */
-const LARGURA_TRILHO = 18;
-const xDoTrilho = (t) => 9 + t * LARGURA_TRILHO;
+/* no celular, cartão e vão mais estreitos pra caber a primeira bifurcação */
+const medidas = () => (typeof window !== 'undefined' && window.matchMedia?.('(max-width: 600px)').matches
+  ? { larg: 148, vao: 40 } : { larg: 184, vao: 58 });
+const VAO_Y = 18;
+const MARGEM = 14;
 
 function LegendaDoMapa({ trilhos = 2, finta = true }) {
   return (
@@ -441,144 +446,255 @@ function LegendaDoMapa({ trilhos = 2, finta = true }) {
       {finta && <span className="mapa-tipo t-finta"><i />Finta</span>}
       {LETRAS.slice(0, trilhos).map((l, t) => <span key={l} className={`mapa-tipo trilho-${t}`}><i />Plano {l}</span>)}
       <span className="mapa-tipo" style={{ color: 'var(--jade)' }}><Check size={12} strokeWidth={3} />Encaixou</span>
-      <span className="mapa-tipo" style={{ color: 'var(--mp-defende, #ff7a6b)' }}><X size={12} strokeWidth={3} />Se ele defender</span>
+      <span className="mapa-tipo" style={{ color: '#ff7a6b' }}><X size={12} strokeWidth={3} />Se ele defender</span>
     </div>
   );
 }
 
-/* cada linha do mapa: posição, finta e os golpes na ordem de leitura;
-   "de" é a linha de onde nasce o fio */
+/* cada peça do mapa: o começo (posição e finta juntas) e os golpes na
+   ordem de leitura; "de" é a peça de onde nasce o galho */
 function linhasDoMapa(plano) {
   const c = correnteDoPlano(plano);
   const { ordem, trilho, filhos } = arvoreDoPlano(c.passos);
-  const linhas = [{ tipo: 'posicao', trilho: 0, rotulo: 'De onde começa', titulo: c.posicao || 'A posição' }];
-  if (c.finta) linhas.push({ tipo: 'finta', trilho: 0, rotulo: 'A finta', titulo: c.finta, de: 0 });
-  const antesDoGolpe = linhas.length - 1;
+  const linhas = [{ tipo: 'posicao', trilho: 0, rotulo: 'De onde começa', titulo: c.posicao || 'A posição', finta: c.finta }];
+  const antesDoGolpe = 0;
   const linhaDoPasso = {};
   const fimDoA = ordem.filter((i) => trilho[i] === 0).pop();
   const ultimo = c.passos.length - 1;
+  /* golpe sem continuação ganha a folha do encaixou (ou a bandeira do
+     objetivo); o "se ele defender tudo" dos prontos vira folha também */
   ordem.forEach((i) => {
     const x = c.passos[i];
-    linhaDoPasso[i] = linhas.length;
-    linhas.push({
+    const aqui = linhas.length;
+    linhaDoPasso[i] = aqui;
+    const g = {
       tipo: 'golpe', trilho: trilho[i], via: x.pai === null ? 'raiz' : x.via,
       de: x.pai === null ? antesDoGolpe : linhaDoPasso[x.pai],
       deixa: x.reacao || (x.via === 'defendeu' ? c.passos[x.pai].defesa : ''),
       titulo: x.golpe, detalhe: x.detalhe,
-      encaixouFim: filhos[i].encaixou === undefined,
       segue: i === ultimo ? c.segue : '',
       fim: i === ultimo && filhos[i].defendeu === undefined ? c.fim : '',
       objetivo: i === fimDoA ? c.objetivo : '',
-    });
+    };
+    linhas.push(g);
+    if (filhos[i].encaixou === undefined) {
+      linhas.push({ tipo: 'folha', trilho: trilho[i], via: 'encaixou', de: aqui, chegou: !!g.objetivo, titulo: g.objetivo || g.segue });
+    }
+    if (g.fim) linhas.push({ tipo: 'folha', trilho: trilho[i], via: 'defendeu', de: aqui, titulo: g.fim });
   });
   return { objetivo: c.objetivo, finta: !!c.finta, linhas: linhas.map((l, n) => ({ ...l, n })) };
 }
 
-function NoDoMapa({ l, guardar }) {
+/* a árvore arrumada: cada galho ocupa a altura dos seus filhos, e o
+   pai fica no meio deles. Encaixou vem antes (em cima) da defesa. */
+function arrumar(linhas, filhos, alturas, { larg, vao }) {
+  const tam = [];
+  const somaFilhos = (n) => filhos[n].reduce((s, f) => s + tam[f], 0) + Math.max(0, filhos[n].length - 1) * VAO_Y;
+  const mede = (n) => { filhos[n].forEach(mede); tam[n] = Math.max(alturas[n], somaFilhos(n)); };
+  mede(0);
+  const pos = [];
+  const coloca = (n, prof, topo) => {
+    pos[n] = { x: MARGEM + prof * (larg + vao), y: topo + (tam[n] - alturas[n]) / 2 };
+    let t = topo + (tam[n] - somaFilhos(n)) / 2;
+    filhos[n].forEach((f) => { coloca(f, prof + 1, t); t += tam[f] + VAO_Y; });
+  };
+  coloca(0, 0, MARGEM);
+  return {
+    pos,
+    largura: Math.max(...pos.map((p) => p.x)) + larg + MARGEM,
+    altura: tam[0] + MARGEM * 2,
+  };
+}
+
+function NoDoMapa({ l, guardar, aberto, onTocar }) {
+  if (l.tipo === 'folha') {
+    const tom = l.via === 'defendeu' ? 'fim' : l.chegou ? 'chegada' : 'ok';
+    return (
+      <div ref={guardar(l.n)} className={`mente-folha ${tom}`}>
+        <span className="row" style={{ gap: 5 }}>
+          {tom === 'fim' && <><RotateCcw size={12} /> Se ele defender tudo</>}
+          {tom === 'chegada' && <><Flag size={12} /> Encaixou: chegou lá</>}
+          {tom === 'ok' && <><Check size={12} strokeWidth={3} /> {l.titulo ? 'Encaixou, depois' : 'Encaixou'}</>}
+        </span>
+        {l.titulo && <span className="mente-folha-txt">{l.titulo}</span>}
+      </div>
+    );
+  }
   const classe = l.tipo === 'golpe' ? `trilho-${l.trilho}` : `t-${l.tipo}`;
   return (
-    <div ref={guardar(l.n)} className={`mapa-no ${classe}`} style={{ '--i': l.n }}>
+    <button type="button" ref={guardar(l.n)} className={`mente-no ${classe}${aberto ? ' aberto' : ''}`} onClick={onTocar}>
       {l.tipo !== 'golpe' ? (
         <span className="mapa-rotulo">{l.rotulo}</span>
       ) : (
-        <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-          <span className={`mapa-rotulo ${l.via}`}>
-            {l.via === 'raiz' && '1º golpe'}
-            {l.via === 'encaixou' && <><Check size={12} strokeWidth={3} /> Encaixou, e depois</>}
-            {l.via === 'defendeu' && <><X size={12} strokeWidth={3} /> Se ele defender</>}
-          </span>
-          {l.via === 'defendeu' && <span className="plano-trilho-selo">Plano {LETRAS[l.trilho]}</span>}
-        </div>
+        <span className={`mapa-rotulo ${l.via}`}>
+          {l.via === 'raiz' && '1º golpe'}
+          {l.via === 'encaixou' && <><Check size={11} strokeWidth={3} /> Encaixou</>}
+          {l.via === 'defendeu' && <><X size={11} strokeWidth={3} /> Defendeu · Plano {LETRAS[l.trilho]}</>}
+        </span>
       )}
-      {l.deixa && <div className="mapa-deixa">{l.deixa}</div>}
+      <span className="mente-titulo">{l.titulo}</span>
+      {l.finta && <span className="mente-finta">finta: {l.finta}</span>}
+      {l.deixa && <span className="mente-deixa">{l.deixa}</span>}
+    </button>
+  );
+}
+
+/* o que abre embaixo do mapa quando toca num golpe */
+function DetalheDoNo({ l, objetivo }) {
+  return (
+    <div className={`mente-detalhe ${l.tipo === 'golpe' ? `trilho-${l.trilho}` : `t-${l.tipo}`}`}>
+      <span className={`mapa-rotulo ${l.via || ''}`}>
+        {l.tipo !== 'golpe' ? l.rotulo : l.via === 'raiz' ? '1º golpe' : l.via === 'encaixou' ? 'Encaixou, e depois' : `Se ele defender · Plano ${LETRAS[l.trilho]}`}
+      </span>
       <div className="mapa-titulo">{l.titulo}</div>
-      {l.detalhe && <p className="micro muted" style={{ marginTop: 4, lineHeight: 1.5 }}>{l.detalhe}</p>}
-      {l.tipo === 'golpe' && l.encaixouFim && (
-        <div className="row wrap" style={{ gap: 6, marginTop: 9 }}>
-          {l.objetivo ? (
-            <span className="mapa-folha segue mapa-chegada"><span className="row" style={{ gap: 5 }}><Flag size={13} /> Encaixou: chegou lá</span><span className="mapa-segue">{l.objetivo}</span></span>
-          ) : (
-            <span className={`mapa-folha${l.segue ? ' segue' : ''}`}>
-              <span className="row" style={{ gap: 5 }}><Check size={13} /> Encaixou</span>
-              {l.segue && <span className="mapa-segue">depois: {l.segue.replace(/-/g, '‑')}</span>}
-            </span>
-          )}
-        </div>
-      )}
-      {l.fim && <p className="micro" style={{ marginTop: 8, color: 'var(--mp-defende)', lineHeight: 1.5 }}>Se ele defender tudo: {l.fim}</p>}
+      {l.finta && <div className="mente-finta" style={{ marginTop: 6 }}>A finta: {l.finta}</div>}
+      {l.deixa && <div className="mapa-deixa">{l.deixa}</div>}
+      {l.detalhe && <p className="micro muted" style={{ marginTop: 6, lineHeight: 1.5 }}>{l.detalhe}</p>}
+      {l.objetivo && <p className="micro" style={{ marginTop: 6, color: '#f5c542' }}>Encaixou aqui, chegou onde queria: {objetivo}</p>}
+      {l.segue && <p className="micro" style={{ marginTop: 6, color: 'var(--jade)' }}>Depois que encaixa: {l.segue}</p>}
+      {l.fim && <p className="micro" style={{ marginTop: 6, color: '#ff7a6b', lineHeight: 1.5 }}>Se ele defender tudo: {l.fim}</p>}
     </div>
   );
 }
 
 function MapaDoPlano({ plano, ate = Infinity }) {
-  const { objetivo, linhas: todas } = useMemo(() => linhasDoMapa(plano), [plano]);
-  const linhas = useMemo(() => todas.filter((l) => l.n <= ate), [todas, ate]);
-  const trilhos = Math.max(...todas.map((l) => l.trilho)) + 1;
-  const caixa = useRef(null);
+  const { objetivo, linhas } = useMemo(() => linhasDoMapa(plano), [plano]);
+  const filhos = useMemo(() => {
+    const f = linhas.map(() => []);
+    linhas.forEach((l) => { if (l.de !== undefined) f[l.de].push(l.n); });
+    f.forEach((lista) => lista.sort((a, b) => Number(linhas[a].via === 'defendeu') - Number(linhas[b].via === 'defendeu')));
+    return f;
+  }, [linhas]);
+  const tela = useRef(null);
   const pecas = useRef({});
-  const [fios, setFios] = useState({ fios: [], pontos: [] });
+  const arrasto = useRef(null);
+  const centrou = useRef(false);
+  const [alturas, setAlturas] = useState(null);
+  const [zoom, setZoom] = useState(null);
+  const [aberto, setAberto] = useState(null);
   const id = useId().replace(/[^a-z0-9]/gi, '');
   const guardar = (n) => (el) => { pecas.current[n] = el; };
 
   useLayoutEffect(() => {
-    const onde = (n) => {
-      const el = pecas.current[n];
-      return el && el.offsetHeight ? { y: el.offsetTop + Math.min(22, el.offsetHeight / 2), x: el.offsetLeft } : null;
-    };
-    const medir = () => {
-      const pontos = linhas.map((l) => ({ l, p: onde(l.n) })).filter((o) => o.p);
-      const lista = linhas.filter((l) => l.de !== undefined).map((l) => {
-        const a = onde(l.de);
-        const b = onde(l.n);
-        if (!a || !b) return null;
-        const t1 = todas[l.de].trilho;
-        const x1 = xDoTrilho(t1);
-        const x2 = xDoTrilho(l.trilho);
-        const curva = Math.min(34, (b.y - a.y) * 0.6);
-        const d = t1 === l.trilho
-          ? `M${x1} ${a.y} L${x2} ${b.y}`
-          : `M${x1} ${a.y} C${x1} ${a.y + curva * 0.7} ${x2} ${a.y + curva * 0.3} ${x2} ${a.y + curva} L${x2} ${b.y}`;
-        return { n: l.n, de: t1, para: l.trilho, x1, y1: a.y, x2, y2: b.y, d };
-      }).filter(Boolean);
-      setFios({ fios: lista, pontos: pontos.map(({ l, p }) => ({ n: l.n, x: xDoTrilho(l.trilho), y: p.y, ate: p.x, l })) });
-    };
+    const medir = () => setAlturas((antes) => {
+      const agora = linhas.map((l) => pecas.current[l.n]?.offsetHeight || 64);
+      return antes && antes.every((h, k) => h === agora[k]) ? antes : agora;
+    });
     medir();
     if (typeof ResizeObserver === 'undefined') return undefined;
     const ro = new ResizeObserver(medir);
-    ro.observe(caixa.current);
+    linhas.forEach((l) => pecas.current[l.n] && ro.observe(pecas.current[l.n]));
     return () => ro.disconnect();
-  }, [linhas, todas]);
+  }, [linhas]);
 
-  const corDoPonto = (l) => (l.tipo === 'golpe' ? `var(--tr-${l.trilho})` : `var(--mp-${l.tipo})`);
+  const tamanho = useMemo(medidas, []);
+  const arv = useMemo(() => (alturas ? arrumar(linhas, filhos, alturas, tamanho) : null), [linhas, filhos, alturas, tamanho]);
+  const cabe = arv && tela.current ? Math.min(1, (tela.current.clientWidth - 2) / arv.largura) : 1;
+  const z = zoom ?? Math.max(0.8, cabe);
+
+  /* abre com o começo do mapa à vista */
+  useLayoutEffect(() => {
+    if (!arv || !tela.current || centrou.current) return;
+    centrou.current = true;
+    const p = arv.pos[0];
+    tela.current.scrollTop = Math.max(0, (p.y + alturas[0] / 2) * z - tela.current.clientHeight / 2);
+  }, [arv, alturas, z]);
+
+  /* no passo a passo, a peça nova entra na tela */
+  useEffect(() => {
+    if (ate === Infinity) return;
+    pecas.current[Math.min(ate, linhas.length - 1)]?.scrollIntoView?.({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+  }, [ate, linhas.length]);
+
+  const galhos = arv ? linhas.filter((l) => l.de !== undefined && l.n <= ate).map((l) => {
+    const a = arv.pos[l.de];
+    const b = arv.pos[l.n];
+    const x1 = a.x + tamanho.larg;
+    const y1 = a.y + alturas[l.de] / 2;
+    const x2 = b.x;
+    const y2 = b.y + alturas[l.n] / 2;
+    const meio = tamanho.vao * 0.62;
+    const corDaFolha = l.via === 'defendeu' ? 'var(--mp-defende)' : l.chegou ? '#f5c542' : 'var(--jade)';
+    return {
+      n: l.n, x1, y1, x2, y2, via: l.via, golpe: l.tipo === 'golpe',
+      de: linhas[l.de].tipo === 'golpe' ? `var(--tr-${linhas[l.de].trilho})` : `var(--mp-${linhas[l.de].tipo})`,
+      para: l.tipo === 'folha' ? corDaFolha : `var(--tr-${l.trilho})`,
+      d: `M${x1} ${y1} C${x1 + meio} ${y1} ${x2 - meio} ${y2} ${x2} ${y2}`,
+    };
+  }) : [];
+
+  const arrastar = {
+    onPointerDown: (e) => {
+      if (e.pointerType !== 'mouse') return;
+      arrasto.current = { x: e.clientX, y: e.clientY, l: tela.current.scrollLeft, t: tela.current.scrollTop, andou: false };
+    },
+    onPointerMove: (e) => {
+      const a = arrasto.current;
+      if (!a) return;
+      if (Math.abs(e.clientX - a.x) + Math.abs(e.clientY - a.y) > 4) a.andou = true;
+      tela.current.scrollLeft = a.l - (e.clientX - a.x);
+      tela.current.scrollTop = a.t - (e.clientY - a.y);
+    },
+    onPointerUp: () => { setTimeout(() => { arrasto.current = null; }, 0); },
+    onPointerLeave: () => { arrasto.current = null; },
+  };
+  const tocar = (n) => () => { if (!arrasto.current?.andou) setAberto(aberto === n ? null : n); };
+  const mudarZoom = (d) => setZoom(Math.min(1.4, Math.max(0.35, Math.round((z + d) * 100) / 100)));
 
   return (
     <>
       {objetivo && <div className="mapa-objetivo"><Flag size={15} /> <span>Onde quer chegar: <b>{objetivo}</b></span></div>}
-      <div className="mapa trilhos" ref={caixa} style={{ '--nt': trilhos }}>
-        <svg className="mapa-fios" aria-hidden="true">
-          <defs>
-            {fios.fios.map((f) => (
-              <linearGradient key={f.n} id={`${id}-${f.n}`} gradientUnits="userSpaceOnUse" x1={f.x1} y1={f.y1} x2={f.x2} y2={f.y2}>
-                <stop offset="0" style={{ stopColor: `var(--tr-${f.de})` }} />
-                <stop offset="1" style={{ stopColor: `var(--tr-${f.para})` }} />
-              </linearGradient>
-            ))}
-          </defs>
-          {fios.fios.map((f) => (
-            <g key={f.n} className="mapa-fio" style={{ '--i': f.n }}>
-              <path d={f.d} pathLength="1" className="mapa-fio-traco" stroke={`url(#${id}-${f.n})`} />
-              <path d={f.d} pathLength="1" className="mapa-fio-luz" />
-            </g>
-          ))}
-          {fios.pontos.map((p) => (
-            <g key={p.n} className="mapa-fio-ponta" style={{ '--i': p.n }}>
-              <path d={`M${p.x} ${p.y} H${p.ate}`} className="mapa-ramal" style={{ stroke: corDoPonto(p.l) }} />
-              <circle cx={p.x} cy={p.y} r="5" className="mapa-estacao" style={{ fill: corDoPonto(p.l) }} />
-            </g>
-          ))}
-        </svg>
-        {linhas.map((l) => <NoDoMapa key={l.n} l={l} guardar={guardar} />)}
+      <div className="mente-zoom">
+        <button type="button" aria-label="Afastar" onClick={() => mudarZoom(-0.15)}>−</button>
+        <button type="button" aria-label="Aproximar" onClick={() => mudarZoom(0.15)}>+</button>
+        <button type="button" onClick={() => setZoom(cabe)}>Ver inteiro</button>
       </div>
+      <div className="mente-quadro">
+        <div className="mente-tela" ref={tela} {...arrastar}>
+          <div className="mente-palco" style={arv ? { width: arv.largura * z, height: arv.altura * z } : undefined}>
+            <div className={`mente-mundo mapa${arv ? ' pronto' : ''}`} style={arv ? { width: arv.largura, height: arv.altura, transform: `scale(${z})` } : undefined}>
+              {arv && (
+                <svg className="mapa-fios" width={arv.largura} height={arv.altura} aria-hidden="true">
+                  <defs>
+                    {galhos.map((g) => (
+                      <linearGradient key={g.n} id={`${id}-${g.n}`} gradientUnits="userSpaceOnUse" x1={g.x1} y1={g.y1} x2={g.x2} y2={g.y2}>
+                        <stop offset="0" style={{ stopColor: g.de }} />
+                        <stop offset="1" style={{ stopColor: g.para }} />
+                      </linearGradient>
+                    ))}
+                  </defs>
+                  {galhos.map((g) => (
+                    <g key={g.n} className={`mapa-fio ${g.via}`} style={{ '--i': g.n }}>
+                      <path d={g.d} pathLength="1" className="mapa-fio-traco" stroke={`url(#${id}-${g.n})`} />
+                      <path d={g.d} pathLength="1" className="mapa-fio-luz" />
+                    </g>
+                  ))}
+                </svg>
+              )}
+              {linhas.map((l) => {
+                const p = arv?.pos[l.n];
+                const visivel = l.n <= ate;
+                return (
+                  <div key={l.n} className="mente-lugar" style={{
+                    width: tamanho.larg, '--i': l.n,
+                    transform: p ? `translate(${p.x}px, ${p.y}px)` : undefined,
+                    visibility: p && visivel ? 'visible' : 'hidden',
+                  }}>
+                    <NoDoMapa l={l} guardar={guardar} aberto={aberto === l.n} onTocar={l.tipo === 'folha' ? undefined : tocar(l.n)} />
+                  </div>
+                );
+              })}
+              {galhos.filter((g) => g.golpe && (g.via === 'encaixou' || g.via === 'defendeu')).map((g) => (
+                <span key={g.n} className={`mente-selo ${g.via}`} style={{ left: (g.x1 + g.x2) / 2, top: (g.y1 + g.y2) / 2, '--i': g.n }}>
+                  {g.via === 'encaixou' ? <Check size={11} strokeWidth={3.5} /> : <X size={11} strokeWidth={3.5} />}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+      <p className="micro muted" style={{ marginTop: 6 }}>Arraste pra andar pelo mapa e toque num golpe pra ler tudo dele.</p>
+      {aberto !== null && linhas[aberto] && <DetalheDoNo l={linhas[aberto]} objetivo={objetivo} />}
     </>
   );
 }
@@ -596,7 +712,7 @@ function AssistirPlano({ plano, onClose }) {
   const acabou = !passoAPasso || ate >= total - 1;
 
   return (
-    <Sheet aberto onClose={fechar} titulo={plano.nome} subtitulo="o mapa do plano">
+    <Sheet aberto onClose={fechar} titulo={plano.nome} subtitulo="o mapa do plano" wide>
       <LegendaDoMapa trilhos={trilhos} finta={finta} />
       <MapaDoPlano key={passoAPasso ? 'passo' : 'tudo'} plano={plano} ate={ate} />
       <div className="row" style={{ gap: 8, marginTop: 14 }}>
