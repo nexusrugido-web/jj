@@ -217,7 +217,7 @@ ok('cada entrada e cada desvio é um plano com letra própria', ag.ordem.map((i)
     'D:Kimura', 'E:Triângulo', 'F:Omoplata', 'G:Kimura']);
 ok('passa de 4 planos', ag.trilhos, 7);
 ok('as três defesas saem do mesmo armlock, cada uma com o que ele fez', ag.filhos[3].map((k) => cg.passos[k].reacao), ['colou o cotovelo', 'girou o braço pra fora', 'levantou a postura']);
-ok('golpe abre encaixou e defendeu; finta, reagiu e não reagiu', [viasDa(cg.passos[3]), viasDa(cg.passos[0])], [['encaixou', 'defendeu'], ['reagiu', 'naoReagiu']]);
+ok('golpe abre encaixou, defendeu e escapou; finta, reagiu e não reagiu', [viasDa(cg.passos[3]), viasDa(cg.passos[0])], [['encaixou', 'defendeu', 'escapou'], ['reagiu', 'naoReagiu']]);
 ok('golpe aceita mais uma defesa', vagaLivre(cg.passos, 3, 'defendeu'), true);
 ok('"não reagiu" aceita outra ameaça', vagaLivre(cg.passos, 0, 'naoReagiu'), true);
 ok('defesa sem nome junto de outra é avisada', semGatilho([...cg.passos, { tipo: 'golpe', golpe: 'Mata-leão', reacao: '', pai: 3, via: 'defendeu' }]).map((x) => x.golpe), ['Mata-leão']);
@@ -336,6 +336,56 @@ const gigante = planoNovo({ passos: Array.from({ length: 2000 }, (_, i) => ({ go
 const ag2 = arvoreDoPlano(correnteDoPlano(gigante).passos);
 ok('2000 peças: salva e lê sem cortar', [gigante.passos.length, ag2.ordem.length], [2000, 2000]);
 ok('2000 peças em menos de 1s', Date.now() - t0 < 1000, true);
+
+/* ---------- R2: escapou não é defesa ----------
+   Defendeu: continua na posição e emenda dali. Escapou: a luta mudou
+   de lugar; a situação guarda onde ficou, e dela sai o "volto a
+   atacar", atrás do mesmo objetivo. Situação sem caminho fecha, sem
+   continuação inventada e sem aviso de ponta solta. */
+const fuga = planoNovo({ objetivo: 'Finalizar', objetivoTipo: 'finalizar', passos: [
+  { golpe: 'Armlock', pai: null },                                                                      // 0
+  { golpe: 'Triângulo', reacao: 'colou o cotovelo', pai: 0, via: 'defendeu' },                          // 1
+  { tipo: 'situacao', golpe: 'Guarda fechada', reacao: 'girou e recuperou a guarda', pai: 0, via: 'escapou' }, // 2
+  { golpe: 'Raspagem de quadril (hip bump)', reacao: 'sentou pra trás', pai: 2, via: 'encaixou' },     // 3
+  { golpe: 'Kimura', pai: 3, via: 'encaixou' },                                                         // 4
+  { tipo: 'situacao', golpe: 'De pé', reacao: 'levantou e saiu', pai: 0, via: 'escapou' },             // 5
+] });
+ok('escapou guarda a situação com tipo próprio', fuga.passos.map((x) => x.tipo || 'golpe'), ['golpe', 'golpe', 'situacao', 'golpe', 'golpe', 'situacao']);
+ok('vias: da situação sai "volto a atacar", seja qual for o que veio', fuga.passos.map((x) => x.via), [null, 'defendeu', 'escapou', 'retoma', 'encaixou', 'escapou']);
+ok('como ele escapou vira o gatilho da situação', fuga.passos[2].gatilho, 'girou e recuperou a guarda');
+const cfu = correnteDoPlano(fuga);
+const afu = arvoreDoPlano(cfu.passos);
+ok('a fuga abre plano próprio e a reconstrução segue nele', afu.ordem.map((i) => [cfu.passos[i].golpe, letraDo(afu.trilho[i])]),
+  [['Armlock', 'A'], ['Triângulo', 'B'], ['Guarda fechada', 'C'], ['Raspagem de quadril (hip bump)', 'C'], ['Kimura', 'C'], ['De pé', 'D']]);
+const destinoFim = (n) => (['Armlock', 'Triângulo', 'Kimura'].includes(n) ? { slug: 'finalizacao', nome: 'Finalização' } : destinoDe(n));
+ok('situação sem caminho não é ponta solta; o caminho da fuga chega no objetivo', pontasSoltas(fuga, destinoFim).map((x) => x.golpe), []);
+ok('reconstrução que para antes do objetivo é ponta solta',
+  pontasSoltas(planoNovo({ objetivo: 'Finalizar', objetivoTipo: 'finalizar', passos: editar(fuga).slice(0, 4) }), destinoFim).map((x) => x.golpe),
+  ['Raspagem de quadril (hip bump)']);
+ok('situação nunca ganha a bandeira, nem quando a posição é o objetivo',
+  [chegaNoObjetivo(cfu.passos[2], { objetivo: 'Guarda fechada', objetivoTipo: 'posicao' }, () => ({ slug: 'guarda-fechada', nome: 'Guarda fechada' })), chegaNoObjetivo(cfu.passos[4], cfu, destinoFim)], [false, true]);
+ok('golpe abre encaixou, defendeu e escapou; situação, só volto a atacar', [viasDa(cfu.passos[0]), viasDa(cfu.passos[2])], [['encaixou', 'defendeu', 'escapou'], ['retoma']]);
+ok('no escapou só entra situação, e situação só no escapou',
+  [vagaLivre(cfu.passos, 0, 'escapou', 'situacao'), vagaLivre(cfu.passos, 0, 'escapou', 'golpe'), vagaLivre(cfu.passos, 1, 'defendeu', 'situacao'), vagaLivre(cfu.passos, 2, 'retoma'), vagaLivre(cfu.passos, 2, 'encaixou')],
+  [true, false, false, true, false]);
+ok('arrastar a situação pro escapou de outro golpe', (() => { const m = moverPasso(cfu.passos, 5, 1, 'escapou'); return m && [m[5].pai, m[5].via]; })(), [1, 'escapou']);
+ok('golpe não vai pro escapou; situação não vai pra defesa', [moverPasso(cfu.passos, 1, 4, 'escapou'), moverPasso(cfu.passos, 5, 1, 'defendeu')], [null, null]);
+ok('duas fugas pra mesma posição sem dizer como: aviso',
+  semGatilho([...cfu.passos, { tipo: 'situacao', golpe: 'De pé', reacao: '', pai: 0, via: 'escapou' }].map((x, k) => (k === 5 ? { ...x, reacao: '' } : x))).map((x) => x.golpe), ['De pé', 'De pé']);
+ok('fugas pra posições diferentes já se separam pela posição', semGatilho(cfu.passos.map((x) => ({ ...x, reacao: x.via === 'escapou' ? '' : x.reacao }))), []);
+const fugaRec = JSON.parse(JSON.stringify(fuga));
+ok('recarregar (JSON do sync): mesma situação, mesmos ids, mesmas vias',
+  JSON.stringify(planoNovo({ ...fugaRec, passos: editar(fugaRec) }).passos.map((x) => [x.id, x.lig, x.tipo, x.pai, x.via])) === JSON.stringify(fuga.passos.map((x) => [x.id, x.lig, x.tipo, x.pai, x.via])), true);
+const rolaFuga = { plano: { uid: 'F', peca: fuga.passos[4].id, caminho: caminhoAte(cfu.passos, 4), encaixou: true } };
+ok('o rola guarda o caminho passando pela fuga', rolaFuga.plano.caminho, [0, 2, 3, 4].map((k) => fuga.passos[k].lig));
+ok('tirar a situação leva a reconstrução junto', planoNovo({ passos: semOGolpe(editar(fuga), 2) }).passos.map((x) => x.acao), ['Armlock', 'Triângulo', 'De pé']);
+const comFinta = fintaAntes(editar(fuga), 3, 'Guilhotina');
+ok('finta antes do volto a atacar: a finta nasce da situação', [comFinta[6].pai, comFinta[6].via, comFinta[3].pai, comFinta[3].via], [2, 'retoma', 6, 'reagiu']);
+ok('tirar essa finta devolve o golpe pra situação', (() => { const s = semAFinta(comFinta, 6); return [s[3].pai, s[3].via]; })(), [2, 'retoma']);
+ok('o rola da Kimura sobrevive à finta nova', pecaDoRola(planoNovo({ passos: comFinta }), rolaFuga)?.golpe, 'Kimura');
+ok('planos prontos não ganham situação nem via nova',
+  PLANOS_ATAQUE.every((p) => correnteDoPlano(p).passos.every((x) => x.tipo !== 'situacao' && [null, 'encaixou', 'defendeu', 'reagiu', 'naoReagiu'].includes(x.via))), true);
+ok('plano antigo (fila sem pai) continua lendo igual', correnteDoPlano({ passos: [{ acao: 'A' }, { acao: 'B' }] }).passos.map((x) => [x.tipo, x.pai, x.via]), [['golpe', null, null], ['golpe', 0, 'defendeu']]);
 
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

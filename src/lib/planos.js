@@ -14,7 +14,15 @@
    ou C como opções, não etapas). O primeiro caminho que continua
    (encaixou ou reagiu) segue no mesmo plano; cada desvio abre um
    plano com letra própria.
-   Pra frente (R2 a R7): "escapou" é mais uma via; a convergência
+   ESCAPOU não é defesa. Defendeu: ele parou o golpe e você continua
+   na posição que sustenta o ataque. Escapou: ele saiu do controle e a
+   luta mudou de lugar. O escapou leva a uma peça própria, a situação
+   (tipo 'situacao'): o nome é a posição onde a luta ficou e o gatilho
+   é como ele escapou. Dela saem os caminhos "volto a atacar" (via
+   'retoma'), que a pessoa monta, atrás do mesmo objetivo do plano.
+   Situação sem caminho fecha ali: sem continuação inventada e sem
+   aviso de ponta solta.
+   Pra frente (R3 a R7): a convergência
    entra como ligações extras do plano ({ id, de, via, gatilho, para },
    de e para pelo id da peça) sem mexer na árvore; a preparação é mais
    um tipo de peça.
@@ -49,8 +57,18 @@ export function letraDo(t) {
 }
 export const novoId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 10);
 /* as saídas, na ordem do mapa (de cima pra baixo) */
-export const VIAS = ['encaixou', 'reagiu', 'naoReagiu', 'defendeu'];
-const continua = (via) => via === 'encaixou' || via === 'reagiu';
+export const VIAS = ['encaixou', 'reagiu', 'retoma', 'naoReagiu', 'defendeu', 'escapou'];
+const continua = (via) => via === 'encaixou' || via === 'reagiu' || via === 'retoma';
+const tipoDe = (x) => (x?.tipo === 'finta' || x?.tipo === 'situacao' ? x.tipo : 'golpe');
+/* por onde o passo nasce, pelo tipo do pai: da finta, "reagiu" ou "não
+   reagiu"; do golpe, "encaixou", "defendeu" ou "escapou" (só a
+   situação nasce do escapou); da situação, "volto a atacar" */
+function viaPeloPai(pai, x) {
+  if (tipoDe(pai) === 'finta') return x.via === 'naoReagiu' ? 'naoReagiu' : 'reagiu';
+  if (tipoDe(pai) === 'situacao') return 'retoma';
+  if (tipoDe(x) === 'situacao') return 'escapou';
+  return x.via === 'encaixou' ? 'encaixou' : 'defendeu';
+}
 export const PLANOS_NO_GRATIS = 1;
 
 export const meusPlanos = (planos = []) => planos.filter((p) => !p.pronto && !p.arquivada);
@@ -127,9 +145,8 @@ function viaAntiga(brutos, pai) {
    depois do golpe, "encaixou" ou "defendeu" */
 function viaDe(brutos, i, pai) {
   if (pai === null) return null;
-  if (brutos[pai].tipo === 'finta') return brutos[i].via === 'naoReagiu' ? 'naoReagiu' : 'reagiu';
-  if (!Number.isInteger(brutos[i].pai)) return viaAntiga(brutos, pai);
-  return brutos[i].via === 'encaixou' ? 'encaixou' : 'defendeu';
+  if (tipoDe(brutos[pai]) === 'golpe' && !Number.isInteger(brutos[i].pai)) return viaAntiga(brutos, pai);
+  return viaPeloPai(brutos[pai], brutos[i]);
 }
 
 /* o que a tela desenha, venha do pronto ou do aluno */
@@ -138,7 +155,7 @@ export function correnteDoPlano(p) {
   const { lista, pai, novo } = podar(brutos, (x) => x.acao);
   const passos = lista.map((i) => ({
     id: brutos[i].id || `p${i}`, lig: brutos[i].lig || `l${i}`,
-    tipo: brutos[i].tipo === 'finta' ? 'finta' : 'golpe',
+    tipo: tipoDe(brutos[i]),
     reacao: brutos[i].gatilho || '', golpe: brutos[i].acao, detalhe: brutos[i].detalhe || '', defesa: brutos[i].seFalhar || '',
     pai: pai[i] === null ? null : novo.get(pai[i]),
     via: viaDe(brutos, i, pai[i]),
@@ -231,16 +248,19 @@ export function fintaAntes(passos, i, nome) {
   return [...passos.map((y, k) => (k === i ? { ...y, pai: passos.length, via: 'reagiu', lig: novoId() } : y)), nova];
 }
 
-/* as saídas de cada peça: o golpe tem encaixou e defendeu; a finta,
-   reagiu e não reagiu. Todas aceitam mais de um caminho: no "não
-   reagiu", cada um é outra ameaça pra trocar. */
-export const viasDa = (peca) => (peca?.tipo === 'finta' ? ['reagiu', 'naoReagiu'] : ['encaixou', 'defendeu']);
-export const vagaLivre = (passos, pai, via) => !!passos[pai] && viasDa(passos[pai]).includes(via);
+/* as saídas de cada peça: o golpe tem encaixou, defendeu e escapou; a
+   finta, reagiu e não reagiu; a situação, volto a atacar. Todas aceitam
+   mais de um caminho: no "não reagiu", cada um é outra ameaça pra
+   trocar. No escapou só entra situação, e situação só entra no escapou. */
+const VIAS_DO_TIPO = { golpe: ['encaixou', 'defendeu', 'escapou'], finta: ['reagiu', 'naoReagiu'], situacao: ['retoma'] };
+export const viasDa = (peca) => VIAS_DO_TIPO[tipoDe(peca)];
+export const vagaLivre = (passos, pai, via, tipo = 'golpe') => !!passos[pai] && viasDa(passos[pai]).includes(via)
+  && (via === 'escapou') === (tipo === 'situacao');
 
 /* arrastar o passo i (com o que nasce dele) pra vaga de outro. Não
    vale pra raiz, pra vaga ocupada nem pra dentro do próprio galho. */
 export function moverPasso(passos, i, pai, via) {
-  if (!passos[i] || passos[i].pai === null || galhoDe(passos, i).has(pai) || !vagaLivre(passos, pai, via)) return null;
+  if (!passos[i] || passos[i].pai === null || galhoDe(passos, i).has(pai) || !vagaLivre(passos, pai, via, passos[i].tipo)) return null;
   return passos.map((x, k) => (k === i ? { ...x, pai, via, lig: novoId() } : x));
 }
 
@@ -250,7 +270,7 @@ export function moverPasso(passos, i, pai, via) {
    a posição onde a técnica do catálogo termina ({ slug, nome }). */
 export const OBJETIVO_FINALIZAR = 'Finalizar';
 export function chegaNoObjetivo(passo, plano, destinoDe = () => null) {
-  if (!passo || passo.tipo === 'finta') return false;
+  if (!passo || tipoDe(passo) !== 'golpe') return false;
   const tipo = plano?.objetivoTipo || (plano?.objetivo ? 'tecnica' : '');
   const destino = destinoDe(passo.golpe);
   if (tipo === 'finalizar') return destino?.slug === 'finalizacao';
@@ -258,23 +278,29 @@ export function chegaNoObjetivo(passo, plano, destinoDe = () => null) {
   if (tipo === 'tecnica') return passo.golpe === plano.objetivo;
   return false;
 }
-export const finaliza = (passo, destinoDe = () => null) => passo?.tipo !== 'finta' && destinoDe(passo?.golpe)?.slug === 'finalizacao';
+export const finaliza = (passo, destinoDe = () => null) => !!passo && tipoDe(passo) === 'golpe' && destinoDe(passo?.golpe)?.slug === 'finalizacao';
 
 /* as pontas soltas: finta sem golpe depois e caminho que encaixa e
    para antes do objetivo (finalização que encaixa acaba a luta, não
-   é ponta solta) */
+   é ponta solta). Situação sem caminho não é ponta solta: daquela
+   posição pode não ter ataque que faça sentido, e o caminho fecha. */
 export function pontasSoltas(plano, destinoDe = () => null) {
   const c = correnteDoPlano(plano);
   const { segue } = arvoreDoPlano(c.passos);
-  return c.passos.map((x, i) => ({ ...x, i })).filter((x) => segue[x.i] === undefined
+  return c.passos.map((x, i) => ({ ...x, i })).filter((x) => segue[x.i] === undefined && x.tipo !== 'situacao'
     && (x.tipo === 'finta' || (!chegaNoObjetivo(x, c, destinoDe) && !finaliza(x, destinoDe))));
 }
 
 /* caminho sem motivo: quando duas defesas (ou duas reações) saem da
    mesma peça, cada uma precisa dizer o que ele fez, senão não dá pra
-   saber qual escolher na hora */
-export const semGatilho = (passos = []) => passos.map((x, i) => ({ ...x, i })).filter((x) => (x.via === 'defendeu' || x.via === 'reagiu')
-  && !String(x.reacao || '').trim() && passos.filter((y) => y.pai === x.pai && y.via === x.via).length > 1);
+   saber qual escolher na hora. Duas fugas pra posições diferentes já
+   se separam pela posição. */
+export const semGatilho = (passos = []) => passos.map((x, i) => ({ ...x, i })).filter((x) => {
+  if (String(x.reacao || '').trim()) return false;
+  const irmaos = passos.filter((y) => y.pai === x.pai && y.via === x.via);
+  if (x.via === 'escapou') return irmaos.filter((y) => y.golpe === x.golpe).length > 1;
+  return (x.via === 'defendeu' || x.via === 'reagiu') && irmaos.length > 1;
+});
 
 /* ---------- identidade e histórico ---------- */
 
@@ -357,10 +383,10 @@ export function planoNovo({ nome, posicao, posicaoId = null, finta = '', objetiv
     const p = pai[i] === null ? null : novo.get(pai[i]);
     return {
       id: x.id || novoId(), lig: x.lig || novoId(),
-      ...(x.tipo === 'finta' ? { tipo: 'finta' } : {}),
+      ...(tipoDe(x) !== 'golpe' ? { tipo: x.tipo } : {}),
       gatilho: String(x.reacao || '').trim(), acao: x.golpe, seFalhar: '', proxima: '', detalhe: x.detalhe || '',
       pai: p,
-      via: p === null ? null : passos[pai[i]].tipo === 'finta' ? (x.via === 'naoReagiu' ? 'naoReagiu' : 'reagiu') : x.via === 'encaixou' ? 'encaixou' : 'defendeu',
+      via: p === null ? null : viaPeloPai(passos[pai[i]], x),
     };
   });
   return {

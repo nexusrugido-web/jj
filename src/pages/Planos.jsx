@@ -2,7 +2,7 @@ import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } f
 import { createPortal } from 'react-dom';
 import {
   Plus, Play, Pencil, Trash2, Route, ChevronRight, RotateCcw, X, Repeat, Check, Ruler, Weight, Flag, CircleHelp,
-  Sparkles, Target, Shield, Users, GripVertical,
+  Sparkles, Target, Shield, Users, GripVertical, DoorOpen,
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useApp } from '../contexto';
@@ -192,7 +192,8 @@ const GUIA_DO_PLANO = [
         'O primeiro golpe, ou uma finta antes dele. Dá pra abrir outras entradas da mesma posição: Finta A, B ou C, você escolhe na hora.',
         'Encaixou, e depois? Vai somando golpe até chegar no objetivo. Esse caminho é o Plano A.',
         'Se ele defender: cada defesa dele abre o seu plano (B, C...), com a sua continuação pro mesmo objetivo.',
-        'Cada caminho diz o que ele fez: reagiu, não reagiu ou defendeu de um jeito. É isso que você reconhece na hora.',
+        'Se ele escapar: marque onde a luta ficou e monte dali como volta a atacar, atrás do mesmo objetivo.',
+        'Cada caminho diz o que ele fez: reagiu, não reagiu, defendeu ou escapou de um jeito. É isso que você reconhece na hora.',
         'Tudo no mapa: o + põe uma peça, tocar numa peça muda ela, e a alça leva a peça pra outro galho.',
       ]} />
     ),
@@ -204,6 +205,18 @@ const GUIA_DO_PLANO = [
         Todo plano tem um objetivo: finalizar (qualquer finalização serve), chegar numa posição, como as costas ou a montada, ou um
         golpe específico. O golpe que chega lá ganha a bandeira. Uma raspagem ou uma passagem que encaixa no meio do caminho ainda
         não é a chegada: é o que te deixa mais perto. E se ele defender e não tiver mais caminho, o plano fecha ali.
+      </p>
+    ),
+  },
+  {
+    id: 'escapou', icone: DoorOpen, titulo: 'Defendeu ou escapou', resumo: 'Parar o golpe não é sair da posição',
+    conteudo: (
+      <p className="micro muted" style={{ lineHeight: 1.6 }}>
+        Defendeu: ele parou o golpe, mas você continua na posição que sustenta o ataque e emenda outro dali. Escapou: ele saiu do
+        controle e a luta mudou de lugar, tipo tirou o braço do armlock e recuperou a guarda. Aí você marca onde a luta ficou e monta,
+        a partir dali, como volta a atacar. O objetivo continua o mesmo: perder a posição não é perder o plano, é achar outro caminho
+        até ele. E se daquela situação não tiver ataque que faça sentido, deixa sem continuação: o caminho fecha ali, sem jogada
+        inventada.
       </p>
     ),
   },
@@ -334,7 +347,10 @@ const REACAO = {
   defendeu: { nome: 'Como ele defendeu', exemplo: 'Ex.: colou o cotovelo no corpo' },
   reagiu: { nome: 'Como ele reagiu à finta', exemplo: 'Ex.: levantou a cabeça e apoiou a mão no chão' },
   naoReagiu: { nome: 'O que ele fez', exemplo: 'Ex.: ficou parado na base, não levantou a cabeça' },
+  escapou: { nome: 'Como ele escapou', exemplo: 'Ex.: girou pra dentro, tirou o cotovelo e recuperou a guarda' },
+  retoma: { nome: 'A deixa dele', exemplo: 'O que ele faz nessa posição que abre o ataque' },
 };
+const posicoesDoPlano = (positions) => positions.filter((p) => p.slug !== 'finalizacao' && p.slug !== 'finalizado');
 
 function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, destinoDe, onSalvar }) {
   /* a peça aberta: com "i" é uma que existe; sem, é a vaga nova (pai e via) */
@@ -414,7 +430,7 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
       <MapaDoPlano
         plano={plano} destinoDe={destinoDe}
         editar={{
-          onVaga: (pai, via) => setPeca({ pai, via, tipo: 'golpe', golpe: '', reacao: '' }),
+          onVaga: (pai, via) => setPeca({ pai, via, tipo: via === 'escapou' ? 'situacao' : 'golpe', golpe: '', reacao: '' }),
           onPeca: (i) => setPeca({ i, tipo: passos[i].tipo, golpe: passos[i].golpe, reacao: passos[i].reacao || '' }),
           onMover: (i, pai, via) => {
             const movido = moverPasso(passos, i, pai, via);
@@ -456,13 +472,13 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
       {/* a peça: golpe ou finta, o nome do catálogo e o que ele fez pra chegar aqui */}
       <Sheet
         aberto={!!peca} onClose={() => setPeca(null)}
-        titulo={existe ? (peca.tipo === 'finta' ? 'A finta' : 'O golpe') : 'O que vem aqui'}
+        titulo={peca?.tipo === 'situacao' ? 'Ele escapou' : existe ? (peca.tipo === 'finta' ? 'A finta' : 'O golpe') : 'O que vem aqui'}
         subtitulo={peca && (existe ? passos[peca.i].pai : peca.pai) !== null ? `vem de: ${passos[existe ? passos[peca.i].pai : peca.pai]?.golpe || ''}` : 'a primeira peça do plano'}
         footer={<Btn variant="primary" style={{ width: '100%' }} disabled={!peca?.golpe} onClick={guardarPeca}>Pronto</Btn>}
       >
         {peca && (
           <>
-            {!existe && (
+            {!existe && peca.tipo !== 'situacao' && (
               <Field label="É golpe ou finta?">
                 <div className="row wrap" style={{ gap: 6 }}>
                   <Chip on={peca.tipo === 'golpe'} onClick={() => setPeca({ ...peca, tipo: 'golpe' })}>Golpe de verdade</Chip>
@@ -470,17 +486,27 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
                 </div>
               </Field>
             )}
-            <Field label={peca.tipo === 'finta' ? 'A finta' : 'O golpe'} hint={peca.tipo === 'finta' ? 'A ameaça que faz ele reagir. O golpe de verdade vem na próxima peça.' : undefined}>
-              <button type="button" className="input plano-escolher" onClick={() => setEscolhendo('peca')}>
-                {peca.golpe || (peca.tipo === 'finta' ? 'Escolher a finta' : 'Escolher o golpe')}
-              </button>
-            </Field>
+            {peca.tipo === 'situacao' ? (
+              <Field label="Onde a luta ficou" hint="A posição depois que ele saiu. Daqui você monta como volta a atacar. Se não tiver ataque que faça sentido, deixa sem continuação: o caminho fecha aqui.">
+                <Select value={peca.golpe} onChange={(e) => setPeca({ ...peca, golpe: e.target.value })}>
+                  <option value="">Escolha a posição</option>
+                  {peca.golpe && !posicoesDoPlano(positions).some((p) => p.nome === peca.golpe) && <option value={peca.golpe}>{peca.golpe}</option>}
+                  {posicoesDoPlano(positions).map((p) => <option key={p.id} value={p.nome}>{p.nome}</option>)}
+                </Select>
+              </Field>
+            ) : (
+              <Field label={peca.tipo === 'finta' ? 'A finta' : 'O golpe'} hint={peca.tipo === 'finta' ? 'A ameaça que faz ele reagir. O golpe de verdade vem na próxima peça.' : undefined}>
+                <button type="button" className="input plano-escolher" onClick={() => setEscolhendo('peca')}>
+                  {peca.golpe || (peca.tipo === 'finta' ? 'Escolher a finta' : 'Escolher o golpe')}
+                </button>
+              </Field>
+            )}
             <Field label={`${REACAO[viaDaPeca].nome} (opcional)`}>
               <Input value={peca.reacao} placeholder={REACAO[viaDaPeca].exemplo} onChange={(e) => setPeca({ ...peca, reacao: e.target.value })} />
             </Field>
             {existe && (
               <div className="row wrap" style={{ gap: 6 }}>
-                <Btn size="sm" variant="ghost" icon={Sparkles} onClick={() => setEscolhendo('fintaAntes')}>Pôr uma finta antes</Btn>
+                {peca.tipo !== 'situacao' && <Btn size="sm" variant="ghost" icon={Sparkles} onClick={() => setEscolhendo('fintaAntes')}>Pôr uma finta antes</Btn>}
                 <Btn size="sm" variant="ghost" icon={Trash2} onClick={tirarPeca}>
                   {peca.tipo === 'finta' ? 'Tirar a finta' : 'Tirar, e o que vem depois'}
                 </Btn>
@@ -539,6 +565,7 @@ function LegendaDoMapa({ trilhos = 2, finta = true }) {
       {trilhos > 8 && <span className="mapa-tipo muted">Planos I a {letraDo(trilhos - 1)}: as cores repetem</span>}
       <span className="mapa-tipo" style={{ color: 'var(--jade)' }}><Check size={12} strokeWidth={3} />Encaixou</span>
       <span className="mapa-tipo" style={{ color: '#ff7a6b' }}><X size={12} strokeWidth={3} />Se ele defender</span>
+      <span className="mapa-tipo" style={{ color: '#e2a76f' }}><DoorOpen size={12} />Se ele escapar</span>
       <span className="mapa-tipo" style={{ color: '#f5c542' }}><Flag size={12} />Chegou lá</span>
     </div>
   );
@@ -559,7 +586,8 @@ function linhasDoMapa(plano, destinoDe, editar = false) {
   const ultimo = c.passos.length - 1;
   ordem.forEach((i) => {
     const x = c.passos[i];
-    const golpe = x.tipo !== 'finta';
+    const golpe = x.tipo === 'golpe';
+    const situacao = x.tipo === 'situacao';
     const aqui = linhas.length;
     linhaDoPasso[i] = aqui;
     const tem = (via) => filhos[i].some((k) => c.passos[k].via === via);
@@ -571,20 +599,24 @@ function linhasDoMapa(plano, destinoDe, editar = false) {
       deixa: x.reacao || (x.via === 'defendeu' ? c.passos[x.pai].defesa : ''),
       titulo: x.golpe, detalhe: x.detalhe,
       chegou: chegaNoObjetivo(x, c, destinoDe),
-      segue: i === ultimo ? c.segue : '',
+      segue: golpe && i === ultimo ? c.segue : '',
       fecha: golpe && !tem('defendeu'),
+      /* a situação depois da fuga: tem ou não tem como voltar a atacar */
+      semVolta: situacao && segue[i] === undefined,
     };
     linhas.push(g);
-    const adiante = golpe ? 'encaixou' : 'reagiu';
+    const adiante = golpe ? 'encaixou' : situacao ? 'retoma' : 'reagiu';
     if (segue[i] === undefined) {
-      const folha = { tipo: 'folha', trilho: trilho[i], via: 'encaixou', de: aqui };
+      const folha = { tipo: 'folha', trilho: trilho[i], via: adiante, de: aqui };
       if (g.chegou) linhas.push({ ...folha, chegou: true, rotulo: c.objetivoTipo === 'finalizar' ? 'Finalizou: chegou lá' : 'Encaixou: chegou lá', titulo: c.objetivoTipo === 'finalizar' ? '' : c.objetivo });
       else if (finaliza(x, destinoDe)) linhas.push({ ...folha, rotulo: 'Finalizou' });
       else if (editar) vaga(aqui, i, adiante, trilho[i]);
+      else if (situacao) linhas.push({ ...folha, fecha: true, rotulo: 'Daqui não tem ataque: o caminho fecha' });
       else if (g.segue) linhas.push({ ...folha, rotulo: 'Encaixou, depois', titulo: g.segue });
     } else if (editar) vaga(aqui, i, adiante, trilho[i], true);
-    if (editar && !golpe) vaga(aqui, i, 'naoReagiu', trilho[i], tem('naoReagiu'));
+    if (editar && x.tipo === 'finta') vaga(aqui, i, 'naoReagiu', trilho[i], tem('naoReagiu'));
     if (editar && golpe) vaga(aqui, i, 'defendeu', trilho[i], tem('defendeu'));
+    if (editar && golpe) vaga(aqui, i, 'escapou', trilho[i], tem('escapou'));
   });
   return {
     objetivo: textoDoObjetivo(c), passos: c.passos, temFinta: c.passos.some((x) => x.tipo === 'finta'),
@@ -620,14 +652,16 @@ function RotuloDaVia({ l }) {
   if (l.via === 'encaixou') return <><Check size={11} strokeWidth={3} /> Encaixou{letra}</>;
   if (l.via === 'reagiu') return <><Sparkles size={11} /> Ele reagiu{letra}</>;
   if (l.via === 'naoReagiu') return <><Repeat size={11} strokeWidth={3} /> Não reagiu{letra}</>;
+  if (l.via === 'escapou') return <><DoorOpen size={11} /> Ele escapou{letra}</>;
+  if (l.via === 'retoma') return <><RotateCcw size={11} strokeWidth={3} /> Volto a atacar{letra}</>;
   return <><X size={11} strokeWidth={3} /> Defendeu{letra}</>;
 }
 const TEXTO_DA_VAGA = {
   raiz: 'O 1º golpe ou uma finta', encaixou: 'Encaixou, e depois?', defendeu: 'Se ele defender', reagiu: 'Ele reagiu, e aí?',
-  naoReagiu: 'Não reagiu? Troco a ameaça',
+  naoReagiu: 'Não reagiu? Troco a ameaça', escapou: 'Se ele escapar', retoma: 'Como volto a atacar daqui?',
 };
 /* a saída que já tem caminho e ganha outro */
-const TEXTO_DE_MAIS = { raiz: 'Outra entrada', encaixou: 'Outra opção daqui', defendeu: 'Outra defesa dele', reagiu: 'Reagiu de outro jeito', naoReagiu: 'Outra ameaça pra trocar' };
+const TEXTO_DE_MAIS = { raiz: 'Outra entrada', encaixou: 'Outra opção daqui', defendeu: 'Outra defesa dele', reagiu: 'Reagiu de outro jeito', naoReagiu: 'Outra ameaça pra trocar', escapou: 'Escapou de outro jeito', retoma: 'Outro jeito de voltar' };
 
 function NoDoMapa({ l, guardar, aberto, onTocar, pega, vaga = '' }) {
   if (l.tipo === 'vaga') {
@@ -639,17 +673,18 @@ function NoDoMapa({ l, guardar, aberto, onTocar, pega, vaga = '' }) {
   }
   if (l.tipo === 'folha') {
     return (
-      <div ref={guardar(l.n)} className={`mente-folha ${l.chegou ? 'chegada' : 'ok'}`}>
-        <span className="row" style={{ gap: 5 }}>{l.chegou ? <Flag size={12} /> : <Check size={12} strokeWidth={3} />} {l.rotulo}</span>
+      <div ref={guardar(l.n)} className={`mente-folha ${l.chegou ? 'chegada' : l.fecha ? 'fecha' : 'ok'}`}>
+        <span className="row" style={{ gap: 5 }}>{l.chegou ? <Flag size={12} /> : l.fecha ? <X size={12} strokeWidth={3} /> : <Check size={12} strokeWidth={3} />} {l.rotulo}</span>
         {l.titulo && <span className="mente-folha-txt">{l.titulo}</span>}
       </div>
     );
   }
   const classe = l.tipo === 'golpe' ? `trilho-${cor(l.trilho)}` : `t-${l.tipo}`;
   return (
-    <button type="button" ref={guardar(l.n)} className={`mente-no ${classe}${l.tipo === 'finta' ? ' finta' : ''}${pega ? ' com-pega' : ''}${aberto ? ' aberto' : ''}`} onClick={onTocar}>
+    <button type="button" ref={guardar(l.n)} className={`mente-no ${classe}${l.tipo === 'finta' ? ' finta' : ''}${l.tipo === 'situacao' ? ' situacao' : ''}${pega ? ' com-pega' : ''}${aberto ? ' aberto' : ''}`} onClick={onTocar}>
       {l.tipo === 'posicao' ? <span className="mapa-rotulo">{l.rotulo}</span> : <span className={`mapa-rotulo ${l.via}`}><RotuloDaVia l={l} /></span>}
       {l.tipo === 'finta' && <span className="mente-tag">finta</span>}
+      {l.tipo === 'situacao' && <span className="mente-tag situacao">a luta mudou</span>}
       <span className="mente-titulo">{l.titulo}</span>
       {l.deixa && <span className="mente-deixa">{l.deixa}</span>}
       {pega && <span className="mente-pega" aria-label="Arrastar pra outro galho" {...pega}><GripVertical size={14} /></span>}
@@ -663,6 +698,7 @@ function DetalheDoNo({ l, objetivo }) {
     <div className={`mente-detalhe ${l.tipo === 'golpe' ? `trilho-${cor(l.trilho)}` : `t-${l.tipo}`}`}>
       <span className={`mapa-rotulo ${l.via || ''}`}>{l.tipo === 'posicao' ? l.rotulo : <RotuloDaVia l={l} />}</span>
       {l.tipo === 'finta' && <span className="mente-tag" style={{ marginLeft: 8 }}>finta</span>}
+      {l.tipo === 'situacao' && <span className="mente-tag situacao" style={{ marginLeft: 8 }}>a luta mudou</span>}
       <div className="mapa-titulo">{l.titulo}</div>
       {l.deixa && <div className="mapa-deixa"><b>{REACAO[l.via]?.nome}:</b> {l.deixa}</div>}
       {l.detalhe && <p className="micro muted" style={{ marginTop: 6, lineHeight: 1.5 }}>{l.detalhe}</p>}
@@ -670,6 +706,11 @@ function DetalheDoNo({ l, objetivo }) {
       {l.chegou && <p className="micro" style={{ marginTop: 6, color: '#f5c542' }}>Encaixou aqui, chegou onde queria: {objetivo}</p>}
       {l.segue && <p className="micro" style={{ marginTop: 6, color: 'var(--jade)' }}>Depois que encaixa: {l.segue}</p>}
       {l.fecha && <p className="micro muted" style={{ marginTop: 6, lineHeight: 1.5 }}>Se ele defender aqui, esse caminho fecha.</p>}
+      {l.tipo === 'situacao' && (
+        <p className="micro muted" style={{ marginTop: 6, lineHeight: 1.5 }}>
+          Ele saiu do controle e a luta veio pra cá. {l.semVolta ? 'Daqui o plano não tem ataque que faça sentido: esse caminho fecha.' : `Daqui você volta a atacar, atrás do mesmo objetivo: ${objetivo}.`}
+        </p>
+      )}
     </div>
   );
 }
@@ -754,10 +795,10 @@ function MapaDoPlano({ plano, ate = Infinity, destinoDe, editar = null }) {
     const y2 = b.y + alt[l.n] / 2;
     const meio = tamanho.vao * 0.62;
     const corDe = (k) => (k.tipo === 'golpe' ? `var(--tr-${cor(k.trilho)})` : `var(--mp-${k.tipo})`);
-    const corDaFolha = l.chegou ? '#f5c542' : 'var(--jade)';
+    const corDaFolha = l.chegou ? '#f5c542' : l.fecha ? 'var(--dim)' : 'var(--jade)';
     return {
       n: l.n, x1, y1, x2, y2, via: l.via, vaga: l.tipo === 'vaga',
-      selo: (l.tipo === 'golpe' || l.tipo === 'finta') && l.via !== 'raiz',
+      selo: (l.tipo === 'golpe' || l.tipo === 'finta' || l.tipo === 'situacao') && l.via !== 'raiz',
       de: corDe(linhas[l.de]),
       para: l.tipo === 'folha' ? corDaFolha : l.tipo === 'vaga' ? 'var(--dim)' : corDe(l),
       d: `M${x1} ${y1} C${x1 + meio} ${y1} ${x2 - meio} ${y2} ${x2} ${y2}`,
@@ -860,7 +901,7 @@ function MapaDoPlano({ plano, ate = Infinity, destinoDe, editar = null }) {
                     <NoDoMapa
                       l={l} guardar={guardar} aberto={!editar && aberto === l.n} vaga={solta}
                       onTocar={l.tipo === 'folha' || (editar && l.tipo === 'posicao') ? undefined : tocar(l)}
-                      pega={editar && (l.tipo === 'golpe' || l.tipo === 'finta') && l.via !== 'raiz' ? pega(l) : null}
+                      pega={editar && (l.tipo === 'golpe' || l.tipo === 'finta' || l.tipo === 'situacao') && l.via !== 'raiz' ? pega(l) : null}
                     />
                   </div>
                 );
@@ -871,6 +912,8 @@ function MapaDoPlano({ plano, ate = Infinity, destinoDe, editar = null }) {
                   {g.via === 'defendeu' && <X size={11} strokeWidth={3.5} />}
                   {g.via === 'reagiu' && <Sparkles size={11} />}
                   {g.via === 'naoReagiu' && <Repeat size={11} strokeWidth={3} />}
+                  {g.via === 'escapou' && <DoorOpen size={11} />}
+                  {g.via === 'retoma' && <RotateCcw size={11} strokeWidth={3} />}
                 </span>
               ))}
             </div>

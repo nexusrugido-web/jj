@@ -3905,7 +3905,7 @@ body::after {
 /* o mapa mental: a posição na esquerda, os galhos abrindo pra direita */
 .mapa {
   --mp-posicao: #6cb8ff; --mp-finta: var(--roar); --mp-reacao: #b48cff; --mp-golpe: var(--jade);
-  --mp-defende: #ff7a6b; --mp-fim: var(--dim); --mp-encaixou: var(--jade);
+  --mp-defende: #ff7a6b; --mp-fim: var(--dim); --mp-encaixou: var(--jade); --mp-situacao: #e2a76f;
   --tr-0: var(--jade); --tr-1: #f5c542; --tr-2: #b48cff; --tr-3: #ff8fb8;
   --tr-4: #5cc8ff; --tr-5: #ff9f43; --tr-6: #a3e635; --tr-7: #e879f9;
   position: relative;
@@ -4011,6 +4011,15 @@ body::after {
 .mente-vaga.defendeu { --c: #ff7a6b; }
 .mente-vaga.reagiu { --c: var(--roar); }
 .mente-vaga.naoReagiu { --c: #9fb3c8; }
+/* escapou: a luta mudou de lugar; volto a atacar: o caminho que nasce da posição nova */
+.t-situacao { --c: #e2a76f; }
+.mente-no.situacao { border-left-width: 3px; }
+.mente-tag.situacao { color: #e2a76f; border-color: color-mix(in srgb, #e2a76f 50%, transparent); }
+.mente-selo.escapou, .mapa-rotulo.escapou { color: #e2a76f; }
+.mente-selo.retoma, .mapa-rotulo.retoma { color: #6cb8ff; }
+.mente-vaga.escapou { --c: #e2a76f; }
+.mente-vaga.retoma { --c: #6cb8ff; }
+.mente-folha.fecha { color: var(--dim); background: color-mix(in srgb, var(--dim) 8%, var(--void)); border: 1px dashed var(--seam); box-shadow: none; }
 /* o + de mais um caminho numa saída que já tem: menor, pra não pesar no mapa */
 .mente-vaga.mais { padding: 4px 8px; font-size: 11px; opacity: .8; }
 .mente-vaga:hover, .mente-vaga.pode { background: color-mix(in srgb, var(--c) 12%, var(--void)); }

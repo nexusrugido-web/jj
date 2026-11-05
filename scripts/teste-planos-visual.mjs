@@ -47,6 +47,19 @@ const GRANDE = (() => {
   return { ...PLANO, nome: 'Sistema grande da guarda', passos };
 })();
 
+/* R2: ele escapou do armlock e recuperou a guarda (dali volto a
+   atacar até a kimura); ou levantou, e dali o plano não tem ataque */
+const FUGA = {
+  ...PLANO, nome: 'Armlock com fuga', passos: [
+    { id: 'a0', lig: 'm0', acao: 'Armlock', gatilho: '', pai: null, via: null },
+    { id: 'a1', lig: 'm1', acao: 'Triângulo', gatilho: 'colou o cotovelo', pai: 0, via: 'defendeu' },
+    { id: 'a2', lig: 'm2', tipo: 'situacao', acao: 'Guarda fechada', gatilho: 'girou e recuperou a guarda', pai: 0, via: 'escapou' },
+    { id: 'a3', lig: 'm3', acao: 'Raspagem de quadril (hip bump)', gatilho: 'sentou pra trás', pai: 2, via: 'retoma' },
+    { id: 'a4', lig: 'm4', acao: 'Kimura', gatilho: '', pai: 3, via: 'encaixou' },
+    { id: 'a5', lig: 'm5', tipo: 'situacao', acao: 'De pé', gatilho: 'levantou e saiu', pai: 0, via: 'escapou' },
+  ].map((x) => ({ seFalhar: '', proxima: '', detalhe: '', ...x })),
+};
+
 /* cada cartão do mapa com tamanho, e quantos estão dentro do quadro */
 const medirMapa = (s) => {
   const quadro = document.querySelector(s).getBoundingClientRect();
@@ -83,7 +96,7 @@ try {
       const { VERSAO_DOCS } = await import('/src/components/Aceite.jsx');
       await setMeta('settings', { ...(await getMeta('settings', {})), nome: 'Praticante de teste', anoNascimento: 1995, faixa: 'branca', onboardingFeito: 1, tourVisto: 1, celebrar: false, aceite: { versao: VERSAO_DOCS, em: new Date().toISOString() } });
       for (const p of plano) await db.attackPlans.add({ ...p, criadoEm: Date.now() });
-    }, [PLANO, GRANDE]);
+    }, [PLANO, GRANDE, FUGA]);
     await page.goto(`${url}/?go=planos`, { waitUntil: 'networkidle' });
     await page.getByText(PLANO.nome).first().waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `lista de planos vaza em ${nome}`);
@@ -119,6 +132,47 @@ try {
     assert.equal(ed.vaza, false, 'editor vaza a página');
     assert.equal(ed.sobrepostos, 0, 'cartões sobrepostos no editor');
     assert.ok(await page.getByText('Outra ameaça pra trocar').count() >= 1, 'o "não reagiu" aceita outra ameaça');
+
+    /* R2: a fuga abre a situação; dela volto a atacar ou o caminho fecha */
+    await page.goto(`${url}/?go=planos`, { waitUntil: 'networkidle' });
+    await page.getByText(FUGA.nome).first().waitFor();
+    await page.locator('.plano-cartao', { hasText: FUGA.nome }).first().getByRole('button', { name: 'Ver o mapa' }).first().click();
+    await page.locator('.mente-tela .mente-no.situacao').first().waitFor();
+    await page.waitForTimeout(400);
+    const fv = await page.evaluate(medirMapa, '.mente-tela');
+    console.log(`${nome} fuga, ver o mapa:`, JSON.stringify(fv));
+    await page.screenshot({ path: `${pasta}/${nome}-fuga-ver.png` });
+    assert.equal(fv.nos, 7, 'fuga: posição + 6 peças');
+    assert.equal(fv.sobrepostos, 0, 'fuga: cartões sobrepostos');
+    assert.equal(fv.vaza, false, 'fuga: vaza a página');
+    assert.equal(await page.locator('.mente-tela .mente-no.situacao').count(), 2, 'as duas situações aparecem');
+    assert.equal(await page.locator('.mente-tela .mente-folha.fecha').count(), 1, 'a situação sem ataque diz que fecha');
+    assert.ok(await page.locator('.mente-tela .mente-folha.chegada').count() >= 1, 'a reconstrução chega no objetivo');
+    await page.getByRole('button', { name: 'Ver inteiro' }).click();
+    await page.waitForTimeout(2500);
+    await page.locator('.mente-quadro').screenshot({ path: `${pasta}/${nome}-fuga-inteiro.png` });
+    await page.locator('.mente-tela .mente-no.situacao', { hasText: 'Guarda fechada' }).click();
+    assert.ok(await page.getByText('atrás do mesmo objetivo').count() >= 1, 'o detalhe da situação lembra o objetivo');
+    await page.keyboard.press('Escape');
+    await page.goto(`${url}/?go=planos`, { waitUntil: 'networkidle' });
+    await page.getByText(FUGA.nome).first().waitFor();
+    await page.locator('.plano-cartao', { hasText: FUGA.nome }).first().getByRole('button', { name: 'Editar' }).first().click();
+    await page.locator('.mente-tela .mente-vaga.escapou').first().waitFor();
+    const fe = await page.evaluate(medirMapa, '.mente-tela');
+    console.log(`${nome} fuga, editor:`, JSON.stringify(fe));
+    await page.screenshot({ path: `${pasta}/${nome}-fuga-editor.png` });
+    assert.equal(fe.sobrepostos, 0, 'fuga no editor: cartões sobrepostos');
+    assert.equal(fe.vaza, false, 'fuga no editor: vaza a página');
+    assert.equal(await page.locator('.mente-tela .mente-vaga.retoma').count(), 2, 'cada situação tem o + de voltar a atacar');
+    /* montar uma fuga nova no Triângulo: escolhe onde a luta ficou */
+    await page.locator('.mente-tela .mente-vaga.escapou', { hasText: 'Se ele escapar' }).first().click();
+    await page.getByText('Onde a luta ficou').waitFor();
+    await page.screenshot({ path: `${pasta}/${nome}-fuga-peca.png` });
+    assert.equal(await page.getByText('É golpe ou finta?').count(), 0, 'a fuga não pergunta golpe ou finta');
+    await page.locator('select').filter({ hasText: 'Escolha a posição' }).last().selectOption({ label: 'Meia-guarda' });
+    await page.getByRole('button', { name: 'Pronto' }).click();
+    await page.locator('.mente-tela .mente-no.situacao', { hasText: 'Meia-guarda' }).waitFor();
+    assert.equal(await page.locator('.mente-tela .mente-no.situacao').count(), 3, 'a fuga nova entrou no mapa');
 
     /* o plano grande: mais de 16 peças, vendo e editando */
     for (const modo of ['Ver o mapa', 'Editar']) {
