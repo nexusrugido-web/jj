@@ -187,7 +187,7 @@ export default function Treinos() {
       db.attackPlans.where('uid').equals(drillPlano).first().then((p) => {
         if (!p) return;
         const c = correnteDoPlano(p);
-        const nomes = [...new Set([c.finta, ...c.passos.map((x) => x.golpe)].filter(Boolean))];
+        const nomes = [...new Set(c.passos.map((x) => x.golpe).filter(Boolean))];
         const porNome = new Map(techniques.map((t) => [String(t.nome).toLowerCase(), t]));
         setEditando({
           ...novaSessao(settings, 'drill'),
@@ -1621,7 +1621,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
                         </Select>
                         {plano && (
                           <div className="row wrap" style={{ gap: 6, marginTop: 8 }}>
-                            {arvore.ordem.map((k, n) => (
+                            {arvore.ordem.filter((k) => golpes[k].tipo !== 'finta').map((k, n) => (
                               <Chip key={k} on={r.plano.ate === k} onClick={() => setRola(i, { plano: { ...r.plano, ate: k } })}>
                                 {arvore.trilhos > 1 ? `${LETRAS[arvore.trilho[k]]} · ` : `${n + 1}. `}{golpes[k].golpe}
                               </Chip>

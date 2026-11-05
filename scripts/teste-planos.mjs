@@ -32,19 +32,21 @@ ok('nome sem espaço sobrando', novo.nome, 'Finta e armlock');
 ok('golpe vazio sai, o resto vira fila', novo.passos.map((p) => [p.acao, p.pai, p.via]), [['Kimura', null, null], ['Guilhotina', 0, 'defendeu'], ['Triângulo', 1, 'defendeu'], ['Omoplata', 2, 'defendeu'], ['Armlock', 3, 'defendeu']]);
 ok('reação vira gatilho', novo.passos[0].gatilho, 'ele baseia a mão');
 
-const muitos = Array.from({ length: 15 }, (_, i) => ({ golpe: `G${i}` }));
-ok('no máximo 12 golpes', planoNovo({ passos: muitos }).passos.length, MAX_PASSOS);
+const muitos = Array.from({ length: 20 }, (_, i) => ({ golpe: `G${i}` }));
+ok('no máximo 16 peças', planoNovo({ passos: muitos }).passos.length, MAX_PASSOS);
 const c = correnteDoPlano(novo);
-ok('a finta vem junto', c.finta, 'Raspagem de gancho');
+ok('a finta de antes vira a peça de finta, no fim da lista, e o 1º golpe nasce dela',
+  c.passos.map((x) => [x.tipo, x.golpe, x.pai, x.via]).filter((x) => x[0] === 'finta' || x[2] === 5),
+  [['golpe', 'Kimura', 5, 'reagiu'], ['finta', 'Raspagem de gancho', null, null]]);
 
 const pronto = { ...PLANOS_ATAQUE[0], id: 7, uid: 'u', pronto: 1, criadoEm: 1 };
 const copia = copiaDoPronto(pronto);
 ok('a cópia é plano seu', [copia.pronto, copia.slug, copia.uid, copia.id], [0, undefined, undefined, undefined]);
 ok('a cópia guarda de onde veio', copia.copiadoDe, PLANOS_ATAQUE[0].slug);
 ok('a cópia mantém os golpes', copia.passos.map((p) => p.acao), pronto.passos.slice(0, 4).map((p) => p.acao));
-ok('depois que falhou vira o fim', [correnteDoPlano(PLANOS_ATAQUE.find((p) => p.slug === 'cg-trindade')).fim !== '', correnteDoPlano(PLANOS_ATAQUE.find((p) => p.slug === 'cg-trindade')).segue], [true, '']);
-ok('depois que encaixou vira o segue', correnteDoPlano({ passos: [{ acao: 'Gift wrap', proxima: 'Mata-leão' }] }), { posicao: '', finta: '', objetivo: '', passos: [{ reacao: '', golpe: 'Gift wrap', detalhe: '', defesa: '', pai: null, via: null }], fim: '', segue: 'Mata-leão' });
-ok('"se ele escapar" é fim, mesmo sem seFalhar', correnteDoPlano({ passos: [{ acao: 'X', proxima: 'Se ele escapar, retomar' }] }).fim, 'Se ele escapar, retomar');
+ok('o "se ele defender tudo" não vira peça', [correnteDoPlano(PLANOS_ATAQUE.find((p) => p.slug === 'cg-trindade')).fim, correnteDoPlano(PLANOS_ATAQUE.find((p) => p.slug === 'cg-trindade')).segue], [undefined, '']);
+ok('depois que encaixou vira o segue', correnteDoPlano({ passos: [{ acao: 'Gift wrap', proxima: 'Mata-leão' }] }), { posicao: '', objetivo: '', objetivoTipo: '', passos: [{ tipo: 'golpe', reacao: '', golpe: 'Gift wrap', detalhe: '', defesa: '', pai: null, via: null }], segue: 'Mata-leão' });
+ok('"se ele escapar" não vira continuação', correnteDoPlano({ passos: [{ acao: 'X', proxima: 'Se ele escapar, retomar' }] }).segue, '');
 ok('todo pronto vira corrente com golpe', PLANOS_ATAQUE.every((p) => correnteDoPlano(p).passos.length > 0), true);
 
 const lista = [pronto, { nome: 'meu', pronto: 0, arquivada: 0 }];
@@ -130,6 +132,56 @@ const trindade = correnteDoPlano(PLANOS_ATAQUE.find((p) => p.slug === 'cg-trinda
 ok('trindade: quebrou a postura, encaixou o armlock; defendeu, triângulo', trindade.passos.map((p) => p.via), [null, 'encaixou', 'defendeu', 'defendeu']);
 ok('todo pronto vira árvore inteira', PLANOS_ATAQUE.every((p) => arvoreDoPlano(correnteDoPlano(p).passos).ordem.length === correnteDoPlano(p).passos.length), true);
 ok('editar e salvar um pronto mantém o caminho', correnteDoPlano(planoNovo({ passos: trindade.passos })).passos.map((p) => p.via), [null, 'encaixou', 'defendeu', 'defendeu']);
+
+/* ---------- finta em qualquer ponto ----------
+   Golpe → encaixou → finta → finta → golpe; a reação à finta mora no
+   passo de depois, a defesa do golpe no galho da defesa */
+const { fintaAntes, semAFinta, moverPasso, vagaLivre, chegaNoObjetivo, pontasSoltas, LETRAS } = await import('../src/lib/planos.js');
+const fintas = planoNovo({
+  nome: 'Finta atrás de finta', objetivo: 'Finalizar', objetivoTipo: 'finalizar',
+  passos: [
+    { tipo: 'golpe', golpe: 'Raspagem de quadril (hip bump)', pai: null, via: null },                  // 0
+    { tipo: 'finta', golpe: 'Guilhotina', reacao: 'ele senta pra trás', pai: 0, via: 'encaixou' },      // 1
+    { tipo: 'finta', golpe: 'Triângulo', reacao: 'ele levanta a cabeça', pai: 1, via: 'qualquer' },     // 2
+    { tipo: 'golpe', golpe: 'Kimura', reacao: 'ele posta a mão no chão', pai: 2 },                      // 3
+    { tipo: 'golpe', golpe: 'Guilhotina', reacao: 'ele esconde o braço', pai: 3, via: 'defendeu' },     // 4
+  ],
+});
+ok('finta guarda o tipo, golpe não', fintas.passos.map((x) => x.tipo || 'golpe'), ['golpe', 'finta', 'finta', 'golpe', 'golpe']);
+ok('depois da finta é sempre "ele reagiu"', fintas.passos.map((x) => x.via), [null, 'encaixou', 'reagiu', 'reagiu', 'defendeu']);
+const cf = correnteDoPlano(fintas);
+const af = arvoreDoPlano(cf.passos);
+ok('a finta segue no mesmo trilho; a defesa abre o B', af.ordem.map((i) => [cf.passos[i].golpe, LETRAS[af.trilho[i]]]),
+  [['Raspagem de quadril (hip bump)', 'A'], ['Guilhotina', 'A'], ['Triângulo', 'A'], ['Kimura', 'A'], ['Guilhotina', 'B']]);
+ok('reação à finta e defesa do golpe ficam em passos diferentes', [cf.passos[3].reacao, cf.passos[4].reacao], ['ele posta a mão no chão', 'ele esconde o braço']);
+
+const antes = fintaAntes(cf.passos, 4, 'Kimura');
+ok('finta antes do golpe do B entra no fim, no lugar dele', antes.map((x) => [x.golpe, x.pai, x.via]).slice(4),
+  [['Guilhotina', 5, 'reagiu'], ['Kimura', 3, 'defendeu']]);
+ok('os índices de antes não mudam (o rola guarda o índice)', antes.slice(0, 4).map((x) => x.golpe), cf.passos.slice(0, 4).map((x) => x.golpe));
+ok('tirar a finta devolve o golpe pro lugar dela', semAFinta(antes, 5).map((x) => [x.golpe, x.pai, x.via]).slice(4), [['Guilhotina', 3, 'defendeu']]);
+ok('tirar a finta do meio religa o caminho', semAFinta(cf.passos, 2).map((x) => [x.golpe, x.pai, x.via]).slice(2, 3), [['Kimura', 1, 'reagiu']]);
+
+ok('finta ocupada não tem vaga; finta não tem defesa', [vagaLivre(cf.passos, 2, 'defendeu'), vagaLivre(cf.passos, 2, 'reagiu')], [false, false]);
+ok('golpe não tem vaga de "ele reagiu"', vagaLivre(cf.passos, 4, 'reagiu'), false);
+ok('arrastar pra dentro do próprio galho não vale', moverPasso(cf.passos, 3, 4, 'encaixou'), null);
+ok('a raiz não sai do lugar', moverPasso(cf.passos, 0, 4, 'encaixou'), null);
+const movido = moverPasso(cf.passos, 4, 0, 'defendeu');
+ok('arrastar a Guilhotina pra defesa do 1º golpe', movido && [movido[4].pai, movido[4].via], [0, 'defendeu']);
+ok('depois de arrastar, a árvore continua inteira', arvoreDoPlano(correnteDoPlano(planoNovo({ passos: movido })).passos).ordem.length, 5);
+
+/* ---------- objetivo ---------- */
+const destinos = { Kimura: { slug: 'finalizacao', nome: 'Finalização' }, 'Raspagem de quadril (hip bump)': { slug: 'montada', nome: 'Montada' } };
+const destinoDe = (n) => destinos[n] || null;
+ok('finalizar: a Kimura chega lá', chegaNoObjetivo({ golpe: 'Kimura' }, { objetivo: 'Finalizar', objetivoTipo: 'finalizar' }, destinoDe), true);
+ok('finta nunca chega', chegaNoObjetivo({ tipo: 'finta', golpe: 'Kimura' }, { objetivo: 'Finalizar', objetivoTipo: 'finalizar' }, destinoDe), false);
+ok('posição: a raspagem chega na montada', chegaNoObjetivo({ golpe: 'Raspagem de quadril (hip bump)' }, { objetivo: 'Montada', objetivoTipo: 'posicao' }, destinoDe), true);
+ok('golpe: só o próprio', [chegaNoObjetivo({ golpe: 'Kimura' }, { objetivo: 'Kimura' }), chegaNoObjetivo({ golpe: 'Guilhotina' }, { objetivo: 'Kimura' })], [true, false]);
+ok('plano antigo sem tipo: objetivo é golpe', correnteDoPlano({ objetivo: 'Kimura', passos: [{ acao: 'Kimura' }] }).objetivoTipo, 'tecnica');
+ok('ponta solta: a raspagem do B para antes do objetivo; a kimura não',
+  pontasSoltas(planoNovo({ objetivo: 'Finalizar', objetivoTipo: 'finalizar', passos: [{ golpe: 'Kimura' }, { golpe: 'Raspagem de quadril (hip bump)', pai: 0, via: 'defendeu' }] }), destinoDe).map((x) => x.golpe),
+  ['Raspagem de quadril (hip bump)']);
+ok('finta sem golpe depois é ponta solta', pontasSoltas(planoNovo({ objetivo: 'Finalizar', objetivoTipo: 'finalizar', passos: [{ tipo: 'finta', golpe: 'Guilhotina' }] }), destinoDe).map((x) => x.tipo), ['finta']);
 
 /* a busca do seletor: espaço, hífen e o nome em português não escondem o armlock */
 const { casaApelido } = await import('../src/db/sinonimos.js');

@@ -53,7 +53,12 @@ export function SeletorTecnica({
     if (categoriaFiltro) l = l.filter((t) => idsPermitidos.has(t.categoriaId));
     if (cat !== 'todas') l = l.filter((t) => t.categoriaId === Number(cat));
     if (busca) l = l.filter((t) => buscaMatch(`${t.nome} ${t.nomeEn} ${(t.tags || []).join(' ')}`, busca) || casaApelido(t.nome, busca));
+    /* com busca, o nome que começa com o que foi digitado vem primeiro:
+       "kimura" mostra a Kimura antes da "Defesa de kimura" */
+    const colado = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[\s-]+/g, '');
+    const peso = (t) => (!busca ? 0 : colado(t.nome).startsWith(colado(busca)) ? 0 : colado(t.nome).includes(colado(busca)) ? 1 : 2);
     return l.sort((a, b) => {
+      if (peso(a) !== peso(b)) return peso(a) - peso(b);
       const ra = recentes.indexOf(a.nome), rb = recentes.indexOf(b.nome);
       if (ra !== rb) return (ra < 0 ? 99 : ra) - (rb < 0 ? 99 : rb);
       return a.nome.localeCompare(b.nome);

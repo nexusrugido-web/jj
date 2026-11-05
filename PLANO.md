@@ -6,12 +6,25 @@ Decidido em 04/11/2026. Uma tarefa por vez; cada uma termina com `npm run check`
 
 ## Trilha H: Plano com objetivo, finta em qualquer ponto e montar no mapa (05/11/2026)
 O que achei: o catálogo já tem 15 armlocks com origem no nome ("Armlock da guarda fechada"); a busca falhou só por causa do espaço ("arm l" não casa com "armlock"). Os 16 prontos usam texto livre fora do catálogo ("Triângulo", "Omoplata"), nenhum tem objetivo nem finta, e o último passo vira o "se ele defender tudo" automático. A finta hoje é uma só, do plano inteiro, e a "deixa" mistura reação à finta com defesa do golpe.
-1. Busca sem espaço ("arm l", "arm lock") e "chave de braço reta" nos armlocks. Verificar: casos novos no teste.
+1. Busca sem espaço ("arm l", "arm lock") e "chave de braço reta" nos armlocks. Verificar: casos novos no teste. → FEITO.
+2 a 4 (base) → FEITO em 05/11/2026: objetivo obrigatório (finalizar, posição, golpe) com bandeira, finta como peça em qualquer ponto, reação separada da defesa, sem desfecho inventado, editor no mapa com "+", alça pra arrastar e mapa que se arruma sozinho. Limite que fica pra reestruturação: cada golpe tem uma defesa só e cada peça um pai só (árvore).
 2. Passo ganha tipo: golpe ou finta. Finta tem uma saída ("ele reagiu") e a reação dela; golpe tem encaixou e defendeu, e a defesa mora no galho do defendeu. Finta antes de qualquer golpe, finta atrás de finta. A finta antiga do plano vira o primeiro passo na leitura, sem migração. Verificar: teste-planos (plano antigo abre igual, finta → finta → golpe).
 3. Objetivo obrigatório. Bandeira em todo golpe que chega nele, em qualquer plano (A, B, C); golpe que chega fecha o caminho. Caminho que acaba sem chegar não ganha desfecho inventado; o editor avisa. Some o "se ele defender tudo" automático. Verificar: teste-planos.
 4. Montar no mapa: o mesmo mapa do "Ver", com "+" nos galhos, tocar edita, arrastar um golpe pra outro galho leva ele e o que vem depois; o mapa se realinha sozinho. Verificar: print 360px e computador, teste de telas.
 5. Os 16 prontos reescritos: nome do catálogo, objetivo, finta onde faz sentido, descrição em português de tatame (a situação, o que você faz, o que abre). Atualiza os prontos intactos de quem já tem. Verificar: lint:copy, teste-planos.
 6. (se aprovado) Nome com origem no catálogo: Triângulo, Omoplata, Kimura, Guilhotina ganham "da guarda fechada" pelo renomeios. Verificar: teste:renomeios.
+
+### Reestruturação (05/11/2026): de árvore de golpes pra jogo do atleta
+Princípio: provocar, reconhecer, explorar, adaptar, encadear, finalizar. Um objetivo claro, várias maneiras de criar a oportunidade, caminhos que continuam trabalhando pra vitória. O mapa não prevê a luta inteira.
+O formato guardado (passos com pai e via) continua; ele só ganha saídas novas, então o que já foi salvo segue abrindo.
+- R1. Várias saídas por peça: a posição abre várias entradas (Finta A, B, C como opções, não etapas); o golpe abre "encaixou" e quantas defesas específicas precisar, cada uma com o nome dela e a sua continuação; a finta abre "reagiu como eu queria" e "não reagiu, troco a ameaça". Cada defesa nova vira um plano com letra própria, sem o teto de 4.
+- R2. Escapou: saída "ele escapou, reconstruo" que leva a uma peça de reorganização ou de volta a um ponto anterior. Defesa que não deixa continuação fecha o caminho, sem frase inventada.
+- R3. Convergência: uma saída pode apontar pra uma peça que já existe (três preparações levam ao mesmo ataque sem repetir o cartão); no mapa, fio tracejado até ela.
+- R4. Objetivo em dois níveis: principal (finalizar, posição, raspagem, passagem) + finalização preferida + as aceitas. A bandeira forte vai na preferida, a fraca nas aceitas.
+- R5. Preparação como peça própria (pegada, desequilíbrio, ajuste de pressão), separada da finta.
+- R6. Os 16 prontos reescritos nesse modelo (itens 5 e 6 de cima): nome do catálogo, objetivo, descrição em português de tatame.
+- R7. Registro no rola pelo caminho: finta usada, reação provocada, ataque, defesa, chegou ou não. Taxa por etapa, só com dado real do atleta, e com aviso quando há poucas tentativas.
+- R8. Visão de competição: só os caminhos mais treinados e que mais funcionam, pra revisar antes da luta.
 
 ## Trilha A: Placar de conquistas
 1. Home mostra "O que você conquistou esta semana" (só o que fez, cada lance contado, rola sem bater conta); "Fui finalizado" sai da home → FEITO.
