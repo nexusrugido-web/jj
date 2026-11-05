@@ -32,6 +32,14 @@ Decidido em 04/11/2026. Uma tarefa por vez; cada uma termina com `npm run check`
 3. Mapa do plano em árvore de verdade: "se ele defender" sai pro lado, ramos que mudam de direção, no celular os textos quebram linha em vez de comer a tela. → FEITO (o "depois" dos prontos vira fim ou segue).
 Depois: Trilha D (ok dado em 04/11/2026).
 
+## Trilha G: Plano em árvore com plano B e C (04/11/2026)
+1. Assuntos diferentes no mesmo campo ganham nome e fio entre eles (Altura | Peso no "Pra quem serve"). → FEITO.
+2. Cada golpe abre dois caminhos: "Encaixou, e depois?" (segue no mesmo plano, verde) e "Se ele defender" (abre o Plano B, C, D). Até 12 golpes e 4 trilhos. Plano antigo vira trilho só de "se defender", sem conversão. → FEITO.
+3. Campo "Onde quero chegar" (objetivo), com bandeira no fim do caminho todo verde. → FEITO.
+4. Mapa em trilhos tipo metrô: cada plano uma cor, encaixou desce no trilho, se defender sai pro trilho do lado. → FEITO.
+5. Editor: "Seu golpe" primeiro, a deixa dele embaixo com nome que muda conforme o caminho; botão "Entenda" com o guia (finta, golpe, deixa, plano B, objetivo). → FEITO.
+Verificar: teste-planos (árvore, plano antigo, limpeza de golpe vazio), teste de telas, print em 360px.
+
 ## Trilha D: Registro do rola em 10 segundos (ok em 04/11/2026)
 Medido em 04/11/2026 (`corpoDaRola` em `src/pages/Treinos.jsx`): **10 blocos em sequência** (parceiro, peso, duração + de onde começou, plano, anotação, placar, pontos meus + vantagens, pontos dele + vantagens, eu finalizei, ele me finalizou). Um rola comum (passou 1x, raspou 1x, levou 1 passagem) pede ~8 toques e rolar a tela inteira; "de onde começou" é um select (2 toques) e o peso só vem sozinho quando o parceiro tem peso no cadastro.
 

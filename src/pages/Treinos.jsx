@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, Suspense } from 'react';
 import { lazy } from '../lib/lazy';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { planosDaPessoa, correnteDoPlano } from '../lib/planos';
+import { planosDaPessoa, correnteDoPlano, arvoreDoPlano, LETRAS } from '../lib/planos';
 import {
   Plus, Trash2, Pencil, NotebookPen, Timer, ChevronDown, ChevronRight, Copy, Check,
   MessageSquare, Building2, GraduationCap, Trophy, Weight, Mic, Users, History, ShieldAlert, CircleHelp,
@@ -1612,16 +1612,19 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
                   {meusPlanosDeAtaque.length > 0 && (() => {
                     const plano = r.plano && meusPlanosDeAtaque.find((x) => x.uid === r.plano.uid);
                     const golpes = plano ? correnteDoPlano(plano).passos : [];
+                    const arvore = arvoreDoPlano(golpes);
                     return (
-                      <Field label="Usou um plano de ataque?" hint={plano ? 'Toque no golpe até onde a corrente chegou.' : 'Opcional. É daqui que sai a taxa de acerto do plano.'}>
+                      <Field label="Usou um plano de ataque?" hint={plano ? 'Toque no último golpe do plano que você tentou.' : 'Opcional. É daqui que sai a taxa de acerto do plano.'}>
                         <Select value={plano ? plano.uid : ''} onChange={(e) => setRola(i, { plano: e.target.value ? { uid: e.target.value, ate: 0, encaixou: false } : null })}>
                           <option value="">Não usei</option>
                           {meusPlanosDeAtaque.map((x) => <option key={x.uid} value={x.uid}>{x.nome}</option>)}
                         </Select>
                         {plano && (
                           <div className="row wrap" style={{ gap: 6, marginTop: 8 }}>
-                            {golpes.map((g, k) => (
-                              <Chip key={k} on={r.plano.ate === k} onClick={() => setRola(i, { plano: { ...r.plano, ate: k } })}>{k + 1}. {g.golpe}</Chip>
+                            {arvore.ordem.map((k, n) => (
+                              <Chip key={k} on={r.plano.ate === k} onClick={() => setRola(i, { plano: { ...r.plano, ate: k } })}>
+                                {arvore.trilhos > 1 ? `${LETRAS[arvore.trilho[k]]} · ` : `${n + 1}. `}{golpes[k].golpe}
+                              </Chip>
                             ))}
                             <Chip tone={r.plano.encaixou ? 'jade' : ''} on={r.plano.encaixou} onClick={() => setRola(i, { plano: { ...r.plano, encaixou: !r.plano.encaixou } })}>
                               {r.plano.encaixou ? <Check size={12} /> : null} Encaixou

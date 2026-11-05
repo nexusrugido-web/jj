@@ -3,8 +3,9 @@ register('./como-vite.mjs', import.meta.url);
 
 /* ============================================================
    PLANOS DE ATAQUE
-   Corrente com no máximo 4 golpes, 1 plano seu no grátis, e o
-   pronto copiado vira plano seu sem perder os passos.
+   Árvore com até 12 golpes (encaixou segue, se defender abre outro
+   plano), 1 plano seu no grátis, e o pronto copiado vira plano seu
+   sem perder os passos.
    ============================================================ */
 const {
   correnteDoPlano, copiaDoPronto, planoNovo, podeCriarPlano, meusPlanos, MAX_PASSOS,
@@ -28,11 +29,12 @@ const novo = planoNovo({
   ],
 });
 ok('nome sem espaço sobrando', novo.nome, 'Finta e armlock');
-ok('golpe vazio sai, e no máximo 4', novo.passos.map((p) => p.acao), ['Kimura', 'Guilhotina', 'Triângulo', 'Omoplata']);
+ok('golpe vazio sai, o resto vira fila', novo.passos.map((p) => [p.acao, p.pai, p.via]), [['Kimura', null, null], ['Guilhotina', 0, 'defendeu'], ['Triângulo', 1, 'defendeu'], ['Omoplata', 2, 'defendeu'], ['Armlock', 3, 'defendeu']]);
 ok('reação vira gatilho', novo.passos[0].gatilho, 'ele baseia a mão');
 
-const c = correnteDoPlano({ ...novo, passos: [...novo.passos, { gatilho: 'x', acao: 'Armlock' }] });
-ok('a corrente corta em 4', c.passos.length, MAX_PASSOS);
+const muitos = Array.from({ length: 15 }, (_, i) => ({ golpe: `G${i}` }));
+ok('no máximo 12 golpes', planoNovo({ passos: muitos }).passos.length, MAX_PASSOS);
+const c = correnteDoPlano(novo);
 ok('a finta vem junto', c.finta, 'Raspagem de gancho');
 
 const pronto = { ...PLANOS_ATAQUE[0], id: 7, uid: 'u', pronto: 1, criadoEm: 1 };
@@ -41,7 +43,7 @@ ok('a cópia é plano seu', [copia.pronto, copia.slug, copia.uid, copia.id], [0,
 ok('a cópia guarda de onde veio', copia.copiadoDe, PLANOS_ATAQUE[0].slug);
 ok('a cópia mantém os golpes', copia.passos.map((p) => p.acao), pronto.passos.slice(0, 4).map((p) => p.acao));
 ok('depois que falhou vira o fim', [correnteDoPlano(PLANOS_ATAQUE.find((p) => p.slug === 'cg-trindade')).fim !== '', correnteDoPlano(PLANOS_ATAQUE.find((p) => p.slug === 'cg-trindade')).segue], [true, '']);
-ok('depois que encaixou vira o segue', correnteDoPlano({ passos: [{ acao: 'Gift wrap', proxima: 'Mata-leão' }] }), { posicao: '', finta: '', passos: [{ reacao: '', golpe: 'Gift wrap', detalhe: '', defesa: '' }], fim: '', segue: 'Mata-leão' });
+ok('depois que encaixou vira o segue', correnteDoPlano({ passos: [{ acao: 'Gift wrap', proxima: 'Mata-leão' }] }), { posicao: '', finta: '', objetivo: '', passos: [{ reacao: '', golpe: 'Gift wrap', detalhe: '', defesa: '', pai: null, via: null }], fim: '', segue: 'Mata-leão' });
 ok('"se ele escapar" é fim, mesmo sem seFalhar', correnteDoPlano({ passos: [{ acao: 'X', proxima: 'Se ele escapar, retomar' }] }).fim, 'Se ele escapar, retomar');
 ok('todo pronto vira corrente com golpe', PLANOS_ATAQUE.every((p) => correnteDoPlano(p).passos.length > 0), true);
 
@@ -94,6 +96,40 @@ const ajustado = [...semente, { ...planoNovo({ nome: 'Minha trindade', passos: [
 ok('exemplo ajustado sai da lista e fica a versão dele', exemplosDaFaixa(ajustado, 'branca').some((p) => p.slug === 'cg-trindade'), false);
 ok('a lista da pessoa junta os dela e os exemplos', planosDaPessoa(ajustado, 'branca').map((p) => p.nome)[0], 'Minha trindade');
 ok('o ajustado conta no limite', podeCriarPlano(ajustado, false), false);
+
+/* a árvore: encaixou segue no mesmo plano, se defender abre o próximo */
+const { arvoreDoPlano, semOGolpe } = await import('../src/lib/planos.js');
+const arvore = planoNovo({
+  nome: 'Da queda ao armlock', objetivo: 'Armlock com triângulo',
+  passos: [
+    { golpe: 'Queda', pai: null, via: null },                 // 0
+    { golpe: 'Passar a guarda', pai: 0, via: 'encaixou' },     // 1
+    { golpe: 'Puxar pra guarda', pai: 0, via: 'defendeu' },    // 2
+    { golpe: 'Norte-sul', pai: 1, via: 'encaixou' },           // 3
+    { golpe: '', pai: 2, via: 'encaixou' },                    // 4 vazio: sai, e o filho dele também
+    { golpe: 'Raspagem', pai: 4, via: 'encaixou' },            // 5
+    { golpe: 'Armlock', pai: 3, via: 'encaixou' },             // 6
+    { golpe: 'Triângulo', pai: 6, via: 'defendeu' },           // 7
+  ],
+});
+ok('objetivo guardado', arvore.objetivo, 'Armlock com triângulo');
+ok('golpe vazio leva junto o que nasce dele', arvore.passos.map((p) => p.acao), ['Queda', 'Passar a guarda', 'Puxar pra guarda', 'Norte-sul', 'Armlock', 'Triângulo']);
+const ca = correnteDoPlano(arvore);
+ok('os pais apontam pro índice novo', ca.passos.map((p) => p.pai), [null, 0, 0, 1, 3, 4]);
+const av = arvoreDoPlano(ca.passos);
+ok('Plano A inteiro primeiro, depois B e C', av.ordem.map((i) => ca.passos[i].golpe), ['Queda', 'Passar a guarda', 'Norte-sul', 'Armlock', 'Puxar pra guarda', 'Triângulo']);
+ok('B é a defesa do primeiro golpe do A', av.trilho, [0, 0, 1, 0, 0, 2]);
+ok('3 trilhos', av.trilhos, 3);
+ok('tirar o Passar a guarda leva Norte-sul, Armlock e Triângulo', semOGolpe(ca.passos, 1).map((p) => [p.golpe, p.pai]), [['Queda', null], ['Puxar pra guarda', 0]]);
+
+/* plano antigo: sem pai. Do aluno, era tudo "se defender"; nos
+   prontos, o "seFalhar" do anterior diz que é defesa, sem ele é continuação */
+const antigo = correnteDoPlano({ passos: [{ acao: 'Kimura' }, { acao: 'Guilhotina' }] });
+ok('plano antigo do aluno: se defender', antigo.passos.map((p) => [p.pai, p.via]), [[null, null], [0, 'defendeu']]);
+const trindade = correnteDoPlano(PLANOS_ATAQUE.find((p) => p.slug === 'cg-trindade'));
+ok('trindade: quebrou a postura, encaixou o armlock; defendeu, triângulo', trindade.passos.map((p) => p.via), [null, 'encaixou', 'defendeu', 'defendeu']);
+ok('todo pronto vira árvore inteira', PLANOS_ATAQUE.every((p) => arvoreDoPlano(correnteDoPlano(p).passos).ordem.length === correnteDoPlano(p).passos.length), true);
+ok('editar e salvar um pronto mantém o caminho', correnteDoPlano(planoNovo({ passos: trindade.passos })).passos.map((p) => p.via), [null, 'encaixou', 'defendeu', 'defendeu']);
 
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

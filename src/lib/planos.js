@@ -1,16 +1,20 @@
 /* ============================================================
    PLANOS DE ATAQUE
 
-   A corrente: da posição, a finta; ele reage; vem o golpe; se ele
-   defender, o próximo. Máximo de 4 golpes. Posição, finta e golpe
-   saem do catálogo; a reação dele é uma frase curta.
+   Uma árvore: da posição, a finta; vem o primeiro golpe; cada golpe
+   abre dois caminhos, "encaixou, e depois" (segue no mesmo plano) e
+   "se ele defender" (abre o Plano B, C, D). Posição, finta, golpe e
+   objetivo saem do catálogo; a deixa dele é uma frase curta.
 
    Guardado na mesma tabela dos 16 prontos (attackPlans), no mesmo
-   formato de passo: gatilho é a reação dele, acao é o golpe. Assim
-   o pronto copiado vira plano seu sem conversão.
+   formato de passo: gatilho é a deixa dele, acao é o golpe, e o
+   passo diz de quem nasce (pai, índice de um passo anterior) e por
+   onde (via). Passo sem pai é do formato antigo, que era uma fila.
    ============================================================ */
 
-export const MAX_PASSOS = 4;
+export const MAX_PASSOS = 12;
+export const MAX_TRILHOS = 4;
+export const LETRAS = ['A', 'B', 'C', 'D'];
 export const PLANOS_NO_GRATIS = 1;
 
 export const meusPlanos = (planos = []) => planos.filter((p) => !p.pronto && !p.arquivada);
@@ -37,17 +41,72 @@ export function exemplosDaFaixa(planos = [], faixa = 'branca') {
 /* a lista da pessoa: os planos dela e os exemplos da faixa */
 export const planosDaPessoa = (planos, faixa) => [...meusPlanos(planos), ...exemplosDaFaixa(planos, faixa)];
 
+/* passo do formato antigo (sem pai): nasce do anterior. Nos prontos,
+   o anterior com "seFalhar" quer dizer que este é a resposta à defesa;
+   sem ele, é a continuação. Plano antigo do aluno era só "se defender". */
+function viaAntiga(passos, i) {
+  const pronto = passos.some((x) => x.seFalhar);
+  return passos[i - 1].seFalhar || !pronto ? 'defendeu' : 'encaixou';
+}
+
 /* o que a tela desenha, venha do pronto ou do aluno */
 export function correnteDoPlano(p) {
-  const passos = (p?.passos || []).filter((x) => String(x.acao || '').trim()).slice(0, MAX_PASSOS);
+  const brutos = p?.passos || [];
+  const novoIndice = new Map();
+  const passos = [];
+  brutos.forEach((x, i) => {
+    if (passos.length >= MAX_PASSOS || !String(x.acao || '').trim()) return;
+    const antigo = !Number.isInteger(x.pai) && i > 0;
+    const pai = passos.length === 0 ? null : novoIndice.get(antigo ? i - 1 : x.pai);
+    if (passos.length > 0 && pai === undefined) return;
+    novoIndice.set(i, passos.length);
+    passos.push({
+      reacao: x.gatilho || '', golpe: x.acao, detalhe: x.detalhe || '', defesa: x.seFalhar || '',
+      pai, via: pai === null ? null : antigo ? viaAntiga(brutos, i) : x.via,
+    });
+  });
   return {
     posicao: p?.posicao || '',
     finta: p?.finta || '',
-    passos: passos.map((x) => ({ reacao: x.gatilho || '', golpe: x.acao, detalhe: x.detalhe || '', defesa: x.seFalhar || '' })),
+    objetivo: p?.objetivo || '',
+    passos,
     /* o "depois" dos prontos: pra onde voltar se tudo falhar (fim) ou
        como segue quando o último golpe encaixa (segue) */
-    ...depoisDoPlano(passos[passos.length - 1]),
+    ...depoisDoPlano(brutos[brutos.length - 1]),
   };
+}
+
+/* a ordem de leitura: o Plano A inteiro (o caminho do encaixou desde
+   o primeiro golpe), depois o B (a defesa do primeiro golpe do A que
+   tem defesa), e assim por diante. Cada plano é um trilho. */
+export function arvoreDoPlano(passos = []) {
+  const filhos = passos.map(() => ({}));
+  passos.forEach((x, i) => { if (x.pai !== null && x.pai !== undefined) filhos[x.pai][x.via] = i; });
+  const ordem = [];
+  const trilho = [];
+  const fila = passos.length ? [0] : [];
+  for (let t = 0; fila.length; t++) {
+    for (let i = fila.shift(); i !== undefined; i = filhos[i].encaixou) {
+      trilho[i] = t;
+      ordem.push(i);
+      if (filhos[i].defendeu !== undefined) fila.push(filhos[i].defendeu);
+    }
+  }
+  return { ordem, trilho, filhos, trilhos: Math.max(0, ...trilho) + (passos.length ? 1 : 0) };
+}
+
+/* tirar um golpe leva junto tudo o que nasce dele */
+export function semOGolpe(passos, i) {
+  const fora = new Set([i]);
+  passos.forEach((x, k) => { if (fora.has(x.pai)) fora.add(k); });
+  const novoIndice = new Map();
+  const resto = [];
+  passos.forEach((x, k) => {
+    if (fora.has(k)) return;
+    novoIndice.set(k, resto.length);
+    resto.push({ ...x, pai: x.pai === null || x.pai === undefined ? x.pai : novoIndice.get(x.pai) });
+  });
+  return resto;
 }
 
 function depoisDoPlano(ultimo) {
@@ -69,17 +128,30 @@ export function copiaDoPronto(p) {
 }
 
 /* o plano novo que a tela salva */
-export function planoNovo({ nome, posicao, posicaoId = null, finta = '', passos = [], paraAltura = [], paraPeso = [], copiadoDe = null }) {
+export function planoNovo({ nome, posicao, posicaoId = null, finta = '', objetivo = '', passos = [], paraAltura = [], paraPeso = [], copiadoDe = null }) {
+  /* golpe sem nome sai, e o que nasce dele também; passo sem pai
+     (formato de fila) nasce do último que ficou */
+  const novoIndice = new Map();
+  const guardados = [];
+  passos.forEach((x, i) => {
+    if (guardados.length >= MAX_PASSOS || !String(x.golpe || '').trim()) return;
+    const raiz = guardados.length === 0;
+    const pai = raiz ? null : x.pai === undefined ? guardados.length - 1 : novoIndice.get(x.pai);
+    if (!raiz && (pai === undefined || pai === null)) return;
+    novoIndice.set(i, guardados.length);
+    guardados.push({
+      gatilho: String(x.reacao || '').trim(), acao: x.golpe, seFalhar: '', proxima: '', detalhe: '',
+      pai, via: raiz ? null : x.via || 'defendeu',
+    });
+  });
   return {
     paraAltura, paraPeso, copiadoDe,
     nome: String(nome || '').trim() || 'Meu plano',
     posicao: posicao || '',
     posicaoId,
     finta: finta || '',
-    passos: passos
-      .filter((x) => String(x.golpe || '').trim())
-      .slice(0, MAX_PASSOS)
-      .map((x) => ({ gatilho: String(x.reacao || '').trim(), acao: x.golpe, seFalhar: '', proxima: '', detalhe: '' })),
+    objetivo: objetivo || '',
+    passos: guardados,
     tipo: 'ataque', modo: 'ambos', faixa: 'branca', legal: true, aviso: '', resumo: '',
     pronto: 0, favorito: 0, arquivada: 0,
   };
