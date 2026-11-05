@@ -45,7 +45,7 @@ ok('a cópia é plano seu', [copia.pronto, copia.slug, copia.uid, copia.id], [0,
 ok('a cópia guarda de onde veio', copia.copiadoDe, PLANOS_ATAQUE[0].slug);
 ok('a cópia mantém os golpes', copia.passos.map((p) => p.acao), pronto.passos.slice(0, 4).map((p) => p.acao));
 ok('o "se ele defender tudo" não vira peça', [correnteDoPlano(PLANOS_ATAQUE.find((p) => p.slug === 'cg-trindade')).fim, correnteDoPlano(PLANOS_ATAQUE.find((p) => p.slug === 'cg-trindade')).segue], [undefined, '']);
-ok('depois que encaixou vira o segue', correnteDoPlano({ passos: [{ acao: 'Gift wrap', proxima: 'Mata-leão' }] }), { posicao: '', objetivo: '', objetivoTipo: '', passos: [{ id: 'p0', lig: 'l0', tipo: 'golpe', reacao: '', golpe: 'Gift wrap', detalhe: '', defesa: '', pai: null, via: null }], segue: 'Mata-leão' });
+ok('depois que encaixou vira o segue', correnteDoPlano({ passos: [{ acao: 'Gift wrap', proxima: 'Mata-leão' }] }), { posicao: '', objetivo: '', objetivoTipo: '', passos: [{ id: 'p0', lig: 'l0', tipo: 'golpe', reacao: '', golpe: 'Gift wrap', detalhe: '', defesa: '', pai: null, via: null }], ligacoes: [], segue: 'Mata-leão' });
 ok('"se ele escapar" não vira continuação', correnteDoPlano({ passos: [{ acao: 'X', proxima: 'Se ele escapar, retomar' }] }).segue, '');
 ok('todo pronto vira corrente com golpe', PLANOS_ATAQUE.every((p) => correnteDoPlano(p).passos.length > 0), true);
 
@@ -386,6 +386,121 @@ ok('o rola da Kimura sobrevive à finta nova', pecaDoRola(planoNovo({ passos: co
 ok('planos prontos não ganham situação nem via nova',
   PLANOS_ATAQUE.every((p) => correnteDoPlano(p).passos.every((x) => x.tipo !== 'situacao' && [null, 'encaixou', 'defendeu', 'reagiu', 'naoReagiu'].includes(x.via))), true);
 ok('plano antigo (fila sem pai) continua lendo igual', correnteDoPlano({ passos: [{ acao: 'A' }, { acao: 'B' }] }).passos.map((x) => [x.tipo, x.pai, x.via]), [['golpe', null, null], ['golpe', 0, 'defendeu']]);
+
+/* ---------- R3: convergência ----------
+   Uma saída liga numa peça que já existe: três fintas abrem o mesmo
+   armlock com um cartão só, cada caminho com id e gatilho próprios. A
+   fuga volta pra posição de onde começa ou pra uma situação que já
+   existe. A árvore (arrumação, caminho do rola) não segue ligação extra,
+   então o retorno não vira laço. */
+const { convergenciasValidas, destinosDaLigacao, comLigacao, situacaoNoObjetivo } = await import('../src/lib/planos.js');
+const conv = planoNovo({ objetivo: 'Finalizar', objetivoTipo: 'finalizar', posicao: 'Guarda fechada', passos: [
+  { id: 'fA', lig: 'lA', tipo: 'finta', golpe: 'Guilhotina', pai: null },                                             // 0
+  { id: 'fB', lig: 'lB', tipo: 'finta', golpe: 'Raspagem de tesoura', pai: null },                                    // 1
+  { id: 'fC', lig: 'lC', tipo: 'finta', golpe: 'Kimura', pai: null },                                                 // 2
+  { id: 'arm', lig: 'lArm', golpe: 'Armlock', reacao: 'levantou a cabeça', pai: 0, via: 'reagiu' },                   // 3
+  { id: 'tri', lig: 'lTri', golpe: 'Triângulo', reacao: 'colou o cotovelo', pai: 3, via: 'defendeu' },                // 4
+  { id: 'sit', lig: 'lSit', tipo: 'situacao', golpe: 'Meia-guarda', reacao: 'passou a perna', pai: 3, via: 'escapou' }, // 5
+  { id: 'hip', lig: 'lHip', golpe: 'Raspagem de quadril (hip bump)', pai: 1, via: 'naoReagiu' },                      // 6
+], ligacoes: [
+  { id: 'cB', de: 'fB', via: 'reagiu', gatilho: ' apoiou a mão ', para: 'arm' },
+  { id: 'cC', de: 'fC', via: 'reagiu', gatilho: 'escondeu o braço', para: 'arm' },
+  { id: 'volta', de: 'tri', via: 'escapou', gatilho: 'girou e recuperou a guarda', para: null },
+  { id: 'reat', de: 'sit', via: 'retoma', gatilho: '', para: 'arm' },
+  { id: 'esc2', de: 'hip', via: 'escapou', gatilho: 'levantou', para: 'sit' },
+  { id: 'x1', de: 'arm', via: 'encaixou', para: 'arm' },
+  { id: 'x2', de: 'arm', via: 'escapou', para: 'tri' },
+  { id: 'x3', de: 'arm', via: 'defendeu', para: 'sit' },
+  { id: 'x4', de: 'arm', via: 'defendeu', para: 'tri' },
+  { id: 'x5', de: 'fB', via: 'reagiu', para: 'arm' },
+  { id: 'x6', de: 'zz', via: 'reagiu', para: 'arm' },
+  { id: 'x7', de: 'fA', via: 'encaixou', para: 'tri' },
+  { id: 'x8', de: null, via: null, para: 'arm' },
+  { de: 'fC', via: 'naoReagiu', para: 'tri' },
+  { id: 'x9', de: 'arm', via: 'encaixou', para: null },
+] });
+const ccv = correnteDoPlano(conv);
+ok('ficam só as ligações que valem (sem laço na própria peça, tipo errado, fio da árvore repetido, repetida, ponta que não existe)',
+  conv.ligacoes.map((l) => l.id), ['cB', 'cC', 'volta', 'reat', 'esc2']);
+ok('o gatilho é da ligação, sem espaço sobrando', conv.ligacoes[0].gatilho, 'apoiou a mão');
+ok('três fintas, um Armlock só', conv.passos.filter((x) => x.acao === 'Armlock').length, 1);
+ok('cada caminho até o Armlock tem id e gatilho próprios',
+  ligacoesDo(ccv.passos, ccv.ligacoes).filter((l) => l.para === 'arm').map((l) => [l.id, l.de, l.via, l.gatilho]),
+  [['lArm', 'fA', 'reagiu', 'levantou a cabeça'], ['cB', 'fB', 'reagiu', 'apoiou a mão'], ['cC', 'fC', 'reagiu', 'escondeu o braço'], ['reat', 'sit', 'retoma', '']]);
+ok('a fuga volta pra posição de onde começa (para null)', ccv.ligacoes.find((l) => l.id === 'volta').para, null);
+ok('a fuga de outro caminho chega na situação que já existe', ccv.ligacoes.find((l) => l.id === 'esc2').para, 'sit');
+const acv = arvoreDoPlano(ccv.passos);
+ok('retorno não vira laço: a árvore passa uma vez em cada peça', [acv.ordem.length, new Set(acv.ordem).size], [7, 7]);
+ok('a arrumação é a mesma com e sem ligação', JSON.stringify(arvoreDoPlano(correnteDoPlano({ ...conv, ligacoes: [] }).passos)) === JSON.stringify(acv), true);
+ok('o caminho do rola segue a árvore, sem atalho', caminhoAte(ccv.passos, 4), ['lA', 'lArm', 'lTri']);
+ok('finta que reage pelo atalho não é ponta solta; o golpe sem caminho é', pontasSoltas(conv, destinoFim).map((x) => x.golpe), ['Raspagem de quadril (hip bump)']);
+ok('situação que volta a atacar por atalho não é ponta solta nem "fecha"', pontasSoltas(conv, destinoFim).some((x) => x.tipo === 'situacao'), false);
+const iArm = ccv.passos.findIndex((x) => x.id === 'arm');
+const iTri = ccv.passos.findIndex((x) => x.id === 'tri');
+ok('destinos da defesa do Armlock: golpe ou finta, sem ele mesmo nem o fio que já existe',
+  destinosDaLigacao(ccv.passos, ccv.ligacoes, iArm, 'defendeu'), ['fA', 'fB', 'fC', 'hip']);
+ok('destinos da fuga do Triângulo: a situação (a posição já está ligada)', destinosDaLigacao(ccv.passos, ccv.ligacoes, iTri, 'escapou'), ['sit']);
+ok('mudando a própria ligação, o destino dela volta pra lista', destinosDaLigacao(ccv.passos, ccv.ligacoes, iTri, 'escapou', 'volta'), [null, 'sit']);
+const soGatilho = comLigacao(ccv.ligacoes, { id: 'cB', de: 'fB', via: 'reagiu', gatilho: 'apoiou as duas mãos', para: 'arm' });
+ok('mudar só o gatilho: mesmo caminho, mesmo id', soGatilho.find((l) => l.de === 'fB').id, 'cB');
+const outroDestino = comLigacao(ccv.ligacoes, { id: 'cB', de: 'fB', via: 'reagiu', gatilho: 'apoiou a mão', para: 'tri' });
+ok('mudar o destino: outro caminho, id novo, o de antes sai', [outroDestino.some((l) => l.id === 'cB'), outroDestino.length, outroDestino.find((l) => l.de === 'fB').para], [false, 5, 'tri']);
+ok('ligação nova entra com id', (() => { const n = comLigacao(ccv.ligacoes, { de: 'arm', via: 'defendeu', para: 'fA' }); return n.length === 6 && !!n[5].id; })(), true);
+const recv = JSON.parse(JSON.stringify(conv));
+ok('recarregar (JSON do sync): mesmas ligações, mesmos ids',
+  JSON.stringify(planoNovo({ ...recv, passos: editar(recv), ligacoes: correnteDoPlano(recv).ligacoes }).ligacoes) === JSON.stringify(conv.ligacoes), true);
+const movTri = moverPasso(editar(conv), iTri, ccv.passos.findIndex((x) => x.id === 'hip'), 'defendeu');
+ok('arrastar a peça não mexe nas ligações dela nem nas que chegam',
+  planoNovo({ ...conv, passos: movTri, ligacoes: ccv.ligacoes }).ligacoes.map((l) => l.id), ['cB', 'cC', 'volta', 'reat', 'esc2']);
+ok('renomear o destino não muda nenhuma ligação',
+  planoNovo({ ...conv, passos: editar(conv).map((x) => (x.id === 'arm' ? { ...x, golpe: 'Armlock da guarda fechada' } : x)), ligacoes: ccv.ligacoes }).ligacoes.map((l) => l.id),
+  ['cB', 'cC', 'volta', 'reat', 'esc2']);
+const semLig = planoNovo({ ...conv, passos: editar(conv), ligacoes: ccv.ligacoes.filter((l) => l.id !== 'cC') });
+const remLig = removidosAoSalvar(conv, semLig);
+ok('tirar uma ligação: a peça fica, a ligação vai pros removidos', [semLig.passos.length, remLig.pecas, remLig.ligacoes.map((l) => [l.id, l.de, l.para])], [7, [], [['cC', 'fC', 'arm']]]);
+ok('ligação que voltou sai dos removidos', removidosAoSalvar({ ...semLig, removidos: remLig }, conv).ligacoes, []);
+const semArm = planoNovo({ ...conv, passos: semOGolpe(editar(conv), iArm), ligacoes: ccv.ligacoes });
+ok('tirar o Armlock leva junto as ligações que chegam nele e no galho dele', semArm.ligacoes.map((l) => l.id), []);
+ok('e elas ficam nos removidos com as duas pontas', removidosAoSalvar(conv, semArm).ligacoes.filter((l) => ['cB', 'cC', 'reat', 'esc2', 'volta'].includes(l.id)).length, 5);
+const semFB = planoNovo({ ...conv, passos: semAFinta(editar(conv), 1), ligacoes: ccv.ligacoes });
+ok('tirar a finta B: sai o atalho dela e o que nascia do não reagiu', semFB.ligacoes.map((l) => l.id), ['cC', 'volta', 'reat']);
+const rolaTri = { plano: { uid: 'C', peca: 'tri', caminho: caminhoAte(ccv.passos, iTri), encaixou: false } };
+ok('rola antigo acha a peça depois de pôr e tirar ligações', [pecaDoRola(semLig, rolaTri)?.golpe, pecaDoRola(conv, rolaTri)?.golpe], ['Triângulo', 'Triângulo']);
+const histArm = { ...semArm, removidos: removidosAoSalvar(conv, semArm) };
+ok('rola que passou por um atalho apagado ainda acha as duas pontas (base do R7)',
+  (() => { const l = histArm.removidos.ligacoes.find((x) => x.id === 'cB'); return [l.de, l.via, l.para, histArm.removidos.pecas.find((x) => x.id === l.para)?.golpe]; })(),
+  ['fB', 'reagiu', 'arm', 'Armlock']);
+ok('plano antigo sem ligações e prontos: lista vazia', [correnteDoPlano({ passos: [{ acao: 'A' }] }).ligacoes, PLANOS_ATAQUE.every((p) => correnteDoPlano(p).ligacoes.length === 0)], [[], true]);
+ok('ligações malformadas não quebram a leitura', [correnteDoPlano({ passos: [{ acao: 'A' }], ligacoes: 'x' }).ligacoes, correnteDoPlano({ passos: [{ acao: 'A' }], ligacoes: [null, {}] }).ligacoes], [[], []]);
+
+/* o objetivo é uma posição e a fuga deixa a luta nela: a situação é o
+   momento, a posição é o lugar. Não conta: falta o golpe que firma. */
+const costas = { objetivo: 'Costas', objetivoTipo: 'posicao' };
+const destCostas = (n) => (n === 'Pegada das costas' ? { slug: 'costas', nome: 'Costas' } : null);
+const fugaCostas = planoNovo({ ...costas, passos: [
+  { id: 'a', golpe: 'Armlock', pai: null },
+  { id: 's', tipo: 'situacao', golpe: 'Costas', reacao: 'virou de quatro', pai: 0, via: 'escapou' },
+  { id: 'm', tipo: 'situacao', golpe: 'Meia-guarda', reacao: 'recuperou a guarda', pai: 0, via: 'escapou' },
+] });
+const cfc = correnteDoPlano(fugaCostas);
+ok('fuga pra posição do objetivo: a situação está lá, mas não ganha bandeira', [situacaoNoObjetivo(cfc.passos[1], cfc), chegaNoObjetivo(cfc.passos[1], cfc, destCostas)], [true, false]);
+ok('sem o golpe que firma, é ponta solta; a outra fuga só fecha', pontasSoltas(fugaCostas, destCostas).map((x) => x.golpe), ['Armlock', 'Costas']);
+ok('com o golpe que firma a posição, chega', pontasSoltas(planoNovo({ ...costas, passos: [...editar(fugaCostas), { golpe: 'Pegada das costas', pai: 1, via: 'retoma' }] }), destCostas).map((x) => x.golpe), ['Armlock']);
+ok('situação noutra posição não é do objetivo', [situacaoNoObjetivo(cfc.passos[2], cfc), situacaoNoObjetivo(cfc.passos[1], { objetivo: 'Finalizar', objetivoTipo: 'finalizar' })], [false, false]);
+
+/* volume: 2000 peças e 1000 atalhos, muitos voltando pra trás */
+const tE = Date.now();
+const enorme = (() => {
+  const passos = Array.from({ length: 2000 }, (_, i) => ({ id: `e${i}`, lig: `k${i}`, golpe: `G${i}`, pai: i ? Math.floor((i - 1) / 2) : null, via: i % 2 ? 'encaixou' : 'defendeu' }));
+  const ligacoes = Array.from({ length: 1000 }, (_, i) => ({ id: `v${i}`, de: `e${1999 - i}`, via: 'defendeu', para: `e${i % 7}` }));
+  return planoNovo({ objetivo: 'Finalizar', objetivoTipo: 'finalizar', passos, ligacoes });
+})();
+const cen = correnteDoPlano(JSON.parse(JSON.stringify(enorme)));
+const aen = arvoreDoPlano(cen.passos);
+pontasSoltas(enorme);
+const ms = Date.now() - tE;
+ok('2000 peças com 1000 atalhos voltando: tudo lido, árvore uma vez em cada peça', [cen.ligacoes.length, aen.ordem.length], [1000, 2000]);
+ok(`e em menos de 1s (${ms}ms)`, ms < 1000, true);
 
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

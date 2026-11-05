@@ -60,6 +60,29 @@ const FUGA = {
   ].map((x) => ({ seFalhar: '', proxima: '', detalhe: '', ...x })),
 };
 
+/* R3: três fintas abrem o mesmo armlock (um cartão só); do triângulo
+   ele escapa e a luta volta pra guarda fechada (onde começa); da
+   meia-guarda volto pro armlock; a fuga da raspagem cai na meia-guarda
+   que já existe */
+const CONV = {
+  ...PLANO, nome: 'Três fintas, um armlock', passos: [
+    { id: 'fA', lig: 'lA', tipo: 'finta', acao: 'Guilhotina', gatilho: '', pai: null, via: null },
+    { id: 'fB', lig: 'lB', tipo: 'finta', acao: 'Raspagem de tesoura', gatilho: '', pai: null, via: null },
+    { id: 'fC', lig: 'lC', tipo: 'finta', acao: 'Kimura', gatilho: '', pai: null, via: null },
+    { id: 'arm', lig: 'lArm', acao: 'Armlock', gatilho: 'levantou a cabeça', pai: 0, via: 'reagiu' },
+    { id: 'tri', lig: 'lTri', acao: 'Triângulo', gatilho: 'colou o cotovelo', pai: 3, via: 'defendeu' },
+    { id: 'sit', lig: 'lSit', tipo: 'situacao', acao: 'Meia-guarda', gatilho: 'passou a perna', pai: 3, via: 'escapou' },
+    { id: 'hip', lig: 'lHip', acao: 'Raspagem de quadril (hip bump)', gatilho: '', pai: 1, via: 'naoReagiu' },
+  ].map((x) => ({ seFalhar: '', proxima: '', detalhe: '', ...x })),
+  ligacoes: [
+    { id: 'cB', de: 'fB', via: 'reagiu', gatilho: 'apoiou a mão', para: 'arm' },
+    { id: 'cC', de: 'fC', via: 'reagiu', gatilho: 'escondeu o braço', para: 'arm' },
+    { id: 'volta', de: 'tri', via: 'escapou', gatilho: 'girou e recuperou a guarda', para: null },
+    { id: 'reat', de: 'sit', via: 'retoma', gatilho: '', para: 'arm' },
+    { id: 'esc2', de: 'hip', via: 'escapou', gatilho: 'levantou', para: 'sit' },
+  ],
+};
+
 /* cada cartão do mapa com tamanho, e quantos estão dentro do quadro */
 const medirMapa = (s) => {
   const quadro = document.querySelector(s).getBoundingClientRect();
@@ -72,7 +95,7 @@ const medirMapa = (s) => {
     vaza: document.documentElement.scrollWidth > innerWidth,
     /* dois cartões (peça, vaga ou folha) um em cima do outro */
     sobrepostos: (() => {
-      const r = [...document.querySelectorAll(`${s} .mente-no, ${s} .mente-vaga, ${s} .mente-folha`)].map((n) => n.getBoundingClientRect());
+      const r = [...document.querySelectorAll(`${s} .mente-no, ${s} .mente-vaga, ${s} .mente-folha, ${s} .mente-atalho`)].map((n) => n.getBoundingClientRect());
       let n = 0;
       for (let a = 0; a < r.length; a++) for (let b = a + 1; b < r.length; b++) {
         if (r[a].left < r[b].right - 1 && r[b].left < r[a].right - 1 && r[a].top < r[b].bottom - 1 && r[b].top < r[a].bottom - 1) n++;
@@ -96,7 +119,7 @@ try {
       const { VERSAO_DOCS } = await import('/src/components/Aceite.jsx');
       await setMeta('settings', { ...(await getMeta('settings', {})), nome: 'Praticante de teste', anoNascimento: 1995, faixa: 'branca', onboardingFeito: 1, tourVisto: 1, celebrar: false, aceite: { versao: VERSAO_DOCS, em: new Date().toISOString() } });
       for (const p of plano) await db.attackPlans.add({ ...p, criadoEm: Date.now() });
-    }, [PLANO, GRANDE, FUGA]);
+    }, [PLANO, GRANDE, FUGA, CONV]);
     await page.goto(`${url}/?go=planos`, { waitUntil: 'networkidle' });
     await page.getByText(PLANO.nome).first().waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `lista de planos vaza em ${nome}`);
@@ -173,6 +196,88 @@ try {
     await page.getByRole('button', { name: 'Pronto' }).click();
     await page.locator('.mente-tela .mente-no.situacao', { hasText: 'Meia-guarda' }).waitFor();
     assert.equal(await page.locator('.mente-tela .mente-no.situacao').count(), 3, 'a fuga nova entrou no mapa');
+
+    /* R3: convergência e retorno, vendo e montando */
+    await page.goto(`${url}/?go=planos`, { waitUntil: 'networkidle' });
+    await page.getByText(CONV.nome).first().waitFor();
+    await page.locator('.plano-cartao', { hasText: CONV.nome }).first().getByRole('button', { name: 'Ver o mapa' }).first().click();
+    await page.locator('.mente-tela .mente-atalho').first().waitFor();
+    await page.waitForTimeout(1200);
+    const cv = await page.evaluate(medirMapa, '.mente-tela');
+    console.log(`${nome} convergência, ver o mapa:`, JSON.stringify(cv));
+    await page.screenshot({ path: `${pasta}/${nome}-conv-ver.png` });
+    assert.equal(cv.nos, 8, 'convergência: posição + 7 peças');
+    assert.equal(await page.locator('.mente-tela .mente-no', { hasText: 'Armlock' }).count(), 1, 'um Armlock só no mapa');
+    assert.equal(await page.locator('.mente-tela .mente-atalho').count(), 5, 'os 5 caminhos extras viram atalho');
+    assert.equal(await page.locator('.mente-tela .mapa-ponte path').count(), 5, 'cada atalho com o fio tracejado');
+    assert.equal(cv.sobrepostos, 0, 'convergência: cartões sobrepostos');
+    assert.equal(cv.vaza, false, 'convergência: vaza a página');
+    assert.equal(await page.locator('.mente-tela .mente-atalho', { hasText: 'Volta pra' }).count(), 2, 'volta pra guarda (onde começa) e, da meia-guarda, pro armlock que vem antes');
+    assert.equal(await page.locator('.mente-tela .mente-folha.fecha').count(), 0, 'a meia-guarda volta a atacar: não fecha');
+    await page.getByRole('button', { name: 'Ver inteiro' }).click();
+    await page.waitForTimeout(1500);
+    await page.locator('.mente-quadro').screenshot({ path: `${pasta}/${nome}-conv-inteiro.png` });
+    await page.getByRole('button', { name: 'Aproximar' }).click();
+    await page.getByRole('button', { name: 'Aproximar' }).click();
+    await page.locator('.mente-tela .mente-atalho', { hasText: 'apoiou a mão' }).click();
+    await page.getByRole('button', { name: 'Ver no mapa' }).click();
+    assert.equal(await page.locator('.mente-tela .mente-no.aberto', { hasText: 'Armlock' }).count(), 1, 'do atalho, o Ver no mapa abre o Armlock');
+    assert.ok(await page.getByText('Também chega aqui por outro caminho').count() >= 1, 'o Armlock diz que chega por outros caminhos');
+    await page.keyboard.press('Escape');
+    await page.goto(`${url}/?go=planos`, { waitUntil: 'networkidle' });
+    await page.getByText(CONV.nome).first().waitFor();
+    await page.locator('.plano-cartao', { hasText: CONV.nome }).first().getByRole('button', { name: 'Editar' }).first().click();
+    await page.locator('.mente-tela .mente-atalho').first().waitFor();
+    await page.waitForTimeout(400);
+    const ce = await page.evaluate(medirMapa, '.mente-tela');
+    console.log(`${nome} convergência, editor:`, JSON.stringify(ce));
+    await page.screenshot({ path: `${pasta}/${nome}-conv-editor.png` });
+    assert.equal(ce.sobrepostos, 0, 'convergência no editor: cartões sobrepostos');
+    assert.equal(ce.vaza, false, 'convergência no editor: vaza a página');
+    /* outra defesa do Armlock liga na finta Guilhotina, que já está no mapa */
+    await page.locator('.mente-tela .mente-vaga.defendeu', { hasText: 'Outra defesa dele' }).first().click();
+    await page.getByText('Ou segue numa peça que já está no mapa').waitFor();
+    await page.screenshot({ path: `${pasta}/${nome}-conv-peca.png` });
+    await page.locator('.chip', { hasText: 'finta: Guilhotina' }).click();
+    await page.getByPlaceholder('Ex.: colou o cotovelo no corpo').fill('empurrou meu quadril');
+    await page.getByRole('button', { name: 'Pronto' }).click();
+    await page.locator('.mente-tela .mente-atalho', { hasText: 'empurrou meu quadril' }).waitFor();
+    assert.equal(await page.locator('.mente-tela .mente-atalho').count(), 6, 'a ligação nova entrou');
+    assert.equal(await page.locator('.mente-tela .mente-no', { hasText: 'Guilhotina' }).count(), 1, 'sem repetir o cartão da Guilhotina');
+    /* tirar a ligação: a peça fica */
+    await page.locator('.mente-tela .mente-atalho', { hasText: 'empurrou meu quadril' }).click();
+    await page.getByRole('button', { name: 'Tirar essa ligação' }).click();
+    assert.equal(await page.locator('.mente-tela .mente-atalho').count(), 5, 'a ligação saiu');
+    assert.equal(await page.locator('.mente-tela .mente-no', { hasText: 'Guilhotina' }).count(), 1, 'a Guilhotina ficou');
+    /* fuga com o nome de uma posição que já está no mapa: oferece ligar nela */
+    const fugas = page.locator('.mente-tela .mente-vaga.escapou');
+    let ofereceu = false;
+    for (let k = 0; k < await fugas.count() && !ofereceu; k++) {
+      await fugas.nth(k).click();
+      await page.getByText('Onde a luta ficou').waitFor();
+      for (const pos of ['Guarda fechada', 'Meia-guarda']) {
+        await page.locator('select').filter({ hasText: 'Escolha a posição' }).last().selectOption({ label: pos });
+        if (await page.getByText('já está no mapa. Se é o mesmo ponto').count()) { ofereceu = true; break; }
+      }
+      if (!ofereceu) await page.keyboard.press('Escape');
+    }
+    assert.ok(ofereceu, 'a fuga pra uma posição que já está no mapa oferece ligar nela');
+    await page.screenshot({ path: `${pasta}/${nome}-conv-repetida.png` });
+    await page.getByRole('button', { name: 'Ligar no que já está' }).click();
+    await page.getByRole('button', { name: 'Pronto' }).click();
+    assert.equal(await page.locator('.mente-tela .mente-atalho').count(), 6, 'a fuga virou ligação, sem cartão novo');
+    assert.equal(await page.locator('.mente-tela .mente-no.situacao').count(), 1, 'continua uma situação só');
+    await page.getByRole('button', { name: 'Salvar plano' }).click();
+    await page.getByText('Plano salvo').first().waitFor();
+    const salvo = await page.evaluate(async (n) => {
+      const { db } = await import('/src/db/db.js');
+      const p = (await db.attackPlans.toArray()).find((x) => x.nome === n);
+      return { ligs: p.ligacoes.map((l) => l.id), removidas: (p.removidos?.ligacoes || []).map((l) => l.id), pecas: p.passos.length };
+    }, CONV.nome);
+    console.log(`${nome} convergência salva:`, JSON.stringify(salvo));
+    assert.deepEqual(salvo.ligs.slice(0, 5), ['cB', 'cC', 'volta', 'reat', 'esc2'], 'os ids das ligações de antes não mudam ao salvar');
+    assert.equal(salvo.ligs.length, 6, 'a fuga ligada foi salva');
+    assert.equal(salvo.pecas, 7, 'nenhuma peça nova');
 
     /* o plano grande: mais de 16 peças, vendo e editando */
     for (const modo of ['Ver o mapa', 'Editar']) {

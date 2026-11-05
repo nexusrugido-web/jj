@@ -22,10 +22,21 @@
    'retoma'), que a pessoa monta, atrás do mesmo objetivo do plano.
    Situação sem caminho fecha ali: sem continuação inventada e sem
    aviso de ponta solta.
-   Pra frente (R3 a R7): a convergência
-   entra como ligações extras do plano ({ id, de, via, gatilho, para },
-   de e para pelo id da peça) sem mexer na árvore; a preparação é mais
-   um tipo de peça.
+   CONVERGÊNCIA (R3): uma saída pode apontar pra uma peça que já está
+   no mapa, em vez de abrir um cartão novo (três preparações levam ao
+   mesmo armlock). Isso é uma ligação extra do plano, em "ligacoes":
+   { id, de, via, gatilho, para }, de e para pelo id da peça. A ligação
+   é o caminho: tem id próprio e o gatilho dela (o que ele fez NESSE
+   caminho); a peça de destino continua uma só. No escapou, o destino é
+   um lugar: uma situação que já existe ou a posição de onde o plano
+   começa (para null), que é como a luta volta pra um ponto anterior.
+   Nas outras saídas, o destino é uma ação (golpe ou finta). A árvore
+   (pai e via) continua sendo o primeiro caminho que o mapa desenha e
+   arruma; a ligação extra não entra na arrumação, vira um atalho com
+   fio tracejado até a peça. Por isso voltar pra trás (ciclo) não trava
+   nada: quem anda pela árvore nunca segue ligação extra. Ligação que
+   perdeu uma ponta (a peça saiu) cai na leitura e vai pra "removidos"
+   ao salvar. Pra frente: a preparação é mais um tipo de peça.
    O objetivo (finalizar, uma posição ou um golpe) é obrigatório: o
    golpe que chega nele fecha o caminho com a bandeira.
 
@@ -58,7 +69,7 @@ export function letraDo(t) {
 export const novoId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 10);
 /* as saídas, na ordem do mapa (de cima pra baixo) */
 export const VIAS = ['encaixou', 'reagiu', 'retoma', 'naoReagiu', 'defendeu', 'escapou'];
-const continua = (via) => via === 'encaixou' || via === 'reagiu' || via === 'retoma';
+export const continua = (via) => via === 'encaixou' || via === 'reagiu' || via === 'retoma';
 const tipoDe = (x) => (x?.tipo === 'finta' || x?.tipo === 'situacao' ? x.tipo : 'golpe');
 /* por onde o passo nasce, pelo tipo do pai: da finta, "reagiu" ou "não
    reagiu"; do golpe, "encaixou", "defendeu" ou "escapou" (só a
@@ -173,6 +184,7 @@ export function correnteDoPlano(p) {
     objetivo: p?.objetivo || '',
     objetivoTipo: p?.objetivoTipo || (p?.objetivo ? 'tecnica' : ''),
     passos,
+    ligacoes: convergenciasValidas(passos, p?.ligacoes),
     /* o "depois" dos prontos quando o último golpe encaixa. O "se ele
        defender tudo" não vira peça: o caminho fecha ali. */
     segue: ultimo?.seFalhar || /^(se |volta)|se ele/i.test(ultimo?.proxima || '') ? '' : ultimo?.proxima || '',
@@ -264,6 +276,54 @@ export function moverPasso(passos, i, pai, via) {
   return passos.map((x, k) => (k === i ? { ...x, pai, via, lig: novoId() } : x));
 }
 
+/* ---------- convergência ----------
+   A ligação extra vale quando sai de uma peça que existe, por uma saída
+   que essa peça tem, e chega num destino do tipo certo: no escapou, uma
+   situação ou a posição de onde começa (para null); nas outras, um golpe
+   ou uma finta. Não liga a peça nela mesma nem repete o fio da árvore
+   (o mesmo destino pela mesma saída). Voltar pra uma peça de antes vale:
+   é o retorno. */
+function podeLigar(passos, i, via, para) {
+  const de = passos[i];
+  if (!de || !viasDa(de).includes(via)) return false;
+  if (via === 'escapou' && para === null) return true;
+  const k = passos.findIndex((x) => x.id === para);
+  if (k < 0 || k === i) return false;
+  if ((via === 'escapou') !== (tipoDe(passos[k]) === 'situacao')) return false;
+  return !(passos[k].pai === i && passos[k].via === via);
+}
+
+/* as ligações extras que valem, sem repetida (mesma saída pro mesmo destino) */
+export function convergenciasValidas(passos = [], ligacoes = []) {
+  const idx = new Map(passos.map((x, i) => [x.id, i]));
+  const vistas = new Set();
+  return (Array.isArray(ligacoes) ? ligacoes : []).filter((l) => {
+    const para = l?.para ?? null;
+    const chave = `${l?.de}|${l?.via}|${para}`;
+    if (!l?.id || !idx.has(l.de) || vistas.has(chave) || !podeLigar(passos, idx.get(l.de), l.via, para)) return false;
+    vistas.add(chave);
+    return true;
+  }).map((l) => ({ id: l.id, de: l.de, via: l.via, gatilho: String(l.gatilho || '').trim(), para: l.para ?? null }));
+}
+
+/* pra onde a saída via da peça i pode ligar: ids das peças (null é a
+   posição), na ordem da lista, sem os destinos que essa saída já liga
+   (menos: a ligação que está sendo mudada) */
+export function destinosDaLigacao(passos, ligacoes, i, via, menos = null) {
+  const ja = new Set((ligacoes || []).filter((l) => l.id !== menos && l.de === passos[i]?.id && l.via === via).map((l) => l.para ?? null));
+  return [null, ...passos.map((x) => x.id)].filter((para) => !ja.has(para) && podeLigar(passos, i, via, para));
+}
+
+/* pôr ou mudar uma ligação extra. Mudou de ponta (outro destino), é
+   outro caminho: id novo, e a de antes sai (vai pra "removidos" ao
+   salvar). Mudou só o gatilho, é o mesmo caminho: mesmo id. */
+export function comLigacao(ligacoes = [], l) {
+  const antes = ligacoes.find((x) => x.id === l.id);
+  const mesmo = antes && antes.de === l.de && antes.via === l.via && (antes.para ?? null) === (l.para ?? null);
+  const nova = { id: mesmo ? antes.id : novoId(), de: l.de, via: l.via, gatilho: String(l.gatilho || '').trim(), para: l.para ?? null };
+  return antes ? ligacoes.map((x) => (x.id === l.id ? nova : x)) : [...ligacoes, nova];
+}
+
 /* ---------- objetivo ----------
    Finalizar: qualquer golpe que termina em finalização. Posição: o
    golpe que termina nela. Golpe: o próprio. destinoDe(nome) devolve
@@ -280,15 +340,29 @@ export function chegaNoObjetivo(passo, plano, destinoDe = () => null) {
 }
 export const finaliza = (passo, destinoDe = () => null) => !!passo && tipoDe(passo) === 'golpe' && destinoDe(passo?.golpe)?.slug === 'finalizacao';
 
+/* a fuga que deixa a luta na posição do objetivo. A situação é o
+   momento (ele saiu do controle e a luta veio pra cá); a posição é o
+   lugar. Estar no lugar porque ele fugiu não é ter chegado: o objetivo
+   conta no golpe que firma a posição, com controle. Então a situação
+   nunca ganha a bandeira, e ficar nela sem caminho é ponta solta (falta
+   o golpe que firma), não "daqui não tem ataque". */
+export const situacaoNoObjetivo = (passo, plano) => tipoDe(passo) === 'situacao'
+  && plano?.objetivoTipo === 'posicao' && !!plano.objetivo && passo.golpe === plano.objetivo;
+
 /* as pontas soltas: finta sem golpe depois e caminho que encaixa e
    para antes do objetivo (finalização que encaixa acaba a luta, não
    é ponta solta). Situação sem caminho não é ponta solta: daquela
-   posição pode não ter ataque que faça sentido, e o caminho fecha. */
+   posição pode não ter ataque que faça sentido, e o caminho fecha
+   (menos quando a posição é o objetivo: falta firmar). Peça que segue
+   por uma ligação extra (encaixou, reagiu ou volto a atacar levando a
+   uma peça que já existe) também não é ponta solta. */
 export function pontasSoltas(plano, destinoDe = () => null) {
   const c = correnteDoPlano(plano);
   const { segue } = arvoreDoPlano(c.passos);
-  return c.passos.map((x, i) => ({ ...x, i })).filter((x) => segue[x.i] === undefined && x.tipo !== 'situacao'
-    && (x.tipo === 'finta' || (!chegaNoObjetivo(x, c, destinoDe) && !finaliza(x, destinoDe))));
+  const porLigacao = new Set(c.ligacoes.filter((l) => continua(l.via)).map((l) => l.de));
+  return c.passos.map((x, i) => ({ ...x, i })).filter((x) => segue[x.i] === undefined && !porLigacao.has(x.id)
+    && (x.tipo === 'situacao' ? situacaoNoObjetivo(x, c)
+      : x.tipo === 'finta' || (!chegaNoObjetivo(x, c, destinoDe) && !finaliza(x, destinoDe))));
 }
 
 /* caminho sem motivo: quando duas defesas (ou duas reações) saem da
@@ -311,24 +385,28 @@ export function caminhoAte(passos, i) {
   return ligs;
 }
 
-/* as ligações do plano: { id, de, via, gatilho, para }, de e para pelo id da peça (de null: a posição) */
-export const ligacoesDo = (passos) => passos.map((x) => ({
+/* as ligações do plano: { id, de, via, gatilho, para }, de e para pelo
+   id da peça (de null: a posição; para null: volta pra posição). As da
+   árvore e, depois, as extras (convergência). */
+export const ligacoesDo = (passos, extras = []) => [...passos.map((x) => ({
   id: x.lig, de: x.pai === null || x.pai === undefined ? null : passos[x.pai]?.id ?? null, via: x.via, gatilho: x.reacao || '', para: x.id,
-}));
+})), ...extras];
 
 /* ao salvar: o que existia no plano guardado e sumiu do novo entra em
    "removidos", somado ao que já estava lá. Peça ou ligação que voltou
    sai de lá. */
 export function removidosAoSalvar(antigo, novo) {
-  const velho = antigo ? correnteDoPlano(antigo).passos : [];
-  const atual = correnteDoPlano(novo).passos;
+  const cv = antigo ? correnteDoPlano(antigo) : { passos: [], ligacoes: [] };
+  const velho = cv.passos;
+  const cn = correnteDoPlano(novo);
+  const atual = cn.passos;
   const pecas = new Set(atual.map((x) => x.id));
-  const ligs = new Set(atual.map((x) => x.lig));
+  const ligs = new Set(ligacoesDo(atual, cn.ligacoes).map((x) => x.id));
   const ja = antigo?.removidos || { pecas: [], ligacoes: [] };
   return {
     pecas: [...ja.pecas, ...velho.filter((x) => !pecas.has(x.id)).map((x) => ({ id: x.id, tipo: x.tipo, golpe: x.golpe }))]
       .filter((x, k, l) => !pecas.has(x.id) && l.findIndex((y) => y.id === x.id) === k),
-    ligacoes: [...ja.ligacoes, ...ligacoesDo(velho).filter((x) => !ligs.has(x.id))]
+    ligacoes: [...ja.ligacoes, ...ligacoesDo(velho, cv.ligacoes).filter((x) => !ligs.has(x.id))]
       .filter((x, k, l) => !ligs.has(x.id) && l.findIndex((y) => y.id === x.id) === k),
   };
 }
@@ -376,7 +454,7 @@ export function copiaDoPronto(p) {
 
 /* o plano novo que a tela salva. Golpe sem nome sai, e o que nasce
    dele também; passo sem pai (formato de fila) nasce do último que ficou */
-export function planoNovo({ nome, posicao, posicaoId = null, finta = '', objetivo = '', objetivoTipo = '', passos = [], paraAltura = [], paraPeso = [], copiadoDe = null, removidos }) {
+export function planoNovo({ nome, posicao, posicaoId = null, finta = '', objetivo = '', objetivoTipo = '', passos = [], ligacoes = [], paraAltura = [], paraPeso = [], copiadoDe = null, removidos }) {
   const { lista, pai, novo } = podar(passos, (x) => x.golpe);
   const guardados = lista.map((i) => {
     const x = passos[i];
@@ -399,6 +477,7 @@ export function planoNovo({ nome, posicao, posicaoId = null, finta = '', objetiv
     objetivo: objetivo || '',
     objetivoTipo: objetivoTipo || (objetivo ? 'tecnica' : ''),
     passos: guardados,
+    ligacoes: convergenciasValidas(guardados, ligacoes),
     tipo: 'ataque', modo: 'ambos', faixa: 'branca', legal: true, aviso: '', resumo: '',
     pronto: 0, favorito: 0, arquivada: 0,
   };

@@ -4020,6 +4020,27 @@ body::after {
 .mente-vaga.escapou { --c: #e2a76f; }
 .mente-vaga.retoma { --c: #6cb8ff; }
 .mente-folha.fecha { color: var(--dim); background: color-mix(in srgb, var(--dim) 8%, var(--void)); border: 1px dashed var(--seam); box-shadow: none; }
+/* convergência: o atalho no galho leva a cor da peça de destino, e o fio tracejado vai até ela */
+.mente-atalho {
+  position: relative; z-index: 1; display: grid; gap: 2px; width: 100%; text-align: left; padding: 6px 10px; border-radius: 12px;
+  font: inherit; font-size: 12px; color: var(--chalk); cursor: pointer; overflow-wrap: anywhere;
+  background: color-mix(in srgb, var(--c) 8%, var(--void)); border: 1.5px dashed color-mix(in srgb, var(--c) 60%, transparent);
+  animation: mapa-entra .5s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 90ms);
+}
+.mente-atalho.aberto { box-shadow: 0 0 0 2px var(--c); }
+.mente-atalho .mapa-rotulo { font-size: 11px; }
+.mente-atalho-txt { display: inline; line-height: 1.35; color: var(--dim); }
+.mente-atalho-txt svg { vertical-align: -2px; color: var(--c); }
+.mente-atalho-txt b { color: var(--chalk); }
+.mapa-ponte path { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-dasharray: 6 5; stroke-linecap: round; opacity: .5; transition: opacity .2s, stroke-width .2s; }
+.mapa-ponte.acesa path { opacity: 1; stroke-width: 2.6; }
+.mapa-ponte circle { fill: var(--void); stroke: currentColor; stroke-width: 2; }
+.mapa-ponte { opacity: 0; animation: mapa-aparece .4s ease forwards; animation-delay: calc(var(--i, 0) * 90ms + 500ms); }
+.mente-mundo.editando .mente-atalho, .mente-mundo.editando .mapa-ponte { animation-delay: 0s; }
+.plano-aviso {
+  display: grid; gap: 8px; justify-items: start; margin-bottom: 12px; padding: 10px 12px; border-radius: 12px; line-height: 1.5;
+  color: var(--chalk); border: 1px solid color-mix(in srgb, #f5c542 40%, var(--seam)); background: color-mix(in srgb, #f5c542 7%, var(--void));
+}
 /* o + de mais um caminho numa saída que já tem: menor, pra não pesar no mapa */
 .mente-vaga.mais { padding: 4px 8px; font-size: 11px; opacity: .8; }
 .mente-vaga:hover, .mente-vaga.pode { background: color-mix(in srgb, var(--c) 12%, var(--void)); }
@@ -4057,8 +4078,8 @@ body::after {
 .mapa-objetivo b, .plano-objetivo b { color: var(--chalk); }
 .plano-objetivo { margin-top: 8px; }
 @media (prefers-reduced-motion: reduce) {
-  .mente-no { animation: none; }
-  .mapa-fio-traco, .mente-selo { animation: none; stroke-dashoffset: 0; opacity: 1; }
+  .mente-no, .mente-atalho { animation: none; }
+  .mapa-fio-traco, .mente-selo, .mapa-ponte { animation: none; stroke-dashoffset: 0; opacity: 1; }
   .mapa-fio-luz { display: none; }
 }
 
