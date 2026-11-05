@@ -160,11 +160,12 @@ export const APELIDOS_GERAIS = {
   'leg drag': ['arraste de perna'],
   'brabo': ["d'arce", 'darce'],
   'chave de pé': ['toe hold', 'americana no pé'],
-  'armlock': ['chave de braço', 'chave de braco', 'arm bar', 'juji gatame'],
+  'armlock': ['chave de braço', 'chave de braço reta', 'chave de braco', 'arm bar', 'juji gatame'],
 };
 
+/* sem acento e sem espaço: "arm l" acha "Armlock", "meia guarda" acha "Meia-guarda" */
 const semAcento = (t) => String(t).toLowerCase()
-  .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\s-]+/g, '');
 
 /* a busca acha pelo nome de catálogo ou por qualquer apelido */
 export function casaApelido(nome, busca) {

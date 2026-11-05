@@ -131,5 +131,13 @@ ok('trindade: quebrou a postura, encaixou o armlock; defendeu, triângulo', trin
 ok('todo pronto vira árvore inteira', PLANOS_ATAQUE.every((p) => arvoreDoPlano(correnteDoPlano(p).passos).ordem.length === correnteDoPlano(p).passos.length), true);
 ok('editar e salvar um pronto mantém o caminho', correnteDoPlano(planoNovo({ passos: trindade.passos })).passos.map((p) => p.via), [null, 'encaixou', 'defendeu', 'defendeu']);
 
+/* a busca do seletor: espaço, hífen e o nome em português não escondem o armlock */
+const { casaApelido } = await import('../src/db/sinonimos.js');
+for (const termo of ['arm l', 'arm lock', 'armlock', 'arm bar', 'chave de braço', 'chave de braço reta', 'Chave de braco']) {
+  ok(`"${termo}" acha o Armlock da guarda fechada`, casaApelido('Armlock da guarda fechada', termo), true);
+}
+ok('"meia guarda" acha Kimura da meia-guarda', casaApelido('Kimura da meia-guarda', 'meia guarda'), true);
+ok('"triangulo" não acha Kimura', casaApelido('Kimura', 'triangulo'), false);
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

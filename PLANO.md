@@ -4,6 +4,15 @@ Ordem aprovada em 04/11/2026: Trilha A → B → C → D. Um commit por item.
 
 Decidido em 04/11/2026. Uma tarefa por vez; cada uma termina com `npm run check` verde, README atualizado e push.
 
+## Trilha H: Plano com objetivo, finta em qualquer ponto e montar no mapa (05/11/2026)
+O que achei: o catálogo já tem 15 armlocks com origem no nome ("Armlock da guarda fechada"); a busca falhou só por causa do espaço ("arm l" não casa com "armlock"). Os 16 prontos usam texto livre fora do catálogo ("Triângulo", "Omoplata"), nenhum tem objetivo nem finta, e o último passo vira o "se ele defender tudo" automático. A finta hoje é uma só, do plano inteiro, e a "deixa" mistura reação à finta com defesa do golpe.
+1. Busca sem espaço ("arm l", "arm lock") e "chave de braço reta" nos armlocks. Verificar: casos novos no teste.
+2. Passo ganha tipo: golpe ou finta. Finta tem uma saída ("ele reagiu") e a reação dela; golpe tem encaixou e defendeu, e a defesa mora no galho do defendeu. Finta antes de qualquer golpe, finta atrás de finta. A finta antiga do plano vira o primeiro passo na leitura, sem migração. Verificar: teste-planos (plano antigo abre igual, finta → finta → golpe).
+3. Objetivo obrigatório. Bandeira em todo golpe que chega nele, em qualquer plano (A, B, C); golpe que chega fecha o caminho. Caminho que acaba sem chegar não ganha desfecho inventado; o editor avisa. Some o "se ele defender tudo" automático. Verificar: teste-planos.
+4. Montar no mapa: o mesmo mapa do "Ver", com "+" nos galhos, tocar edita, arrastar um golpe pra outro galho leva ele e o que vem depois; o mapa se realinha sozinho. Verificar: print 360px e computador, teste de telas.
+5. Os 16 prontos reescritos: nome do catálogo, objetivo, finta onde faz sentido, descrição em português de tatame (a situação, o que você faz, o que abre). Atualiza os prontos intactos de quem já tem. Verificar: lint:copy, teste-planos.
+6. (se aprovado) Nome com origem no catálogo: Triângulo, Omoplata, Kimura, Guilhotina ganham "da guarda fechada" pelo renomeios. Verificar: teste:renomeios.
+
 ## Trilha A: Placar de conquistas
 1. Home mostra "O que você conquistou esta semana" (só o que fez, cada lance contado, rola sem bater conta); "Fui finalizado" sai da home → FEITO.
 2. Cor neutra pra derrota no histórico → FEITO.
