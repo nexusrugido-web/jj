@@ -15,7 +15,7 @@ import { Vitrine } from '../components/Plano';
 import { SeletorTecnica } from '../components/SeletorTecnica';
 import { podeVer, pedirOferta } from '../lib/plano';
 import {
-  meusPlanos, planosProntos, exemplosDaFaixa, podeCriarPlano, correnteDoPlano, planoNovo, MAX_PASSOS, ALTURA_REL,
+  meusPlanos, planosProntos, exemplosDaFaixa, podeCriarPlano, correnteDoPlano, planoNovo, ALTURA_REL,
   taxaDoPlano, taxaPorTipo, arvoreDoPlano, semOGolpe, letraDo, novoId, removidosAoSalvar, VIAS,
   semAFinta, fintaAntes, moverPasso, chegaNoObjetivo, finaliza, pontasSoltas, semGatilho, OBJETIVO_FINALIZAR,
 } from '../lib/planos';
@@ -432,7 +432,6 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
           Mais de um caminho sai do mesmo ponto: diga o que ele fez em {juntar(semMotivo.map((x) => x.golpe))}. É por isso que você sabe qual escolher na hora.
         </p>
       )}
-      {passos.length >= MAX_PASSOS && <p className="micro muted" style={{ marginTop: 8 }}>Chegou nas {MAX_PASSOS} peças, o máximo de um plano.</p>}
 
       <div style={{ marginTop: 18 }} />
       <Field label="Pra quem serve (opcional)" hint="O parceiro com essa altura ou esse peso vê o plano na ficha dele.">
@@ -481,7 +480,7 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
             </Field>
             {existe && (
               <div className="row wrap" style={{ gap: 6 }}>
-                {passos.length < MAX_PASSOS && <Btn size="sm" variant="ghost" icon={Sparkles} onClick={() => setEscolhendo('fintaAntes')}>Pôr uma finta antes</Btn>}
+                <Btn size="sm" variant="ghost" icon={Sparkles} onClick={() => setEscolhendo('fintaAntes')}>Pôr uma finta antes</Btn>
                 <Btn size="sm" variant="ghost" icon={Trash2} onClick={tirarPeca}>
                   {peca.tipo === 'finta' ? 'Tirar a finta' : 'Tirar, e o que vem depois'}
                 </Btn>
@@ -535,7 +534,9 @@ function LegendaDoMapa({ trilhos = 2, finta = true }) {
     <div className="mapa-legenda">
       <span className="mapa-tipo t-posicao"><i />Posição</span>
       {finta && <span className="mapa-tipo t-finta"><i />Finta</span>}
-      {Array.from({ length: trilhos }, (_, t) => letraDo(t)).map((l, t) => <span key={l} className={`mapa-tipo trilho-${cor(t)}`}><i />Plano {l}</span>)}
+      {Array.from({ length: Math.min(trilhos, 8) }, (_, t) => letraDo(t)).map((l, t) => <span key={l} className={`mapa-tipo trilho-${cor(t)}`}><i />Plano {l}</span>)}
+      {/* do I em diante a cor repete e a letra está na peça: a legenda não cresce com o plano */}
+      {trilhos > 8 && <span className="mapa-tipo muted">Planos I a {letraDo(trilhos - 1)}: as cores repetem</span>}
       <span className="mapa-tipo" style={{ color: 'var(--jade)' }}><Check size={12} strokeWidth={3} />Encaixou</span>
       <span className="mapa-tipo" style={{ color: '#ff7a6b' }}><X size={12} strokeWidth={3} />Se ele defender</span>
       <span className="mapa-tipo" style={{ color: '#f5c542' }}><Flag size={12} />Chegou lá</span>
@@ -550,10 +551,9 @@ function LegendaDoMapa({ trilhos = 2, finta = true }) {
 function linhasDoMapa(plano, destinoDe, editar = false) {
   const c = correnteDoPlano(plano);
   const { ordem, trilho, filhos, segue } = arvoreDoPlano(c.passos);
-  const cheio = c.passos.length >= MAX_PASSOS;
   const linhas = [{ tipo: 'posicao', trilho: 0, rotulo: 'De onde começa', titulo: c.posicao || 'A posição' }];
   /* mais: a saída já tem caminho, e o + abre outro */
-  const vaga = (de, pai, via, t, mais = false) => { if (!cheio) linhas.push({ tipo: 'vaga', de, pai, via, trilho: t, mais }); };
+  const vaga = (de, pai, via, t, mais = false) => linhas.push({ tipo: 'vaga', de, pai, via, trilho: t, mais });
   if (editar) vaga(0, null, 'raiz', 0, c.passos.length > 0);
   const linhaDoPasso = {};
   const ultimo = c.passos.length - 1;

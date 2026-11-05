@@ -29,6 +29,24 @@ const PLANO = {
   pronto: 0, favorito: 0, arquivada: 0,
 };
 
+/* o plano grande: 3 entradas com finta, reagiu e 2 não reagiu, cada
+   golpe com 2 defesas e um galho que desce 12 níveis. Sem teto de peças. */
+const GRANDE = (() => {
+  const passos = [];
+  const poe = (x) => { passos.push({ id: `G${passos.length}`, lig: `L${passos.length}`, gatilho: '', seFalhar: '', proxima: '', detalhe: '', ...x }); return passos.length - 1; };
+  for (let e = 0; e < 3; e++) {
+    const f = poe({ tipo: 'finta', acao: ['Guilhotina', 'Raspagem de tesoura', 'Kimura'][e], pai: null, via: null });
+    for (const via of ['reagiu', 'naoReagiu', 'naoReagiu']) {
+      const g = poe({ acao: 'Armlock', gatilho: 'ele mexeu', pai: f, via });
+      poe({ acao: 'Triângulo', gatilho: 'colou o cotovelo', pai: g, via: 'defendeu' });
+      poe({ acao: 'Omoplata', gatilho: 'girou o braço', pai: g, via: 'defendeu' });
+    }
+  }
+  let fundo = 10;
+  for (let k = 0; k < 12; k++) fundo = poe({ acao: k % 2 ? 'Mata-leão' : 'Raspagem de quadril (hip bump)', gatilho: 'defendeu de novo', pai: fundo, via: k % 3 ? 'defendeu' : 'encaixou' });
+  return { ...PLANO, nome: 'Sistema grande da guarda', passos };
+})();
+
 /* cada cartão do mapa com tamanho, e quantos estão dentro do quadro */
 const medirMapa = (s) => {
   const quadro = document.querySelector(s).getBoundingClientRect();
@@ -39,6 +57,15 @@ const medirMapa = (s) => {
     vazios: nos.filter((r) => r.width < 20 || r.height < 20).length,
     aVista: nos.filter((r) => r.right > quadro.left && r.left < quadro.right && r.bottom > quadro.top && r.top < quadro.bottom).length,
     vaza: document.documentElement.scrollWidth > innerWidth,
+    /* dois cartões (peça, vaga ou folha) um em cima do outro */
+    sobrepostos: (() => {
+      const r = [...document.querySelectorAll(`${s} .mente-no, ${s} .mente-vaga, ${s} .mente-folha`)].map((n) => n.getBoundingClientRect());
+      let n = 0;
+      for (let a = 0; a < r.length; a++) for (let b = a + 1; b < r.length; b++) {
+        if (r[a].left < r[b].right - 1 && r[b].left < r[a].right - 1 && r[a].top < r[b].bottom - 1 && r[b].top < r[a].bottom - 1) n++;
+      }
+      return n;
+    })(),
   };
 };
 
@@ -55,15 +82,15 @@ try {
       const { db, getMeta, setMeta } = await import('/src/db/db.js');
       const { VERSAO_DOCS } = await import('/src/components/Aceite.jsx');
       await setMeta('settings', { ...(await getMeta('settings', {})), nome: 'Praticante de teste', anoNascimento: 1995, faixa: 'branca', onboardingFeito: 1, tourVisto: 1, celebrar: false, aceite: { versao: VERSAO_DOCS, em: new Date().toISOString() } });
-      await db.attackPlans.add({ ...plano, criadoEm: Date.now() });
-    }, PLANO);
+      for (const p of plano) await db.attackPlans.add({ ...p, criadoEm: Date.now() });
+    }, [PLANO, GRANDE]);
     await page.goto(`${url}/?go=planos`, { waitUntil: 'networkidle' });
     await page.getByText(PLANO.nome).first().waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `lista de planos vaza em ${nome}`);
     await page.screenshot({ path: `${pasta}/${nome}-lista.png` });
 
     /* Ver o mapa */
-    await page.getByRole('button', { name: 'Ver o mapa' }).first().click();
+    await page.locator('.plano-cartao', { hasText: PLANO.nome }).first().getByRole('button', { name: 'Ver o mapa' }).first().click();
     await page.locator('.mente-tela .mente-no').first().waitFor();
     await page.waitForTimeout(400);
     const ver = await page.evaluate(medirMapa, '.mente-tela');
@@ -74,11 +101,13 @@ try {
     assert.ok(ver.quadro.w > 200 && ver.quadro.h > 200, 'quadro do mapa sem tamanho');
     assert.ok(ver.aVista >= 1, 'nenhum cartão à vista');
     assert.equal(ver.vaza, false, 'mapa vaza a página');
+    assert.equal(ver.sobrepostos, 0, 'cartões sobrepostos no mapa');
     await page.keyboard.press('Escape');
     await page.goto(`${url}/?go=planos`, { waitUntil: 'networkidle' });
 
     /* editor */
-    await page.getByRole('button', { name: 'Editar' }).first().click();
+    await page.getByText(PLANO.nome).first().waitFor();
+    await page.locator('.plano-cartao', { hasText: PLANO.nome }).first().getByRole('button', { name: 'Editar' }).first().click();
     await page.locator('.mente-tela .mente-vaga').first().waitFor();
     await page.locator('.mente-tela').scrollIntoViewIfNeeded();
     await page.waitForTimeout(400);
@@ -88,7 +117,29 @@ try {
     assert.equal(ed.nos, 9);
     assert.equal(ed.vazios, 0);
     assert.equal(ed.vaza, false, 'editor vaza a página');
+    assert.equal(ed.sobrepostos, 0, 'cartões sobrepostos no editor');
     assert.ok(await page.getByText('Outra ameaça pra trocar').count() >= 1, 'o "não reagiu" aceita outra ameaça');
+
+    /* o plano grande: mais de 16 peças, vendo e editando */
+    for (const modo of ['Ver o mapa', 'Editar']) {
+      await page.goto(`${url}/?go=planos`, { waitUntil: 'networkidle' });
+      await page.getByText(GRANDE.nome).first().waitFor();
+      const cartao = page.locator('.plano-cartao', { hasText: GRANDE.nome }).first();
+      const t0 = Date.now();
+      await cartao.getByRole('button', { name: modo }).first().click();
+      await page.locator('.mente-tela .mente-no').nth(GRANDE.passos.length).waitFor();
+      await page.waitForTimeout(400);
+      const ms = Date.now() - t0;
+      const m = await page.evaluate(medirMapa, '.mente-tela');
+      console.log(`${nome} grande, ${modo} (${ms}ms):`, JSON.stringify(m));
+      await page.screenshot({ path: `${pasta}/${nome}-grande-${modo === 'Editar' ? 'editor' : 'ver'}.png` });
+      assert.equal(m.nos, GRANDE.passos.length + 1, `grande: posição + ${GRANDE.passos.length} peças`);
+      assert.equal(m.vazios, 0);
+      assert.equal(m.sobrepostos, 0, `grande: cartões sobrepostos (${modo})`);
+      assert.equal(m.vaza, false, `grande: vaza a página (${modo})`);
+      assert.ok(ms < 3000, `grande: demorou ${ms}ms pra abrir (${modo})`);
+      if (modo === 'Ver o mapa') await page.keyboard.press('Escape');
+    }
     assert.deepEqual(erros, [], `erros em ${nome}`);
     await contexto.close();
   }

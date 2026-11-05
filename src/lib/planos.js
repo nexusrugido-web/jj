@@ -41,7 +41,6 @@
    Passo sem pai é do formato antigo, que era uma fila.
    ============================================================ */
 
-export const MAX_PASSOS = 16;
 /* a letra é só o rótulo do plano: A a Z, depois AA, AB... sem teto */
 export function letraDo(t) {
   let l = '';
@@ -81,8 +80,7 @@ export const planosDaPessoa = (planos, faixa) => [...meusPlanos(planos), ...exem
 /* quem fica na árvore: passo com nome, cujo pai também fica, e que
    sobe até a raiz. Pai número: aponta pra qualquer passo (pode estar
    depois). Pai null: a raiz. Sem pai: formato de fila, nasce do
-   anterior que ficou. Passa de MAX_PASSOS, sai na ordem guardada, e
-   o que perdeu o pai sai junto. */
+   anterior que ficou. Sem teto de peças: o que perdeu o pai sai junto. */
 function podar(brutos, nomeDe) {
   const pai = [];
   const fica = [];
@@ -113,9 +111,7 @@ function podar(brutos, nomeDe) {
     }
     return false;
   };
-  let n = 0;
-  const cabe = brutos.map((_, i) => chega(i, ver) && ++n <= MAX_PASSOS);
-  const lista = brutos.map((_, i) => i).filter((i) => chega(i, (k) => cabe[k]));
+  const lista = brutos.map((_, i) => i).filter((i) => chega(i, ver));
   return { lista, pai, novo: new Map(lista.map((i, k) => [i, k])) };
 }
 
@@ -346,7 +342,7 @@ export function copiaDoPronto(p) {
   return {
     ...resto,
     nome: p.nome,
-    passos: (p.passos || []).slice(0, MAX_PASSOS),
+    passos: p.passos || [],
     copiadoDe: slug || null,
     pronto: 0, favorito: 0, arquivada: 0,
   };

@@ -3,12 +3,12 @@ register('./como-vite.mjs', import.meta.url);
 
 /* ============================================================
    PLANOS DE ATAQUE
-   Árvore com até 12 golpes (encaixou segue, se defender abre outro
+   Árvore sem teto de peças (encaixou segue, se defender abre outro
    plano), 1 plano seu no grátis, e o pronto copiado vira plano seu
    sem perder os passos.
    ============================================================ */
 const {
-  correnteDoPlano, copiaDoPronto, planoNovo, podeCriarPlano, meusPlanos, MAX_PASSOS,
+  correnteDoPlano, copiaDoPronto, planoNovo, podeCriarPlano, meusPlanos,
 } = await import('../src/lib/planos.js');
 const { PLANOS_ATAQUE } = await import('../src/db/attackPlans.js');
 
@@ -33,7 +33,7 @@ ok('golpe vazio sai, o resto vira fila', novo.passos.map((p) => [p.acao, p.pai, 
 ok('reação vira gatilho', novo.passos[0].gatilho, 'ele baseia a mão');
 
 const muitos = Array.from({ length: 20 }, (_, i) => ({ golpe: `G${i}` }));
-ok('no máximo 16 peças', planoNovo({ passos: muitos }).passos.length, MAX_PASSOS);
+ok('sem teto de peças: as 20 ficam', planoNovo({ passos: muitos }).passos.length, 20);
 const c = correnteDoPlano(novo);
 ok('a finta de antes vira a peça de finta, no fim da lista, e o 1º golpe nasce dela',
   c.passos.map((x) => [x.tipo, x.golpe, x.pai, x.via]).filter((x) => x[0] === 'finta' || x[2] === 5),
@@ -297,6 +297,45 @@ ok('"não reagiu" não pede gatilho (é escolha sua)', semGatilho(correnteDoPlan
 
 ok('"meia guarda" acha Kimura da meia-guarda', casaApelido('Kimura da meia-guarda', 'meia guarda'), true);
 ok('"triangulo" não acha Kimura', casaApelido('Kimura', 'triangulo'), false);
+
+/* ---------- plano grande: sem teto de peças ----------
+   60 peças: 3 entradas, cada uma com finta, reagiu e não reagiu,
+   cada golpe com 2 defesas, e um galho que desce 30 níveis. */
+const gPassos = [];
+const poe = (x) => { gPassos.push(x); return gPassos.length - 1; };
+for (let e = 0; e < 3; e++) {
+  const f = poe({ tipo: 'finta', golpe: `Finta ${e}`, pai: null });
+  for (const via of ['reagiu', 'naoReagiu', 'naoReagiu']) {
+    const g = poe({ golpe: `Golpe ${e}-${via}-${gPassos.length}`, reacao: 'ele mexeu', pai: f, via });
+    poe({ golpe: `Defesa A ${g}`, reacao: 'colou', pai: g, via: 'defendeu' });
+    poe({ golpe: `Defesa B ${g}`, reacao: 'girou', pai: g, via: 'defendeu' });
+  }
+}
+let fundo = 10; /* o galho fundo nasce da finta da 2ª entrada */
+for (let k = 0; gPassos.length < 60; k++) fundo = poe({ golpe: `Fundo ${k}`, reacao: 'defendeu de novo', pai: fundo, via: k % 3 ? 'defendeu' : 'encaixou' });
+const gSalvo = planoNovo({ objetivo: 'Finalizar', objetivoTipo: 'finalizar', passos: gPassos });
+ok('plano grande: as 60 peças salvam', gSalvo.passos.length, 60);
+const gRecarregado = JSON.parse(JSON.stringify(gSalvo));
+ok('recarregar (JSON do sync) volta com as 60, mesmos ids', JSON.stringify(editar(gRecarregado).map((x) => x.id)) === JSON.stringify(gSalvo.passos.map((x) => x.id)), true);
+ok('salvar de novo não perde peça nem muda id', JSON.stringify(planoNovo({ passos: editar(gRecarregado) }).passos.map((x) => [x.id, x.lig, x.pai, x.via])) === JSON.stringify(gSalvo.passos.map((x) => [x.id, x.lig, x.pai, x.via])), true);
+const ga = arvoreDoPlano(editar(gSalvo));
+ok('a árvore lê as 60, cada uma uma vez', [ga.ordem.length, new Set(ga.ordem).size], [60, 60]);
+ok('letra passa do Z sem quebrar', letraDo(ga.trilhos - 1).length >= 1 && ga.trilhos > 26, true);
+const gFundo = editar(gSalvo).length - 1;
+ok('caminho do galho fundo tem todas as ligações até a posição', caminhoAte(editar(gSalvo), gFundo).length > 30, true);
+const rolaNoFundo = { plano: { uid: 'G', peca: gSalvo.passos[gFundo].id, caminho: caminhoAte(editar(gSalvo), gFundo), encaixou: true } };
+const gComMais = planoNovo({ passos: [...editar(gSalvo), { golpe: 'Peça 61', pai: 10, via: 'naoReagiu' }] });
+ok('peça nova entra no fim, o rola acha a mesma peça', [gComMais.passos.length, pecaDoRola(gComMais, rolaNoFundo)?.golpe], [61, gSalvo.passos[gFundo].acao]);
+const gSemEntrada = planoNovo({ passos: semOGolpe(editar(gComMais), 0) });
+ok('apagar a 1ª entrada leva a finta, os 3 golpes e as 6 defesas dela, e só', gSemEntrada.passos.length, 51);
+ok('o rola do galho fundo sobrevive ao apagar outra entrada', pecaDoRola(gSemEntrada, rolaNoFundo)?.saiu, false);
+const gHist = { ...gSemEntrada, removidos: removidosAoSalvar(gComMais, gSemEntrada) };
+ok('o que saiu fica em removidos', gHist.removidos.pecas.length, gComMais.passos.length - gSemEntrada.passos.length);
+const t0 = Date.now();
+const gigante = planoNovo({ passos: Array.from({ length: 2000 }, (_, i) => ({ golpe: `G${i}`, pai: i ? Math.floor((i - 1) / 2) : null, via: i % 2 ? 'encaixou' : 'defendeu' })) });
+const ag2 = arvoreDoPlano(correnteDoPlano(gigante).passos);
+ok('2000 peças: salva e lê sem cortar', [gigante.passos.length, ag2.ordem.length], [2000, 2000]);
+ok('2000 peças em menos de 1s', Date.now() - t0 < 1000, true);
 
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);
