@@ -71,7 +71,7 @@ export default function Dominio() {
   const variacoesDoGolpe = (nome) => {
     const g = golpeDe(nome);
     if (!g) return null;
-    const fin = new Set(categories.filter((c) => ['estrangulamento', 'articular', 'perna'].includes(c.slug)).map((c) => c.id));
+    const fin = new Set(categories.filter((c) => ['estrangulamento', 'articular', 'perna', 'compressao'].includes(c.slug)).map((c) => c.id));
     const minhas = new Map(soTecnicas.map((t) => [t.nome, t]));
     const outras = techniques.filter((t) => fin.has(t.categoriaId) && t.nome !== nome && golpeDe(t.nome) === g)
       .map((t) => ({ nome: t.nome, minha: minhas.get(t.nome) || null }))

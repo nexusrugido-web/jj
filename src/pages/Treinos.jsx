@@ -227,7 +227,7 @@ export default function Treinos() {
   const posById = useMemo(() => Object.fromEntries(positions.map((p) => [p.id, p])), [positions]);
 
   const finalizacoes = useMemo(() => {
-    const cats = categories.filter((c) => ['estrangulamento', 'articular', 'perna'].includes(c.slug) || /finaliza|estrangul|chave/i.test(c.nome));
+    const cats = categories.filter((c) => ['estrangulamento', 'articular', 'perna', 'compressao'].includes(c.slug) || /finaliza|estrangul|chave/i.test(c.nome));
     const ids = new Set(cats.map((c) => c.id));
     return techniques.filter((t) => ids.has(t.categoriaId)).map((t) => t.nome).sort();
   }, [techniques, categories]);

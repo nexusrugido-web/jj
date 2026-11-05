@@ -82,7 +82,7 @@ alter table public.aula drop constraint if exists aula_habilidades_validas;
 alter table public.aula add constraint aula_habilidades_validas check (habilidades <@ array[
     'queda', 'passagem', 'raspagem', 'guarda', 'retencao', 'controle',
     'transicao', 'pegada', 'base', 'escapada', 'defesa', 'finalizacao',
-    'estrangulamento', 'articular', 'perna', 'fisico'
+    'estrangulamento', 'articular', 'perna', 'compressao', 'fisico'
   ]::text[]);
 
 alter table public.aula drop constraint if exists aula_situacoes_validas;

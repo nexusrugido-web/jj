@@ -43,7 +43,12 @@ const sid = await db.sessions.add({ data: '2026-09-10', focoTecnicas: [{ nome: '
 await db.rolls.add({ sessionId: sid, subsAplicadas: ['Chave de braço, armlock', 'Americana'], subsSofridas: ['Katagatame, braço e cabeça', 'Katagatame (braço-cabeça)'],
   tecMeus: { queda: ['Solo (single leg)'], raspagem: ['Raspagem de gancho (hip bump)'] }, tecDele: {} });
 await db.goals.add({ tipo: 'tecnica', alvo: 'Chave de pé reta', status: 'ativa' });
+/* R4.1: as duas que juntaram e o Backside 50/50 (que fica com o nome) */
+const rolaJuntou = await db.rolls.add({ sessionId: sid, subsAplicadas: ['Short choke', 'Estrangulamento de braço em X', 'Backside 50/50'], subsSofridas: ['Estrangulamento de calção (short choke)'], tecMeus: {}, tecDele: {} });
 await renomearTecnicas();
+const rj = await db.rolls.get(rolaJuntou);
+ok('rola antigo: o que juntou ganha o nome de hoje, o Backside 50/50 fica como foi gravado',
+  [rj.subsAplicadas, rj.subsSofridas], [['Mata-leão de uma mão só', 'Cruzada da montada', 'Backside 50/50'], ['Mata-leão de uma mão só']]);
 
 const tec = await db.techniques.where('uid').equals(uidEstavel(chaveNome('techniques', 'Solo (single leg)'))).first();
 ok('a técnica guardada ganha o nome novo e mantém o uid', tec.nome, 'Single leg');
@@ -65,6 +70,31 @@ ok('a meta troca o alvo', (await db.goals.toArray())[0].alvo, 'Chave de pé reta
 await db.techniques.update(tec.id, { nome: 'Solo (single leg)' });
 await renomearTecnicas();
 ok('roda uma vez só', (await db.techniques.get(tec.id)).nome, 'Solo (single leg)');
+
+/* ---------- R4.1: a biblioteca do aparelho arrumada ----------
+   Quem instalou antes não tem Compressões, e o Backside 50/50 estava
+   como chave de perna terminando em finalização. */
+{
+  const { arrumarBiblioteca, getMeta } = await import('../src/db/db.js');
+  await db.categories.clear(); await db.positions.clear();
+  const perna = await db.categories.add({ slug: 'perna', nome: 'Chaves de perna' });
+  const art = await db.categories.add({ slug: 'articular', nome: 'Chaves articulares' });
+  const guarda = await db.categories.add({ slug: 'guarda', nome: 'Guardas e posições' });
+  const g50 = await db.positions.add({ slug: 'g50', nome: 'Guarda 50/50' });
+  const fim = await db.positions.add({ slug: 'finalizacao', nome: 'Finalização' });
+  const bsUid = uidEstavel(chaveNome('techniques', 'Backside 50/50'));
+  const bs = await db.techniques.add({ nome: 'Backside 50/50', uid: bsUid, categoriaId: perna, origemId: g50, destinoId: fim, tags: [], status: 'aprendendo', arquivada: 0 });
+  const ce = await db.techniques.add({ nome: 'Cadeira elétrica (finalização)', categoriaId: art, destinoId: fim, arquivada: 0 });
+  await arrumarBiblioteca();
+  const comp = (await db.categories.toArray()).find((c) => c.slug === 'compressao');
+  const t = await db.techniques.get(bs);
+  ok('Compressões nasce no aparelho que não tinha', comp?.nome, 'Compressões');
+  ok('Backside 50/50 vira posição, mesmo uid, o que a pessoa marcou fica',
+    [t.categoriaId === guarda, t.destinoId === g50, t.tags, t.uid === bsUid, t.status], [true, true, ['posicao'], true, 'aprendendo']);
+  ok('Cadeira elétrica vai pra Compressões', (await db.techniques.get(ce)).categoriaId === comp.id, true);
+  await arrumarBiblioteca();
+  ok('roda uma vez só', [await getMeta('biblioteca_v2', false), (await db.categories.toArray()).filter((c) => c.slug === 'compressao').length], [true, 1]);
+}
 
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

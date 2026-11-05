@@ -626,5 +626,59 @@ const ms = Date.now() - tE;
 ok('2000 peças com 1000 atalhos voltando: tudo lido, árvore uma vez em cada peça', [cen.ligacoes.length, aen.ordem.length], [1000, 2000]);
 ok(`e em menos de 1s (${ms}ms)`, ms < 1000, true);
 
+/* ---------- R4.1: família de finalização ----------
+   Objetivo, preferida e "também vale" aceitam a família inteira
+   (fam:armlock): qualquer variação ligada a ela no catálogo conta.
+   Família selecionada não deixa a variação entrar de novo, menos na
+   combinação "prefiro o da montada, mas qualquer armlock vale". */
+const { cobre, jaCoberta, limparAceitas } = await import('../src/lib/planos.js');
+const { SEED: SEED41 } = await import('../src/db/seed.js');
+const destCat = (nome) => { const t = SEED41.techniques.find((x) => x.pt === nome); return t ? { slug: t.to, nome: t.to } : null; };
+const golpes41 = ['Armlock da guarda fechada', 'Armlock da montada', 'Armlock das costas', 'Kimura', 'Tarikoplata', 'Omoplata', 'Monoplata', 'Raspagem de tesoura'];
+const p41 = (extra) => planoNovo({ passos: golpes41.map((g, i) => ({ id: `g${i}`, golpe: g, reacao: `r${i}`, pai: i ? 0 : null, via: i ? 'defendeu' : null })), ...extra });
+
+const fam = correnteDoPlano(p41({ objetivo: 'fam:armlock', objetivoTipo: 'familia' }));
+ok('objetivo família Armlock: os três armlocks chegam, Kimura e raspagem não',
+  fam.passos.map((x) => chegaNoObjetivo(x, fam, destCat)), [true, true, true, false, false, false, false, false]);
+const famK = correnteDoPlano(p41({ objetivo: 'fam:kimura', objetivoTipo: 'familia' }));
+ok('família Kimura: Kimura e Tarikoplata chegam; Omoplata e Monoplata não',
+  famK.passos.map((x) => chegaNoObjetivo(x, famK, destCat)), [false, false, false, true, true, false, false, false]);
+const famO = correnteDoPlano(p41({ objetivo: 'fam:omoplata', objetivoTipo: 'familia' }));
+ok('família Omoplata: a Monoplata é avulsa e não conta', famO.passos.map((x) => chegaNoObjetivo(x, famO, destCat)).slice(5, 7), [true, false]);
+const tec = correnteDoPlano(p41({ objetivo: 'Armlock da montada', objetivoTipo: 'tecnica' }));
+ok('objetivo técnica: só o Armlock da montada', tec.passos.map((x) => chegaNoObjetivo(x, tec, destCat)), [false, true, false, false, false, false, false, false]);
+ok('família sem preferida e sem aceitas gravadas', [p41({ objetivo: 'fam:armlock', objetivoTipo: 'familia', finalizacaoPreferida: 'x' }).finalizacaoPreferida], ['']);
+
+const pf = correnteDoPlano(p41({ objetivo: 'Finalizar', objetivoTipo: 'finalizar', finalizacaoPreferida: 'fam:armlock', finalizacoesAceitas: ['fam:kimura'] }));
+ok('preferida família: todo armlock é a preferida; a kimura e a tarikoplata são aceitas; omoplata é outra',
+  pf.passos.map((x) => escolhaDaFinalizacao(x, pf, destCat)), ['preferida', 'preferida', 'preferida', 'aceita', 'aceita', 'outra', 'outra', '']);
+const ex = correnteDoPlano(p41({ objetivo: 'Finalizar', objetivoTipo: 'finalizar', finalizacaoPreferida: 'Armlock da montada', finalizacoesAceitas: ['fam:armlock'] }));
+ok('prefiro o da montada, mas qualquer armlock vale: a família fica nas aceitas',
+  [ex.finalizacoesAceitas, ex.passos.map((x) => escolhaDaFinalizacao(x, ex, destCat)).slice(0, 3)], [['fam:armlock'], ['aceita', 'preferida', 'aceita']]);
+
+ok('cobre: família cobre a variação, nome antigo também, técnica de fora não',
+  [cobre('fam:armlock', 'Armlock da montada'), cobre('fam:armlock', 'Chave de braço da montada'), cobre('fam:armlock', 'Kimura'), cobre('fam:armlock', 'Meu armlock inventado')],
+  [true, true, false, false]);
+ok('jaCoberta: variação de família já aceita não entra; a família com a preferida técnica entra',
+  [jaCoberta('Armlock da montada', '', ['fam:armlock']), jaCoberta('Armlock da montada', 'fam:armlock', []), jaCoberta('fam:armlock', 'Armlock da montada', []), jaCoberta('Kimura', '', ['fam:armlock']), jaCoberta('fam:kimura', '', ['fam:kimura'])],
+  ['fam:armlock', 'fam:armlock', '', '', 'fam:kimura']);
+ok('a família que entra leva junto as variações dela; a de outra família fica',
+  limparAceitas('', ['Armlock da montada', 'Kimura', 'Armlock das costas', 'fam:armlock']), ['Kimura', 'fam:armlock']);
+ok('preferida família limpa as variações dela nas aceitas',
+  limparAceitas('fam:armlock', ['Armlock da montada', 'fam:armlock', 'Kimura']), ['Kimura']);
+ok('salvar o plano aplica a mesma limpeza',
+  p41({ objetivo: 'Finalizar', objetivoTipo: 'finalizar', finalizacaoPreferida: 'Armlock da montada', finalizacoesAceitas: ['Armlock das costas', 'fam:armlock', 'Armlock da montada', 'fam:armlock'] }).finalizacoesAceitas,
+  ['fam:armlock']);
+const tirou = p41({ objetivo: 'Finalizar', objetivoTipo: 'finalizar', finalizacaoPreferida: '', finalizacoesAceitas: ['Armlock das costas'] });
+ok('tirar a família e voltar pra uma técnica: só ela conta como aceita',
+  (() => { const k = correnteDoPlano(tirou); return k.passos.map((x) => escolhaDaFinalizacao(x, k, destCat)).slice(0, 3); })(), ['outra', 'outra', 'aceita']);
+ok('trocar o objetivo de família pra posição limpa tudo',
+  (() => { const p = p41({ objetivo: 'Montada', objetivoTipo: 'posicao', finalizacaoPreferida: 'fam:armlock' }); return [p.objetivoTipo, p.finalizacaoPreferida, p.finalizacoesAceitas]; })(), ['posicao', '', []]);
+const famSync = viaSync(p41({ objetivo: 'Finalizar', objetivoTipo: 'finalizar', finalizacaoPreferida: 'fam:armlock', finalizacoesAceitas: ['fam:kimura'] }));
+ok('recarregar mantém os ids de família',
+  (() => { const p = planoNovo({ ...famSync, passos: editar(famSync) }); return [p.finalizacaoPreferida, p.finalizacoesAceitas, p.passos.map((x) => x.id)]; })(),
+  ['fam:armlock', ['fam:kimura'], golpes41.map((_, i) => `g${i}`)]);
+ok('os 16 prontos seguem sem objetivo de família', PLANOS_ATAQUE.every((p) => correnteDoPlano(p).objetivoTipo !== 'familia'), true);
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

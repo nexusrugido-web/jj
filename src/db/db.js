@@ -221,8 +221,9 @@ export async function renomearTecnicas() {
      v3: "100kg (side control)" virou "Controle lateral, 100kg".
      v4: o "Katagatame (triângulo de braço)" servia pra montada e pro
      100kg; virou "Katagatame dos 100kg".
-     v5: todo armlock com o mesmo nome ("Armlock da montada"...). */
-  if (await getMeta('renomeou_v5', false)) return;
+     v5: todo armlock com o mesmo nome ("Armlock da montada"...).
+     v6: Short choke e Estrangulamento de braço em X juntaram. */
+  if (await getMeta('renomeou_v6', false)) return;
   const troca = (n) => nomeFinal(n);
   const trocaLista = (l) => (Array.isArray(l) ? l.map(troca) : l);
   const mudou = (a, b) => JSON.stringify(a) !== JSON.stringify(b);
@@ -256,7 +257,7 @@ export async function renomearTecnicas() {
   for (const g of await db.goals.toArray()) {
     if (typeof g.alvo === 'string' && nomeFinal(g.alvo) !== g.alvo) await db.goals.update(g.id, { alvo: nomeFinal(g.alvo) });
   }
-  await setMeta('renomeou_v5', true);
+  await setMeta('renomeou_v6', true);
 }
 
 /* ============================================================
@@ -268,6 +269,10 @@ export async function renomearTecnicas() {
    queda; e o katagatame que ficou com o nome do 100kg sai do 100kg.
    Os rolas apontam pelo nome, então nenhum registro muda: só onde a
    técnica aparece e como ela conta. Uma vez por aparelho.
+   v2 (05/11/2026): Backside 50/50 é posição (sai da lista de
+   finalização; o rola antigo continua mostrando o nome gravado), e
+   nasce a categoria Compressões, com as finalizações que esmagam ou
+   abrem à força em vez de girar uma articulação.
    ============================================================ */
 const ARRUMAR = {
   'Entrada no ashi garami': { cat: 'transicao' },
@@ -279,11 +284,20 @@ const ARRUMAR = {
   'Leg drag da 50/50': { cat: 'passagem' },
   'Levantada técnica': { cat: 'escapada' },
   'Katagatame dos 100kg': { de: 'cem_quilos' },
+  'Backside 50/50': { cat: 'guarda', para: 'g50', tags: ['posicao'] },
+  'Cadeira elétrica (finalização)': { cat: 'compressao' },
+  'Banana split': { cat: 'compressao' },
+  'Compressão de panturrilha (calf slicer)': { cat: 'compressao' },
 };
 
 export async function arrumarBiblioteca() {
-  if (await getMeta('biblioteca_v1', false)) return;
+  if (await getMeta('biblioteca_v2', false)) return;
   const cat = Object.fromEntries((await db.categories.toArray()).filter((c) => c.slug).map((c) => [c.slug, c.id]));
+  /* categoria que nasceu depois da instalação */
+  for (const c of SEED.categories) {
+    if (cat[c.slug]) continue;
+    cat[c.slug] = await db.categories.add({ ...c, uid: uidEstavel(chaveNome('categories', c.nome)), arquivada: 0, criadoEm: Date.now(), __local: 1 });
+  }
   const pos = Object.fromEntries((await db.positions.toArray()).filter((p) => p.slug).map((p) => [p.slug, p.id]));
   for (const t of await db.techniques.toArray()) {
     const a = ARRUMAR[t.nome];
@@ -291,10 +305,12 @@ export async function arrumarBiblioteca() {
     const patch = {};
     if (a.cat && cat[a.cat]) patch.categoriaId = cat[a.cat];
     if (a.de && pos[a.de]) patch.origemId = pos[a.de];
+    if (a.para && pos[a.para]) patch.destinoId = pos[a.para];
+    if (a.tags) patch.tags = [...new Set([...(t.tags || []), ...a.tags])];
     /* a biblioteca é igual em todo aparelho: fica só aqui, sem subir */
     if (Object.keys(patch).length) await db.techniques.update(t.id, { ...patch, __local: Math.random() });
   }
-  await setMeta('biblioteca_v1', true);
+  await setMeta('biblioteca_v2', true);
 }
 
 /* ---------- seed ---------- */

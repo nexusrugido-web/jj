@@ -45,7 +45,7 @@ const GRUPOS = [
 
 /* só a finalização e a queda têm regra: "Defesa de heel hook" e
    "Entrada no ashi garami" não são a técnica proibida */
-const CATEGORIAS_COM_REGRA = new Set(['articular', 'perna', 'estrangulamento', 'queda']);
+const CATEGORIAS_COM_REGRA = new Set(['articular', 'perna', 'estrangulamento', 'compressao', 'queda']);
 const catalogoPorNome = new Map(CATALOGO_TECNICAS.map((t) => [t.nome, t]));
 
 export function grupoDaTecnica(nome) {

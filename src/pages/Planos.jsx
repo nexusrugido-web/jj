@@ -12,13 +12,15 @@ import {
 } from '../components/UI';
 import Guia, { Passos } from '../components/Guia';
 import { Vitrine } from '../components/Plano';
-import { SeletorTecnica } from '../components/SeletorTecnica';
+import { SeletorTecnica, ListaDeFamilias } from '../components/SeletorTecnica';
+import { FAMILIAS, FAMILIA_POR_ID, nomeDoItem, quantasVariacoes, variacoesEmResumo } from '../lib/familias';
+import { nomeAtual } from '../db/renomeios';
 import { podeVer, pedirOferta } from '../lib/plano';
 import {
   meusPlanos, planosProntos, exemplosDaFaixa, podeCriarPlano, correnteDoPlano, planoNovo, ALTURA_REL,
   taxaDoPlano, taxaPorTipo, arvoreDoPlano, semOGolpe, letraDo, novoId, removidosAoSalvar, VIAS,
   semAFinta, fintaAntes, moverPasso, chegaNoObjetivo, finaliza, pontasSoltas, semGatilho, OBJETIVO_FINALIZAR,
-  destinosDaLigacao, comLigacao, situacaoNoObjetivo, continua, escolhaDaFinalizacao,
+  destinosDaLigacao, comLigacao, situacaoNoObjetivo, continua, escolhaDaFinalizacao, jaCoberta, limparAceitas,
 } from '../lib/planos';
 import { FAIXAS } from '../lib/faixas';
 import { PESO_REL } from '../db/scoring';
@@ -46,7 +48,8 @@ export default function Planos() {
   const destinoDe = useMemo(() => {
     const pos = new Map(positions.map((x) => [x.id, x]));
     const tec = new Map(techniques.map((t) => [t.nome, t]));
-    return (nome) => pos.get(tec.get(nome)?.destinoId) || null;
+    /* o golpe gravado com um nome que mudou (técnicas que juntaram) acha a de hoje */
+    return (nome) => pos.get((tec.get(nome) || tec.get(nomeAtual(nome)))?.destinoId) || null;
   }, [positions, techniques]);
 
   const [edit, setEdit] = useState(null);
@@ -184,11 +187,16 @@ const paraEditar = (p) => {
 const juntar = (l) => (l.length < 2 ? l[0] : `${l.slice(0, -1).join(', ')} e ${l[l.length - 1]}`);
 /* finalizar: a preferida na frente, as aceitas depois; sem lista, qualquer uma serve */
 const textoDoObjetivo = (c) => {
+  if (c.objetivoTipo === 'familia') return nomeDoItem(c.objetivo, true);
   if (c.objetivoTipo !== 'finalizar') return c.objetivo;
-  const aceitas = c.finalizacoesAceitas || [];
-  if (c.finalizacaoPreferida) return `Finalizar, de preferência com ${c.finalizacaoPreferida}${aceitas.length ? ` (também vale ${juntar(aceitas)})` : ''}`;
+  const aceitas = (c.finalizacoesAceitas || []).map((n) => nomeDoItem(n));
+  if (c.finalizacaoPreferida) return `Finalizar, de preferência com ${nomeDoItem(c.finalizacaoPreferida)}${aceitas.length ? ` (também vale ${juntar(aceitas)})` : ''}`;
   return aceitas.length ? `Finalizar com ${aceitas.length < 2 ? aceitas[0] : `${aceitas.slice(0, -1).join(', ')} ou ${aceitas[aceitas.length - 1]}`}` : 'Finalizar (qualquer finalização serve)';
 };
+
+/* "Ainda não chega ..." */
+const chegaEm = (c) => (c.objetivoTipo === 'finalizar' ? 'em uma finalização'
+  : c.objetivoTipo === 'familia' ? FAMILIA_POR_ID.get(c.objetivo)?.num || 'na finalização' : `em ${c.objetivo}`);
 
 /* o "?" do plano: cada pergunta abre a sua resposta */
 const GUIA_DO_PLANO = [
@@ -196,7 +204,7 @@ const GUIA_DO_PLANO = [
     id: 'como', icone: Route, titulo: 'Como montar um plano', resumo: 'De onde você está até onde quer chegar',
     conteudo: (
       <Passos itens={[
-        'Onde quero chegar: finalizar, uma posição ou um golpe. É o que o plano persegue do começo ao fim.',
+        'Onde quero chegar: finalizar, uma família de finalização (qualquer armlock, qualquer kimura...), uma posição ou um golpe. É o que o plano persegue do começo ao fim.',
         'De onde começa: em pé, guarda fechada, meia-guarda, montada...',
         'O primeiro golpe, ou uma finta antes dele. Dá pra abrir outras entradas da mesma posição: Finta A, B ou C, você escolhe na hora.',
         'Encaixou, e depois? Vai somando golpe até chegar no objetivo. Esse caminho é o Plano A.',
@@ -363,6 +371,7 @@ function CartaoPlano({ p, exemplo = false, onAssistir, acerto = null, children }
    ============================================================ */
 const OBJETIVO_TIPOS = [
   { id: 'finalizar', nome: 'Finalizar' },
+  { id: 'familia', nome: 'Uma família de finalização' },
   { id: 'posicao', nome: 'Chegar numa posição' },
   { id: 'tecnica', nome: 'Um golpe específico' },
 ];
@@ -419,6 +428,7 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
     if (tipo === edit.objetivoTipo) return;
     mudar({ objetivoTipo: tipo, objetivo: tipo === 'finalizar' ? OBJETIVO_FINALIZAR : '', finalizacaoPreferida: '', finalizacoesAceitas: [] });
     if (tipo === 'tecnica') setEscolhendo('objetivo');
+    if (tipo === 'familia') setEscolhendo('familia');
   };
   const aceitas = edit.finalizacoesAceitas || [];
   const finalizacoes = techniques.filter((t) => destinoDe(t.nome)?.slug === 'finalizacao');
@@ -477,6 +487,16 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
             {positions.filter((p) => p.slug !== 'finalizacao' && p.slug !== 'finalizado').map((p) => <option key={p.id} value={p.nome}>{p.nome}</option>)}
           </Select>
         )}
+        {edit.objetivoTipo === 'familia' && (
+          <>
+            <button type="button" className="input plano-escolher" style={{ marginTop: 8 }} onClick={() => setEscolhendo('familia')}>
+              {edit.objetivo ? nomeDoItem(edit.objetivo, true) : 'Escolher a família'}
+            </button>
+            <p className="micro muted" style={{ marginTop: 6, lineHeight: 1.5 }}>
+              {edit.objetivo ? `Qualquer uma das ${quantasVariacoes(edit.objetivo)} variações conta: ${variacoesEmResumo(edit.objetivo, 4)}` : 'Qualquer variação da família conta: o armlock da guarda, o da montada, o das costas...'}
+            </p>
+          </>
+        )}
         {edit.objetivoTipo === 'tecnica' && (
           <button type="button" className="input plano-escolher" style={{ marginTop: 8 }} onClick={() => setEscolhendo('objetivo')}>
             {edit.objetivo || 'Escolher o golpe'}
@@ -484,18 +504,18 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
         )}
         {edit.objetivoTipo === 'finalizar' && (
           <div className="plano-finalizacoes" style={{ marginTop: 10 }}>
-            <p className="micro muted" style={{ lineHeight: 1.5 }}>Se quiser, diga a sua preferida e as que também valem. Qualquer finalização que encaixar alcança o objetivo; a lista só mostra o que você prioriza.</p>
+            <p className="micro muted" style={{ lineHeight: 1.5 }}>Se quiser, diga a sua preferida e as que também valem: uma técnica ou a família inteira (qualquer armlock, por exemplo). Qualquer finalização que encaixar alcança o objetivo; a lista só mostra o que você prioriza.</p>
             <div className="micro" style={{ marginTop: 8, fontWeight: 700 }}>Preferida</div>
             <div className="row wrap" style={{ gap: 6, marginTop: 4 }}>
               <button type="button" className="input plano-escolher" style={{ flex: 1 }} onClick={() => setEscolhendo('preferida')}>
-                {edit.finalizacaoPreferida || 'Escolher a preferida (opcional)'}
+                {edit.finalizacaoPreferida ? nomeDoItem(edit.finalizacaoPreferida, true) : 'Escolher a preferida (opcional)'}
               </button>
               {edit.finalizacaoPreferida && <Btn size="sm" variant="ghost" icon={X} onClick={() => mudar({ finalizacaoPreferida: '' })}>Tirar</Btn>}
             </div>
             <div className="micro" style={{ marginTop: 10, fontWeight: 700 }}>Também vale</div>
             <div className="row wrap" style={{ gap: 6, marginTop: 4 }}>
               {aceitas.map((n) => (
-                <Chip key={n} on onClick={() => mudar({ finalizacoesAceitas: aceitas.filter((x) => x !== n) })}>{n} <X size={11} strokeWidth={3} /></Chip>
+                <Chip key={n} on onClick={() => mudar({ finalizacoesAceitas: aceitas.filter((x) => x !== n) })}>{nomeDoItem(n, true)} <X size={11} strokeWidth={3} /></Chip>
               ))}
               <Chip onClick={() => setEscolhendo('aceita')}><Plus size={11} strokeWidth={3} /> Outra finalização</Chip>
             </div>
@@ -521,7 +541,7 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
       />
       {soltas.length > 0 && (
         <p className="micro" style={{ marginTop: 8, lineHeight: 1.5, color: '#f5c542' }}>
-          Ainda não chega em {c.objetivoTipo !== 'finalizar' ? c.objetivo : 'uma finalização'}: {juntar(soltas.map((x) => x.golpe))}. Toque no + depois {soltas.length === 1 ? 'dele' : 'deles'} pra seguir até lá.
+          Ainda não chega {chegaEm(c)}: {juntar(soltas.map((x) => x.golpe))}. Toque no + depois {soltas.length === 1 ? 'dele' : 'deles'} pra seguir até lá.
         </p>
       )}
       {fugasNoObjetivo.length > 0 && (
@@ -635,20 +655,30 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
       </Sheet>
 
       <SeletorTecnica
-        aberto={escolhendo !== null} onClose={() => setEscolhendo(null)}
+        aberto={escolhendo !== null && escolhendo !== 'familia'} onClose={() => setEscolhendo(null)}
         techniques={escolhendo === 'preferida' || escolhendo === 'aceita' ? finalizacoes : techniques} categories={categories} positions={positions} faixa={faixa}
         titulo={tituloSeletor}
         semPosicoes
+        familias={escolhendo === 'preferida' || escolhendo === 'aceita' ? FAMILIAS.map((f) => f.id) : null}
+        jaConta={escolhendo === 'aceita' ? (n) => jaCoberta(n, edit.finalizacaoPreferida, aceitas)
+          : escolhendo === 'preferida' ? (n) => (n === edit.finalizacaoPreferida ? n : '') : undefined}
         onEscolher={(t) => {
           if (escolhendo === 'objetivo') mudar({ objetivo: t.nome });
           /* a preferida não se repete nas aceitas */
-          else if (escolhendo === 'preferida') mudar({ finalizacaoPreferida: t.nome, finalizacoesAceitas: aceitas.filter((x) => x !== t.nome) });
-          else if (escolhendo === 'aceita') { if (t.nome !== edit.finalizacaoPreferida && !aceitas.includes(t.nome)) mudar({ finalizacoesAceitas: [...aceitas, t.nome] }); }
+          /* a família leva junto as variações dela que já estavam nas aceitas */
+          else if (escolhendo === 'preferida') mudar({ finalizacaoPreferida: t.nome, finalizacoesAceitas: limparAceitas(t.nome, aceitas) });
+          else if (escolhendo === 'aceita') { if (!jaCoberta(t.nome, edit.finalizacaoPreferida, aceitas)) mudar({ finalizacoesAceitas: limparAceitas(edit.finalizacaoPreferida, [...aceitas, t.nome]) }); }
           else if (escolhendo === 'fintaAntes') { mudar({ passos: fintaAntes(passos, peca.i, t.nome) }); setPeca(null); }
           else setPeca({ ...peca, golpe: t.nome });
           setEscolhendo(null);
         }}
       />
+
+      <Sheet aberto={escolhendo === 'familia'} onClose={() => setEscolhendo(null)} titulo="Qual família" subtitulo="Qualquer variação dela conta como objetivo">
+        <div className="col" style={{ gap: 5 }}>
+          <ListaDeFamilias ids={FAMILIAS.map((f) => f.id)} jaConta={(id) => (id === edit.objetivo ? id : '')} onEscolher={(id) => { mudar({ objetivo: id }); setEscolhendo(null); }} />
+        </div>
+      </Sheet>
 
       <Sheet aberto={ajuda} onClose={() => setAjuda(false)} titulo="Como montar o plano">
         <LegendaDoMapa />
@@ -759,10 +789,10 @@ function linhasDoMapa(plano, destinoDe, editar = false) {
       const folha = { tipo: 'folha', trilho: trilho[i], via: adiante, de: aqui };
       if (g.chegou) {
         linhas.push({
-          ...folha, chegou: true, forte: g.escolha === 'preferida', titulo: c.objetivoTipo === 'finalizar' ? '' : c.objetivo,
+          ...folha, chegou: true, forte: g.escolha === 'preferida', titulo: c.objetivoTipo === 'finalizar' ? '' : c.objetivoTipo === 'familia' ? nomeDoItem(c.objetivo, true) : c.objetivo,
           rotulo: g.escolha === 'preferida' ? 'Finalizou com a preferida: objetivo alcançado'
             : g.escolha === 'outra' ? 'Objetivo alcançado com outra finalização'
-              : c.objetivoTipo === 'finalizar' ? 'Finalizou: objetivo alcançado' : 'Encaixou: objetivo alcançado',
+              : c.objetivoTipo === 'finalizar' || c.objetivoTipo === 'familia' ? 'Finalizou: objetivo alcançado' : 'Encaixou: objetivo alcançado',
         });
       } else if (finaliza(x, destinoDe)) linhas.push({ ...folha, rotulo: 'Finalizou' });
       else if (editar) vaga(aqui, i, adiante, trilho[i]);

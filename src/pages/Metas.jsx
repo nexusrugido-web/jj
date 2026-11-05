@@ -544,7 +544,7 @@ export default function Metas() {
         aberto={seletorAberto} onClose={() => { setSeletorAberto(false); salvarAoEscolher.current = false; }}
         techniques={techniques} categories={categories} positions={positions}
         faixa={faixa} titulo={edit?.tipo === 'defesa' ? 'Qual finalização está te pegando' : 'Qual técnica você quer subir de grau'}
-        categoriaFiltro={edit?.tipo === 'defesa' ? ['estrangulamento', 'articular', 'perna'] : null}
+        categoriaFiltro={edit?.tipo === 'defesa' ? ['estrangulamento', 'articular', 'perna', 'compressao'] : null}
         onEscolher={(t) => {
           const novo = { ...edit, alvo: t.nome };
           setEdit(novo);

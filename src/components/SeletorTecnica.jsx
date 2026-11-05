@@ -9,6 +9,7 @@ import { avaliarTecnica } from '../lib/regras';
 import { casaApelido } from '../db/sinonimos';
 import { autopreencherTecnica } from '../lib/ai';
 import { ehPosicao } from '../lib/posicoes';
+import { FAMILIA_POR_ID, MEMBROS, nomeDoItem, quantasVariacoes, variacoesEmResumo } from '../lib/familias';
 import './Aprendizado.css';
 
 /* ============================================================
@@ -31,6 +32,8 @@ export function SeletorTecnica({
   multiplo = false,
   jaEscolhidas = [],
   semPosicoes = false,        // na aula, posição tem o lugar dela: aqui só técnica
+  familias = null,            // ids de família que podem ser escolhidas inteiras (fam:armlock)
+  jaConta = () => '',         // quem já cobre a técnica ("qualquer armlock"): ela não entra de novo
 }) {
   const toast = useToast();
   const [busca, setBusca] = useState('');
@@ -64,6 +67,12 @@ export function SeletorTecnica({
       return a.nome.localeCompare(b.nome);
     }).slice(0, 120);
   }, [techniques, cat, busca, categoriaFiltro, idsPermitidos, recentes, semPosicoes]);
+
+  const familiasVistas = useMemo(() => (familias || []).filter((id) => {
+    if (!busca) return true;
+    const f = FAMILIA_POR_ID.get(id);
+    return buscaMatch(`${f.nome} ${f.qualquer} ${(MEMBROS.get(id) || []).join(' ')}`, busca);
+  }), [familias, busca]);
 
   const atalhos = useMemo(
     () => recentes
@@ -217,8 +226,16 @@ export function SeletorTecnica({
           )}
 
           <div className="col" style={{ gap: 5, maxHeight: '52vh', overflowY: 'auto', overscrollBehavior: 'contain' }}>
+            {familiasVistas.length > 0 && (
+              <>
+                <div className="eyebrow" style={{ marginTop: 4 }}>A família inteira</div>
+                <ListaDeFamilias ids={familiasVistas} jaConta={jaConta} onEscolher={(id) => { onEscolher({ nome: id, familia: true }); if (!multiplo) onClose(); }} />
+                <div className="eyebrow" style={{ marginTop: 10 }}>Uma técnica só</div>
+              </>
+            )}
             {lista.map((t) => {
-              const escolhida = jaEscolhidas.includes(t.nome);
+              const cobre = jaConta(t.nome);
+              const escolhida = jaEscolhidas.includes(t.nome) || !!cobre;
               const ilegal = !liberadas.includes(t.nome) && avaliarTecnica(t.nome, { faixa, idade, modalidade }) != null;
               return (
                 <button
@@ -228,6 +245,7 @@ export function SeletorTecnica({
                     borderRadius: 10, borderBottom: 0,
                     background: escolhida ? 'color-mix(in srgb, var(--jade) 12%, var(--void))' : 'var(--void)',
                   }}
+                  disabled={!!cobre && cobre !== t.nome}
                   onClick={() => { onEscolher(t); if (!multiplo) onClose(); }}
                 >
                   <div className="grow" style={{ minWidth: 0 }}>
@@ -235,7 +253,8 @@ export function SeletorTecnica({
                       {t.nome} {ilegal && <ShieldAlert size={11} style={{ color: 'var(--blood)', verticalAlign: -1 }} />}
                     </div>
                     <div className="micro muted truncate">
-                      {t.nomeEn}{catById[t.categoriaId] && ` · ${catById[t.categoriaId].nome}`}
+                      {cobre && cobre !== t.nome ? `Já conta pelo "${nomeDoItem(cobre, true)}"`
+                        : <>{t.nomeEn}{catById[t.categoriaId] && ` · ${catById[t.categoriaId].nome}`}</>}
                     </div>
                   </div>
                   {escolhida ? <Check size={15} style={{ color: 'var(--jade)' }} /> : <Plus size={15} className="muted" />}
@@ -259,6 +278,27 @@ export function SeletorTecnica({
       )}
     </Sheet>
   );
+}
+
+/* as famílias de finalização pra escolher inteiras: "Qualquer armlock",
+   com as variações que ela cobre embaixo */
+export function ListaDeFamilias({ ids, jaConta = () => '', onEscolher }) {
+  return ids.map((id) => {
+    const escolhida = !!jaConta(id);
+    return (
+      <button
+        key={id} type="button" className="list-item"
+        style={{ borderRadius: 10, borderBottom: 0, background: escolhida ? 'color-mix(in srgb, var(--jade) 12%, var(--void))' : 'var(--void)' }}
+        onClick={() => onEscolher(id)}
+      >
+        <div className="grow" style={{ minWidth: 0 }}>
+          <div className="tiny" style={{ fontWeight: 600 }}>{nomeDoItem(id, true)}</div>
+          <div className="micro muted truncate">{quantasVariacoes(id)} variações: {variacoesEmResumo(id)}</div>
+        </div>
+        {escolhida ? <Check size={15} style={{ color: 'var(--jade)' }} /> : <Plus size={15} className="muted" />}
+      </button>
+    );
+  });
 }
 
 /* ============================================================

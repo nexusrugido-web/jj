@@ -60,6 +60,7 @@ export const HABILIDADES = [
   { id: 'estrangulamento', nome: 'Estrangulamento', dentroDe: 'finalizacao' },
   { id: 'articular', nome: 'Chave articular', dentroDe: 'finalizacao' },
   { id: 'perna', nome: 'Chave de perna', dentroDe: 'finalizacao' },
+  { id: 'compressao', nome: 'Compressão', dentroDe: 'finalizacao' },
   { id: 'fisico', nome: 'Corpo e gás' },
 ];
 
@@ -282,7 +283,7 @@ export function doLegado({ temas = [], posicoes = [], faixa = null } = {}) {
 const TEMA_DA_HABILIDADE = {
   guarda: 'guarda', retencao: 'guarda',
   controle: 'controle', transicao: 'controle',
-  finalizacao: 'finalizacao', estrangulamento: 'finalizacao', articular: 'finalizacao', perna: 'finalizacao',
+  finalizacao: 'finalizacao', estrangulamento: 'finalizacao', articular: 'finalizacao', perna: 'finalizacao', compressao: 'finalizacao',
   escapada: 'defesa', defesa: 'defesa',
   queda: 'queda', pegada: 'queda',
   passagem: 'passagem',

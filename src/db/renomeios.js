@@ -84,7 +84,13 @@ export const RENOMEAR = {
   'Estrangulamento de papel-cortante': 'Paper cutter',
   'Estrangulamento de baseball': 'Baseball choke (taco de beisebol)',
   'Estrangulamento de lapela nas costas (bulldog)': 'Bulldog choke',
-  'Estrangulamento de calção (short choke)': 'Short choke',
+  /* 05/11/2026: duas técnicas com os mesmos dados (nome em inglês,
+     origem, destino) juntaram. "Short choke" é o mata-leão de uma mão
+     só ("calção" era tradução errada de "short"); o "X choke" da
+     montada é a cruzada da montada. O uid antigo segue achando (juntou). */
+  'Estrangulamento de calção (short choke)': 'Mata-leão de uma mão só',
+  'Short choke': 'Mata-leão de uma mão só',
+  'Estrangulamento de braço em X': 'Cruzada da montada',
   'Estrangulamento em pé (standing guillotine)': 'Guilhotina em pé',
   'Estrangulamento de dez dedos (guilhotina)': 'Guilhotina de dez dedos',
   'Marceline': 'Marcelotine',

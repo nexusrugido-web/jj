@@ -246,7 +246,7 @@ Posições (id: nome): ${(p.posicoes || []).slice(0, 60).join('; ') || 'nenhuma'
     system:
       'Você é um professor experiente de Jiu-Jitsu brasileiro. Responda SOMENTE com JSON válido, sem markdown, sem crases, sem texto antes ou depois. ' +
       'Schema: {"nomePt":string,"nomeEn":string,"categoria":string,"origem":string,"destino":string,"faixaMin":"branca"|"azul"|"roxa"|"marrom"|"preta","modo":"gi"|"nogi"|"ambos","restricao":string,"detalhes":string,"confianca":0-1}. ' +
-      'categoria DEVE ser exatamente uma destas: Quedas, Passagens, Raspagens, Estrangulamentos, Chaves articulares, Chaves de perna, Escapadas, Transições, Retenção de guarda, Pegadas e controles, Defesas, Guardas e posições, Movimentos base. ' +
+      'categoria DEVE ser exatamente uma destas: Quedas, Passagens, Raspagens, Estrangulamentos, Chaves articulares, Chaves de perna, Compressões, Escapadas, Transições, Retenção de guarda, Pegadas e controles, Defesas, Guardas e posições, Movimentos base. ' +
       'REGRA IMPORTANTE: se o nome for uma GUARDA ou POSIÇÃO (guarda aranha, X-guard, meia-guarda, montada, cem quilos, De La Riva, worm guard, tartaruga, ashi garami, 50/50, crucifixo...), a categoria é "Guardas e posições" — NUNCA "Pegadas e controles". ' +
       'Se for um movimento solo de deslocamento (fuga de quadril, ponte, rolamento, granby, sprawl), a categoria é "Movimentos base". ' +
       'origem e destino são OBRIGATÓRIOS e devem sair desta lista, escolhendo o mais próximo: ' +

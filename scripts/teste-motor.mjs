@@ -93,6 +93,24 @@ const certa = aulasPara(pedidoAmericana, { lista: comDefesaDaAmericana, quantida
 ok('com aula de defesa da própria técnica, ela vem primeiro', ids(certa), ['defesa-americana']);
 ok('e a tela diz que ela ensina a defesa', rotuloDaAula(certa[0], pedidoAmericana, 'Americana'), 'ensina a defesa de Americana');
 
+/* ---------- compressão (R4.1): categoria própria ----------
+   Quem precisa se defender da Cadeira elétrica não recebe aula de
+   chave de perna nem de chave articular só porque envolve as pernas. */
+const CADEIRA = uid('Cadeira elétrica (finalização)');
+const pedidoCadeira = pedidoDaRec({ intencao: 'corrigir', alvo: 'Cadeira elétrica (finalização)' });
+ok('o pedido da Cadeira elétrica leva a família compressão', pedidoCadeira.familia, 'compressao');
+const acervoCadeira = [
+  v('defesa-heel-hook', { tecnicas: [uid('Heel hook interno')], habilidades: ['defesa', 'perna'] }),
+  v('defesa-chave-de-perna', { habilidades: ['defesa', 'perna'] }),
+  v('defesa-articular', { habilidades: ['defesa', 'articular'] }),
+  v('defesa-geral', { habilidades: ['defesa'] }),
+];
+ok('defesa de compressão nunca recebe a de chave de perna nem a articular',
+  ids(aulasPara(pedidoCadeira, { lista: acervoCadeira, quantidade: 4, soAula: true })), ['defesa-geral']);
+const comDefesaDaCadeira = [...acervoCadeira, v('defesa-banana-split', { tecnicas: [uid('Banana split')], habilidades: ['defesa'] }), v('defesa-cadeira', { tecnicas: [CADEIRA], habilidades: ['defesa'] })];
+ok('com aula da própria técnica, ela vem primeiro; a de outra compressão (Banana split) também serve',
+  ids(aulasPara(pedidoCadeira, { lista: comDefesaDaCadeira, quantidade: 2, soAula: true })), ['defesa-cadeira', 'defesa-banana-split']);
+
 /* ---------- katagatame: o caso do Painel (25/09) ----------
    A sugestão "Defesa contra Katagatame" trazia "O katagatame que
    apaga", que ensina a aplicar. Sem aula de defesa dele, a resposta

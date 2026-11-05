@@ -94,6 +94,19 @@ const PREF = {
   ].map((x) => ({ seFalhar: '', proxima: '', detalhe: '', ...x })),
 };
 
+/* R4.1: objetivo família Armlock (qualquer armlock conta; o triângulo
+   e a omoplata finalizam, mas não são o objetivo) e um finalizar sem
+   preferida, pra escolher família na preferida e no "também vale" */
+const FAMP = {
+  ...PLANO, nome: 'Qualquer armlock da guarda', objetivo: 'fam:armlock', objetivoTipo: 'familia', ligacoes: [], passos: [
+    { id: 'a0', lig: 'm0', acao: 'Armlock da guarda fechada', gatilho: '', pai: null, via: null },
+    { id: 'a1', lig: 'm1', acao: 'Triângulo', gatilho: 'puxou o braço', pai: 0, via: 'defendeu' },
+    { id: 'a2', lig: 'm2', acao: 'Armlock do triângulo', gatilho: 'defendeu o estrangulamento', pai: 1, via: 'defendeu' },
+    { id: 'a3', lig: 'm3', acao: 'Omoplata', gatilho: 'girou o braço pra fora', pai: 0, via: 'defendeu' },
+  ].map((x) => ({ seFalhar: '', proxima: '', detalhe: '', ...x })),
+};
+const FAMF = { ...FAMP, nome: 'Finalizar com família', objetivo: 'Finalizar', objetivoTipo: 'finalizar', finalizacaoPreferida: '', finalizacoesAceitas: [] };
+
 /* cada cartão do mapa com tamanho, e quantos estão dentro do quadro */
 const medirMapa = (s) => {
   const quadro = document.querySelector(s).getBoundingClientRect();
@@ -130,7 +143,7 @@ try {
       const { VERSAO_DOCS } = await import('/src/components/Aceite.jsx');
       await setMeta('settings', { ...(await getMeta('settings', {})), nome: 'Praticante de teste', anoNascimento: 1995, faixa: 'branca', onboardingFeito: 1, tourVisto: 1, celebrar: false, aceite: { versao: VERSAO_DOCS, em: new Date().toISOString() } });
       for (const p of plano) await db.attackPlans.add({ ...p, criadoEm: Date.now() });
-    }, [PLANO, GRANDE, FUGA, CONV, PREF]);
+    }, [PLANO, GRANDE, FUGA, CONV, PREF, FAMP, FAMF]);
     await page.goto(`${url}/?go=planos`, { waitUntil: 'networkidle' });
     await page.getByText(PLANO.nome).first().waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `lista de planos vaza em ${nome}`);
@@ -336,6 +349,88 @@ try {
     }, PREF.nome);
     console.log(`${nome} preferida salva:`, JSON.stringify(pref));
     assert.deepEqual(pref, { preferida: '', aceitas: ['Triângulo', 'Guilhotina'], objetivo: 'Finalizar', ids: ['k0', 'k1', 'k2', 'k3'] }, 'tirar a preferida apaga a de antes; aceitas e ids ficam');
+
+    /* R4.1: objetivo família inteira */
+    await page.goto(`${url}/?go=planos`, { waitUntil: 'networkidle' });
+    await page.getByText(FAMP.nome).first().waitFor();
+    assert.ok(await page.locator('.plano-cartao', { hasText: FAMP.nome }).getByText('Qualquer armlock').count() >= 1, 'a lista mostra a família pelo nome, nunca o id');
+    assert.equal(await page.getByText('fam:armlock').count(), 0, 'o id da família não aparece');
+    await page.locator('.plano-cartao', { hasText: FAMP.nome }).first().getByRole('button', { name: 'Ver o mapa' }).first().click();
+    await page.locator('.mente-tela .mente-folha').first().waitFor();
+    await page.waitForTimeout(1200);
+    const famv = await page.evaluate(medirMapa, '.mente-tela');
+    console.log(`${nome} família, ver o mapa:`, JSON.stringify(famv));
+    await page.screenshot({ path: `${pasta}/${nome}-familia-ver.png` });
+    assert.equal(famv.sobrepostos, 0, 'família: cartões sobrepostos');
+    assert.equal(famv.vaza, false, 'família: vaza a página');
+    assert.equal(await page.locator('.mente-tela .mente-folha.chegada').count(), 2, 'os dois armlocks alcançam; triângulo e omoplata não');
+    await page.keyboard.press('Escape');
+    await page.goto(`${url}/?go=planos`, { waitUntil: 'networkidle' });
+    await page.getByText(FAMP.nome).first().waitFor();
+    await page.locator('.plano-cartao', { hasText: FAMP.nome }).first().getByRole('button', { name: 'Editar' }).first().click();
+    await page.getByText('Qualquer uma das 15 variações conta', { exact: false }).waitFor();
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `editor da família vaza em ${nome}`);
+    await page.screenshot({ path: `${pasta}/${nome}-familia-editor.png` });
+    await page.locator('button.plano-escolher', { hasText: 'Qualquer armlock' }).click();
+    await page.getByText('Qual família', { exact: true }).waitFor();
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `${pasta}/${nome}-familia-escolher.png` });
+    await page.locator('.list-item', { hasText: 'Qualquer kimura' }).click();
+    await page.getByText('Qualquer uma das 8 variações conta', { exact: false }).waitFor();
+    await page.getByRole('button', { name: 'Salvar plano' }).click();
+    await page.getByText('Plano salvo').first().waitFor();
+    const fs1 = await page.evaluate(async (n) => {
+      const { db } = await import('/src/db/db.js');
+      const p = (await db.attackPlans.toArray()).find((x) => x.nome === n);
+      return { objetivo: p.objetivo, tipo: p.objetivoTipo, ids: p.passos.map((x) => x.id) };
+    }, FAMP.nome);
+    assert.deepEqual(fs1, { objetivo: 'fam:kimura', tipo: 'familia', ids: ['a0', 'a1', 'a2', 'a3'] }, 'trocar a família grava o id e mantém as peças');
+
+    /* R4.1: preferida família, também vale com família, sem repetir variação */
+    await page.goto(`${url}/?go=planos`, { waitUntil: 'networkidle' });
+    await page.getByText(FAMF.nome).first().waitFor();
+    await page.locator('.plano-cartao', { hasText: FAMF.nome }).first().getByRole('button', { name: 'Editar' }).first().click();
+    await page.getByText('Também vale', { exact: true }).waitFor();
+    await page.locator('button.plano-escolher', { hasText: 'Escolher a preferida' }).click();
+    await page.getByText('A família inteira', { exact: true }).waitFor();
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `${pasta}/${nome}-familia-seletor.png` });
+    await page.locator('.list-item', { hasText: 'Qualquer armlock' }).click();
+    await page.locator('.chip', { hasText: 'Outra finalização' }).click();
+    await page.getByPlaceholder('Buscar em português ou inglês…').fill('armlock da montada');
+    const coberta = page.locator('.list-item').filter({ has: page.getByText('Armlock da montada', { exact: true }) }).first();
+    await coberta.waitFor();
+    assert.ok(await coberta.getByText('Já conta pelo "Qualquer armlock"').count() === 1, 'a variação coberta avisa');
+    assert.equal(await coberta.isDisabled(), true, 'a variação coberta não entra de novo');
+    await page.screenshot({ path: `${pasta}/${nome}-familia-coberta.png` });
+    await page.getByPlaceholder('Buscar em português ou inglês…').fill('kimura');
+    await page.locator('.list-item', { hasText: 'Qualquer kimura' }).click();
+    await page.getByRole('button', { name: 'Salvar plano' }).click();
+    await page.getByText('Plano salvo').first().waitFor();
+    const lerFamf = () => page.evaluate(async (n) => {
+      const { db } = await import('/src/db/db.js');
+      const p = (await db.attackPlans.toArray()).find((x) => x.nome === n);
+      return { preferida: p.finalizacaoPreferida, aceitas: p.finalizacoesAceitas, ids: p.passos.map((x) => x.id) };
+    }, FAMF.nome);
+    assert.deepEqual(await lerFamf(), { preferida: 'fam:armlock', aceitas: ['fam:kimura'], ids: ['a0', 'a1', 'a2', 'a3'] }, 'preferida e aceita por família');
+    assert.ok(await page.locator('.plano-cartao', { hasText: FAMF.nome }).getByText('de preferência com qualquer armlock (também vale qualquer kimura)').count() >= 1, 'a lista explica em português');
+    /* a exceção: preferir o da guarda e aceitar qualquer armlock */
+    await page.locator('.plano-cartao', { hasText: FAMF.nome }).first().getByRole('button', { name: 'Editar' }).first().click();
+    await page.getByText('Também vale', { exact: true }).waitFor();
+    await page.locator('button.plano-escolher', { hasText: 'Qualquer armlock' }).click();
+    await page.getByPlaceholder('Buscar em português ou inglês…').fill('armlock da guarda fechada');
+    await page.locator('.list-item').filter({ has: page.getByText('Armlock da guarda fechada', { exact: true }) }).first().click();
+    await page.locator('.chip', { hasText: 'Outra finalização' }).click();
+    await page.getByPlaceholder('Buscar em português ou inglês…').fill('armlock');
+    await page.locator('.list-item', { hasText: 'Qualquer armlock' }).click();
+    await page.getByText('Também vale', { exact: true }).scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `${pasta}/${nome}-familia-excecao.png` });
+    await page.getByRole('button', { name: 'Salvar plano' }).click();
+    await page.getByText('Plano salvo').first().waitFor();
+    const fx = await lerFamf();
+    console.log(`${nome} família salva:`, JSON.stringify(fx));
+    assert.deepEqual(fx, { preferida: 'Armlock da guarda fechada', aceitas: ['fam:kimura', 'fam:armlock'], ids: ['a0', 'a1', 'a2', 'a3'] }, 'prefiro uma técnica, aceito a família dela');
+    assert.equal(erros.length, 0, `erros na página: ${erros.join(' | ')}`);
 
     /* o plano grande: mais de 16 peças, vendo e editando */
     for (const modo of ['Ver o mapa', 'Editar']) {

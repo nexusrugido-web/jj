@@ -33,7 +33,7 @@ export const CATALOGO_TECNICAS = SEED.techniques.map((t) => ({
 export const TECNICA_POR_UID = new Map(CATALOGO_TECNICAS.flatMap((t) => t.uids.map((u) => [u, t])));
 export const INDICE_TECNICAS = indiceDeTecnicas(CATALOGO_TECNICAS);
 
-/* as três famílias de finalização da biblioteca */
-export const FAMILIAS_DE_FINALIZACAO = new Set(['estrangulamento', 'articular', 'perna']);
+/* as categorias de finalização da biblioteca (compressão desde 05/11/2026) */
+export const FAMILIAS_DE_FINALIZACAO = new Set(['estrangulamento', 'articular', 'perna', 'compressao']);
 
 export const familiaDaTecnica = (uid) => TECNICA_POR_UID.get(uid)?.cat || null;

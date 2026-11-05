@@ -106,7 +106,7 @@ ok('juntar e separar voltam ao mesmo lugar', V.separar(V.juntar('cem', 'baixo'))
 ok('sem lado é neutro', V.separar('montada'), { posicao: 'montada', lado: 'neutro' });
 ok('nome com lado', V.nomePosicaoLado('cem:baixo'), '100kg por baixo');
 ok('nome sem lado', V.nomePosicaoLado('perna:neutro'), 'Jogo de perna');
-ok('finalização acha as três', V.familiaDaHabilidade('finalizacao'), ['finalizacao', 'estrangulamento', 'articular', 'perna']);
+ok('finalização acha as quatro', V.familiaDaHabilidade('finalizacao'), ['finalizacao', 'estrangulamento', 'articular', 'perna', 'compressao']);
 ok('estrangulamento acha finalização', V.familiaDaHabilidade('estrangulamento'), ['estrangulamento', 'finalizacao']);
 ok('habilidade solta é ela mesma', V.familiaDaHabilidade('queda'), ['queda']);
 ok('33 combinações de posição e lado', V.POSICOES_LADO.length, 33);
