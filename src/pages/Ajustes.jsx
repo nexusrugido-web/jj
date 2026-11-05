@@ -10,6 +10,7 @@ import TesteVideo from '../components/TesteVideo';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, exportAll, importAll, wipeAll, ensureSeed } from '../db/db';
 import { FAIXAS } from '../db/seed';
+import { POSICOES_INICIAIS } from '../db/scoring';
 import { faixasDaIdade, faixaValidaNaIdade } from '../lib/faixas';
 import { idadeDe } from '../lib/regras';
 import { IDADE_MINIMA } from '../lib/idade';
@@ -255,6 +256,11 @@ export default function Ajustes() {
             </button>
           </Field>
           <Field label="Duração padrão do rola (min)"><Stepper value={settings.duracaoRolaPadrao} onChange={(v) => set('duracaoRolaPadrao', v)} min={1} max={20} /></Field>
+          <Field label="De onde o rola começa" hint="Todo rola novo já vem com essa posição. Dá pra trocar no registro.">
+            <Select value={settings.posInicialPadrao || 'em_pe'} onChange={(e) => set('posInicialPadrao', e.target.value)}>
+              {POSICOES_INICIAIS.map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}
+            </Select>
+          </Field>
         </div>
       </Sheet>
 

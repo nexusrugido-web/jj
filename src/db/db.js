@@ -197,7 +197,7 @@ export const DEFAULT_SETTINGS = {
   objetivo: 'lazer', sugestoesDispensadas: [], tourVisto: 0, onboardingFeito: 0,
   pesoKg: '',
   inicioTreino: '', acento: 'blood', fundo: 'preto',
-  metaSemanal: 4, metaAnualHoras: 200, duracaoRolaPadrao: 5, duracaoTreinoPadrao: 90,
+  metaSemanal: 4, metaAnualHoras: 200, duracaoRolaPadrao: 5, duracaoTreinoPadrao: 90, posInicialPadrao: 'em_pe',
   mostrarNoDash: {
     escada: true, heat: true, metas: true, revisao: true,
     finalizacoes: true, parceiros: true, dominio: true,

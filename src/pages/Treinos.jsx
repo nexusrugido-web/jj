@@ -90,11 +90,11 @@ const novaSessao = (settings, tipo = 'gi') => ({
   energia: 3,
 });
 
-const novaRola = (dur, ultima, tipoTreino) => ({
+const novaRola = (dur, ultima, tipoTreino, posPadrao) => ({
   duracao: dur || 5,
   contexto: ehCompeticao(tipoTreino) ? 'competicao' : 'rola',
   partnerId: null,
-  posInicial: ultima?.posInicial || null,
+  posInicial: ultima?.posInicial || posPadrao || 'em_pe',
   pesoRel: null,
   ptsMeus: [],
   ptsDele: [],
@@ -293,7 +293,7 @@ export default function Treinos() {
   /* o que a IA entendeu vira um treino aberto pra você conferir.
      Nada é salvo antes de você olhar. */
   /* o rola herda o tipo do treino: numa competição ela vale mais */
-  const novaRolaDoTreino = (dur, ultima) => novaRola(dur, ultima, editando?.tipo);
+  const novaRolaDoTreino = (dur, ultima) => novaRola(dur, ultima, editando?.tipo, settings.posInicialPadrao);
 
   async function montarDoFalado(d, falado) {
     /* o tipo que a pessoa falou, com o padrão daquele tipo (academia,
@@ -375,7 +375,7 @@ export default function Treinos() {
     const rs = [];
     for (const r of forma.rolas === 'nunca' ? [] : d.rolas || []) {
       const rola = {
-        ...novaRola(Number(r.duracao) || settings.duracaoRolaPadrao || 5, null, tipo),
+        ...novaRola(Number(r.duracao) || settings.duracaoRolaPadrao || 5, null, tipo, settings.posInicialPadrao),
         ptsMeus: r.ptsMeus || [],
         ptsDele: r.ptsDele || [],
         tecMeus: tecDoPonto(r.tecMeus),
@@ -407,7 +407,7 @@ export default function Treinos() {
     /* Um treino novo começa sem rola. O cronômetro é a exceção:
        quem tocou em registrar o tempo pediu explicitamente um rola. */
     setRolasEdit(minutosDaRola && !ehCompeticao(tipo)
-      ? [novaRola(minutosDaRola, null, tipo)] : []);
+      ? [novaRola(minutosDaRola, null, tipo, settings.posInicialPadrao)] : []);
     setTela(ehCompeticao(tipo) ? 'campeonato' : 'hub');
   }
 
@@ -946,6 +946,7 @@ export default function Treinos() {
             faixa={settings.faixa}
             academias={academias} professores={professores}
             duracaoPadrao={settings.duracaoRolaPadrao || 5}
+            posPadrao={settings.posInicialPadrao}
             padraoDe={(tipo) => padraoDoTipo(settings, tipo)}
             idade={idadeDe(settings.anoNascimento)}
             liberadas={settings.tecnicasLiberadas || []}
@@ -1372,7 +1373,7 @@ function BlocoCompeticao({ s, setS, onAbrirRegras }) {
   );
 }
 
-function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions = [], techniques, categories, finalizacoes, maisUsadas, recentesPorPonto, maisNoPonto = { tecMeus: {}, tecDele: {} }, recentesFoco, faixa, academias, professores, duracaoPadrao, padraoDe, onSalvarPadrao, idade = null, liberadas = [], onLiberar, tela = 'hub', setTela }) {
+function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions = [], techniques, categories, finalizacoes, maisUsadas, recentesPorPonto, maisNoPonto = { tecMeus: {}, tecDele: {} }, recentesFoco, faixa, academias, professores, duracaoPadrao, posPadrao, padraoDe, onSalvarPadrao, idade = null, liberadas = [], onLiberar, tela = 'hub', setTela }) {
   const padrao = padraoDe(s.tipo);
   /* os planos de ataque do aluno, pro "usou qual plano?" do rola */
   const meusPlanosDeAtaque = planosDaPessoa(useLiveQuery(() => db.attackPlans.toArray(), [], []) || [], faixa);
@@ -1407,7 +1408,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
   );
 
   const addRola = () => {
-    setRolas([...rolas, novaRola(duracaoPadrao, rolas[rolas.length - 1], s.tipo)]);
+    setRolas([...rolas, novaRola(duracaoPadrao, rolas[rolas.length - 1], s.tipo, posPadrao)]);
     setRolaAberta(rolas.length);
   };
   const setRola = (i, patch) => setRolas(rolas.map((r, j) => (j === i ? { ...r, ...patch } : r)));
@@ -1476,7 +1477,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
                     {!forma.lutas && <Field label="Duração (min)"><NumeroInput valor={r.duracao} onChange={(v) => setRola(i, { duracao: v })} /></Field>}
                     <Field label="De onde começou" hint="Descobre de onde você ganha e de onde apanha.">
                       <Select value={r.posInicial || ''} onChange={(e) => setRola(i, { posInicial: e.target.value || null })}>
-                        <option value="">Não anotei</option>
+                        {!r.posInicial && <option value="">Não anotado</option>}
                         {POSICOES_INICIAIS.map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}
                       </Select>
                     </Field>
