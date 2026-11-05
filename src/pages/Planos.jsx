@@ -371,7 +371,7 @@ function NoDoMapa({ n, guardar }) {
     return (
       <div ref={guardar(n.k)} className={`mapa-folha t-golpe${n.segue ? ' segue' : ''}`} style={{ '--i': n.ordem }}>
         <span className="row" style={{ gap: 5 }}><Check size={13} /> Encaixou</span>
-        {n.segue && <span className="mapa-segue">depois: {n.segue.replace(/-/g, '‑')}</span>}
+        {n.segue && <span className="mapa-segue">depois: {n.segue.replace(/-/g, '\u2011')}</span>}
       </div>
     );
   }
