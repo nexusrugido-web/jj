@@ -162,7 +162,7 @@ ok('os índices de antes não mudam (o rola guarda o índice)', antes.slice(0, 4
 ok('tirar a finta devolve o golpe pro lugar dela', semAFinta(antes, 5).map((x) => [x.golpe, x.pai, x.via]).slice(4), [['Guilhotina', 3, 'defendeu']]);
 ok('tirar a finta do meio religa o caminho', semAFinta(cf.passos, 2).map((x) => [x.golpe, x.pai, x.via]).slice(2, 3), [['Kimura', 1, 'reagiu']]);
 
-ok('finta ocupada não tem vaga; finta não tem defesa', [vagaLivre(cf.passos, 2, 'defendeu'), vagaLivre(cf.passos, 2, 'reagiu')], [false, false]);
+ok('finta não tem defesa; aceita outra reação e o "não reagiu"', [vagaLivre(cf.passos, 2, 'defendeu'), vagaLivre(cf.passos, 2, 'reagiu'), vagaLivre(cf.passos, 2, 'naoReagiu')], [false, true, true]);
 ok('golpe não tem vaga de "ele reagiu"', vagaLivre(cf.passos, 4, 'reagiu'), false);
 ok('arrastar pra dentro do próprio galho não vale', moverPasso(cf.passos, 3, 4, 'encaixou'), null);
 ok('a raiz não sai do lugar', moverPasso(cf.passos, 0, 4, 'encaixou'), null);
@@ -188,6 +188,47 @@ const { casaApelido } = await import('../src/db/sinonimos.js');
 for (const termo of ['arm l', 'arm lock', 'armlock', 'arm bar', 'chave de braço', 'chave de braço reta', 'Chave de braco']) {
   ok(`"${termo}" acha o Armlock da guarda fechada`, casaApelido('Armlock da guarda fechada', termo), true);
 }
+/* ---------- R1: várias saídas por peça ----------
+   Da guarda fechada: Finta A, B e C como opções (não etapas). O
+   armlock tem três defesas, cada uma com a sua continuação. A finta
+   tem "reagiu" e "não reagiu" (troco a ameaça). */
+const { semGatilho, viasDa } = await import('../src/lib/planos.js');
+const grafo = planoNovo({
+  nome: 'Guarda fechada, três entradas', objetivo: 'Finalizar', objetivoTipo: 'finalizar',
+  passos: [
+    { tipo: 'finta', golpe: 'Guilhotina', pai: null },                                                   // 0 Finta A
+    { tipo: 'finta', golpe: 'Raspagem de tesoura', pai: null },                                          // 1 Finta B
+    { tipo: 'finta', golpe: 'Triângulo', pai: null },                                                    // 2 Finta C
+    { tipo: 'golpe', golpe: 'Armlock', reacao: 'levantou a cabeça', pai: 0, via: 'reagiu' },             // 3
+    { tipo: 'golpe', golpe: 'Triângulo', reacao: 'colou o cotovelo', pai: 3, via: 'defendeu' },          // 4 defesa A
+    { tipo: 'golpe', golpe: 'Omoplata', reacao: 'girou o braço pra fora', pai: 3, via: 'defendeu' },     // 5 defesa B
+    { tipo: 'golpe', golpe: 'Kimura', reacao: 'levantou a postura', pai: 3, via: 'defendeu' },           // 6 defesa C
+    { tipo: 'finta', golpe: 'Kimura', reacao: 'ficou parado na base', pai: 0, via: 'naoReagiu' },        // 7
+    { tipo: 'golpe', golpe: 'Raspagem de quadril (hip bump)', reacao: 'apoiou a mão', pai: 1, via: 'reagiu' }, // 8
+    { tipo: 'golpe', golpe: 'Armlock', reacao: 'puxou o braço', pai: 2, via: 'reagiu' },                 // 9
+  ],
+});
+ok('três entradas da mesma posição ficam (várias raízes)', grafo.passos.filter((x) => x.pai === null).length, 3);
+ok('o "não reagiu" é guardado', grafo.passos[7].via, 'naoReagiu');
+const cg = correnteDoPlano(grafo);
+const ag = arvoreDoPlano(cg.passos);
+ok('cada entrada e cada desvio é um plano com letra própria', ag.ordem.map((i) => `${LETRAS[ag.trilho[i]]}:${cg.passos[i].golpe}`),
+  ['A:Guilhotina', 'A:Armlock', 'B:Raspagem de tesoura', 'B:Raspagem de quadril (hip bump)', 'C:Triângulo', 'C:Armlock',
+    'D:Kimura', 'E:Triângulo', 'F:Omoplata', 'G:Kimura']);
+ok('passa de 4 planos', ag.trilhos, 7);
+ok('as três defesas saem do mesmo armlock, cada uma com o que ele fez', ag.filhos[3].map((k) => cg.passos[k].reacao), ['colou o cotovelo', 'girou o braço pra fora', 'levantou a postura']);
+ok('golpe abre encaixou e defendeu; finta, reagiu e não reagiu', [viasDa(cg.passos[3]), viasDa(cg.passos[0])], [['encaixou', 'defendeu'], ['reagiu', 'naoReagiu']]);
+ok('golpe aceita mais uma defesa', vagaLivre(cg.passos, 3, 'defendeu'), true);
+ok('"não reagiu" é um só', vagaLivre(cg.passos, 0, 'naoReagiu'), false);
+ok('defesa sem nome junto de outra é avisada', semGatilho([...cg.passos, { tipo: 'golpe', golpe: 'Mata-leão', reacao: '', pai: 3, via: 'defendeu' }]).map((x) => x.golpe), ['Mata-leão']);
+ok('defesa sozinha sem nome não é avisada', semGatilho([{ golpe: 'Armlock', pai: null }, { golpe: 'Kimura', reacao: '', pai: 0, via: 'defendeu' }]), []);
+ok('tirar a finta leva junto o "não reagiu" dela', semAFinta(cg.passos, 0).map((x) => x.golpe).includes('Kimura') && semAFinta(cg.passos, 0).filter((x) => x.tipo === 'finta').length, 2);
+ok('arrastar a Omoplata pra defesa da raspagem', (() => { const m = moverPasso(cg.passos, 5, 8, 'defendeu'); return m && [m[5].pai, m[5].via]; })(), [8, 'defendeu']);
+ok('não arrasta pra posição', moverPasso(cg.passos, 5, null, 'raiz'), null);
+ok('finta só com "não reagiu" ainda é ponta solta (falta o que fazer quando ele reage)',
+  pontasSoltas(planoNovo({ objetivo: 'Finalizar', objetivoTipo: 'finalizar', passos: [{ tipo: 'finta', golpe: 'Guilhotina', pai: null }, { tipo: 'golpe', golpe: 'Kimura', pai: 0, via: 'naoReagiu' }] }), destinoDe).map((x) => x.golpe),
+  ['Guilhotina']);
+
 ok('"meia guarda" acha Kimura da meia-guarda', casaApelido('Kimura da meia-guarda', 'meia guarda'), true);
 ok('"triangulo" não acha Kimura', casaApelido('Kimura', 'triangulo'), false);
 

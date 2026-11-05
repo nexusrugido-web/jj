@@ -16,8 +16,8 @@ import { SeletorTecnica } from '../components/SeletorTecnica';
 import { podeVer, pedirOferta } from '../lib/plano';
 import {
   meusPlanos, planosProntos, exemplosDaFaixa, podeCriarPlano, correnteDoPlano, planoNovo, MAX_PASSOS, ALTURA_REL,
-  taxaDoPlano, taxaPorTipo, arvoreDoPlano, semOGolpe, MAX_TRILHOS, LETRAS,
-  semAFinta, fintaAntes, moverPasso, chegaNoObjetivo, finaliza, pontasSoltas, OBJETIVO_FINALIZAR,
+  taxaDoPlano, taxaPorTipo, arvoreDoPlano, semOGolpe, LETRAS, VIAS,
+  semAFinta, fintaAntes, moverPasso, chegaNoObjetivo, finaliza, pontasSoltas, semGatilho, OBJETIVO_FINALIZAR,
 } from '../lib/planos';
 import { FAIXAS } from '../lib/faixas';
 import { PESO_REL } from '../db/scoring';
@@ -189,9 +189,10 @@ const GUIA_DO_PLANO = [
       <Passos itens={[
         'Onde quero chegar: finalizar, uma posição ou um golpe. É o que o plano persegue do começo ao fim.',
         'De onde começa: em pé, guarda fechada, meia-guarda, montada...',
-        'O primeiro golpe, ou uma finta antes dele.',
+        'O primeiro golpe, ou uma finta antes dele. Dá pra abrir outras entradas da mesma posição: Finta A, B ou C, você escolhe na hora.',
         'Encaixou, e depois? Vai somando golpe até chegar no objetivo. Esse caminho é o Plano A.',
-        'Se ele defender: abre o Plano B, outro caminho pro mesmo objetivo.',
+        'Se ele defender: cada defesa dele abre o seu plano (B, C...), com a sua continuação pro mesmo objetivo.',
+        'Cada caminho diz o que ele fez: reagiu, não reagiu ou defendeu de um jeito. É isso que você reconhece na hora.',
         'Tudo no mapa: o + põe uma peça, tocar numa peça muda ela, e a alça leva a peça pra outro galho.',
       ]} />
     ),
@@ -212,7 +213,8 @@ const GUIA_DO_PLANO = [
       <p className="micro muted" style={{ lineHeight: 1.6 }}>
         A finta é uma peça própria, separada do golpe. Você ameaça uma coisa pra ele reagir, e a reação abre o golpe de verdade.
         Exemplo: ameaça a guilhotina, ele levanta a cabeça e apoia a mão no chão, e o braço fica no ponto pra kimura. Dá pra pôr
-        finta antes de qualquer golpe, do Plano A ao D, e uma finta atrás da outra. Não tem finta? Começa direto no golpe.
+        finta antes de qualquer golpe, em qualquer plano, e uma finta atrás da outra. E se ele não reagir? A finta tem a saída
+        "não reagiu": você troca a ameaça ou parte pra outra coisa. Não tem finta? Começa direto no golpe.
       </p>
     ),
   },
@@ -236,11 +238,12 @@ const GUIA_DO_PLANO = [
     ),
   },
   {
-    id: 'defender', icone: Shield, titulo: 'Se ele defender', resumo: 'Plano B, C e D no mesmo mapa',
+    id: 'defender', icone: Shield, titulo: 'Se ele defender', resumo: 'Cada defesa dele com o seu caminho',
     conteudo: (
       <p className="micro muted" style={{ lineHeight: 1.6 }}>
-        Em qualquer golpe dá pra marcar o que fazer se ele defender. A defesa dele abre outro golpe, e esse desvio vira um plano
-        com cor própria: B, C e D, todos atrás do mesmo objetivo. No mapa, esse caminho sai por baixo.
+        Em qualquer golpe dá pra marcar o que fazer se ele defender, e quantas defesas precisar: ele colou o cotovelo abre um
+        golpe, ele levantou a postura abre outro. Cada defesa vira um plano com cor e letra próprias, todos atrás do mesmo
+        objetivo. Dê o nome de cada defesa: é por ela que você reconhece qual caminho seguir. No mapa, esses caminhos saem por baixo.
       </p>
     ),
   },
@@ -330,6 +333,7 @@ const REACAO = {
   encaixou: { nome: 'O que ele faz agora', exemplo: 'Ex.: virou de lado, empurrou seu quadril' },
   defendeu: { nome: 'Como ele defendeu', exemplo: 'Ex.: colou o cotovelo no corpo' },
   reagiu: { nome: 'Como ele reagiu à finta', exemplo: 'Ex.: levantou a cabeça e apoiou a mão no chão' },
+  naoReagiu: { nome: 'O que ele fez', exemplo: 'Ex.: ficou parado na base, não levantou a cabeça' },
 };
 
 function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, destinoDe, onSalvar }) {
@@ -344,6 +348,7 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
   const mudar = (patch) => setEdit({ ...edit, ...patch });
   const c = correnteDoPlano(plano);
   const soltas = c.objetivo ? pontasSoltas(plano, destinoDe) : [];
+  const semMotivo = semGatilho(passos);
   const existe = peca && Number.isInteger(peca.i);
 
   const escolherTipo = (tipo) => {
@@ -420,6 +425,11 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
       {soltas.length > 0 && (
         <p className="micro" style={{ marginTop: 8, lineHeight: 1.5, color: '#f5c542' }}>
           Ainda não chega em {c.objetivoTipo === 'finalizar' ? 'uma finalização' : c.objetivo}: {juntar(soltas.map((x) => x.golpe))}. Toque no + depois {soltas.length === 1 ? 'dele' : 'deles'} pra seguir até lá.
+        </p>
+      )}
+      {semMotivo.length > 0 && (
+        <p className="micro" style={{ marginTop: 8, lineHeight: 1.5, color: '#f5c542' }}>
+          Mais de um caminho sai do mesmo ponto: diga o que ele fez em {juntar(semMotivo.map((x) => x.golpe))}. É por isso que você sabe qual escolher na hora.
         </p>
       )}
       {passos.length >= MAX_PASSOS && <p className="micro muted" style={{ marginTop: 8 }}>Chegou nas {MAX_PASSOS} peças, o máximo de um plano.</p>}
@@ -517,13 +527,15 @@ const medidas = () => (typeof window !== 'undefined' && window.matchMedia?.('(ma
   ? { larg: 148, vao: 40 } : { larg: 184, vao: 58 });
 const VAO_Y = 18;
 const MARGEM = 14;
+/* 8 cores de plano; do I em diante, repete */
+const cor = (t) => t % 8;
 
 function LegendaDoMapa({ trilhos = 2, finta = true }) {
   return (
     <div className="mapa-legenda">
       <span className="mapa-tipo t-posicao"><i />Posição</span>
       {finta && <span className="mapa-tipo t-finta"><i />Finta</span>}
-      {LETRAS.slice(0, trilhos).map((l, t) => <span key={l} className={`mapa-tipo trilho-${t}`}><i />Plano {l}</span>)}
+      {LETRAS.slice(0, trilhos).map((l, t) => <span key={l} className={`mapa-tipo trilho-${cor(t)}`}><i />Plano {l}</span>)}
       <span className="mapa-tipo" style={{ color: 'var(--jade)' }}><Check size={12} strokeWidth={3} />Encaixou</span>
       <span className="mapa-tipo" style={{ color: '#ff7a6b' }}><X size={12} strokeWidth={3} />Se ele defender</span>
       <span className="mapa-tipo" style={{ color: '#f5c542' }}><Flag size={12} />Chegou lá</span>
@@ -537,11 +549,12 @@ function LegendaDoMapa({ trilhos = 2, finta = true }) {
    chegar fica sem desfecho inventado. */
 function linhasDoMapa(plano, destinoDe, editar = false) {
   const c = correnteDoPlano(plano);
-  const { ordem, trilho, filhos, trilhos } = arvoreDoPlano(c.passos);
+  const { ordem, trilho, filhos, segue } = arvoreDoPlano(c.passos);
   const cheio = c.passos.length >= MAX_PASSOS;
   const linhas = [{ tipo: 'posicao', trilho: 0, rotulo: 'De onde começa', titulo: c.posicao || 'A posição' }];
-  const vaga = (de, pai, via, t) => { if (!cheio) linhas.push({ tipo: 'vaga', de, pai, via, trilho: t }); };
-  if (editar && !c.passos.length) vaga(0, null, 'raiz', 0);
+  /* mais: a saída já tem caminho, e o + abre outro */
+  const vaga = (de, pai, via, t, mais = false) => { if (!cheio) linhas.push({ tipo: 'vaga', de, pai, via, trilho: t, mais }); };
+  if (editar) vaga(0, null, 'raiz', 0, c.passos.length > 0);
   const linhaDoPasso = {};
   const ultimo = c.passos.length - 1;
   ordem.forEach((i) => {
@@ -549,24 +562,29 @@ function linhasDoMapa(plano, destinoDe, editar = false) {
     const golpe = x.tipo !== 'finta';
     const aqui = linhas.length;
     linhaDoPasso[i] = aqui;
+    const tem = (via) => filhos[i].some((k) => c.passos[k].via === via);
     const g = {
       tipo: x.tipo, i, trilho: trilho[i], via: x.pai === null ? 'raiz' : x.via,
+      /* começa um plano novo: mostra a letra dele */
+      abre: x.pai === null ? trilho[i] > 0 : segue[x.pai] !== i,
       de: x.pai === null ? 0 : linhaDoPasso[x.pai],
       deixa: x.reacao || (x.via === 'defendeu' ? c.passos[x.pai].defesa : ''),
       titulo: x.golpe, detalhe: x.detalhe,
       chegou: chegaNoObjetivo(x, c, destinoDe),
       segue: i === ultimo ? c.segue : '',
-      fecha: golpe && filhos[i].defendeu === undefined,
+      fecha: golpe && !tem('defendeu'),
     };
     linhas.push(g);
-    if (filhos[i].encaixou === undefined) {
+    const adiante = golpe ? 'encaixou' : 'reagiu';
+    if (segue[i] === undefined) {
       const folha = { tipo: 'folha', trilho: trilho[i], via: 'encaixou', de: aqui };
       if (g.chegou) linhas.push({ ...folha, chegou: true, rotulo: c.objetivoTipo === 'finalizar' ? 'Finalizou: chegou lá' : 'Encaixou: chegou lá', titulo: c.objetivoTipo === 'finalizar' ? '' : c.objetivo });
       else if (finaliza(x, destinoDe)) linhas.push({ ...folha, rotulo: 'Finalizou' });
-      else if (editar) vaga(aqui, i, golpe ? 'encaixou' : 'reagiu', trilho[i]);
+      else if (editar) vaga(aqui, i, adiante, trilho[i]);
       else if (g.segue) linhas.push({ ...folha, rotulo: 'Encaixou, depois', titulo: g.segue });
-    }
-    if (editar && golpe && filhos[i].defendeu === undefined && trilhos < MAX_TRILHOS) vaga(aqui, i, 'defendeu', trilho[i]);
+    } else if (editar) vaga(aqui, i, adiante, trilho[i], true);
+    if (editar && !golpe && !tem('naoReagiu')) vaga(aqui, i, 'naoReagiu', trilho[i]);
+    if (editar && golpe) vaga(aqui, i, 'defendeu', trilho[i], tem('defendeu'));
   });
   return {
     objetivo: textoDoObjetivo(c), passos: c.passos, temFinta: c.passos.some((x) => x.tipo === 'finta'),
@@ -597,18 +615,25 @@ function arrumar(linhas, filhos, alturas, { larg, vao }) {
 
 /* o rótulo de cima da peça: por onde ela nasce */
 function RotuloDaVia({ l }) {
-  if (l.via === 'raiz') return l.tipo === 'finta' ? 'Começa com finta' : '1º golpe';
-  if (l.via === 'encaixou') return <><Check size={11} strokeWidth={3} /> Encaixou</>;
-  if (l.via === 'reagiu') return <><Sparkles size={11} /> Ele reagiu</>;
-  return <><X size={11} strokeWidth={3} /> Defendeu · Plano {LETRAS[l.trilho]}</>;
+  const letra = l.abre ? ` · Plano ${LETRAS[l.trilho]}` : '';
+  if (l.via === 'raiz') return `${l.tipo === 'finta' ? 'Começa com finta' : '1º golpe'}${letra}`;
+  if (l.via === 'encaixou') return <><Check size={11} strokeWidth={3} /> Encaixou{letra}</>;
+  if (l.via === 'reagiu') return <><Sparkles size={11} /> Ele reagiu{letra}</>;
+  if (l.via === 'naoReagiu') return <><Repeat size={11} strokeWidth={3} /> Não reagiu{letra}</>;
+  return <><X size={11} strokeWidth={3} /> Defendeu{letra}</>;
 }
-const TEXTO_DA_VAGA = { raiz: 'O 1º golpe ou uma finta', encaixou: 'Encaixou, e depois?', defendeu: 'Se ele defender', reagiu: 'Ele reagiu, e aí?' };
+const TEXTO_DA_VAGA = {
+  raiz: 'O 1º golpe ou uma finta', encaixou: 'Encaixou, e depois?', defendeu: 'Se ele defender', reagiu: 'Ele reagiu, e aí?',
+  naoReagiu: 'Não reagiu? Troco a ameaça',
+};
+/* a saída que já tem caminho e ganha outro */
+const TEXTO_DE_MAIS = { raiz: 'Outra entrada', encaixou: 'Outra opção daqui', defendeu: 'Outra defesa dele', reagiu: 'Reagiu de outro jeito' };
 
 function NoDoMapa({ l, guardar, aberto, onTocar, pega, vaga = '' }) {
   if (l.tipo === 'vaga') {
     return (
-      <button type="button" ref={guardar(l.n)} data-vaga={l.n} className={`mente-vaga ${l.via}${vaga}`} onClick={onTocar}>
-        <Plus size={13} strokeWidth={3} /> {TEXTO_DA_VAGA[l.via]}
+      <button type="button" ref={guardar(l.n)} data-vaga={l.n} className={`mente-vaga ${l.via}${l.mais ? ' mais' : ''}${vaga}`} onClick={onTocar}>
+        <Plus size={13} strokeWidth={3} /> {(l.mais ? TEXTO_DE_MAIS : TEXTO_DA_VAGA)[l.via]}
       </button>
     );
   }
@@ -620,7 +645,7 @@ function NoDoMapa({ l, guardar, aberto, onTocar, pega, vaga = '' }) {
       </div>
     );
   }
-  const classe = l.tipo === 'golpe' ? `trilho-${l.trilho}` : `t-${l.tipo}`;
+  const classe = l.tipo === 'golpe' ? `trilho-${cor(l.trilho)}` : `t-${l.tipo}`;
   return (
     <button type="button" ref={guardar(l.n)} className={`mente-no ${classe}${l.tipo === 'finta' ? ' finta' : ''}${pega ? ' com-pega' : ''}${aberto ? ' aberto' : ''}`} onClick={onTocar}>
       {l.tipo === 'posicao' ? <span className="mapa-rotulo">{l.rotulo}</span> : <span className={`mapa-rotulo ${l.via}`}><RotuloDaVia l={l} /></span>}
@@ -635,7 +660,7 @@ function NoDoMapa({ l, guardar, aberto, onTocar, pega, vaga = '' }) {
 /* o que abre embaixo do mapa quando toca num golpe */
 function DetalheDoNo({ l, objetivo }) {
   return (
-    <div className={`mente-detalhe ${l.tipo === 'golpe' ? `trilho-${l.trilho}` : `t-${l.tipo}`}`}>
+    <div className={`mente-detalhe ${l.tipo === 'golpe' ? `trilho-${cor(l.trilho)}` : `t-${l.tipo}`}`}>
       <span className={`mapa-rotulo ${l.via || ''}`}>{l.tipo === 'posicao' ? l.rotulo : <RotuloDaVia l={l} />}</span>
       {l.tipo === 'finta' && <span className="mente-tag" style={{ marginLeft: 8 }}>finta</span>}
       <div className="mapa-titulo">{l.titulo}</div>
@@ -655,7 +680,9 @@ function MapaDoPlano({ plano, ate = Infinity, destinoDe, editar = null }) {
   const filhos = useMemo(() => {
     const f = linhas.map(() => []);
     linhas.forEach((l) => { if (l.de !== undefined) f[l.de].push(l.n); });
-    f.forEach((lista) => lista.sort((a, b) => Number(linhas[a].via === 'defendeu') - Number(linhas[b].via === 'defendeu')));
+    /* na ordem das saídas (encaixou em cima, defesa embaixo); o + vem depois dos caminhos da mesma saída */
+    const ordem = (k) => VIAS.indexOf(linhas[k].via) * 2 + Number(linhas[k].tipo === 'vaga');
+    f.forEach((lista) => lista.sort((a, b) => ordem(a) - ordem(b) || a - b));
     return f;
   }, [linhas]);
   const tela = useRef(null);
@@ -726,7 +753,7 @@ function MapaDoPlano({ plano, ate = Infinity, destinoDe, editar = null }) {
     const x2 = b.x;
     const y2 = b.y + alt[l.n] / 2;
     const meio = tamanho.vao * 0.62;
-    const corDe = (k) => (k.tipo === 'golpe' ? `var(--tr-${k.trilho})` : `var(--mp-${k.tipo})`);
+    const corDe = (k) => (k.tipo === 'golpe' ? `var(--tr-${cor(k.trilho)})` : `var(--mp-${k.tipo})`);
     const corDaFolha = l.chegou ? '#f5c542' : 'var(--jade)';
     return {
       n: l.n, x1, y1, x2, y2, via: l.via, vaga: l.tipo === 'vaga',
@@ -843,6 +870,7 @@ function MapaDoPlano({ plano, ate = Infinity, destinoDe, editar = null }) {
                   {g.via === 'encaixou' && <Check size={11} strokeWidth={3.5} />}
                   {g.via === 'defendeu' && <X size={11} strokeWidth={3.5} />}
                   {g.via === 'reagiu' && <Sparkles size={11} />}
+                  {g.via === 'naoReagiu' && <Repeat size={11} strokeWidth={3} />}
                 </span>
               ))}
             </div>

@@ -3907,6 +3907,7 @@ body::after {
   --mp-posicao: #6cb8ff; --mp-finta: var(--roar); --mp-reacao: #b48cff; --mp-golpe: var(--jade);
   --mp-defende: #ff7a6b; --mp-fim: var(--dim); --mp-encaixou: var(--jade);
   --tr-0: var(--jade); --tr-1: #f5c542; --tr-2: #b48cff; --tr-3: #ff8fb8;
+  --tr-4: #5cc8ff; --tr-5: #ff9f43; --tr-6: #a3e635; --tr-7: #e879f9;
   position: relative;
 }
 .mapa-fios { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
@@ -3942,6 +3943,10 @@ body::after {
 .trilho-1 { --c: #f5c542; }
 .trilho-2 { --c: #b48cff; }
 .trilho-3 { --c: #ff8fb8; }
+.trilho-4 { --c: #5cc8ff; }
+.trilho-5 { --c: #ff9f43; }
+.trilho-6 { --c: #a3e635; }
+.trilho-7 { --c: #e879f9; }
 
 .mente-quadro {
   position: relative; border: 1px solid var(--seam); border-radius: 16px; overflow: hidden;
@@ -3988,6 +3993,7 @@ body::after {
 .mente-selo.defendeu { color: #ff7a6b; }
 .mente-selo.reagiu { color: var(--roar); }
 .mapa-rotulo.reagiu { color: var(--roar); }
+.mente-selo.naoReagiu, .mapa-rotulo.naoReagiu { color: #9fb3c8; }
 /* a finta: a peça de mentira, tracejada, com a etiqueta dela */
 .mente-no.finta { border-style: dashed; }
 .mente-tag {
@@ -4004,6 +4010,9 @@ body::after {
 .mente-vaga.encaixou { --c: var(--jade); }
 .mente-vaga.defendeu { --c: #ff7a6b; }
 .mente-vaga.reagiu { --c: var(--roar); }
+.mente-vaga.naoReagiu { --c: #9fb3c8; }
+/* o + de mais um caminho numa saída que já tem: menor, pra não pesar no mapa */
+.mente-vaga.mais { padding: 4px 8px; font-size: 11px; opacity: .8; }
 .mente-vaga:hover, .mente-vaga.pode { background: color-mix(in srgb, var(--c) 12%, var(--void)); }
 .mente-vaga.alvo { border-style: solid; background: color-mix(in srgb, var(--c) 24%, var(--void)); box-shadow: 0 0 18px -4px var(--c); }
 .mapa-fio.vaga .mapa-fio-traco { stroke-width: 1.6; stroke-dasharray: .04 .03; stroke-dashoffset: 0; animation: none; opacity: .55; filter: none; }

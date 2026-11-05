@@ -1,13 +1,23 @@
 /* ============================================================
    PLANOS DE ATAQUE
 
-   Uma árvore que vai da posição até o objetivo. Cada peça é um golpe
-   ou uma finta:
-   - a finta engana: tem uma saída só, "ele reagiu", e a reação dela
-     mora no passo que vem depois;
-   - o golpe é pra valer: abre "encaixou, e depois" (segue no mesmo
-     plano) e "se ele defender" (abre o Plano B, C, D), e a defesa
-     dele mora no passo do galho de defesa.
+   Um mapa de decisões que vai da posição até o objetivo. Três coisas
+   separadas:
+   - a peça é o que VOCÊ faz: golpe ou finta;
+   - o gatilho é o que ELE fez pra você escolher esse caminho (mora
+     na peça que vem depois: a reação à finta, a defesa do golpe);
+   - a via é a condição: o golpe abre "encaixou" e "defendeu"; a
+     finta abre "reagiu" e "não reagiu" (troco a ameaça).
+   Toda saída aceita vários caminhos (três defesas diferentes do
+   mesmo armlock, cada uma com a sua continuação), menos o "não
+   reagiu", que é um só. A posição aceita várias entradas (Finta A, B
+   ou C como opções, não etapas). O primeiro caminho que continua
+   (encaixou ou reagiu) segue no mesmo plano; cada desvio abre um
+   plano com letra própria.
+   Pra frente (R2 a R7): "escapou" é mais uma via; a convergência
+   entra como ligações extras do plano ({ de, via, gatilho, para })
+   sem mexer na árvore; a preparação é mais um tipo de peça; o rola
+   guarda o caminho como lista de índices.
    O objetivo (finalizar, uma posição ou um golpe) é obrigatório: o
    golpe que chega nele fecha o caminho com a bandeira.
 
@@ -20,8 +30,10 @@
    ============================================================ */
 
 export const MAX_PASSOS = 16;
-export const MAX_TRILHOS = 4;
-export const LETRAS = ['A', 'B', 'C', 'D'];
+export const LETRAS = 'ABCDEFGHIJKLMNOP'.split('');
+/* as saídas, na ordem do mapa (de cima pra baixo) */
+export const VIAS = ['encaixou', 'reagiu', 'naoReagiu', 'defendeu'];
+const continua = (via) => via === 'encaixou' || via === 'reagiu';
 export const PLANOS_NO_GRATIS = 1;
 
 export const meusPlanos = (planos = []) => planos.filter((p) => !p.pronto && !p.arquivada);
@@ -74,12 +86,12 @@ function podar(brutos, nomeDe) {
     fica[i] = true;
     return true;
   };
-  const raiz = brutos.findIndex((_, i) => ver(i) && pai[i] === null);
+  /* a posição abre várias entradas: toda peça sem pai é uma raiz */
   const chega = (i, ok) => {
     for (let k = i, n = 0; n <= brutos.length; k = pai[k], n++) {
       if (!ok(k)) return false;
-      if (k === raiz) return true;
-      if (pai[k] === null || pai[k] === undefined) return false;
+      if (pai[k] === null) return true;
+      if (pai[k] === undefined) return false;
     }
     return false;
   };
@@ -97,10 +109,11 @@ function viaAntiga(brutos, pai) {
   return brutos[pai].seFalhar || !pronto ? 'defendeu' : 'encaixou';
 }
 
-/* por onde o passo nasce: depois da finta é sempre "ele reagiu" */
+/* por onde o passo nasce: depois da finta, "reagiu" ou "não reagiu";
+   depois do golpe, "encaixou" ou "defendeu" */
 function viaDe(brutos, i, pai) {
   if (pai === null) return null;
-  if (brutos[pai].tipo === 'finta') return 'reagiu';
+  if (brutos[pai].tipo === 'finta') return brutos[i].via === 'naoReagiu' ? 'naoReagiu' : 'reagiu';
   if (!Number.isInteger(brutos[i].pai)) return viaAntiga(brutos, pai);
   return brutos[i].via === 'encaixou' ? 'encaixou' : 'defendeu';
 }
@@ -134,27 +147,33 @@ export function correnteDoPlano(p) {
   };
 }
 
-/* a ordem de leitura: o Plano A inteiro (o caminho do encaixou desde
-   a raiz), depois o B (a defesa do primeiro golpe do A que tem
-   defesa), e assim por diante. Cada plano é um trilho. Depois da
-   finta, o "ele reagiu" segue no mesmo trilho. */
+/* a ordem de leitura: o Plano A inteiro (a primeira entrada e, em
+   cada peça, o primeiro caminho que continua: encaixou ou reagiu),
+   depois o B, e assim por diante. Cada plano é um trilho. Os outros
+   caminhos (outra entrada, outra defesa, outra reação, não reagiu)
+   abrem cada um o seu plano. filhos[i] é a lista dos que nascem de i,
+   na ordem das VIAS; segue[i] é o que continua no mesmo plano. */
 export function arvoreDoPlano(passos = []) {
-  const filhos = passos.map(() => ({}));
+  const filhos = passos.map(() => []);
+  const raizes = [];
   passos.forEach((x, i) => {
-    if (x.pai !== null && x.pai !== undefined) filhos[x.pai][x.via === 'defendeu' ? 'defendeu' : 'encaixou'] = i;
+    if (x.pai === null || x.pai === undefined) raizes.push(i);
+    else filhos[x.pai].push(i);
   });
-  const raiz = passos.findIndex((x) => x.pai === null || x.pai === undefined);
+  const peso = (i) => VIAS.indexOf(passos[i].via);
+  filhos.forEach((l) => l.sort((a, b) => peso(a) - peso(b) || a - b));
+  const segue = filhos.map((l) => l.find((k) => continua(passos[k].via)));
   const ordem = [];
   const trilho = [];
-  const fila = raiz >= 0 ? [raiz] : [];
+  const fila = [...raizes];
   for (let t = 0; fila.length; t++) {
-    for (let i = fila.shift(); i !== undefined; i = filhos[i].encaixou) {
+    for (let i = fila.shift(); i !== undefined; i = segue[i]) {
       trilho[i] = t;
       ordem.push(i);
-      if (filhos[i].defendeu !== undefined) fila.push(filhos[i].defendeu);
+      filhos[i].forEach((k) => { if (k !== segue[i]) fila.push(k); });
     }
   }
-  return { ordem, trilho, filhos, trilhos: Math.max(0, ...trilho.filter((t) => t !== undefined)) + (ordem.length ? 1 : 0) };
+  return { ordem, trilho, filhos, segue, trilhos: ordem.length ? Math.max(...ordem.map((i) => trilho[i])) + 1 : 0 };
 }
 
 /* tudo o que nasce do passo i, ele junto */
@@ -179,11 +198,14 @@ function semOs(passos, fora) {
 /* tirar um golpe leva junto tudo o que nasce dele */
 export const semOGolpe = (passos, i) => semOs(passos, galhoDe(passos, i));
 
-/* tirar a finta não leva o golpe: ele volta pro lugar dela */
+/* tirar a finta não leva o golpe: ele volta pro lugar dela. O que
+   nascia do "não reagiu" sai junto: sem finta, não tem do que reagir. */
 export function semAFinta(passos, i) {
   const f = passos[i];
+  const fora = new Set([i]);
+  passos.forEach((x, k) => { if (x.pai === i && x.via === 'naoReagiu') galhoDe(passos, k).forEach((g) => fora.add(g)); });
   const religado = passos.map((x) => (x.pai === i ? { ...x, pai: f.pai, via: f.via } : x));
-  return semOs(religado, new Set([i]));
+  return semOs(religado, fora);
 }
 
 /* finta antes do passo i: entra no fim da lista, no lugar dele, e
@@ -194,14 +216,13 @@ export function fintaAntes(passos, i, nome) {
   return [...passos.map((y, k) => (k === i ? { ...y, pai: passos.length, via: 'reagiu' } : y)), nova];
 }
 
-/* a vaga de um passo: o golpe tem a do encaixou e a da defesa; a
-   finta, só a do "ele reagiu" */
+/* as saídas de cada peça: o golpe tem encaixou e defendeu; a finta,
+   reagiu e não reagiu. Todas aceitam mais de um caminho, menos o
+   "não reagiu". */
+export const viasDa = (peca) => (peca?.tipo === 'finta' ? ['reagiu', 'naoReagiu'] : ['encaixou', 'defendeu']);
 export function vagaLivre(passos, pai, via) {
-  if (!passos[pai]) return false;
-  const finta = passos[pai].tipo === 'finta';
-  if (finta ? via !== 'reagiu' : via === 'reagiu') return false;
-  const chave = (v) => (v === 'defendeu' ? 'defendeu' : 'encaixou');
-  return !passos.some((x) => x.pai === pai && chave(x.via) === chave(via));
+  if (!passos[pai] || !viasDa(passos[pai]).includes(via)) return false;
+  return via !== 'naoReagiu' || !passos.some((x) => x.pai === pai && x.via === 'naoReagiu');
 }
 
 /* arrastar o passo i (com o que nasce dele) pra vaga de outro. Não
@@ -232,10 +253,16 @@ export const finaliza = (passo, destinoDe = () => null) => passo?.tipo !== 'fint
    é ponta solta) */
 export function pontasSoltas(plano, destinoDe = () => null) {
   const c = correnteDoPlano(plano);
-  const { filhos } = arvoreDoPlano(c.passos);
-  return c.passos.map((x, i) => ({ ...x, i })).filter((x) => filhos[x.i].encaixou === undefined
+  const { segue } = arvoreDoPlano(c.passos);
+  return c.passos.map((x, i) => ({ ...x, i })).filter((x) => segue[x.i] === undefined
     && (x.tipo === 'finta' || (!chegaNoObjetivo(x, c, destinoDe) && !finaliza(x, destinoDe))));
 }
+
+/* caminho sem motivo: quando duas defesas (ou duas reações) saem da
+   mesma peça, cada uma precisa dizer o que ele fez, senão não dá pra
+   saber qual escolher na hora */
+export const semGatilho = (passos = []) => passos.map((x, i) => ({ ...x, i })).filter((x) => (x.via === 'defendeu' || x.via === 'reagiu')
+  && !String(x.reacao || '').trim() && passos.filter((y) => y.pai === x.pai && y.via === x.via).length > 1);
 
 /* copiar um pronto: vira plano seu, sem slug (o slug é da semente) */
 export function copiaDoPronto(p) {
@@ -260,7 +287,7 @@ export function planoNovo({ nome, posicao, posicaoId = null, finta = '', objetiv
       ...(x.tipo === 'finta' ? { tipo: 'finta' } : {}),
       gatilho: String(x.reacao || '').trim(), acao: x.golpe, seFalhar: '', proxima: '', detalhe: x.detalhe || '',
       pai: p,
-      via: p === null ? null : passos[pai[i]].tipo === 'finta' ? 'reagiu' : x.via === 'encaixou' ? 'encaixou' : 'defendeu',
+      via: p === null ? null : passos[pai[i]].tipo === 'finta' ? (x.via === 'naoReagiu' ? 'naoReagiu' : 'reagiu') : x.via === 'encaixou' ? 'encaixou' : 'defendeu',
     };
   });
   return {
