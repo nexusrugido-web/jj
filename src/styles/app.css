@@ -3887,7 +3887,8 @@ body::after {
   border: 1px solid color-mix(in srgb, var(--jade) 35%, transparent);
 }
 .plano-peca {
-  display: inline-flex; align-items: center; min-height: 28px; padding: 3px 10px; border-radius: 99px;
+  display: inline-flex; align-items: center; min-height: 28px; max-width: 100%; padding: 3px 10px; border-radius: 14px;
+  overflow-wrap: anywhere; line-height: 1.3;
   font-size: 12px; font-weight: 650; color: var(--chalk);
   background: color-mix(in srgb, var(--c) 14%, var(--void));
   border: 1px solid color-mix(in srgb, var(--c) 50%, transparent);
@@ -3899,62 +3900,79 @@ body::after {
 .mapa-tipo { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--dim); }
 .mapa-tipo i { width: 9px; height: 9px; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px var(--c); }
 
-/* a árvore: uma espinha que desce, com uma luz correndo por ela */
-.mapa { position: relative; padding-left: 28px; display: grid; gap: 10px; }
-.mapa::before {
-  content: ''; position: absolute; left: 11px; top: 14px; bottom: 14px; width: 2px; border-radius: 2px;
-  background: linear-gradient(#6cb8ff, var(--roar) 25%, #b48cff 45%, var(--jade) 70%, #ff7a6b);
-  opacity: .55;
+/* a árvore: os golpes alternam de lado; os fios são um SVG por baixo */
+.mapa {
+  --mp-posicao: #6cb8ff; --mp-finta: var(--roar); --mp-reacao: #b48cff; --mp-golpe: var(--jade);
+  --mp-defende: #ff7a6b; --mp-fim: var(--dim); --mp-encaixou: var(--jade);
+  position: relative; display: grid; gap: 30px; padding: 4px 0 6px;
 }
-.mapa::after {
-  content: ''; position: absolute; left: 8px; top: 10px; width: 8px; height: 46px; border-radius: 8px;
-  background: radial-gradient(closest-side, #fff, color-mix(in srgb, var(--jade) 70%, transparent), transparent);
-  filter: blur(1px); animation: mapa-luz 3.2s cubic-bezier(.5, 0, .5, 1) infinite;
+.mapa-fios { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.mapa-fio-traco {
+  fill: none; stroke-width: 2.2; stroke-linecap: round;
+  stroke-dasharray: 1; stroke-dashoffset: 1;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--jade) 35%, transparent));
+  animation: mapa-desenha .7s cubic-bezier(.4, 0, .2, 1) forwards; animation-delay: calc(var(--i, 0) * 110ms + 150ms);
 }
-@keyframes mapa-luz { from { top: 10px; opacity: 0; } 15% { opacity: .9; } 85% { opacity: .9; } to { top: calc(100% - 56px); opacity: 0; } }
+.mapa-fio.lado .mapa-fio-traco { stroke-width: 1.6; stroke-dasharray: .05 .035; stroke-dashoffset: 0; opacity: 0; animation-name: mapa-aparece; }
+/* a luz que corre pelo fio */
+.mapa-fio-luz {
+  fill: none; stroke: #fff; stroke-width: 2.6; stroke-linecap: round; opacity: .85;
+  stroke-dasharray: .07 1; stroke-dashoffset: 1.07;
+  filter: drop-shadow(0 0 5px #fff);
+  animation: mapa-corre 2.6s cubic-bezier(.5, 0, .5, 1) infinite; animation-delay: calc(var(--i, 0) * 350ms + 900ms);
+}
+.mapa-fio-ponta { opacity: 0; animation: mapa-aparece .3s ease forwards; animation-delay: calc(var(--i, 0) * 110ms + 700ms); }
+@keyframes mapa-desenha { to { stroke-dashoffset: 0; } }
+@keyframes mapa-aparece { to { opacity: 1; } }
+@keyframes mapa-corre { from { stroke-dashoffset: 1.07; } 70%, to { stroke-dashoffset: 0; } }
+
+/* linhas do mapa: no centro (posição, finta, reação, defesa, fim) ou
+   o golpe de um lado com o "encaixou" do outro */
+.mapa-centro { display: flex; justify-content: center; }
+.mapa-centro > .mapa-no { width: min(100%, 420px); }
+.mapa-centro > .mapa-fala { width: min(88%, 360px); }
+.mapa-linha { display: grid; align-items: center; column-gap: 26px; grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr); }
+.mapa-linha.dir { grid-template-columns: minmax(0, 1fr) minmax(0, 1.8fr); }
+.mapa-linha.dir > .mapa-no { grid-column: 2; grid-row: 1; }
+.mapa-linha.dir > .mapa-folha { grid-column: 1; grid-row: 1; }
+
 .mapa-no {
-  position: relative; padding: 12px 14px; border-radius: 14px;
+  position: relative; z-index: 1; min-width: 0; padding: 12px 14px; border-radius: 14px;
   border: 1px solid color-mix(in srgb, var(--c) 45%, var(--seam));
   background: linear-gradient(135deg, color-mix(in srgb, var(--c) 16%, var(--void)), var(--void) 72%);
   box-shadow: 0 0 26px -14px var(--c), inset 0 1px 0 rgba(255, 255, 255, .04);
-  animation: mapa-entra .55s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 90ms);
+  overflow-wrap: anywhere;
+  animation: mapa-entra .55s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 110ms);
 }
-/* o nó na espinha */
-.mapa-no::before {
-  content: ''; position: absolute; left: -22px; top: 16px; width: 10px; height: 10px; border-radius: 50%;
-  background: var(--c); box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 22%, transparent), 0 0 14px var(--c);
-}
-/* o fio do nó até o cartão */
-.mapa-no::after {
-  content: ''; position: absolute; left: -12px; top: 20px; width: 12px; height: 2px;
-  background: color-mix(in srgb, var(--c) 60%, transparent);
-}
-.mapa-rotulo { font-size: 12px; font-weight: 700; color: var(--c); }
-.mapa-titulo { font-family: var(--display); font-weight: 800; font-size: 18px; letter-spacing: -0.02em; margin-top: 3px; line-height: 1.25; }
+/* reação e defesa: a fala dele, mais leve, no meio do caminho */
+.mapa-fala { padding: 9px 12px; border-radius: 12px; border-style: dashed; text-align: center; }
+.mapa-rotulo { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: var(--c); }
+.mapa-titulo { font-family: var(--display); font-weight: 800; font-size: 17px; letter-spacing: -0.02em; margin-top: 3px; line-height: 1.25; }
+.mapa-fala .mapa-titulo { font-family: inherit; font-size: 14px; font-weight: 600; letter-spacing: 0; color: var(--chalk); }
 .t-golpe .mapa-titulo { text-shadow: 0 0 18px color-mix(in srgb, var(--jade) 45%, transparent); }
 .t-fim .mapa-titulo { font-size: 15px; color: var(--dim); }
-.t-reacao .mapa-titulo { font-family: inherit; font-size: 15px; font-weight: 650; letter-spacing: 0; }
-/* o ramo de saída do golpe: encaixou, acabou */
-.mapa-encaixou {
-  display: inline-flex; align-items: center; gap: 5px; margin-top: 8px; padding: 3px 9px; border-radius: 99px;
-  font-size: 12px; font-weight: 700; color: var(--jade);
-  background: color-mix(in srgb, var(--jade) 12%, transparent); border: 1px dashed color-mix(in srgb, var(--jade) 50%, transparent);
+/* o ramo de saída: encaixou */
+.mapa-folha {
+  position: relative; z-index: 1; justify-self: center; display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 11px; border-radius: 99px; font-size: 12.5px; font-weight: 700; color: var(--jade); white-space: nowrap;
+  background: color-mix(in srgb, var(--jade) 13%, var(--void)); border: 1px solid color-mix(in srgb, var(--jade) 50%, transparent);
+  box-shadow: 0 0 18px -6px var(--jade);
+  animation: mapa-entra .55s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 110ms + 250ms);
 }
-/* a virada: ele defendeu, desce pro próximo */
-.mapa-defende {
-  position: relative; justify-self: start; display: inline-flex; align-items: center; gap: 6px;
-  padding: 4px 11px; border-radius: 99px; font-size: 12px; font-weight: 700; color: var(--c);
-  background: color-mix(in srgb, var(--c) 12%, var(--void)); border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
-  animation: mapa-entra .55s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 90ms);
-}
-.mapa-defende::before {
-  content: ''; position: absolute; left: -21px; top: 50%; width: 8px; height: 8px; margin-top: -4px; transform: rotate(45deg);
-  background: var(--c); box-shadow: 0 0 10px var(--c);
-}
+.mapa-folha.segue { flex-direction: column; align-items: flex-start; gap: 3px; white-space: normal; border-radius: 12px; padding: 7px 10px; overflow-wrap: anywhere; }
+.mapa-segue { font-size: 12px; font-weight: 600; color: var(--chalk); line-height: 1.3; }
 @keyframes mapa-entra { from { opacity: 0; transform: translateY(12px) scale(.97); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
+@media (max-width: 420px) {
+  .mapa-linha { column-gap: 18px; }
+  .mapa-no { padding: 10px 12px; }
+  .mapa-titulo { font-size: 15.5px; }
+  .mapa-folha { padding: 5px 9px; font-size: 12px; }
+}
 @media (prefers-reduced-motion: reduce) {
-  .mapa-no, .mapa-defende { animation: none; }
-  .mapa::after { display: none; }
+  .mapa-no, .mapa-folha { animation: none; }
+  .mapa-fio-traco, .mapa-fio-ponta { animation: none; stroke-dashoffset: 0; opacity: 1; }
+  .mapa-fio.lado .mapa-fio-traco { opacity: 1; }
+  .mapa-fio-luz { display: none; }
 }
 
 /* ============================================================

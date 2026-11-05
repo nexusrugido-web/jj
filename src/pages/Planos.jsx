@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Plus, Play, Pencil, Trash2, Route, ChevronRight, RotateCcw, X, Repeat, ArrowDown, Check } from 'lucide-react';
+import React, { useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Plus, Play, Pencil, Trash2, Route, ChevronRight, RotateCcw, X, Repeat, Check } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useApp } from '../contexto';
 import { db } from '../db/db';
@@ -303,9 +303,10 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
 
 /* ============================================================
    O MAPA DO PLANO
-   Uma árvore que desce: posição, finta, reação, golpe. Em cada
-   golpe a corrente se abre em duas: encaixou (acabou) ou ele
-   defendeu (desce pro próximo). Cada tipo tem a sua cor.
+   Uma árvore de verdade: cada golpe abre dois ramos. Encaixou sai
+   pro lado; se ele defender, a linha faz a curva e desce pro outro
+   lado, até o golpe seguinte. Os golpes vão alternando de lado, e as
+   linhas são desenhadas por cima, medindo onde cada peça caiu.
    ============================================================ */
 const TIPOS_DO_MAPA = [
   { id: 'posicao', nome: 'Posição' },
@@ -322,33 +323,129 @@ function LegendaDoMapa() {
   );
 }
 
+/* cada peça: o tipo, o texto, de quem nasce a linha (pai) e em que
+   passo aparece (ordem). O "encaixou" aparece junto com o golpe. */
 function nosDoMapa(plano) {
   const c = correnteDoPlano(plano);
-  const nos = [{ tipo: 'posicao', rotulo: 'De onde começa', titulo: c.posicao || 'A posição' }];
-  if (c.finta) nos.push({ tipo: 'finta', rotulo: 'A finta', titulo: c.finta });
+  const nos = [];
+  const add = (n) => { nos.push({ ...n, k: nos.length }); return nos.length - 1; };
+  let ordem = 0;
+  let pai = add({ tipo: 'posicao', rotulo: 'De onde começa', titulo: c.posicao || 'A posição', ordem: ordem++ });
+  if (c.finta) pai = add({ tipo: 'finta', rotulo: 'A finta', titulo: c.finta, pai, ordem: ordem++ });
   c.passos.forEach((x, i) => {
-    if (i > 0) nos.push({ tipo: 'defende', rotulo: 'Se ele defender', titulo: '' });
-    if (x.reacao) nos.push({ tipo: 'reacao', rotulo: i === 0 ? 'Ele reage' : 'A defesa dele', titulo: x.reacao });
-    nos.push({ tipo: 'golpe', rotulo: c.passos.length > 1 ? `Golpe ${i + 1}` : 'O golpe', titulo: x.golpe, detalhe: x.detalhe });
+    if (i > 0) {
+      pai = add({ tipo: 'defende', rotulo: 'Se ele defender', titulo: x.reacao || c.passos[i - 1].defesa, pai, ordem: ordem++ });
+    } else if (x.reacao) {
+      pai = add({ tipo: 'reacao', rotulo: 'Ele reage', titulo: x.reacao, pai, ordem: ordem++ });
+    }
+    const lado = i % 2 ? 'dir' : 'esq';
+    const golpe = add({ tipo: 'golpe', rotulo: c.passos.length > 1 ? `Golpe ${i + 1}` : 'O golpe', titulo: x.golpe, detalhe: x.detalhe, pai, ordem, lado });
+    add({ tipo: 'encaixou', pai: golpe, ordem: ordem++, lado, segue: i === c.passos.length - 1 ? c.segue : '' });
+    pai = golpe;
   });
-  nos.push({ tipo: 'fim', rotulo: 'Se ele defender tudo', titulo: c.fim || 'Volta pra posição e recomeça a corrente' });
+  add({ tipo: 'fim', rotulo: 'Se ele defender tudo', titulo: c.fim || 'Volta pra posição e recomeça a corrente', pai, ordem: ordem++ });
   return nos;
 }
 
-function MapaDoPlano({ plano, ate = Infinity }) {
-  const nos = nosDoMapa(plano).slice(0, ate + 1);
+/* a linha entre duas peças: de cima pra baixo faz um S; pro lado, uma
+   curva deitada. Medido com offset, que ignora a animação de entrada. */
+function linhaEntre(a, b, lateral, golpeNaEsquerda) {
+  if (lateral) {
+    const x1 = golpeNaEsquerda ? a.x + a.w : a.x;
+    const x2 = golpeNaEsquerda ? b.x : b.x + b.w;
+    const y1 = a.y + a.h / 2;
+    const y2 = b.y + b.h / 2;
+    const mx = (x1 + x2) / 2;
+    return { x1, y1, x2, y2, d: `M${x1} ${y1} C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}` };
+  }
+  const x1 = a.x + a.w / 2;
+  const y1 = a.y + a.h;
+  const x2 = b.x + b.w / 2;
+  const y2 = b.y;
+  const my = (y1 + y2) / 2;
+  return { x1, y1, x2, y2, d: `M${x1} ${y1} C${x1} ${my} ${x2} ${my} ${x2} ${y2}` };
+}
+
+function NoDoMapa({ n, guardar }) {
+  if (n.tipo === 'encaixou') {
+    return (
+      <div ref={guardar(n.k)} className={`mapa-folha t-golpe${n.segue ? ' segue' : ''}`} style={{ '--i': n.ordem }}>
+        <span className="row" style={{ gap: 5 }}><Check size={13} /> Encaixou</span>
+        {n.segue && <span className="mapa-segue">depois: {n.segue.replace(/-/g, '‑')}</span>}
+      </div>
+    );
+  }
+  const fala = n.tipo === 'reacao' || n.tipo === 'defende';
   return (
-    <div className="mapa">
-      {nos.map((n, i) => (n.tipo === 'defende' ? (
-        <div key={i} className="mapa-defende t-defende" style={{ '--i': i }}>
-          <ArrowDown size={13} /> {n.rotulo}
+    <div ref={guardar(n.k)} className={`mapa-no t-${n.tipo}${fala ? ' mapa-fala' : ''}`} style={{ '--i': n.ordem }}>
+      <span className="mapa-rotulo">{n.tipo === 'defende' && <X size={11} strokeWidth={3} />}{n.rotulo}</span>
+      {n.titulo && <div className="mapa-titulo">{n.titulo}</div>}
+      {n.detalhe && <p className="micro muted" style={{ marginTop: 4, lineHeight: 1.5 }}>{n.detalhe}</p>}
+    </div>
+  );
+}
+
+function MapaDoPlano({ plano, ate = Infinity }) {
+  const nos = useMemo(() => nosDoMapa(plano).filter((n) => n.ordem <= ate), [plano, ate]);
+  const caixa = useRef(null);
+  const pecas = useRef({});
+  const [linhas, setLinhas] = useState([]);
+  const id = useId().replace(/[^a-z0-9]/gi, '');
+  const guardar = (k) => (el) => { pecas.current[k] = el; };
+
+  useLayoutEffect(() => {
+    const onde = (k) => {
+      const el = pecas.current[k];
+      return el && { x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight };
+    };
+    const medir = () => setLinhas(nos.filter((n) => n.pai !== undefined).map((n) => {
+      const a = onde(n.pai);
+      const b = onde(n.k);
+      if (!a?.w || !b?.w) return null;
+      return { k: n.k, de: nos[n.pai].tipo, para: n.tipo, i: n.ordem, ...linhaEntre(a, b, n.tipo === 'encaixou', n.lado === 'esq') };
+    }).filter(Boolean));
+    medir();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(medir);
+    ro.observe(caixa.current);
+    return () => ro.disconnect();
+  }, [nos]);
+
+  /* as peças em linhas: o golpe divide a linha com o seu "encaixou" */
+  const linhasDoMapa = [];
+  nos.forEach((n) => {
+    if (n.tipo === 'encaixou') return;
+    const folha = n.tipo === 'golpe' ? nos.find((f) => f.pai === n.k && f.tipo === 'encaixou') : null;
+    linhasDoMapa.push({ n, folha });
+  });
+
+  return (
+    <div className="mapa" ref={caixa}>
+      <svg className="mapa-fios" aria-hidden="true">
+        <defs>
+          {linhas.map((l) => (
+            <linearGradient key={l.k} id={`${id}-${l.k}`} gradientUnits="userSpaceOnUse" x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}>
+              <stop offset="0" style={{ stopColor: `var(--mp-${l.de})` }} />
+              <stop offset="1" style={{ stopColor: `var(--mp-${l.para})` }} />
+            </linearGradient>
+          ))}
+        </defs>
+        {linhas.map((l) => (
+          <g key={l.k} className={`mapa-fio${l.para === 'encaixou' ? ' lado' : ''}`} style={{ '--i': l.i }}>
+            <path d={l.d} pathLength="1" className="mapa-fio-traco" stroke={`url(#${id}-${l.k})`} />
+            {l.para !== 'encaixou' && <path d={l.d} pathLength="1" className="mapa-fio-luz" />}
+            <circle cx={l.x2} cy={l.y2} r="3.5" className="mapa-fio-ponta" style={{ fill: `var(--mp-${l.para})` }} />
+          </g>
+        ))}
+      </svg>
+      {linhasDoMapa.map(({ n, folha }) => (folha || n.tipo === 'golpe' ? (
+        <div key={n.k} className={`mapa-linha ${n.lado}`}>
+          <NoDoMapa n={n} guardar={guardar} />
+          {folha && <NoDoMapa n={folha} guardar={guardar} />}
         </div>
       ) : (
-        <div key={i} className={`mapa-no t-${n.tipo}`} style={{ '--i': i }}>
-          <span className="mapa-rotulo">{n.rotulo}</span>
-          <div className="mapa-titulo">{n.titulo}</div>
-          {n.detalhe && <p className="micro muted" style={{ marginTop: 4, lineHeight: 1.55 }}>{n.detalhe}</p>}
-          {n.tipo === 'golpe' && <span className="mapa-encaixou"><Check size={12} /> Encaixou</span>}
+        <div key={n.k} className="mapa-centro">
+          <NoDoMapa n={n} guardar={guardar} />
         </div>
       )))}
     </div>
@@ -360,7 +457,7 @@ function AssistirPlano({ plano, onClose }) {
      revela um nó por toque, pra ensaiar de cabeça */
   const [ate, setAte] = useState(Infinity);
   if (!plano) return null;
-  const total = nosDoMapa(plano).length;
+  const total = Math.max(...nosDoMapa(plano).map((n) => n.ordem)) + 1;
   const fechar = () => { setAte(Infinity); onClose(); };
   const passoAPasso = ate !== Infinity;
   const acabou = !passoAPasso || ate >= total - 1;

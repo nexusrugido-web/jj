@@ -40,6 +40,9 @@ const copia = copiaDoPronto(pronto);
 ok('a cópia é plano seu', [copia.pronto, copia.slug, copia.uid, copia.id], [0, undefined, undefined, undefined]);
 ok('a cópia guarda de onde veio', copia.copiadoDe, PLANOS_ATAQUE[0].slug);
 ok('a cópia mantém os golpes', copia.passos.map((p) => p.acao), pronto.passos.slice(0, 4).map((p) => p.acao));
+ok('depois que falhou vira o fim', [correnteDoPlano(PLANOS_ATAQUE.find((p) => p.slug === 'cg-trindade')).fim !== '', correnteDoPlano(PLANOS_ATAQUE.find((p) => p.slug === 'cg-trindade')).segue], [true, '']);
+ok('depois que encaixou vira o segue', correnteDoPlano({ passos: [{ acao: 'Gift wrap', proxima: 'Mata-leão' }] }), { posicao: '', finta: '', passos: [{ reacao: '', golpe: 'Gift wrap', detalhe: '', defesa: '' }], fim: '', segue: 'Mata-leão' });
+ok('"se ele escapar" é fim, mesmo sem seFalhar', correnteDoPlano({ passos: [{ acao: 'X', proxima: 'Se ele escapar, retomar' }] }).fim, 'Se ele escapar, retomar');
 ok('todo pronto vira corrente com golpe', PLANOS_ATAQUE.every((p) => correnteDoPlano(p).passos.length > 0), true);
 
 const lista = [pronto, { nome: 'meu', pronto: 0, arquivada: 0 }];

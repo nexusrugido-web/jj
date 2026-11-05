@@ -29,7 +29,7 @@ Decidido em 04/11/2026. Uma tarefa por vez; cada uma termina com `npm run check`
 ## Trilha F: Ajustes do mapa e do registro (04/11/2026)
 1. "De onde começou" sem "Não anotei": padrão "Em pé", trocável em Ajustes; o rola novo já vem com ele. → FEITO.
 2. Recomendação contra mais pesado sem contar derrota: o número só decide se aparece; o texto fala do rola mais duro e manda pra aula. → FEITO.
-3. Mapa do plano em árvore de verdade: "se ele defender" sai pro lado, ramos que mudam de direção, no celular os textos quebram linha em vez de comer a tela.
+3. Mapa do plano em árvore de verdade: "se ele defender" sai pro lado, ramos que mudam de direção, no celular os textos quebram linha em vez de comer a tela. → FEITO (o "depois" dos prontos vira fim ou segue).
 Depois: Trilha D (ok dado em 04/11/2026).
 
 ## Trilha D: Registro do rola em 10 segundos (ok em 04/11/2026)

@@ -43,10 +43,17 @@ export function correnteDoPlano(p) {
   return {
     posicao: p?.posicao || '',
     finta: p?.finta || '',
-    passos: passos.map((x) => ({ reacao: x.gatilho || '', golpe: x.acao, detalhe: x.detalhe || '' })),
-    /* o fim da corrente nos prontos: pra onde voltar se tudo falhar */
-    fim: passos[passos.length - 1]?.proxima || '',
+    passos: passos.map((x) => ({ reacao: x.gatilho || '', golpe: x.acao, detalhe: x.detalhe || '', defesa: x.seFalhar || '' })),
+    /* o "depois" dos prontos: pra onde voltar se tudo falhar (fim) ou
+       como segue quando o último golpe encaixa (segue) */
+    ...depoisDoPlano(passos[passos.length - 1]),
   };
+}
+
+function depoisDoPlano(ultimo) {
+  const depois = ultimo?.proxima || '';
+  const seFalhou = !!ultimo?.seFalhar || /^(se |volta)|se ele/i.test(depois);
+  return { fim: seFalhou ? depois : '', segue: seFalhou ? '' : depois };
 }
 
 /* copiar um pronto: vira plano seu, sem slug (o slug é da semente) */
