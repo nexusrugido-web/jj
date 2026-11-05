@@ -45,7 +45,7 @@ ok('a cópia é plano seu', [copia.pronto, copia.slug, copia.uid, copia.id], [0,
 ok('a cópia guarda de onde veio', copia.copiadoDe, PLANOS_ATAQUE[0].slug);
 ok('a cópia mantém os golpes', copia.passos.map((p) => p.acao), pronto.passos.slice(0, 4).map((p) => p.acao));
 ok('o "se ele defender tudo" não vira peça', [correnteDoPlano(PLANOS_ATAQUE.find((p) => p.slug === 'cg-trindade')).fim, correnteDoPlano(PLANOS_ATAQUE.find((p) => p.slug === 'cg-trindade')).segue], [undefined, '']);
-ok('depois que encaixou vira o segue', correnteDoPlano({ passos: [{ acao: 'Gift wrap', proxima: 'Mata-leão' }] }), { posicao: '', objetivo: '', objetivoTipo: '', passos: [{ tipo: 'golpe', reacao: '', golpe: 'Gift wrap', detalhe: '', defesa: '', pai: null, via: null }], segue: 'Mata-leão' });
+ok('depois que encaixou vira o segue', correnteDoPlano({ passos: [{ acao: 'Gift wrap', proxima: 'Mata-leão' }] }), { posicao: '', objetivo: '', objetivoTipo: '', passos: [{ id: 'p0', lig: 'l0', tipo: 'golpe', reacao: '', golpe: 'Gift wrap', detalhe: '', defesa: '', pai: null, via: null }], segue: 'Mata-leão' });
 ok('"se ele escapar" não vira continuação', correnteDoPlano({ passos: [{ acao: 'X', proxima: 'Se ele escapar, retomar' }] }).segue, '');
 ok('todo pronto vira corrente com golpe', PLANOS_ATAQUE.every((p) => correnteDoPlano(p).passos.length > 0), true);
 
@@ -68,18 +68,18 @@ ok('a lista do parceiro junta meus e prontos', planosQueServem([
 
 /* taxa de acerto, onde morre, por tipo e rodízio */
 const { taxaDoPlano, taxaPorTipo, rodizio } = await import('../src/lib/planos.js');
-const A = { uid: 'A', nome: 'A', pronto: 0 }, B = { uid: 'B', nome: 'B', pronto: 0 }, C = { uid: 'C', nome: 'C', pronto: 0 };
+const A = { uid: 'A', nome: 'A', pronto: 0, passos: [{ id: 'q', acao: 'Queda', pai: null }, { id: 'a', acao: 'Armlock', pai: 0, via: 'encaixou' }, { id: 't', acao: 'Triângulo', pai: 1, via: 'defendeu' }] }, B = { uid: 'B', nome: 'B', pronto: 0 }, C = { uid: 'C', nome: 'C', pronto: 0 };
 const sess = [{ id: 1, data: '2026-10-01' }, { id: 2, data: '2026-10-08' }];
 const rs = [
-  { sessionId: 1, partnerId: 7, plano: { uid: 'A', ate: 1, encaixou: false } },
-  { sessionId: 1, partnerId: 7, plano: { uid: 'A', ate: 1, encaixou: false } },
-  { sessionId: 2, partnerId: 7, plano: { uid: 'A', ate: 2, encaixou: true }, pesoRel: 'pesado' },
+  { sessionId: 1, partnerId: 7, plano: { uid: 'A', peca: 'a', encaixou: false } },
+  { sessionId: 1, partnerId: 7, plano: { uid: 'A', peca: 'a', encaixou: false } },
+  { sessionId: 2, partnerId: 7, plano: { uid: 'A', peca: 't', encaixou: true }, pesoRel: 'pesado' },
   { sessionId: 2, partnerId: 8, plano: { uid: 'B', ate: 0, encaixou: true } },
   { sessionId: 2, partnerId: 7, contexto: 'drill', plano: { uid: 'A', ate: 0, encaixou: true } },
 ];
 const tA = taxaDoPlano(A, rs);
 ok('taxa: 1 de 3, drill fora', [tA.usos, tA.encaixes, tA.taxa], [3, 1, 33]);
-ok('morre mais no golpe 2 (índice 1)', tA.morreNo, { passo: 1, vezes: 2 });
+ok('morre mais no Armlock (pela peça)', tA.morreNo, { peca: 'a', golpe: 'Armlock', saiu: false, vezes: 2 });
 ok('por tipo: contra pesado', taxaPorTipo(A, rs, [{ id: 7, alturaRel: 'alto' }]).pesado, { usos: 1, encaixes: 1 });
 const rod = rodizio([A, B, C], rs, sess, { id: 7 });
 ok('rodízio: último contra ele foi A', rod.ultimo?.uid, 'A');
@@ -136,7 +136,7 @@ ok('editar e salvar um pronto mantém o caminho', correnteDoPlano(planoNovo({ pa
 /* ---------- finta em qualquer ponto ----------
    Golpe → encaixou → finta → finta → golpe; a reação à finta mora no
    passo de depois, a defesa do golpe no galho da defesa */
-const { fintaAntes, semAFinta, moverPasso, vagaLivre, chegaNoObjetivo, pontasSoltas, LETRAS } = await import('../src/lib/planos.js');
+const { fintaAntes, semAFinta, moverPasso, vagaLivre, chegaNoObjetivo, pontasSoltas, letraDo } = await import('../src/lib/planos.js');
 const fintas = planoNovo({
   nome: 'Finta atrás de finta', objetivo: 'Finalizar', objetivoTipo: 'finalizar',
   passos: [
@@ -151,7 +151,7 @@ ok('finta guarda o tipo, golpe não', fintas.passos.map((x) => x.tipo || 'golpe'
 ok('depois da finta é sempre "ele reagiu"', fintas.passos.map((x) => x.via), [null, 'encaixou', 'reagiu', 'reagiu', 'defendeu']);
 const cf = correnteDoPlano(fintas);
 const af = arvoreDoPlano(cf.passos);
-ok('a finta segue no mesmo trilho; a defesa abre o B', af.ordem.map((i) => [cf.passos[i].golpe, LETRAS[af.trilho[i]]]),
+ok('a finta segue no mesmo trilho; a defesa abre o B', af.ordem.map((i) => [cf.passos[i].golpe, letraDo(af.trilho[i])]),
   [['Raspagem de quadril (hip bump)', 'A'], ['Guilhotina', 'A'], ['Triângulo', 'A'], ['Kimura', 'A'], ['Guilhotina', 'B']]);
 ok('reação à finta e defesa do golpe ficam em passos diferentes', [cf.passos[3].reacao, cf.passos[4].reacao], ['ele posta a mão no chão', 'ele esconde o braço']);
 
@@ -212,14 +212,14 @@ ok('três entradas da mesma posição ficam (várias raízes)', grafo.passos.fil
 ok('o "não reagiu" é guardado', grafo.passos[7].via, 'naoReagiu');
 const cg = correnteDoPlano(grafo);
 const ag = arvoreDoPlano(cg.passos);
-ok('cada entrada e cada desvio é um plano com letra própria', ag.ordem.map((i) => `${LETRAS[ag.trilho[i]]}:${cg.passos[i].golpe}`),
+ok('cada entrada e cada desvio é um plano com letra própria', ag.ordem.map((i) => `${letraDo(ag.trilho[i])}:${cg.passos[i].golpe}`),
   ['A:Guilhotina', 'A:Armlock', 'B:Raspagem de tesoura', 'B:Raspagem de quadril (hip bump)', 'C:Triângulo', 'C:Armlock',
     'D:Kimura', 'E:Triângulo', 'F:Omoplata', 'G:Kimura']);
 ok('passa de 4 planos', ag.trilhos, 7);
 ok('as três defesas saem do mesmo armlock, cada uma com o que ele fez', ag.filhos[3].map((k) => cg.passos[k].reacao), ['colou o cotovelo', 'girou o braço pra fora', 'levantou a postura']);
 ok('golpe abre encaixou e defendeu; finta, reagiu e não reagiu', [viasDa(cg.passos[3]), viasDa(cg.passos[0])], [['encaixou', 'defendeu'], ['reagiu', 'naoReagiu']]);
 ok('golpe aceita mais uma defesa', vagaLivre(cg.passos, 3, 'defendeu'), true);
-ok('"não reagiu" é um só', vagaLivre(cg.passos, 0, 'naoReagiu'), false);
+ok('"não reagiu" aceita outra ameaça', vagaLivre(cg.passos, 0, 'naoReagiu'), true);
 ok('defesa sem nome junto de outra é avisada', semGatilho([...cg.passos, { tipo: 'golpe', golpe: 'Mata-leão', reacao: '', pai: 3, via: 'defendeu' }]).map((x) => x.golpe), ['Mata-leão']);
 ok('defesa sozinha sem nome não é avisada', semGatilho([{ golpe: 'Armlock', pai: null }, { golpe: 'Kimura', reacao: '', pai: 0, via: 'defendeu' }]), []);
 ok('tirar a finta leva junto o "não reagiu" dela', semAFinta(cg.passos, 0).map((x) => x.golpe).includes('Kimura') && semAFinta(cg.passos, 0).filter((x) => x.tipo === 'finta').length, 2);
@@ -228,6 +228,72 @@ ok('não arrasta pra posição', moverPasso(cg.passos, 5, null, 'raiz'), null);
 ok('finta só com "não reagiu" ainda é ponta solta (falta o que fazer quando ele reage)',
   pontasSoltas(planoNovo({ objetivo: 'Finalizar', objetivoTipo: 'finalizar', passos: [{ tipo: 'finta', golpe: 'Guilhotina', pai: null }, { tipo: 'golpe', golpe: 'Kimura', pai: 0, via: 'naoReagiu' }] }), destinoDe).map((x) => x.golpe),
   ['Guilhotina']);
+
+/* ---------- identidade: peça e ligação com id que não muda ----------
+   O rola aponta pelo id. Apagar, arrastar, renomear ou pôr finta não
+   pode fazer um rola antigo apontar pra outra peça. */
+const { caminhoAte, ligacoesDo, removidosAoSalvar, pecaDoRola, planoDoRolaAntigo } = await import('../src/lib/planos.js');
+const editar = (p) => correnteDoPlano(p).passos.map((x) => ({ ...x }));
+const salvo = planoNovo({ objetivo: 'Finalizar', objetivoTipo: 'finalizar', passos: [
+  { golpe: 'Armlock', pai: null },
+  { golpe: 'Triângulo', reacao: 'colou o cotovelo', pai: 0, via: 'defendeu' },
+  { golpe: 'Omoplata', reacao: 'girou o braço', pai: 0, via: 'defendeu' },
+  { golpe: 'Kimura', pai: 2, via: 'defendeu' },
+] });
+const ids = salvo.passos.map((x) => x.id);
+ok('toda peça e toda ligação ganham id', salvo.passos.every((x) => x.id && x.lig), true);
+ok('ids não se repetem', new Set([...ids, ...salvo.passos.map((x) => x.lig)]).size, 8);
+ok('salvar de novo não muda id', planoNovo({ passos: editar(salvo) }).passos.map((x) => x.id), ids);
+const rolaNaKimura = { plano: { uid: 'X', peca: ids[3], encaixou: false } };
+/* tirar o Triângulo: a Kimura muda de posição na lista (3 → 2) */
+const semTri = planoNovo({ passos: semOGolpe(editar(salvo), 1) });
+ok('tirar uma peça muda o índice mas não o id', [semTri.passos.findIndex((x) => x.id === ids[3]), pecaDoRola(semTri, rolaNaKimura)?.golpe], [2, 'Kimura']);
+ok('as outras ligações ficam com o mesmo id', semTri.passos.map((x) => x.lig), salvo.passos.filter((_, k) => k !== 1).map((x) => x.lig));
+const rem = removidosAoSalvar(salvo, semTri);
+ok('o que saiu fica em removidos (peça e ligação)', [rem.pecas.map((x) => x.golpe), rem.ligacoes.map((x) => [x.id, x.de, x.via, x.gatilho])],
+  [['Triângulo'], [[salvo.passos[1].lig, ids[0], 'defendeu', 'colou o cotovelo']]]);
+const comHist = { ...semTri, removidos: rem };
+ok('rola que parou na peça apagada ainda acha o nome', pecaDoRola(comHist, { plano: { peca: ids[1] } }), { id: ids[1], tipo: 'golpe', golpe: 'Triângulo', saiu: true });
+ok('onde para: peça apagada aparece com o nome', taxaDoPlano({ ...comHist, uid: 'X' }, [{ plano: { uid: 'X', peca: ids[1], encaixou: false } }]).morreNo, { peca: ids[1], golpe: 'Triângulo', saiu: true, vezes: 1 });
+ok('removidos somam a cada salvar', removidosAoSalvar(comHist, planoNovo({ passos: semOGolpe(editar(comHist), 2) })).pecas.map((x) => x.golpe), ['Triângulo', 'Kimura']);
+/* renomear, arrastar e pôr finta */
+const ren = editar(salvo).map((x, k) => (k === 3 ? { ...x, golpe: 'Kimura da guarda', reacao: 'puxou o braço' } : x));
+ok('renomear e mudar o gatilho não mudam id nem ligação', [ren[3].id, ren[3].lig], [ids[3], salvo.passos[3].lig]);
+const arr = moverPasso(editar(salvo), 3, 1, 'defendeu');
+ok('arrastar: a peça fica com o id, a ligação é outra', [arr[3].id === ids[3], arr[3].lig !== salvo.passos[3].lig], [true, true]);
+ok('a ligação de antes do arrasto vai pra removidos', removidosAoSalvar(salvo, planoNovo({ passos: arr })).ligacoes.map((x) => x.id), [salvo.passos[3].lig]);
+const ft = fintaAntes(editar(salvo), 3, 'Guilhotina');
+ok('finta no meio: o golpe fica com o id, ganha ligação nova, a finta tem id próprio', [ft[3].id === ids[3], ft[3].lig !== salvo.passos[3].lig, !ids.includes(ft[4].id)], [true, true, true]);
+ok('tirar a finta: o golpe volta com o mesmo id', semAFinta(ft, 4).map((x) => x.id), ids);
+/* o caminho que o rola guarda */
+const cs = correnteDoPlano(salvo).passos;
+ok('caminho: as ligações da posição até a peça', caminhoAte(cs, 3), [cs[0].lig, cs[2].lig, cs[3].lig]);
+ok('ligações apontam pelo id da peça', ligacoesDo(cs)[3], { id: cs[3].lig, de: ids[2], via: 'defendeu', gatilho: '', para: ids[3] });
+/* plano guardado antes dos ids */
+const velho = { uid: 'V', updatedAt: 100, passos: [{ acao: 'Armlock' }, { acao: '' }, { acao: 'Triângulo' }, { acao: 'Kimura' }] };
+ok('plano sem id: a peça leva a posição guardada', correnteDoPlano(velho).passos.map((x) => x.id), ['p0', 'p2', 'p3']);
+ok('salvar o plano velho grava esses ids', planoNovo({ passos: editar(velho) }).passos.map((x) => x.id), ['p0', 'p2', 'p3']);
+/* migração do rola de antes (ate = posição na lista do dia) */
+ok('plano não mudou depois do rola: vira a peça e o caminho', planoDoRolaAntigo({ updatedAt: 200, plano: { uid: 'V', ate: 2, encaixou: true } }, velho),
+  { uid: 'V', encaixou: true, peca: 'p3', caminho: ['l0', 'l2', 'l3'] });
+ok('plano mudou depois do rola: não chuta, guarda o número', planoDoRolaAntigo({ updatedAt: 50, plano: { uid: 'V', ate: 2, encaixou: true } }, velho),
+  { uid: 'V', encaixou: true, peca: null, caminho: [], ateAntigo: 2 });
+ok('número que não existe mais: sem peça', planoDoRolaAntigo({ updatedAt: 200, plano: { uid: 'V', ate: 9 } }, velho).peca, null);
+ok('plano apagado: sem peça', planoDoRolaAntigo({ updatedAt: 200, plano: { uid: 'Z', ate: 0 } }, undefined).peca, null);
+ok('rola já migrado não muda', planoDoRolaAntigo({ plano: { uid: 'V', peca: 'p3' } }, velho), null);
+ok('migrado com peça incerta não conta no "onde para"', taxaDoPlano(velho, [{ plano: { uid: 'V', peca: null, ateAntigo: 2, encaixou: false } }]), { usos: 1, encaixes: 0, taxa: 0, morreNo: null });
+/* a letra é rótulo, não teto */
+ok('letras: A, P, Q, Z, AA, AB, AZ, BA', [0, 15, 16, 25, 26, 27, 51, 52].map(letraDo), ['A', 'P', 'Q', 'Z', 'AA', 'AB', 'AZ', 'BA']);
+/* "não reagiu" com mais de uma ameaça: cada uma abre o seu plano */
+const nr = planoNovo({ passos: [
+  { tipo: 'finta', golpe: 'Guilhotina', pai: null },
+  { golpe: 'Armlock', pai: 0, via: 'reagiu' },
+  { golpe: 'Kimura', pai: 0, via: 'naoReagiu' },
+  { golpe: 'Omoplata', pai: 0, via: 'naoReagiu' },
+] });
+const anr = arvoreDoPlano(correnteDoPlano(nr).passos);
+ok('duas ameaças no "não reagiu", cada uma com letra', anr.ordem.map((i) => `${letraDo(anr.trilho[i])}:${nr.passos[i].acao}`), ['A:Guilhotina', 'A:Armlock', 'B:Kimura', 'C:Omoplata']);
+ok('"não reagiu" não pede gatilho (é escolha sua)', semGatilho(correnteDoPlano(nr).passos), []);
 
 ok('"meia guarda" acha Kimura da meia-guarda', casaApelido('Kimura da meia-guarda', 'meia guarda'), true);
 ok('"triangulo" não acha Kimura', casaApelido('Kimura', 'triangulo'), false);

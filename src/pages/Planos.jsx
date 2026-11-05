@@ -16,7 +16,7 @@ import { SeletorTecnica } from '../components/SeletorTecnica';
 import { podeVer, pedirOferta } from '../lib/plano';
 import {
   meusPlanos, planosProntos, exemplosDaFaixa, podeCriarPlano, correnteDoPlano, planoNovo, MAX_PASSOS, ALTURA_REL,
-  taxaDoPlano, taxaPorTipo, arvoreDoPlano, semOGolpe, LETRAS, VIAS,
+  taxaDoPlano, taxaPorTipo, arvoreDoPlano, semOGolpe, letraDo, novoId, removidosAoSalvar, VIAS,
   semAFinta, fintaAntes, moverPasso, chegaNoObjetivo, finaliza, pontasSoltas, semGatilho, OBJETIVO_FINALIZAR,
 } from '../lib/planos';
 import { FAIXAS } from '../lib/faixas';
@@ -147,7 +147,7 @@ export default function Planos() {
           const pos = positions.find((x) => String(x.id) === String(e.posicaoId));
           const dados = planoNovo({ ...e, posicao: pos?.nome || e.posicao });
           if (!dados.passos.length) { toast('Escolha pelo menos um golpe', 'err'); return; }
-          if (e.id) await db.attackPlans.update(e.id, dados);
+          if (e.id) await db.attackPlans.update(e.id, { ...dados, removidos: removidosAoSalvar(await db.attackPlans.get(e.id), dados) });
           else await db.attackPlans.add({ ...dados, criadoEm: Date.now() });
           setEdit(null);
           toast('Plano salvo');
@@ -172,7 +172,7 @@ const paraEditar = (p) => {
     id: p.id, nome: p.nome, posicaoId: p.posicaoId || '', posicao: p.posicao || '', objetivo: c.objetivo, objetivoTipo: c.objetivoTipo,
     paraAltura: p.paraAltura || [], paraPeso: p.paraPeso || [],
     passos: c.passos.map((x) => ({
-      tipo: x.tipo, golpe: x.golpe, detalhe: x.detalhe, pai: x.pai, via: x.via,
+      id: x.id, lig: x.lig, tipo: x.tipo, golpe: x.golpe, detalhe: x.detalhe, pai: x.pai, via: x.via,
       reacao: x.reacao || (x.via === 'defendeu' ? c.passos[x.pai].defesa : ''),
     })),
   };
@@ -268,7 +268,7 @@ function AcertoDoPlano({ p, rolls, partners, porTipo }) {
   return (
     <div className="micro muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
       Encaixou em <b style={{ color: 'var(--chalk)' }}>{t.encaixes} de {t.usos}</b> {t.usos === 1 ? 'rola' : 'rolas'} ({t.taxa}%)
-      {t.morreNo && c.passos[t.morreNo.passo] ? ` · para mais no ${c.passos[t.morreNo.passo].golpe}` : ''}
+      {t.morreNo ? ` · para mais no ${t.morreNo.golpe}${t.morreNo.saiu ? ' (já saiu do plano)' : ''}` : ''}
       {tipos.length > 0 && <div>{tipos.map(([k, v]) => `${NOME_TIPO[k] || k}: ${v.encaixes} de ${v.usos}`).join(' · ')}</div>}
     </div>
   );
@@ -305,7 +305,7 @@ function CartaoPlano({ p, exemplo = false, onAssistir, acerto = null, children }
             </span>
           </React.Fragment>
         ))}
-        {trilhos > 1 && <span className="plano-peca t-defende">+ {trilhos === 2 ? 'Plano B' : `Planos ${juntar(LETRAS.slice(1, trilhos))}`}</span>}
+        {trilhos > 1 && <span className="plano-peca t-defende">+ {trilhos === 2 ? 'Plano B' : `Planos ${juntar(Array.from({ length: trilhos - 1 }, (_, t) => letraDo(t + 1)))}`}</span>}
       </div>
       {c.objetivo && <div className="plano-objetivo micro"><Flag size={12} /> Onde quer chegar: <b>{textoDoObjetivo(c)}</b></div>}
       {acerto}
@@ -361,7 +361,7 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
     if (existe) {
       mudar({ passos: passos.map((x, k) => (k === peca.i ? { ...x, golpe: peca.golpe, reacao: peca.reacao } : x)) });
     } else {
-      mudar({ passos: [...passos, { tipo: peca.tipo, golpe: peca.golpe, reacao: peca.reacao, detalhe: '', pai: peca.pai, via: peca.pai === null ? null : peca.via }] });
+      mudar({ passos: [...passos, { id: novoId(), lig: novoId(), tipo: peca.tipo, golpe: peca.golpe, reacao: peca.reacao, detalhe: '', pai: peca.pai, via: peca.pai === null ? null : peca.via }] });
     }
     setPeca(null);
   };
@@ -535,7 +535,7 @@ function LegendaDoMapa({ trilhos = 2, finta = true }) {
     <div className="mapa-legenda">
       <span className="mapa-tipo t-posicao"><i />Posição</span>
       {finta && <span className="mapa-tipo t-finta"><i />Finta</span>}
-      {LETRAS.slice(0, trilhos).map((l, t) => <span key={l} className={`mapa-tipo trilho-${cor(t)}`}><i />Plano {l}</span>)}
+      {Array.from({ length: trilhos }, (_, t) => letraDo(t)).map((l, t) => <span key={l} className={`mapa-tipo trilho-${cor(t)}`}><i />Plano {l}</span>)}
       <span className="mapa-tipo" style={{ color: 'var(--jade)' }}><Check size={12} strokeWidth={3} />Encaixou</span>
       <span className="mapa-tipo" style={{ color: '#ff7a6b' }}><X size={12} strokeWidth={3} />Se ele defender</span>
       <span className="mapa-tipo" style={{ color: '#f5c542' }}><Flag size={12} />Chegou lá</span>
@@ -583,7 +583,7 @@ function linhasDoMapa(plano, destinoDe, editar = false) {
       else if (editar) vaga(aqui, i, adiante, trilho[i]);
       else if (g.segue) linhas.push({ ...folha, rotulo: 'Encaixou, depois', titulo: g.segue });
     } else if (editar) vaga(aqui, i, adiante, trilho[i], true);
-    if (editar && !golpe && !tem('naoReagiu')) vaga(aqui, i, 'naoReagiu', trilho[i]);
+    if (editar && !golpe) vaga(aqui, i, 'naoReagiu', trilho[i], tem('naoReagiu'));
     if (editar && golpe) vaga(aqui, i, 'defendeu', trilho[i], tem('defendeu'));
   });
   return {
@@ -615,7 +615,7 @@ function arrumar(linhas, filhos, alturas, { larg, vao }) {
 
 /* o rótulo de cima da peça: por onde ela nasce */
 function RotuloDaVia({ l }) {
-  const letra = l.abre ? ` · Plano ${LETRAS[l.trilho]}` : '';
+  const letra = l.abre ? ` · Plano ${letraDo(l.trilho)}` : '';
   if (l.via === 'raiz') return `${l.tipo === 'finta' ? 'Começa com finta' : '1º golpe'}${letra}`;
   if (l.via === 'encaixou') return <><Check size={11} strokeWidth={3} /> Encaixou{letra}</>;
   if (l.via === 'reagiu') return <><Sparkles size={11} /> Ele reagiu{letra}</>;
@@ -627,7 +627,7 @@ const TEXTO_DA_VAGA = {
   naoReagiu: 'Não reagiu? Troco a ameaça',
 };
 /* a saída que já tem caminho e ganha outro */
-const TEXTO_DE_MAIS = { raiz: 'Outra entrada', encaixou: 'Outra opção daqui', defendeu: 'Outra defesa dele', reagiu: 'Reagiu de outro jeito' };
+const TEXTO_DE_MAIS = { raiz: 'Outra entrada', encaixou: 'Outra opção daqui', defendeu: 'Outra defesa dele', reagiu: 'Reagiu de outro jeito', naoReagiu: 'Outra ameaça pra trocar' };
 
 function NoDoMapa({ l, guardar, aberto, onTocar, pega, vaga = '' }) {
   if (l.tipo === 'vaga') {

@@ -1,6 +1,7 @@
 import Dexie from 'dexie';
 import { SEED } from './seed';
 import { PLANOS_ATAQUE } from './attackPlans';
+import { planoDoRolaAntigo } from '../lib/planos';
 import { uidEstavel, chaveNome } from '../lib/uid';
 import { resultadoDoTexto } from '../lib/competicao';
 import { dataLocal } from '../lib/utils';
@@ -486,6 +487,19 @@ export async function consertarContextoDoDrill() {
   }
   await setMeta('contexto_drill_v1', true);
   return n;
+}
+
+/* ---------- o rola que usou plano passa a apontar pela peça ----------
+   Antes guardava a posição do golpe na lista, que muda quando uma
+   peça sai do plano. Roda em todo boot, mas só mexe no rola que ainda
+   está no formato antigo (o que chega de outro aparelho também).
+   A regra de quando dá pra confiar no número fica em planoDoRolaAntigo. */
+export async function migrarRolasDosPlanos() {
+  const antigos = await db.rolls.filter((r) => !!r.plano && r.plano.peca === undefined).toArray();
+  if (!antigos.length) return 0;
+  const planos = new Map((await db.attackPlans.toArray()).map((p) => [p.uid, p]));
+  for (const r of antigos) await db.rolls.update(r.id, { plano: planoDoRolaAntigo(r, planos.get(r.plano.uid)) });
+  return antigos.length;
 }
 
 /* ---------- segundos assistidos que foram gravados errado ----------

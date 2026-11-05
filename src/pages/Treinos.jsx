@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, Suspense } from 'react';
 import { lazy } from '../lib/lazy';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { planosDaPessoa, correnteDoPlano, arvoreDoPlano, LETRAS } from '../lib/planos';
+import { planosDaPessoa, correnteDoPlano, arvoreDoPlano, letraDo, caminhoAte, pecaDoRola } from '../lib/planos';
 import {
   Plus, Trash2, Pencil, NotebookPen, Timer, ChevronDown, ChevronRight, Copy, Check,
   MessageSquare, Building2, GraduationCap, Trophy, Weight, Mic, Users, History, ShieldAlert, CircleHelp,
@@ -1613,19 +1613,22 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
                     const plano = r.plano && meusPlanosDeAtaque.find((x) => x.uid === r.plano.uid);
                     const golpes = plano ? correnteDoPlano(plano).passos : [];
                     const arvore = arvoreDoPlano(golpes);
+                    /* a peça marcada que já saiu do plano continua aparecendo marcada */
+                    const saiu = plano && pecaDoRola(plano, r)?.saiu ? pecaDoRola(plano, r) : null;
                     return (
                       <Field label="Usou um plano de ataque?" hint={plano ? 'Toque no último golpe do plano que você tentou.' : 'Opcional. É daqui que sai a taxa de acerto do plano.'}>
-                        <Select value={plano ? plano.uid : ''} onChange={(e) => setRola(i, { plano: e.target.value ? { uid: e.target.value, ate: 0, encaixou: false } : null })}>
+                        <Select value={plano ? plano.uid : ''} onChange={(e) => setRola(i, { plano: e.target.value ? { uid: e.target.value, peca: null, caminho: [], encaixou: false } : null })}>
                           <option value="">Não usei</option>
                           {meusPlanosDeAtaque.map((x) => <option key={x.uid} value={x.uid}>{x.nome}</option>)}
                         </Select>
                         {plano && (
                           <div className="row wrap" style={{ gap: 6, marginTop: 8 }}>
                             {arvore.ordem.filter((k) => golpes[k].tipo !== 'finta').map((k, n) => (
-                              <Chip key={k} on={r.plano.ate === k} onClick={() => setRola(i, { plano: { ...r.plano, ate: k } })}>
-                                {arvore.trilhos > 1 ? `${LETRAS[arvore.trilho[k]]} · ` : `${n + 1}. `}{golpes[k].golpe}
+                              <Chip key={golpes[k].id} on={r.plano.peca === golpes[k].id} onClick={() => setRola(i, { plano: { uid: r.plano.uid, peca: golpes[k].id, caminho: caminhoAte(golpes, k), encaixou: r.plano.encaixou } })}>
+                                {arvore.trilhos > 1 ? `${letraDo(arvore.trilho[k])} · ` : `${n + 1}. `}{golpes[k].golpe}
                               </Chip>
                             ))}
+                            {saiu && <Chip on>{saiu.golpe} (saiu do plano)</Chip>}
                             <Chip tone={r.plano.encaixou ? 'jade' : ''} on={r.plano.encaixou} onClick={() => setRola(i, { plano: { ...r.plano, encaixou: !r.plano.encaixou } })}>
                               {r.plano.encaixou ? <Check size={12} /> : null} Encaixou
                             </Chip>

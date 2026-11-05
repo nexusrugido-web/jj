@@ -15,22 +15,40 @@
    (encaixou ou reagiu) segue no mesmo plano; cada desvio abre um
    plano com letra própria.
    Pra frente (R2 a R7): "escapou" é mais uma via; a convergência
-   entra como ligações extras do plano ({ de, via, gatilho, para })
-   sem mexer na árvore; a preparação é mais um tipo de peça; o rola
-   guarda o caminho como lista de índices.
+   entra como ligações extras do plano ({ id, de, via, gatilho, para },
+   de e para pelo id da peça) sem mexer na árvore; a preparação é mais
+   um tipo de peça.
    O objetivo (finalizar, uma posição ou um golpe) é obrigatório: o
    golpe que chega nele fecha o caminho com a bandeira.
 
    Guardado na mesma tabela dos 16 prontos (attackPlans): gatilho é
    o que ele fez pra chegar nesse passo, acao é o nome da técnica, e
    o passo diz de quem nasce (pai, índice de outro passo) e por onde
-   (via). Os índices nunca mudam de lugar, porque o rola guarda "até
-   qual golpe chegou" pelo índice: peça nova entra no fim da lista.
+   (via). O índice é só arrumação interna e muda quando uma peça sai.
+
+   IDENTIDADE: cada peça tem um id e a ligação que chega nela tem
+   outro (lig). Arrastar, renomear, mudar o gatilho ou apagar outra
+   peça não muda nenhum dos dois. A ligação ganha id novo quando muda
+   de ponta (a peça foi arrastada pra outro lugar, entrou ou saiu uma
+   finta no meio): é outro caminho, e o rola antigo tem que continuar
+   dizendo o caminho de antes. O que sai do plano fica em "removidos"
+   ({ pecas, ligacoes }), pro rola antigo ainda achar o nome.
+   O rola guarda { uid, peca, caminho, encaixou }: a peça até onde
+   chegou e a lista das ligações da posição até ela, como eram no dia.
+   Plano guardado antes dos ids: a peça ganha "p" + a posição na lista
+   guardada e a ligação "l" + a mesma posição, e isso vira o id
+   dela na primeira vez que o plano é salvo.
    Passo sem pai é do formato antigo, que era uma fila.
    ============================================================ */
 
 export const MAX_PASSOS = 16;
-export const LETRAS = 'ABCDEFGHIJKLMNOP'.split('');
+/* a letra é só o rótulo do plano: A a Z, depois AA, AB... sem teto */
+export function letraDo(t) {
+  let l = '';
+  for (let n = t + 1; n > 0; n = Math.floor((n - 1) / 26)) l = String.fromCharCode(65 + ((n - 1) % 26)) + l;
+  return l;
+}
+export const novoId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 10);
 /* as saídas, na ordem do mapa (de cima pra baixo) */
 export const VIAS = ['encaixou', 'reagiu', 'naoReagiu', 'defendeu'];
 const continua = (via) => via === 'encaixou' || via === 'reagiu';
@@ -123,6 +141,7 @@ export function correnteDoPlano(p) {
   const brutos = p?.passos || [];
   const { lista, pai, novo } = podar(brutos, (x) => x.acao);
   const passos = lista.map((i) => ({
+    id: brutos[i].id || `p${i}`, lig: brutos[i].lig || `l${i}`,
     tipo: brutos[i].tipo === 'finta' ? 'finta' : 'golpe',
     reacao: brutos[i].gatilho || '', golpe: brutos[i].acao, detalhe: brutos[i].detalhe || '', defesa: brutos[i].seFalhar || '',
     pai: pai[i] === null ? null : novo.get(pai[i]),
@@ -132,7 +151,7 @@ export function correnteDoPlano(p) {
      a peça de finta, no fim da lista, e o 1º golpe nasce dela */
   if (p?.finta && passos.length && !passos.some((x) => x.tipo === 'finta')) {
     const r = passos.findIndex((x) => x.pai === null);
-    passos.push({ tipo: 'finta', reacao: '', golpe: p.finta, detalhe: '', defesa: '', pai: null, via: null });
+    passos.push({ id: 'finta', lig: 'lfinta', tipo: 'finta', reacao: '', golpe: p.finta, detalhe: '', defesa: '', pai: null, via: null });
     passos[r] = { ...passos[r], pai: passos.length - 1, via: 'reagiu' };
   }
   const ultimo = brutos[brutos.length - 1];
@@ -204,7 +223,7 @@ export function semAFinta(passos, i) {
   const f = passos[i];
   const fora = new Set([i]);
   passos.forEach((x, k) => { if (x.pai === i && x.via === 'naoReagiu') galhoDe(passos, k).forEach((g) => fora.add(g)); });
-  const religado = passos.map((x) => (x.pai === i ? { ...x, pai: f.pai, via: f.via } : x));
+  const religado = passos.map((x) => (x.pai === i ? { ...x, pai: f.pai, via: f.via, lig: novoId() } : x));
   return semOs(religado, fora);
 }
 
@@ -212,24 +231,21 @@ export function semAFinta(passos, i) {
    ele passa a nascer da reação à finta */
 export function fintaAntes(passos, i, nome) {
   const x = passos[i];
-  const nova = { tipo: 'finta', reacao: '', golpe: nome, pai: x.pai, via: x.via };
-  return [...passos.map((y, k) => (k === i ? { ...y, pai: passos.length, via: 'reagiu' } : y)), nova];
+  const nova = { id: novoId(), lig: novoId(), tipo: 'finta', reacao: '', golpe: nome, pai: x.pai, via: x.via };
+  return [...passos.map((y, k) => (k === i ? { ...y, pai: passos.length, via: 'reagiu', lig: novoId() } : y)), nova];
 }
 
 /* as saídas de cada peça: o golpe tem encaixou e defendeu; a finta,
-   reagiu e não reagiu. Todas aceitam mais de um caminho, menos o
-   "não reagiu". */
+   reagiu e não reagiu. Todas aceitam mais de um caminho: no "não
+   reagiu", cada um é outra ameaça pra trocar. */
 export const viasDa = (peca) => (peca?.tipo === 'finta' ? ['reagiu', 'naoReagiu'] : ['encaixou', 'defendeu']);
-export function vagaLivre(passos, pai, via) {
-  if (!passos[pai] || !viasDa(passos[pai]).includes(via)) return false;
-  return via !== 'naoReagiu' || !passos.some((x) => x.pai === pai && x.via === 'naoReagiu');
-}
+export const vagaLivre = (passos, pai, via) => !!passos[pai] && viasDa(passos[pai]).includes(via);
 
 /* arrastar o passo i (com o que nasce dele) pra vaga de outro. Não
    vale pra raiz, pra vaga ocupada nem pra dentro do próprio galho. */
 export function moverPasso(passos, i, pai, via) {
   if (!passos[i] || passos[i].pai === null || galhoDe(passos, i).has(pai) || !vagaLivre(passos, pai, via)) return null;
-  return passos.map((x, k) => (k === i ? { ...x, pai, via } : x));
+  return passos.map((x, k) => (k === i ? { ...x, pai, via, lig: novoId() } : x));
 }
 
 /* ---------- objetivo ----------
@@ -264,6 +280,66 @@ export function pontasSoltas(plano, destinoDe = () => null) {
 export const semGatilho = (passos = []) => passos.map((x, i) => ({ ...x, i })).filter((x) => (x.via === 'defendeu' || x.via === 'reagiu')
   && !String(x.reacao || '').trim() && passos.filter((y) => y.pai === x.pai && y.via === x.via).length > 1);
 
+/* ---------- identidade e histórico ---------- */
+
+/* as ligações da posição até a peça i, na ordem: o caminho que o rola guarda */
+export function caminhoAte(passos, i) {
+  const ligs = [];
+  for (let k = i, n = 0; passos[k] && n <= passos.length; k = passos[k].pai, n++) ligs.unshift(passos[k].lig);
+  return ligs;
+}
+
+/* as ligações do plano: { id, de, via, gatilho, para }, de e para pelo id da peça (de null: a posição) */
+export const ligacoesDo = (passos) => passos.map((x) => ({
+  id: x.lig, de: x.pai === null || x.pai === undefined ? null : passos[x.pai]?.id ?? null, via: x.via, gatilho: x.reacao || '', para: x.id,
+}));
+
+/* ao salvar: o que existia no plano guardado e sumiu do novo entra em
+   "removidos", somado ao que já estava lá. Peça ou ligação que voltou
+   sai de lá. */
+export function removidosAoSalvar(antigo, novo) {
+  const velho = antigo ? correnteDoPlano(antigo).passos : [];
+  const atual = correnteDoPlano(novo).passos;
+  const pecas = new Set(atual.map((x) => x.id));
+  const ligs = new Set(atual.map((x) => x.lig));
+  const ja = antigo?.removidos || { pecas: [], ligacoes: [] };
+  return {
+    pecas: [...ja.pecas, ...velho.filter((x) => !pecas.has(x.id)).map((x) => ({ id: x.id, tipo: x.tipo, golpe: x.golpe }))]
+      .filter((x, k, l) => !pecas.has(x.id) && l.findIndex((y) => y.id === x.id) === k),
+    ligacoes: [...ja.ligacoes, ...ligacoesDo(velho).filter((x) => !ligs.has(x.id))]
+      .filter((x, k, l) => !ligs.has(x.id) && l.findIndex((y) => y.id === x.id) === k),
+  };
+}
+
+/* a peça que o rola marcou, mesmo que já tenha saído do plano */
+export function pecaDoRola(plano, r) {
+  const id = r?.plano?.peca;
+  if (!plano || !id) return null;
+  const viva = correnteDoPlano(plano).passos.find((x) => x.id === id);
+  if (viva) return { ...viva, saiu: false };
+  const morta = (plano.removidos?.pecas || []).find((x) => x.id === id);
+  return morta ? { ...morta, saiu: true } : null;
+}
+
+/* o rola de antes guardava "ate": a posição do golpe na lista. Ela só
+   aponta pra peça certa se o plano não mudou depois da última vez que
+   o rola foi salvo (o registro mostrava a marca em cima desse plano).
+   Se mudou, não chuta: guarda o número em ateAntigo, a peça fica sem
+   marca e a pessoa marca de novo se quiser. O uso e o encaixou valem
+   do mesmo jeito. Devolve o plano novo do rola, ou null se não tem o
+   que mudar. */
+export function planoDoRolaAntigo(r, plano) {
+  const pr = r?.plano;
+  if (!pr || pr.peca !== undefined) return null;
+  const base = { uid: pr.uid, encaixou: !!pr.encaixou };
+  const k = pr.ate;
+  const passos = plano ? correnteDoPlano(plano).passos : [];
+  const confia = plano && Number.isInteger(k) && passos[k]
+    && Number(plano.updatedAt || 0) <= Number(r.updatedAt || 0);
+  if (!confia) return { ...base, peca: null, caminho: [], ...(Number.isInteger(k) ? { ateAntigo: k } : {}) };
+  return { ...base, peca: passos[k].id, caminho: caminhoAte(passos, k) };
+}
+
 /* copiar um pronto: vira plano seu, sem slug (o slug é da semente) */
 export function copiaDoPronto(p) {
   const { id, uid, slug, pronto, favorito, criadoEm, updatedAt, __local, ...resto } = p; // eslint-disable-line no-unused-vars
@@ -278,12 +354,13 @@ export function copiaDoPronto(p) {
 
 /* o plano novo que a tela salva. Golpe sem nome sai, e o que nasce
    dele também; passo sem pai (formato de fila) nasce do último que ficou */
-export function planoNovo({ nome, posicao, posicaoId = null, finta = '', objetivo = '', objetivoTipo = '', passos = [], paraAltura = [], paraPeso = [], copiadoDe = null }) {
+export function planoNovo({ nome, posicao, posicaoId = null, finta = '', objetivo = '', objetivoTipo = '', passos = [], paraAltura = [], paraPeso = [], copiadoDe = null, removidos }) {
   const { lista, pai, novo } = podar(passos, (x) => x.golpe);
   const guardados = lista.map((i) => {
     const x = passos[i];
     const p = pai[i] === null ? null : novo.get(pai[i]);
     return {
+      id: x.id || novoId(), lig: x.lig || novoId(),
       ...(x.tipo === 'finta' ? { tipo: 'finta' } : {}),
       gatilho: String(x.reacao || '').trim(), acao: x.golpe, seFalhar: '', proxima: '', detalhe: x.detalhe || '',
       pai: p,
@@ -292,6 +369,7 @@ export function planoNovo({ nome, posicao, posicaoId = null, finta = '', objetiv
   });
   return {
     paraAltura, paraPeso, copiadoDe,
+    ...(removidos ? { removidos } : {}),
     nome: String(nome || '').trim() || 'Meu plano',
     posicao: posicao || '',
     posicaoId,
@@ -334,7 +412,7 @@ export const planosQueServem = (planos, parceiro) =>
 /* ---------- taxa de acerto ----------
    Sai do "usou qual plano?" do rola. Drill não conta: o parceiro
    colabora. Onde morre: o golpe em que a corrente parou nos rolas
-   que não encaixaram. */
+   que não encaixaram, pela peça (não pela posição na lista). */
 const ehLuta = (r) => (r.contexto || 'rola') !== 'drill';
 const usosDo = (plano, rolls) => rolls.filter((r) => ehLuta(r) && r.plano?.uid && r.plano.uid === plano.uid);
 
@@ -342,13 +420,14 @@ export function taxaDoPlano(plano, rolls = []) {
   const usos = usosDo(plano, rolls);
   const encaixes = usos.filter((r) => r.plano.encaixou).length;
   const morre = {};
-  for (const r of usos) if (!r.plano.encaixou) morre[r.plano.ate || 0] = (morre[r.plano.ate || 0] || 0) + 1;
-  const [passo, vezes] = Object.entries(morre).sort((a, b) => b[1] - a[1])[0] || [];
+  for (const r of usos) if (!r.plano.encaixou && r.plano.peca) morre[r.plano.peca] = (morre[r.plano.peca] || 0) + 1;
+  const [peca, vezes] = Object.entries(morre).sort((a, b) => b[1] - a[1])[0] || [];
+  const p = peca && pecaDoRola(plano, { plano: { peca } });
   return {
     usos: usos.length,
     encaixes,
     taxa: usos.length ? Math.round((encaixes / usos.length) * 100) : 0,
-    morreNo: passo === undefined ? null : { passo: Number(passo), vezes },
+    morreNo: p ? { peca, golpe: p.golpe, saiu: p.saiu, vezes } : null,
   };
 }
 
