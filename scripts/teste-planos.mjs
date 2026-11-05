@@ -474,7 +474,7 @@ ok('plano antigo sem ligações e prontos: lista vazia', [correnteDoPlano({ pass
 ok('ligações malformadas não quebram a leitura', [correnteDoPlano({ passos: [{ acao: 'A' }], ligacoes: 'x' }).ligacoes, correnteDoPlano({ passos: [{ acao: 'A' }], ligacoes: [null, {}] }).ligacoes], [[], []]);
 
 /* o objetivo é uma posição e a fuga deixa a luta nela: a situação é o
-   momento, a posição é o lugar. Não conta: falta o golpe que firma. */
+   momento, a posição é o lugar. Não conta: falta a ação que estabelece o controle. */
 const costas = { objetivo: 'Costas', objetivoTipo: 'posicao' };
 const destCostas = (n) => (n === 'Pegada das costas' ? { slug: 'costas', nome: 'Costas' } : null);
 const fugaCostas = planoNovo({ ...costas, passos: [
@@ -484,9 +484,120 @@ const fugaCostas = planoNovo({ ...costas, passos: [
 ] });
 const cfc = correnteDoPlano(fugaCostas);
 ok('fuga pra posição do objetivo: a situação está lá, mas não ganha bandeira', [situacaoNoObjetivo(cfc.passos[1], cfc), chegaNoObjetivo(cfc.passos[1], cfc, destCostas)], [true, false]);
-ok('sem o golpe que firma, é ponta solta; a outra fuga só fecha', pontasSoltas(fugaCostas, destCostas).map((x) => x.golpe), ['Armlock', 'Costas']);
-ok('com o golpe que firma a posição, chega', pontasSoltas(planoNovo({ ...costas, passos: [...editar(fugaCostas), { golpe: 'Pegada das costas', pai: 1, via: 'retoma' }] }), destCostas).map((x) => x.golpe), ['Armlock']);
+ok('sem a ação que estabelece o controle, é ponta solta; a outra fuga só fecha', pontasSoltas(fugaCostas, destCostas).map((x) => x.golpe), ['Armlock', 'Costas']);
+ok('com a ação que estabelece o controle da posição, chega', pontasSoltas(planoNovo({ ...costas, passos: [...editar(fugaCostas), { golpe: 'Pegada das costas', pai: 1, via: 'retoma' }] }), destCostas).map((x) => x.golpe), ['Armlock']);
 ok('situação noutra posição não é do objetivo', [situacaoNoObjetivo(cfc.passos[2], cfc), situacaoNoObjetivo(cfc.passos[1], { objetivo: 'Finalizar', objetivoTipo: 'finalizar' })], [false, false]);
+
+/* ---------- convergência e histórico: por qual entrada ele chegou ----------
+   Três fintas levam ao mesmo Armlock e dele sai uma continuação comum
+   (defendeu: Triângulo; defendeu: Omoplata). O rola guarda a lista de
+   ligações, então mesmo com o fim igual dá pra saber se entrou pela
+   finta A, B ou C. Salvar, recarregar e apagar uma das ligações não pode
+   mudar o que o rola antigo diz. */
+const { caminhoDoRola, alcancouObjetivo, finalizacoesDoObjetivo, ehPreferida } = await import('../src/lib/planos.js');
+const fimR = { slug: 'finalizacao', nome: 'Finalização' };
+const destRota = (n) => (['Armlock', 'Triângulo', 'Kimura', 'Omoplata', 'Guilhotina'].includes(n) ? fimR : null);
+const rota = planoNovo({ nome: 'Três fintas, um armlock', objetivo: 'Finalizar', objetivoTipo: 'finalizar', posicao: 'Guarda fechada', passos: [
+  { id: 'fA', lig: 'lA', tipo: 'finta', golpe: 'Guilhotina', pai: null },
+  { id: 'fB', lig: 'lB', tipo: 'finta', golpe: 'Raspagem de tesoura', pai: null },
+  { id: 'fC', lig: 'lC', tipo: 'finta', golpe: 'Kimura', pai: null },
+  { id: 'arm', lig: 'lArm', golpe: 'Armlock', reacao: 'levantou a cabeça', pai: 0, via: 'reagiu' },
+  { id: 'tri', lig: 'lTri', golpe: 'Triângulo', reacao: 'puxou o braço', pai: 3, via: 'defendeu' },
+  { id: 'omo', lig: 'lOmo', golpe: 'Omoplata', reacao: 'tirou a cabeça', pai: 4, via: 'defendeu' },
+], ligacoes: [
+  { id: 'cB', de: 'fB', via: 'reagiu', gatilho: 'apoiou a mão', para: 'arm' },
+  { id: 'cC', de: 'fC', via: 'reagiu', gatilho: 'escondeu o braço', para: 'arm' },
+] });
+const rolaPor = (caminho, peca = 'omo', encaixou = true) => ({ plano: { uid: 'R', peca, caminho, encaixou } });
+const rolasRota = [rolaPor(['lA', 'lArm', 'lTri', 'lOmo']), rolaPor(['lB', 'cB', 'lTri', 'lOmo']), rolaPor(['lC', 'cC', 'lTri', 'lOmo'])];
+const lerRotas = (p, rs) => rs.map((r) => caminhoDoRola(p, r.plano.caminho)).map((k) => ({
+  inteiro: k.inteiro, entrada: k.ligacoes[0]?.para, chega: k.ligacoes[1] && [k.ligacoes[1].id, k.ligacoes[1].para],
+  resto: k.ligacoes.slice(2).map((l) => l.id), saiu: k.ligacoes.filter((l) => l?.saiu).map((l) => l.id),
+}));
+const lidas = lerRotas(rota, rolasRota);
+ok('cada rola diz por qual finta entrou', lidas.map((x) => x.entrada), ['fA', 'fB', 'fC']);
+ok('e por qual ligação chegou no mesmo Armlock', lidas.map((x) => x.chega), [['lArm', 'arm'], ['cB', 'arm'], ['cC', 'arm']]);
+ok('depois da convergência, a mesma continuação até a finalização', lidas.map((x) => x.resto), [['lTri', 'lOmo'], ['lTri', 'lOmo'], ['lTri', 'lOmo']]);
+ok('os três caminhos fecham da posição até a peça', lidas.map((x) => x.inteiro), [true, true, true]);
+ok('caminho trocado (entra pela A e chega pela ligação da B) não fecha', caminhoDoRola(rota, ['lA', 'cB', 'lTri', 'lOmo']).inteiro, false);
+ok('caminho vazio ou com id que não existe não fecha', [caminhoDoRola(rota, []).inteiro, caminhoDoRola(rota, ['lA', 'zz']).inteiro], [false, false]);
+/* salvar e recarregar: o JSON do sync e o editor salvando de novo */
+const viaSync = (x) => JSON.parse(JSON.stringify(x));
+const rotaRecv = viaSync(rota);
+const rotaResalva = planoNovo({ ...rotaRecv, passos: editar(rotaRecv), ligacoes: correnteDoPlano(rotaRecv).ligacoes });
+ok('recarregar e salvar de novo: os três rolas dizem o mesmo', JSON.stringify(lerRotas(rotaResalva, viaSync(rolasRota))) === JSON.stringify(lidas), true);
+/* apagar a ligação da finta B */
+const semCB = planoNovo({ ...rotaResalva, passos: editar(rotaResalva), ligacoes: correnteDoPlano(rotaResalva).ligacoes.filter((l) => l.id !== 'cB') });
+const histCB = viaSync({ ...semCB, removidos: removidosAoSalvar(rotaResalva, semCB) });
+const depois = lerRotas(histCB, viaSync(rolasRota));
+ok('apagar a ligação da B: a finta e o Armlock ficam', [histCB.passos.length, histCB.passos.some((x) => x.id === 'fB'), histCB.ligacoes.map((l) => l.id)], [6, true, ['cC']]);
+ok('o rola que entrou pela B continua dizendo B, com a ligação marcada como saída', [depois[1].entrada, depois[1].chega, depois[1].saiu, depois[1].inteiro], ['fB', ['cB', 'arm'], ['cB'], true]);
+ok('a ligação apagada guarda o gatilho daquele caminho', caminhoDoRola(histCB, rolasRota[1].plano.caminho).ligacoes[1].gatilho, 'apoiou a mão');
+ok('os rolas da A e da C não mudam', [depois[0], depois[2]], [lidas[0], lidas[2]]);
+/* mais um salvar (renomeia a finta B): o que saiu continua nos removidos */
+const renB = planoNovo({ ...histCB, passos: editar(histCB).map((x) => (x.id === 'fB' ? { ...x, golpe: 'Raspagem de gancho' } : x)), ligacoes: correnteDoPlano(histCB).ligacoes });
+const histRen = viaSync({ ...renB, removidos: removidosAoSalvar(histCB, renB) });
+ok('outro salvar não perde a ligação apagada', [histRen.removidos.ligacoes.some((l) => l.id === 'cB'), lerRotas(histRen, rolasRota)[1].inteiro], [true, true]);
+/* ligar a B no Armlock de novo: é outro caminho, com id novo; o rola antigo segue no de antes */
+const religadas = comLigacao(correnteDoPlano(histRen).ligacoes, { de: 'fB', via: 'reagiu', gatilho: 'apoiou a mão', para: 'arm' });
+const novaB = religadas.find((l) => l.de === 'fB').id;
+const comNovaB = planoNovo({ ...histRen, passos: editar(histRen), ligacoes: religadas });
+const histNova = viaSync({ ...comNovaB, removidos: removidosAoSalvar(histRen, comNovaB) });
+ok('religar a B gera id novo e a de antes fica nos removidos', [novaB !== 'cB', histNova.removidos.ligacoes.some((l) => l.id === 'cB')], [true, true]);
+ok('rola antigo pela B aponta pro caminho apagado; rola novo pela B, pro caminho novo',
+  [lerRotas(histNova, [rolasRota[1]])[0].saiu, lerRotas(histNova, [rolaPor(['lB', novaB, 'lTri', 'lOmo'])])[0].saiu, lerRotas(histNova, [rolaPor(['lB', novaB, 'lTri', 'lOmo'])])[0].inteiro],
+  [['cB'], [], true]);
+/* tentativa x chegada: passar pelo cartão não é ter chegado */
+ok('parou no Armlock sem encaixar: tentativa, não chegou', alcancouObjetivo(histNova, rolaPor(['lB', 'cB'], 'arm', false), destRota), false);
+ok('passou pelo Armlock e encaixou na Omoplata: chegou', alcancouObjetivo(histNova, rolasRota[1], destRota), true);
+ok('rola sem plano não chega', alcancouObjetivo(histNova, {}, destRota), false);
+
+/* ---------- R4: finalizar, com preferida e aceitas ----------
+   Objetivo principal: Finalizar. Preferida: Armlock. Aceitas: Triângulo,
+   Kimura, Omoplata. Qualquer uma delas chega no objetivo; a preferida
+   tem destaque. Sem lista, qualquer finalização serve, como antes. */
+const r4 = planoNovo({
+  objetivo: 'Finalizar', objetivoTipo: 'finalizar', finalizacaoPreferida: ' Armlock ',
+  finalizacoesAceitas: ['Triângulo', 'Kimura', 'Omoplata', 'Armlock', 'Kimura', ''],
+  passos: [
+    { id: 'a', golpe: 'Armlock', pai: null },
+    { id: 't', golpe: 'Triângulo', reacao: 'puxou o braço', pai: 0, via: 'defendeu' },
+    { id: 'g', golpe: 'Guilhotina', reacao: 'subiu a cabeça', pai: 0, via: 'defendeu' },
+    { id: 'r', golpe: 'Raspagem de quadril (hip bump)', reacao: 'levantou a postura', pai: 0, via: 'defendeu' },
+  ],
+});
+const cr4 = correnteDoPlano(r4);
+ok('o objetivo principal continua Finalizar', [r4.objetivo, r4.objetivoTipo], ['Finalizar', 'finalizar']);
+ok('preferida sem espaço; aceitas sem repetida, sem vazia e sem a preferida', [r4.finalizacaoPreferida, r4.finalizacoesAceitas], ['Armlock', ['Triângulo', 'Kimura', 'Omoplata']]);
+ok('a lista do objetivo: a preferida primeiro', finalizacoesDoObjetivo(cr4), ['Armlock', 'Triângulo', 'Kimura', 'Omoplata']);
+ok('preferida e aceita chegam; finalização fora da lista e raspagem não', cr4.passos.map((x) => chegaNoObjetivo(x, cr4, destRota)), [true, true, false, false]);
+ok('só a preferida tem destaque', cr4.passos.map((x) => ehPreferida(x, cr4)), [true, false, false, false]);
+ok('finalização fora da lista acaba a luta (não é ponta solta); a raspagem é', pontasSoltas(r4, destRota).map((x) => x.golpe), ['Raspagem de quadril (hip bump)']);
+ok('finta com o nome da preferida não chega', [chegaNoObjetivo({ tipo: 'finta', golpe: 'Armlock' }, cr4, destRota), ehPreferida({ tipo: 'finta', golpe: 'Armlock' }, cr4)], [false, false]);
+const soFinalizar = planoNovo({ objetivo: 'Finalizar', objetivoTipo: 'finalizar', passos: editar(r4).map(({ reacao, ...x }) => x) });
+ok('só "Finalizar": preferida e aceitas vazias e qualquer finalização serve',
+  [soFinalizar.finalizacaoPreferida, soFinalizar.finalizacoesAceitas, correnteDoPlano(soFinalizar).passos.map((x) => chegaNoObjetivo(x, correnteDoPlano(soFinalizar), destRota))],
+  ['', [], [true, true, true, false]]);
+const soAceitas = correnteDoPlano(planoNovo({ objetivo: 'Finalizar', objetivoTipo: 'finalizar', finalizacoesAceitas: ['Guilhotina'], passos: editar(r4) }));
+ok('só aceitas, sem preferida: chegam as aceitas, nenhuma com destaque',
+  [soAceitas.passos.map((x) => chegaNoObjetivo(x, soAceitas, destRota)), soAceitas.passos.some((x) => ehPreferida(x, soAceitas))], [[false, false, true, false], false]);
+ok('trocar o objetivo pra posição leva embora a preferida e as aceitas',
+  (() => { const p = planoNovo({ ...r4, objetivo: 'Montada', objetivoTipo: 'posicao', passos: editar(r4) }); return [p.finalizacaoPreferida, p.finalizacoesAceitas, correnteDoPlano({ ...r4, objetivoTipo: 'posicao' }).finalizacoesAceitas]; })(),
+  ['', [], undefined]);
+const r4Recv = viaSync(r4);
+ok('recarregar e salvar de novo mantém preferida e aceitas',
+  (() => { const p = planoNovo({ ...r4Recv, passos: editar(r4Recv) }); return [p.finalizacaoPreferida, p.finalizacoesAceitas]; })(), ['Armlock', ['Triângulo', 'Kimura', 'Omoplata']]);
+ok('plano antigo e os 16 prontos: sem preferida e sem aceitas, nada muda',
+  [correnteDoPlano({ objetivo: 'Finalizar', objetivoTipo: 'finalizar', passos: [{ acao: 'Kimura' }] }).finalizacoesAceitas,
+    PLANOS_ATAQUE.every((p) => { const k = correnteDoPlano(p); return !k.finalizacaoPreferida && !(k.finalizacoesAceitas || []).length; })],
+  [[], true]);
+ok('campo malformado não quebra', correnteDoPlano({ objetivoTipo: 'finalizar', objetivo: 'Finalizar', finalizacoesAceitas: 'x', passos: [] }).finalizacoesAceitas, []);
+/* com convergência: preferida Armlock, aceita Omoplata */
+const rotaR4 = { ...histNova, finalizacaoPreferida: 'Armlock', finalizacoesAceitas: ['Omoplata'] };
+ok('pela C, encaixou na Omoplata aceita: chegou; no Armlock preferido: chegou; no Triângulo fora da lista: não',
+  [alcancouObjetivo(rotaR4, rolasRota[2], destRota), alcancouObjetivo(rotaR4, rolaPor(['lC', 'cC'], 'arm'), destRota), alcancouObjetivo(rotaR4, rolaPor(['lC', 'cC', 'lTri'], 'tri'), destRota)],
+  [true, true, false]);
+ok('a preferida tentada e defendida não é chegada', alcancouObjetivo(rotaR4, rolaPor(['lC', 'cC'], 'arm', false), destRota), false);
 
 /* volume: 2000 peças e 1000 atalhos, muitos voltando pra trás */
 const tE = Date.now();

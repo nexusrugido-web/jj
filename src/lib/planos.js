@@ -179,10 +179,17 @@ export function correnteDoPlano(p) {
     passos[r] = { ...passos[r], pai: passos.length - 1, via: 'reagiu' };
   }
   const ultimo = brutos[brutos.length - 1];
+  const objetivoTipo = p?.objetivoTipo || (p?.objetivo ? 'tecnica' : '');
+  const fin = objetivoTipo === 'finalizar';
   return {
     posicao: p?.posicao || '',
     objetivo: p?.objetivo || '',
-    objetivoTipo: p?.objetivoTipo || (p?.objetivo ? 'tecnica' : ''),
+    objetivoTipo,
+    /* R4: só existe no finalizar */
+    ...(fin ? {
+      finalizacaoPreferida: p?.finalizacaoPreferida || '',
+      finalizacoesAceitas: Array.isArray(p?.finalizacoesAceitas) ? p.finalizacoesAceitas : [],
+    } : {}),
     passos,
     ligacoes: convergenciasValidas(passos, p?.ligacoes),
     /* o "depois" dos prontos quando o último golpe encaixa. O "se ele
@@ -327,13 +334,26 @@ export function comLigacao(ligacoes = [], l) {
 /* ---------- objetivo ----------
    Finalizar: qualquer golpe que termina em finalização. Posição: o
    golpe que termina nela. Golpe: o próprio. destinoDe(nome) devolve
-   a posição onde a técnica do catálogo termina ({ slug, nome }). */
+   a posição onde a técnica do catálogo termina ({ slug, nome }).
+   R4: no finalizar, a pessoa pode (sem obrigação) dizer a preferida e
+   as que também aceita, pelo nome do catálogo. Com a lista, só elas
+   chegam no objetivo (a preferida com a bandeira forte); outra
+   finalização ainda acaba a luta, mas sem bandeira. Sem lista, qualquer
+   finalização serve, como antes. O cartão é a tentativa: o objetivo só
+   conta quando encaixa. */
 export const OBJETIVO_FINALIZAR = 'Finalizar';
+export const finalizacoesDoObjetivo = (plano) => (plano?.objetivoTipo === 'finalizar'
+  ? [plano.finalizacaoPreferida, ...(plano.finalizacoesAceitas || [])].filter(Boolean) : []);
+export const ehPreferida = (passo, plano) => !!passo && tipoDe(passo) === 'golpe'
+  && plano?.objetivoTipo === 'finalizar' && !!plano.finalizacaoPreferida && passo.golpe === plano.finalizacaoPreferida;
 export function chegaNoObjetivo(passo, plano, destinoDe = () => null) {
   if (!passo || tipoDe(passo) !== 'golpe') return false;
   const tipo = plano?.objetivoTipo || (plano?.objetivo ? 'tecnica' : '');
   const destino = destinoDe(passo.golpe);
-  if (tipo === 'finalizar') return destino?.slug === 'finalizacao';
+  if (tipo === 'finalizar') {
+    const lista = finalizacoesDoObjetivo(plano);
+    return lista.length ? lista.includes(passo.golpe) : destino?.slug === 'finalizacao';
+  }
   if (tipo === 'posicao') return !!destino && destino.nome === plano.objetivo;
   if (tipo === 'tecnica') return passo.golpe === plano.objetivo;
   return false;
@@ -343,9 +363,9 @@ export const finaliza = (passo, destinoDe = () => null) => !!passo && tipoDe(pas
 /* a fuga que deixa a luta na posição do objetivo. A situação é o
    momento (ele saiu do controle e a luta veio pra cá); a posição é o
    lugar. Estar no lugar porque ele fugiu não é ter chegado: o objetivo
-   conta no golpe que firma a posição, com controle. Então a situação
+   conta na ação que estabelece o controle da posição. Então a situação
    nunca ganha a bandeira, e ficar nela sem caminho é ponta solta (falta
-   o golpe que firma), não "daqui não tem ataque". */
+   a ação que estabelece o controle), não "daqui não tem ataque". */
 export const situacaoNoObjetivo = (passo, plano) => tipoDe(passo) === 'situacao'
   && plano?.objetivoTipo === 'posicao' && !!plano.objetivo && passo.golpe === plano.objetivo;
 
@@ -421,6 +441,27 @@ export function pecaDoRola(plano, r) {
   return morta ? { ...morta, saiu: true } : null;
 }
 
+/* o caminho que o rola guardou, ligação por ligação, mesmo com peça ou
+   ligação que já saiu do plano: { id, de, via, gatilho, para, saiu }.
+   inteiro: começa na posição e cada ligação sai de onde a anterior
+   chegou. É o que diz por qual entrada ele chegou numa peça onde vários
+   caminhos convergem, mesmo que todos sigam iguais depois dela. */
+export function caminhoDoRola(plano, caminho = []) {
+  const c = correnteDoPlano(plano);
+  const vivas = new Map(ligacoesDo(c.passos, c.ligacoes).map((l) => [l.id, l]));
+  const mortas = new Map((plano?.removidos?.ligacoes || []).map((l) => [l.id, l]));
+  const ligacoes = (caminho || []).map((id) => (vivas.has(id) ? { ...vivas.get(id), saiu: false }
+    : mortas.has(id) ? { ...mortas.get(id), saiu: true } : null));
+  const inteiro = ligacoes.length > 0 && ligacoes.every((l, k) => l && (l.de ?? null) === (k ? ligacoes[k - 1].para ?? null : null));
+  return { ligacoes, inteiro };
+}
+
+/* tentativa x chegada: parar no cartão da finalização (ou passar por
+   ele) é tentativa; o objetivo só conta quando o rola diz que encaixou
+   na peça que chega nele */
+export const alcancouObjetivo = (plano, r, destinoDe = () => null) => !!r?.plano?.encaixou
+  && chegaNoObjetivo(pecaDoRola(plano, r), correnteDoPlano(plano), destinoDe);
+
 /* o rola de antes guardava "ate": a posição do golpe na lista. Ela só
    aponta pra peça certa se o plano não mudou depois da última vez que
    o rola foi salvo (o registro mostrava a marca em cima desse plano).
@@ -454,7 +495,12 @@ export function copiaDoPronto(p) {
 
 /* o plano novo que a tela salva. Golpe sem nome sai, e o que nasce
    dele também; passo sem pai (formato de fila) nasce do último que ficou */
-export function planoNovo({ nome, posicao, posicaoId = null, finta = '', objetivo = '', objetivoTipo = '', passos = [], ligacoes = [], paraAltura = [], paraPeso = [], copiadoDe = null, removidos }) {
+export function planoNovo({ nome, posicao, posicaoId = null, finta = '', objetivo = '', objetivoTipo = '', finalizacaoPreferida = '', finalizacoesAceitas = [], passos = [], ligacoes = [], paraAltura = [], paraPeso = [], copiadoDe = null, removidos }) {
+  /* preferida e aceitas só no finalizar; a preferida não se repete nas aceitas */
+  const fin = objetivoTipo === 'finalizar';
+  const preferida = fin ? String(finalizacaoPreferida || '').trim() : '';
+  const aceitas = fin ? [...new Set((Array.isArray(finalizacoesAceitas) ? finalizacoesAceitas : [])
+    .map((n) => String(n || '').trim()))].filter((n) => n && n !== preferida) : [];
   const { lista, pai, novo } = podar(passos, (x) => x.golpe);
   const guardados = lista.map((i) => {
     const x = passos[i];
@@ -476,6 +522,9 @@ export function planoNovo({ nome, posicao, posicaoId = null, finta = '', objetiv
     finta: finta || '',
     objetivo: objetivo || '',
     objetivoTipo: objetivoTipo || (objetivo ? 'tecnica' : ''),
+    /* sempre presentes: o update do banco mescla, e tirar a preferida tem que apagar a de antes */
+    finalizacaoPreferida: preferida,
+    finalizacoesAceitas: aceitas,
     passos: guardados,
     ligacoes: convergenciasValidas(guardados, ligacoes),
     tipo: 'ataque', modo: 'ambos', faixa: 'branca', legal: true, aviso: '', resumo: '',

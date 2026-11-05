@@ -4015,6 +4015,9 @@ body::after {
 .t-situacao { --c: #e2a76f; }
 .mente-no.situacao { border-left-width: 3px; }
 .mente-tag.situacao { color: #e2a76f; border-color: color-mix(in srgb, #e2a76f 50%, transparent); }
+/* R4: a finalização preferida, com a bandeira forte na chegada */
+.mente-tag.preferida { display: inline-flex; align-items: center; gap: 3px; color: #f5c542; border-color: color-mix(in srgb, #f5c542 55%, transparent); }
+.mente-folha.chegada.forte { background: color-mix(in srgb, #f5c542 24%, var(--void)); border: 2px solid #f5c542; box-shadow: 0 0 24px -2px #f5c542; }
 .mente-selo.escapou, .mapa-rotulo.escapou { color: #e2a76f; }
 .mente-selo.retoma, .mapa-rotulo.retoma { color: #6cb8ff; }
 .mente-vaga.escapou { --c: #e2a76f; }

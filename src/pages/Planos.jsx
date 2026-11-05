@@ -18,7 +18,7 @@ import {
   meusPlanos, planosProntos, exemplosDaFaixa, podeCriarPlano, correnteDoPlano, planoNovo, ALTURA_REL,
   taxaDoPlano, taxaPorTipo, arvoreDoPlano, semOGolpe, letraDo, novoId, removidosAoSalvar, VIAS,
   semAFinta, fintaAntes, moverPasso, chegaNoObjetivo, finaliza, pontasSoltas, semGatilho, OBJETIVO_FINALIZAR,
-  destinosDaLigacao, comLigacao, situacaoNoObjetivo, continua,
+  destinosDaLigacao, comLigacao, situacaoNoObjetivo, continua, finalizacoesDoObjetivo, ehPreferida,
 } from '../lib/planos';
 import { FAIXAS } from '../lib/faixas';
 import { PESO_REL } from '../db/scoring';
@@ -166,11 +166,12 @@ export default function Planos() {
   );
 }
 
-const rascunho = () => ({ nome: '', posicaoId: '', posicao: '', objetivo: '', objetivoTipo: '', paraAltura: [], paraPeso: [], passos: [], ligacoes: [] });
+const rascunho = () => ({ nome: '', posicaoId: '', posicao: '', objetivo: '', objetivoTipo: '', finalizacaoPreferida: '', finalizacoesAceitas: [], paraAltura: [], paraPeso: [], passos: [], ligacoes: [] });
 const paraEditar = (p) => {
   const c = correnteDoPlano(p);
   return {
     id: p.id, nome: p.nome, posicaoId: p.posicaoId || '', posicao: p.posicao || '', objetivo: c.objetivo, objetivoTipo: c.objetivoTipo,
+    finalizacaoPreferida: c.finalizacaoPreferida || '', finalizacoesAceitas: c.finalizacoesAceitas || [],
     paraAltura: p.paraAltura || [], paraPeso: p.paraPeso || [],
     passos: c.passos.map((x) => ({
       id: x.id, lig: x.lig, tipo: x.tipo, golpe: x.golpe, detalhe: x.detalhe, pai: x.pai, via: x.via,
@@ -181,7 +182,13 @@ const paraEditar = (p) => {
 };
 
 const juntar = (l) => (l.length < 2 ? l[0] : `${l.slice(0, -1).join(', ')} e ${l[l.length - 1]}`);
-const textoDoObjetivo = (c) => (c.objetivoTipo === 'finalizar' ? 'Finalizar (qualquer finalização serve)' : c.objetivo);
+/* finalizar: a preferida na frente, as aceitas depois; sem lista, qualquer uma serve */
+const textoDoObjetivo = (c) => {
+  if (c.objetivoTipo !== 'finalizar') return c.objetivo;
+  const aceitas = c.finalizacoesAceitas || [];
+  if (c.finalizacaoPreferida) return `Finalizar, de preferência com ${c.finalizacaoPreferida}${aceitas.length ? ` (também vale ${juntar(aceitas)})` : ''}`;
+  return aceitas.length ? `Finalizar com ${aceitas.length < 2 ? aceitas[0] : `${aceitas.slice(0, -1).join(', ')} ou ${aceitas[aceitas.length - 1]}`}` : 'Finalizar (qualquer finalização serve)';
+};
 
 /* o "?" do plano: cada pergunta abre a sua resposta */
 const GUIA_DO_PLANO = [
@@ -205,9 +212,12 @@ const GUIA_DO_PLANO = [
     id: 'objetivo', icone: Flag, titulo: 'Onde quero chegar', resumo: 'O que o plano persegue',
     conteudo: (
       <p className="micro muted" style={{ lineHeight: 1.6 }}>
-        Todo plano tem um objetivo: finalizar (qualquer finalização serve), chegar numa posição, como as costas ou a montada, ou um
+        Todo plano tem um objetivo: finalizar, chegar numa posição, como as costas ou a montada, ou um
         golpe específico. O golpe que chega lá ganha a bandeira. Uma raspagem ou uma passagem que encaixa no meio do caminho ainda
         não é a chegada: é o que te deixa mais perto. E se ele defender e não tiver mais caminho, o plano fecha ali.
+        No finalizar, se quiser, diga a sua preferida (tipo o armlock) e as que você também aceita (triângulo, kimura, omoplata).
+        Qualquer uma delas é chegar lá; a preferida ganha a bandeira forte. Sem escolher nenhuma, qualquer finalização serve.
+        E o cartão é a tentativa: o objetivo só conta quando encaixa.
       </p>
     ),
   },
@@ -219,8 +229,8 @@ const GUIA_DO_PLANO = [
         controle e a luta mudou de lugar, tipo tirou o braço do armlock e recuperou a guarda. Aí você marca onde a luta ficou e monta,
         a partir dali, como volta a atacar. O objetivo continua o mesmo: perder a posição não é perder o plano, é achar outro caminho
         até ele. E se daquela situação não tiver ataque que faça sentido, deixa sem continuação: o caminho fecha ali, sem jogada
-        inventada. E se a fuga deixar a luta justo na posição que você quer? Ainda não conta: foi ele que saiu do controle. Falta o
-        golpe que firma a posição, e é nele que a bandeira entra.
+        inventada. E se a fuga deixar a luta justo na posição que você quer? Ainda não conta: foi ele que saiu do controle. Falta a
+        ação que estabelece o controle da posição, e é nela que a bandeira entra.
       </p>
     ),
   },
@@ -406,9 +416,11 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
 
   const escolherTipo = (tipo) => {
     if (tipo === edit.objetivoTipo) return;
-    mudar({ objetivoTipo: tipo, objetivo: tipo === 'finalizar' ? OBJETIVO_FINALIZAR : '' });
+    mudar({ objetivoTipo: tipo, objetivo: tipo === 'finalizar' ? OBJETIVO_FINALIZAR : '', finalizacaoPreferida: '', finalizacoesAceitas: [] });
     if (tipo === 'tecnica') setEscolhendo('objetivo');
   };
+  const aceitas = edit.finalizacoesAceitas || [];
+  const finalizacoes = techniques.filter((t) => destinoDe(t.nome)?.slug === 'finalizacao');
   const guardarPeca = () => {
     if (ligacao) {
       if (peca.para === undefined) return;
@@ -431,6 +443,7 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
   };
   const viaDaPeca = peca ? (existe ? passos[peca.i].via || 'raiz' : peca.via || 'raiz') : 'raiz';
   const tituloSeletor = escolhendo === 'objetivo' ? 'Onde você quer chegar'
+    : escolhendo === 'preferida' ? 'Sua finalização preferida' : escolhendo === 'aceita' ? 'Outra finalização que vale'
     : escolhendo === 'fintaAntes' || peca?.tipo === 'finta' ? 'Qual é a finta' : 'Qual é o golpe';
 
   return (
@@ -468,6 +481,25 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
             {edit.objetivo || 'Escolher o golpe'}
           </button>
         )}
+        {edit.objetivoTipo === 'finalizar' && (
+          <div className="plano-finalizacoes" style={{ marginTop: 10 }}>
+            <p className="micro muted" style={{ lineHeight: 1.5 }}>Se quiser, diga a sua preferida e as que também valem. Sem escolher, qualquer finalização serve.</p>
+            <div className="micro" style={{ marginTop: 8, fontWeight: 700 }}>Preferida</div>
+            <div className="row wrap" style={{ gap: 6, marginTop: 4 }}>
+              <button type="button" className="input plano-escolher" style={{ flex: 1 }} onClick={() => setEscolhendo('preferida')}>
+                {edit.finalizacaoPreferida || 'Escolher a preferida (opcional)'}
+              </button>
+              {edit.finalizacaoPreferida && <Btn size="sm" variant="ghost" icon={X} onClick={() => mudar({ finalizacaoPreferida: '' })}>Tirar</Btn>}
+            </div>
+            <div className="micro" style={{ marginTop: 10, fontWeight: 700 }}>Também vale</div>
+            <div className="row wrap" style={{ gap: 6, marginTop: 4 }}>
+              {aceitas.map((n) => (
+                <Chip key={n} on onClick={() => mudar({ finalizacoesAceitas: aceitas.filter((x) => x !== n) })}>{n} <X size={11} strokeWidth={3} /></Chip>
+              ))}
+              <Chip onClick={() => setEscolhendo('aceita')}><Plus size={11} strokeWidth={3} /> Outra finalização</Chip>
+            </div>
+          </div>
+        )}
       </Field>
 
       <div className="eyebrow" style={{ marginTop: 18, marginBottom: 8 }}>O caminho</div>
@@ -488,12 +520,12 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
       />
       {soltas.length > 0 && (
         <p className="micro" style={{ marginTop: 8, lineHeight: 1.5, color: '#f5c542' }}>
-          Ainda não chega em {c.objetivoTipo === 'finalizar' ? 'uma finalização' : c.objetivo}: {juntar(soltas.map((x) => x.golpe))}. Toque no + depois {soltas.length === 1 ? 'dele' : 'deles'} pra seguir até lá.
+          Ainda não chega em {c.objetivoTipo !== 'finalizar' ? c.objetivo : finalizacoesDoObjetivo(c).length ? 'uma das finalizações que você escolheu' : 'uma finalização'}: {juntar(soltas.map((x) => x.golpe))}. Toque no + depois {soltas.length === 1 ? 'dele' : 'deles'} pra seguir até lá.
         </p>
       )}
       {fugasNoObjetivo.length > 0 && (
         <p className="micro" style={{ marginTop: 8, lineHeight: 1.5, color: '#f5c542' }}>
-          A fuga deixou a luta em {c.objetivo}, onde você quer chegar, mas ainda não conta: foi ele que saiu do controle. Falta o golpe que firma a posição. Toque no + depois {fugasNoObjetivo.length === 1 ? 'dela' : 'delas'}.
+          A fuga deixou a luta em {c.objetivo}, onde você quer chegar, mas ainda não conta: foi ele que saiu do controle. Falta a ação que estabelece o controle da posição. Toque no + depois {fugasNoObjetivo.length === 1 ? 'dela' : 'delas'}.
         </p>
       )}
       {semMotivo.length > 0 && (
@@ -603,11 +635,14 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
 
       <SeletorTecnica
         aberto={escolhendo !== null} onClose={() => setEscolhendo(null)}
-        techniques={techniques} categories={categories} positions={positions} faixa={faixa}
+        techniques={escolhendo === 'preferida' || escolhendo === 'aceita' ? finalizacoes : techniques} categories={categories} positions={positions} faixa={faixa}
         titulo={tituloSeletor}
         semPosicoes
         onEscolher={(t) => {
           if (escolhendo === 'objetivo') mudar({ objetivo: t.nome });
+          /* a preferida não se repete nas aceitas */
+          else if (escolhendo === 'preferida') mudar({ finalizacaoPreferida: t.nome, finalizacoesAceitas: aceitas.filter((x) => x !== t.nome) });
+          else if (escolhendo === 'aceita') { if (t.nome !== edit.finalizacaoPreferida && !aceitas.includes(t.nome)) mudar({ finalizacoesAceitas: [...aceitas, t.nome] }); }
           else if (escolhendo === 'fintaAntes') { mudar({ passos: fintaAntes(passos, peca.i, t.nome) }); setPeca(null); }
           else setPeca({ ...peca, golpe: t.nome });
           setEscolhendo(null);
@@ -691,6 +726,7 @@ function linhasDoMapa(plano, destinoDe, editar = false) {
       deixa: x.reacao || (x.via === 'defendeu' ? c.passos[x.pai].defesa : ''),
       titulo: x.golpe, detalhe: x.detalhe,
       chegou: chegaNoObjetivo(x, c, destinoDe),
+      preferida: ehPreferida(x, c),
       segue: golpe && i === ultimo ? c.segue : '',
       fecha: golpe && !tem('defendeu'),
       /* a situação depois da fuga: tem ou não tem como voltar a atacar */
@@ -719,10 +755,10 @@ function linhasDoMapa(plano, destinoDe, editar = false) {
       if (editar) vaga(aqui, i, adiante, trilho[i], true);
     } else if (segue[i] === undefined) {
       const folha = { tipo: 'folha', trilho: trilho[i], via: adiante, de: aqui };
-      if (g.chegou) linhas.push({ ...folha, chegou: true, rotulo: c.objetivoTipo === 'finalizar' ? 'Finalizou: chegou lá' : 'Encaixou: chegou lá', titulo: c.objetivoTipo === 'finalizar' ? '' : c.objetivo });
-      else if (finaliza(x, destinoDe)) linhas.push({ ...folha, rotulo: 'Finalizou' });
+      if (g.chegou) linhas.push({ ...folha, chegou: true, forte: g.preferida, rotulo: g.preferida ? 'Finalizou com a preferida: chegou lá' : c.objetivoTipo === 'finalizar' ? 'Finalizou: chegou lá' : 'Encaixou: chegou lá', titulo: c.objetivoTipo === 'finalizar' ? '' : c.objetivo });
+      else if (finaliza(x, destinoDe)) linhas.push({ ...folha, rotulo: finalizacoesDoObjetivo(c).length ? 'Finalizou, fora das que você escolheu' : 'Finalizou' });
       else if (editar) vaga(aqui, i, adiante, trilho[i]);
-      else if (situacao && g.noObjetivo) linhas.push({ ...folha, fecha: true, rotulo: 'A luta ficou onde você quer chegar: falta firmar a posição' });
+      else if (situacao && g.noObjetivo) linhas.push({ ...folha, fecha: true, rotulo: 'A luta ficou onde você quer chegar: falta a ação que estabelece o controle da posição' });
       else if (situacao) linhas.push({ ...folha, fecha: true, rotulo: 'Daqui não tem ataque: o caminho fecha' });
       else if (g.segue) linhas.push({ ...folha, rotulo: 'Encaixou, depois', titulo: g.segue });
     } else if (editar) vaga(aqui, i, adiante, trilho[i], true);
@@ -802,7 +838,7 @@ function NoDoMapa({ l, guardar, aberto, onTocar, pega, vaga = '' }) {
   }
   if (l.tipo === 'folha') {
     return (
-      <div ref={guardar(l.n)} className={`mente-folha ${l.chegou ? 'chegada' : l.fecha ? 'fecha' : 'ok'}`}>
+      <div ref={guardar(l.n)} className={`mente-folha ${l.chegou ? `chegada${l.forte ? ' forte' : ''}` : l.fecha ? 'fecha' : 'ok'}`}>
         <span className="row" style={{ gap: 5 }}>{l.chegou ? <Flag size={12} /> : l.fecha ? <X size={12} strokeWidth={3} /> : <Check size={12} strokeWidth={3} />} {l.rotulo}</span>
         {l.titulo && <span className="mente-folha-txt">{l.titulo}</span>}
       </div>
@@ -814,6 +850,7 @@ function NoDoMapa({ l, guardar, aberto, onTocar, pega, vaga = '' }) {
       {l.tipo === 'posicao' ? <span className="mapa-rotulo">{l.rotulo}</span> : <span className={`mapa-rotulo ${l.via}`}><RotuloDaVia l={l} /></span>}
       {l.tipo === 'finta' && <span className="mente-tag">finta</span>}
       {l.tipo === 'situacao' && <span className="mente-tag situacao">a luta mudou</span>}
+      {l.preferida && <span className="mente-tag preferida"><Flag size={9} /> preferida</span>}
       <span className="mente-titulo">{l.titulo}</span>
       {l.deixa && <span className="mente-deixa">{l.deixa}</span>}
       {pega && <span className="mente-pega" aria-label="Arrastar pra outro galho" {...pega}><GripVertical size={14} /></span>}
@@ -847,13 +884,17 @@ function DetalheDoNo({ l, objetivo, onIr }) {
       {l.deixa && <div className="mapa-deixa"><b>{REACAO[l.via]?.nome}:</b> {l.deixa}</div>}
       {l.detalhe && <p className="micro muted" style={{ marginTop: 6, lineHeight: 1.5 }}>{l.detalhe}</p>}
       {l.tipo === 'finta' && <p className="micro muted" style={{ marginTop: 6, lineHeight: 1.5 }}>A ameaça que faz ele reagir. O golpe de verdade vem depois.</p>}
-      {l.chegou && <p className="micro" style={{ marginTop: 6, color: '#f5c542' }}>Encaixou aqui, chegou onde queria: {objetivo}</p>}
+      {l.chegou && (
+        <p className="micro" style={{ marginTop: 6, lineHeight: 1.5, color: '#f5c542' }}>
+          {l.preferida ? 'Sua finalização preferida. ' : ''}Tentar aqui ainda não é chegar: se encaixar, chegou onde queria ({objetivo}).
+        </p>
+      )}
       {l.segue && <p className="micro" style={{ marginTop: 6, color: 'var(--jade)' }}>Depois que encaixa: {l.segue}</p>}
       {l.fecha && <p className="micro muted" style={{ marginTop: 6, lineHeight: 1.5 }}>Se ele defender aqui, esse caminho fecha.</p>}
       {l.tipo === 'situacao' && (
         <p className="micro muted" style={{ marginTop: 6, lineHeight: 1.5 }}>
           Ele saiu do controle e a luta veio pra cá.{' '}
-          {l.noObjetivo ? 'É onde você quer chegar, mas ainda não conta: falta o golpe que firma a posição, com controle.'
+          {l.noObjetivo ? 'É onde você quer chegar, mas ainda não conta: falta a ação que estabelece o controle da posição.'
             : l.semVolta ? 'Daqui o plano não tem ataque que faça sentido: esse caminho fecha.' : `Daqui você volta a atacar, atrás do mesmo objetivo: ${objetivo}.`}
         </p>
       )}

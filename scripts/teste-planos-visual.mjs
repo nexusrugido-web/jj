@@ -83,6 +83,17 @@ const CONV = {
   ],
 };
 
+/* R4: finalizar, preferida Kimura, também vale Triângulo e Omoplata;
+   a Guilhotina finaliza, mas fora da lista */
+const PREF = {
+  ...PLANO, nome: 'Kimura de preferência', finalizacaoPreferida: 'Kimura', finalizacoesAceitas: ['Triângulo', 'Omoplata'], ligacoes: [], passos: [
+    { id: 'k0', lig: 'n0', acao: 'Kimura', gatilho: '', pai: null, via: null },
+    { id: 'k1', lig: 'n1', acao: 'Triângulo', gatilho: 'escondeu o braço', pai: 0, via: 'defendeu' },
+    { id: 'k2', lig: 'n2', acao: 'Guilhotina', gatilho: 'tirou o braço', pai: 1, via: 'defendeu' },
+    { id: 'k3', lig: 'n3', acao: 'Omoplata', gatilho: 'girou pra fora', pai: 0, via: 'defendeu' },
+  ].map((x) => ({ seFalhar: '', proxima: '', detalhe: '', ...x })),
+};
+
 /* cada cartão do mapa com tamanho, e quantos estão dentro do quadro */
 const medirMapa = (s) => {
   const quadro = document.querySelector(s).getBoundingClientRect();
@@ -119,7 +130,7 @@ try {
       const { VERSAO_DOCS } = await import('/src/components/Aceite.jsx');
       await setMeta('settings', { ...(await getMeta('settings', {})), nome: 'Praticante de teste', anoNascimento: 1995, faixa: 'branca', onboardingFeito: 1, tourVisto: 1, celebrar: false, aceite: { versao: VERSAO_DOCS, em: new Date().toISOString() } });
       for (const p of plano) await db.attackPlans.add({ ...p, criadoEm: Date.now() });
-    }, [PLANO, GRANDE, FUGA, CONV]);
+    }, [PLANO, GRANDE, FUGA, CONV, PREF]);
     await page.goto(`${url}/?go=planos`, { waitUntil: 'networkidle' });
     await page.getByText(PLANO.nome).first().waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `lista de planos vaza em ${nome}`);
@@ -278,6 +289,50 @@ try {
     assert.deepEqual(salvo.ligs.slice(0, 5), ['cB', 'cC', 'volta', 'reat', 'esc2'], 'os ids das ligações de antes não mudam ao salvar');
     assert.equal(salvo.ligs.length, 6, 'a fuga ligada foi salva');
     assert.equal(salvo.pecas, 7, 'nenhuma peça nova');
+
+    /* R4: preferida com bandeira forte, aceitas com bandeira, fora da lista sem */
+    await page.goto(`${url}/?go=planos`, { waitUntil: 'networkidle' });
+    await page.getByText(PREF.nome).first().waitFor();
+    assert.ok(await page.locator('.plano-cartao', { hasText: PREF.nome }).getByText('de preferência com Kimura').count() >= 1, 'a lista mostra a preferida');
+    await page.locator('.plano-cartao', { hasText: PREF.nome }).first().getByRole('button', { name: 'Ver o mapa' }).first().click();
+    await page.locator('.mente-tela .mente-folha').first().waitFor();
+    await page.waitForTimeout(1200);
+    const pv = await page.evaluate(medirMapa, '.mente-tela');
+    console.log(`${nome} preferida, ver o mapa:`, JSON.stringify(pv));
+    await page.screenshot({ path: `${pasta}/${nome}-pref-ver.png` });
+    assert.equal(pv.nos, 5, 'preferida: posição + 4 peças');
+    assert.equal(pv.sobrepostos, 0, 'preferida: cartões sobrepostos');
+    assert.equal(pv.vaza, false, 'preferida: vaza a página');
+    assert.equal(await page.locator('.mente-tela .mente-tag.preferida').count(), 1, 'só a Kimura tem a etiqueta de preferida');
+    assert.equal(await page.locator('.mente-tela .mente-folha.chegada.forte').count(), 1, 'bandeira forte só na preferida');
+    assert.equal(await page.locator('.mente-tela .mente-folha.chegada').count(), 3, 'preferida e as duas aceitas chegam');
+    assert.equal(await page.locator('.mente-tela .mente-folha', { hasText: 'fora das que você escolheu' }).count(), 1, 'a Guilhotina finaliza, fora da lista');
+    await page.locator('.mente-tela .mente-no', { hasText: 'Kimura' }).first().click();
+    assert.ok(await page.getByText('Tentar aqui ainda não é chegar').count() >= 1, 'o cartão é a tentativa');
+    await page.keyboard.press('Escape');
+    await page.goto(`${url}/?go=planos`, { waitUntil: 'networkidle' });
+    await page.getByText(PREF.nome).first().waitFor();
+    await page.locator('.plano-cartao', { hasText: PREF.nome }).first().getByRole('button', { name: 'Editar' }).first().click();
+    await page.getByText('Também vale', { exact: true }).waitFor();
+    await page.getByText('Também vale', { exact: true }).scrollIntoViewIfNeeded();
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `editor da preferida vaza em ${nome}`);
+    await page.screenshot({ path: `${pasta}/${nome}-pref-editor.png` });
+    /* tira a Omoplata, põe a Guilhotina e tira a preferida */
+    await page.locator('.chip', { hasText: 'Omoplata' }).first().click();
+    await page.locator('.chip', { hasText: 'Outra finalização' }).click();
+    await page.getByPlaceholder('Buscar em português ou inglês…').fill('guilhotina');
+    assert.equal(await page.locator('.list-item', { hasText: 'Raspagem' }).count(), 0, 'o seletor só mostra finalização');
+    await page.locator('.list-item').filter({ has: page.getByText('Guilhotina', { exact: true }) }).first().click();
+    await page.getByRole('button', { name: 'Tirar', exact: true }).click();
+    await page.getByRole('button', { name: 'Salvar plano' }).click();
+    await page.getByText('Plano salvo').first().waitFor();
+    const pref = await page.evaluate(async (n) => {
+      const { db } = await import('/src/db/db.js');
+      const p = (await db.attackPlans.toArray()).find((x) => x.nome === n);
+      return { preferida: p.finalizacaoPreferida, aceitas: p.finalizacoesAceitas, objetivo: p.objetivo, ids: p.passos.map((x) => x.id) };
+    }, PREF.nome);
+    console.log(`${nome} preferida salva:`, JSON.stringify(pref));
+    assert.deepEqual(pref, { preferida: '', aceitas: ['Triângulo', 'Guilhotina'], objetivo: 'Finalizar', ids: ['k0', 'k1', 'k2', 'k3'] }, 'tirar a preferida apaga a de antes; aceitas e ids ficam');
 
     /* o plano grande: mais de 16 peças, vendo e editando */
     for (const modo of ['Ver o mapa', 'Editar']) {
