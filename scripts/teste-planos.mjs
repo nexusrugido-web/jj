@@ -494,7 +494,7 @@ ok('situação noutra posição não é do objetivo', [situacaoNoObjetivo(cfc.pa
    ligações, então mesmo com o fim igual dá pra saber se entrou pela
    finta A, B ou C. Salvar, recarregar e apagar uma das ligações não pode
    mudar o que o rola antigo diz. */
-const { caminhoDoRola, alcancouObjetivo, finalizacoesDoObjetivo, ehPreferida } = await import('../src/lib/planos.js');
+const { caminhoDoRola, alcancouObjetivo, finalizacoesDoObjetivo, ehPreferida, escolhaDaFinalizacao } = await import('../src/lib/planos.js');
 const fimR = { slug: 'finalizacao', nome: 'Finalização' };
 const destRota = (n) => (['Armlock', 'Triângulo', 'Kimura', 'Omoplata', 'Guilhotina'].includes(n) ? fimR : null);
 const rota = planoNovo({ nome: 'Três fintas, um armlock', objetivo: 'Finalizar', objetivoTipo: 'finalizar', posicao: 'Guarda fechada', passos: [
@@ -554,8 +554,9 @@ ok('rola sem plano não chega', alcancouObjetivo(histNova, {}, destRota), false)
 
 /* ---------- R4: finalizar, com preferida e aceitas ----------
    Objetivo principal: Finalizar. Preferida: Armlock. Aceitas: Triângulo,
-   Kimura, Omoplata. Qualquer uma delas chega no objetivo; a preferida
-   tem destaque. Sem lista, qualquer finalização serve, como antes. */
+   Kimura, Omoplata. A lista é preferência: qualquer finalização que
+   encaixa alcança o objetivo Finalizar; a preferida tem destaque e a
+   de fora da lista aparece como outra. Objetivo golpe: só ele conta. */
 const r4 = planoNovo({
   objetivo: 'Finalizar', objetivoTipo: 'finalizar', finalizacaoPreferida: ' Armlock ',
   finalizacoesAceitas: ['Triângulo', 'Kimura', 'Omoplata', 'Armlock', 'Kimura', ''],
@@ -570,9 +571,13 @@ const cr4 = correnteDoPlano(r4);
 ok('o objetivo principal continua Finalizar', [r4.objetivo, r4.objetivoTipo], ['Finalizar', 'finalizar']);
 ok('preferida sem espaço; aceitas sem repetida, sem vazia e sem a preferida', [r4.finalizacaoPreferida, r4.finalizacoesAceitas], ['Armlock', ['Triângulo', 'Kimura', 'Omoplata']]);
 ok('a lista do objetivo: a preferida primeiro', finalizacoesDoObjetivo(cr4), ['Armlock', 'Triângulo', 'Kimura', 'Omoplata']);
-ok('preferida e aceita chegam; finalização fora da lista e raspagem não', cr4.passos.map((x) => chegaNoObjetivo(x, cr4, destRota)), [true, true, false, false]);
+ok('preferida, aceita e finalização fora da lista chegam; raspagem não', cr4.passos.map((x) => chegaNoObjetivo(x, cr4, destRota)), [true, true, true, false]);
+ok('preferência: preferida, aceita, outra (Guilhotina) e nada na raspagem', cr4.passos.map((x) => escolhaDaFinalizacao(x, cr4, destRota)), ['preferida', 'aceita', 'outra', '']);
+ok('objetivo golpe Armlock: só o Armlock conta, a Guilhotina e o Triângulo não',
+  (() => { const k = correnteDoPlano({ ...r4, objetivo: 'Armlock', objetivoTipo: 'tecnica' }); return [k.passos.map((x) => chegaNoObjetivo(x, k, destRota)), k.passos.map((x) => escolhaDaFinalizacao(x, k, destRota))]; })(),
+  [[true, false, false, false], ['', '', '', '']]);
 ok('só a preferida tem destaque', cr4.passos.map((x) => ehPreferida(x, cr4)), [true, false, false, false]);
-ok('finalização fora da lista acaba a luta (não é ponta solta); a raspagem é', pontasSoltas(r4, destRota).map((x) => x.golpe), ['Raspagem de quadril (hip bump)']);
+ok('finalização fora da lista alcança o objetivo (não é ponta solta); a raspagem é', pontasSoltas(r4, destRota).map((x) => x.golpe), ['Raspagem de quadril (hip bump)']);
 ok('finta com o nome da preferida não chega', [chegaNoObjetivo({ tipo: 'finta', golpe: 'Armlock' }, cr4, destRota), ehPreferida({ tipo: 'finta', golpe: 'Armlock' }, cr4)], [false, false]);
 const soFinalizar = planoNovo({ objetivo: 'Finalizar', objetivoTipo: 'finalizar', passos: editar(r4).map(({ reacao, ...x }) => x) });
 ok('só "Finalizar": preferida e aceitas vazias e qualquer finalização serve',
@@ -580,7 +585,9 @@ ok('só "Finalizar": preferida e aceitas vazias e qualquer finalização serve',
   ['', [], [true, true, true, false]]);
 const soAceitas = correnteDoPlano(planoNovo({ objetivo: 'Finalizar', objetivoTipo: 'finalizar', finalizacoesAceitas: ['Guilhotina'], passos: editar(r4) }));
 ok('só aceitas, sem preferida: chegam as aceitas, nenhuma com destaque',
-  [soAceitas.passos.map((x) => chegaNoObjetivo(x, soAceitas, destRota)), soAceitas.passos.some((x) => ehPreferida(x, soAceitas))], [[false, false, true, false], false]);
+  [soAceitas.passos.map((x) => chegaNoObjetivo(x, soAceitas, destRota)), soAceitas.passos.some((x) => ehPreferida(x, soAceitas)), soAceitas.passos.map((x) => escolhaDaFinalizacao(x, soAceitas, destRota))],
+  [[true, true, true, false], false, ['outra', 'outra', 'aceita', '']]);
+ok('sem lista: chega, sem marca de preferência', correnteDoPlano(soFinalizar).passos.map((x) => escolhaDaFinalizacao(x, correnteDoPlano(soFinalizar), destRota)), ['', '', '', '']);
 ok('trocar o objetivo pra posição leva embora a preferida e as aceitas',
   (() => { const p = planoNovo({ ...r4, objetivo: 'Montada', objetivoTipo: 'posicao', passos: editar(r4) }); return [p.finalizacaoPreferida, p.finalizacoesAceitas, correnteDoPlano({ ...r4, objetivoTipo: 'posicao' }).finalizacoesAceitas]; })(),
   ['', [], undefined]);
@@ -594,9 +601,15 @@ ok('plano antigo e os 16 prontos: sem preferida e sem aceitas, nada muda',
 ok('campo malformado não quebra', correnteDoPlano({ objetivoTipo: 'finalizar', objetivo: 'Finalizar', finalizacoesAceitas: 'x', passos: [] }).finalizacoesAceitas, []);
 /* com convergência: preferida Armlock, aceita Omoplata */
 const rotaR4 = { ...histNova, finalizacaoPreferida: 'Armlock', finalizacoesAceitas: ['Omoplata'] };
-ok('pela C, encaixou na Omoplata aceita: chegou; no Armlock preferido: chegou; no Triângulo fora da lista: não',
+ok('pela C, encaixou na Omoplata aceita, no Armlock preferido e no Triângulo fora da lista: os três alcançam',
   [alcancouObjetivo(rotaR4, rolasRota[2], destRota), alcancouObjetivo(rotaR4, rolaPor(['lC', 'cC'], 'arm'), destRota), alcancouObjetivo(rotaR4, rolaPor(['lC', 'cC', 'lTri'], 'tri'), destRota)],
-  [true, true, false]);
+  [true, true, true]);
+ok('no rola, objetivo e preferência separados: aceita, preferida, outra',
+  [rolasRota[2], rolaPor(['lC', 'cC'], 'arm'), rolaPor(['lC', 'cC', 'lTri'], 'tri')].map((r) => escolhaDaFinalizacao(pecaDoRola(rotaR4, r), correnteDoPlano(rotaR4), destRota)),
+  ['aceita', 'preferida', 'outra']);
+ok('objetivo golpe Armlock: encaixou no Triângulo não alcança, no Armlock alcança',
+  [alcancouObjetivo({ ...rotaR4, objetivo: 'Armlock', objetivoTipo: 'tecnica' }, rolaPor(['lC', 'cC', 'lTri'], 'tri'), destRota), alcancouObjetivo({ ...rotaR4, objetivo: 'Armlock', objetivoTipo: 'tecnica' }, rolaPor(['lC', 'cC'], 'arm'), destRota)],
+  [false, true]);
 ok('a preferida tentada e defendida não é chegada', alcancouObjetivo(rotaR4, rolaPor(['lC', 'cC'], 'arm', false), destRota), false);
 
 /* volume: 2000 peças e 1000 atalhos, muitos voltando pra trás */

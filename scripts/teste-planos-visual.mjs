@@ -84,7 +84,7 @@ const CONV = {
 };
 
 /* R4: finalizar, preferida Kimura, também vale Triângulo e Omoplata;
-   a Guilhotina finaliza, mas fora da lista */
+   a Guilhotina está fora da lista e alcança o objetivo do mesmo jeito */
 const PREF = {
   ...PLANO, nome: 'Kimura de preferência', finalizacaoPreferida: 'Kimura', finalizacoesAceitas: ['Triângulo', 'Omoplata'], ligacoes: [], passos: [
     { id: 'k0', lig: 'n0', acao: 'Kimura', gatilho: '', pai: null, via: null },
@@ -290,7 +290,7 @@ try {
     assert.equal(salvo.ligs.length, 6, 'a fuga ligada foi salva');
     assert.equal(salvo.pecas, 7, 'nenhuma peça nova');
 
-    /* R4: preferida com bandeira forte, aceitas com bandeira, fora da lista sem */
+    /* R4: preferida com bandeira forte; aceitas e a de fora da lista com bandeira, a de fora marcada */
     await page.goto(`${url}/?go=planos`, { waitUntil: 'networkidle' });
     await page.getByText(PREF.nome).first().waitFor();
     assert.ok(await page.locator('.plano-cartao', { hasText: PREF.nome }).getByText('de preferência com Kimura').count() >= 1, 'a lista mostra a preferida');
@@ -305,10 +305,13 @@ try {
     assert.equal(pv.vaza, false, 'preferida: vaza a página');
     assert.equal(await page.locator('.mente-tela .mente-tag.preferida').count(), 1, 'só a Kimura tem a etiqueta de preferida');
     assert.equal(await page.locator('.mente-tela .mente-folha.chegada.forte').count(), 1, 'bandeira forte só na preferida');
-    assert.equal(await page.locator('.mente-tela .mente-folha.chegada').count(), 3, 'preferida e as duas aceitas chegam');
-    assert.equal(await page.locator('.mente-tela .mente-folha', { hasText: 'fora das que você escolheu' }).count(), 1, 'a Guilhotina finaliza, fora da lista');
+    assert.equal(await page.locator('.mente-tela .mente-folha.chegada').count(), 4, 'preferida, as duas aceitas e a Guilhotina alcançam');
+    assert.equal(await page.locator('.mente-tela .mente-folha', { hasText: 'Objetivo alcançado com outra finalização' }).count(), 1, 'a Guilhotina alcança com outra finalização');
+    assert.equal(await page.locator('.mente-tela .mente-no .mente-tag', { hasText: 'fora da lista' }).count(), 1, 'só a Guilhotina marcada fora da lista');
     await page.locator('.mente-tela .mente-no', { hasText: 'Kimura' }).first().click();
-    assert.ok(await page.getByText('Tentar aqui ainda não é chegar').count() >= 1, 'o cartão é a tentativa');
+    assert.ok(await page.getByText('O objetivo só é alcançado quando a finalização encaixa').count() >= 1, 'o cartão é a tentativa');
+    await page.locator('.mente-tela .mente-no', { hasText: 'Guilhotina' }).first().click();
+    assert.ok(await page.getByText('Essa finalização não estava entre as que você escolheu').count() >= 1, 'a de fora explica');
     await page.keyboard.press('Escape');
     await page.goto(`${url}/?go=planos`, { waitUntil: 'networkidle' });
     await page.getByText(PREF.nome).first().waitFor();

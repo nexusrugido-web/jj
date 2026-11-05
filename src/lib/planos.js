@@ -336,11 +336,12 @@ export function comLigacao(ligacoes = [], l) {
    golpe que termina nela. Golpe: o próprio. destinoDe(nome) devolve
    a posição onde a técnica do catálogo termina ({ slug, nome }).
    R4: no finalizar, a pessoa pode (sem obrigação) dizer a preferida e
-   as que também aceita, pelo nome do catálogo. Com a lista, só elas
-   chegam no objetivo (a preferida com a bandeira forte); outra
-   finalização ainda acaba a luta, mas sem bandeira. Sem lista, qualquer
-   finalização serve, como antes. O cartão é a tentativa: o objetivo só
-   conta quando encaixa. */
+   as que também aceita, pelo nome do catálogo. A lista é preferência,
+   não proibição: qualquer finalização que encaixa alcança o objetivo
+   Finalizar. São duas coisas separadas: alcançou o objetivo (finalizou)
+   e atendeu a preferência (com a preferida, com uma aceita ou com outra,
+   em escolhaDaFinalizacao). Quando o objetivo é um golpe específico, só
+   ele conta. O cartão é a tentativa: o objetivo só conta quando encaixa. */
 export const OBJETIVO_FINALIZAR = 'Finalizar';
 export const finalizacoesDoObjetivo = (plano) => (plano?.objetivoTipo === 'finalizar'
   ? [plano.finalizacaoPreferida, ...(plano.finalizacoesAceitas || [])].filter(Boolean) : []);
@@ -350,13 +351,17 @@ export function chegaNoObjetivo(passo, plano, destinoDe = () => null) {
   if (!passo || tipoDe(passo) !== 'golpe') return false;
   const tipo = plano?.objetivoTipo || (plano?.objetivo ? 'tecnica' : '');
   const destino = destinoDe(passo.golpe);
-  if (tipo === 'finalizar') {
-    const lista = finalizacoesDoObjetivo(plano);
-    return lista.length ? lista.includes(passo.golpe) : destino?.slug === 'finalizacao';
-  }
+  if (tipo === 'finalizar') return destino?.slug === 'finalizacao' || finalizacoesDoObjetivo(plano).includes(passo.golpe);
   if (tipo === 'posicao') return !!destino && destino.nome === plano.objetivo;
   if (tipo === 'tecnica') return passo.golpe === plano.objetivo;
   return false;
+}
+/* no finalizar com lista: a finalização que chega foi a preferida, uma
+   aceita ou outra fora da lista ('' quando não tem lista ou não chega) */
+export function escolhaDaFinalizacao(passo, plano, destinoDe = () => null) {
+  const lista = finalizacoesDoObjetivo(plano);
+  if (!lista.length || plano?.objetivoTipo !== 'finalizar' || !chegaNoObjetivo(passo, plano, destinoDe)) return '';
+  return ehPreferida(passo, plano) ? 'preferida' : lista.includes(passo.golpe) ? 'aceita' : 'outra';
 }
 export const finaliza = (passo, destinoDe = () => null) => !!passo && tipoDe(passo) === 'golpe' && destinoDe(passo?.golpe)?.slug === 'finalizacao';
 

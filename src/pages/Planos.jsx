@@ -18,7 +18,7 @@ import {
   meusPlanos, planosProntos, exemplosDaFaixa, podeCriarPlano, correnteDoPlano, planoNovo, ALTURA_REL,
   taxaDoPlano, taxaPorTipo, arvoreDoPlano, semOGolpe, letraDo, novoId, removidosAoSalvar, VIAS,
   semAFinta, fintaAntes, moverPasso, chegaNoObjetivo, finaliza, pontasSoltas, semGatilho, OBJETIVO_FINALIZAR,
-  destinosDaLigacao, comLigacao, situacaoNoObjetivo, continua, finalizacoesDoObjetivo, ehPreferida,
+  destinosDaLigacao, comLigacao, situacaoNoObjetivo, continua, escolhaDaFinalizacao,
 } from '../lib/planos';
 import { FAIXAS } from '../lib/faixas';
 import { PESO_REL } from '../db/scoring';
@@ -216,8 +216,9 @@ const GUIA_DO_PLANO = [
         golpe específico. O golpe que chega lá ganha a bandeira. Uma raspagem ou uma passagem que encaixa no meio do caminho ainda
         não é a chegada: é o que te deixa mais perto. E se ele defender e não tiver mais caminho, o plano fecha ali.
         No finalizar, se quiser, diga a sua preferida (tipo o armlock) e as que você também aceita (triângulo, kimura, omoplata).
-        Qualquer uma delas é chegar lá; a preferida ganha a bandeira forte. Sem escolher nenhuma, qualquer finalização serve.
-        E o cartão é a tentativa: o objetivo só conta quando encaixa.
+        A preferida ganha a bandeira forte. A lista é o que você prioriza, não uma proibição: apareceu uma guilhotina e
+        encaixou, o objetivo foi alcançado do mesmo jeito. Já se o objetivo é um golpe específico, só ele conta.
+        E o cartão é a tentativa: o objetivo só é alcançado quando a finalização encaixa.
       </p>
     ),
   },
@@ -483,7 +484,7 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
         )}
         {edit.objetivoTipo === 'finalizar' && (
           <div className="plano-finalizacoes" style={{ marginTop: 10 }}>
-            <p className="micro muted" style={{ lineHeight: 1.5 }}>Se quiser, diga a sua preferida e as que também valem. Sem escolher, qualquer finalização serve.</p>
+            <p className="micro muted" style={{ lineHeight: 1.5 }}>Se quiser, diga a sua preferida e as que também valem. Qualquer finalização que encaixar alcança o objetivo; a lista só mostra o que você prioriza.</p>
             <div className="micro" style={{ marginTop: 8, fontWeight: 700 }}>Preferida</div>
             <div className="row wrap" style={{ gap: 6, marginTop: 4 }}>
               <button type="button" className="input plano-escolher" style={{ flex: 1 }} onClick={() => setEscolhendo('preferida')}>
@@ -520,7 +521,7 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
       />
       {soltas.length > 0 && (
         <p className="micro" style={{ marginTop: 8, lineHeight: 1.5, color: '#f5c542' }}>
-          Ainda não chega em {c.objetivoTipo !== 'finalizar' ? c.objetivo : finalizacoesDoObjetivo(c).length ? 'uma das finalizações que você escolheu' : 'uma finalização'}: {juntar(soltas.map((x) => x.golpe))}. Toque no + depois {soltas.length === 1 ? 'dele' : 'deles'} pra seguir até lá.
+          Ainda não chega em {c.objetivoTipo !== 'finalizar' ? c.objetivo : 'uma finalização'}: {juntar(soltas.map((x) => x.golpe))}. Toque no + depois {soltas.length === 1 ? 'dele' : 'deles'} pra seguir até lá.
         </p>
       )}
       {fugasNoObjetivo.length > 0 && (
@@ -686,7 +687,7 @@ function LegendaDoMapa({ trilhos = 2, finta = true }) {
       <span className="mapa-tipo" style={{ color: 'var(--jade)' }}><Check size={12} strokeWidth={3} />Encaixou</span>
       <span className="mapa-tipo" style={{ color: '#ff7a6b' }}><X size={12} strokeWidth={3} />Se ele defender</span>
       <span className="mapa-tipo" style={{ color: '#e2a76f' }}><DoorOpen size={12} />Se ele escapar</span>
-      <span className="mapa-tipo" style={{ color: '#f5c542' }}><Flag size={12} />Chegou lá</span>
+      <span className="mapa-tipo" style={{ color: '#f5c542' }}><Flag size={12} />Objetivo alcançado</span>
       <span className="mapa-tipo"><CornerDownRight size={12} />Liga numa peça que já está no mapa</span>
     </div>
   );
@@ -726,7 +727,8 @@ function linhasDoMapa(plano, destinoDe, editar = false) {
       deixa: x.reacao || (x.via === 'defendeu' ? c.passos[x.pai].defesa : ''),
       titulo: x.golpe, detalhe: x.detalhe,
       chegou: chegaNoObjetivo(x, c, destinoDe),
-      preferida: ehPreferida(x, c),
+      escolha: escolhaDaFinalizacao(x, c, destinoDe),
+      finalizacao: finaliza(x, destinoDe),
       segue: golpe && i === ultimo ? c.segue : '',
       fecha: golpe && !tem('defendeu'),
       /* a situação depois da fuga: tem ou não tem como voltar a atacar */
@@ -755,8 +757,14 @@ function linhasDoMapa(plano, destinoDe, editar = false) {
       if (editar) vaga(aqui, i, adiante, trilho[i], true);
     } else if (segue[i] === undefined) {
       const folha = { tipo: 'folha', trilho: trilho[i], via: adiante, de: aqui };
-      if (g.chegou) linhas.push({ ...folha, chegou: true, forte: g.preferida, rotulo: g.preferida ? 'Finalizou com a preferida: chegou lá' : c.objetivoTipo === 'finalizar' ? 'Finalizou: chegou lá' : 'Encaixou: chegou lá', titulo: c.objetivoTipo === 'finalizar' ? '' : c.objetivo });
-      else if (finaliza(x, destinoDe)) linhas.push({ ...folha, rotulo: finalizacoesDoObjetivo(c).length ? 'Finalizou, fora das que você escolheu' : 'Finalizou' });
+      if (g.chegou) {
+        linhas.push({
+          ...folha, chegou: true, forte: g.escolha === 'preferida', titulo: c.objetivoTipo === 'finalizar' ? '' : c.objetivo,
+          rotulo: g.escolha === 'preferida' ? 'Finalizou com a preferida: objetivo alcançado'
+            : g.escolha === 'outra' ? 'Objetivo alcançado com outra finalização'
+              : c.objetivoTipo === 'finalizar' ? 'Finalizou: objetivo alcançado' : 'Encaixou: objetivo alcançado',
+        });
+      } else if (finaliza(x, destinoDe)) linhas.push({ ...folha, rotulo: 'Finalizou' });
       else if (editar) vaga(aqui, i, adiante, trilho[i]);
       else if (situacao && g.noObjetivo) linhas.push({ ...folha, fecha: true, rotulo: 'A luta ficou onde você quer chegar: falta a ação que estabelece o controle da posição' });
       else if (situacao) linhas.push({ ...folha, fecha: true, rotulo: 'Daqui não tem ataque: o caminho fecha' });
@@ -850,7 +858,8 @@ function NoDoMapa({ l, guardar, aberto, onTocar, pega, vaga = '' }) {
       {l.tipo === 'posicao' ? <span className="mapa-rotulo">{l.rotulo}</span> : <span className={`mapa-rotulo ${l.via}`}><RotuloDaVia l={l} /></span>}
       {l.tipo === 'finta' && <span className="mente-tag">finta</span>}
       {l.tipo === 'situacao' && <span className="mente-tag situacao">a luta mudou</span>}
-      {l.preferida && <span className="mente-tag preferida"><Flag size={9} /> preferida</span>}
+      {l.escolha === 'preferida' && <span className="mente-tag preferida"><Flag size={9} /> preferida</span>}
+      {l.escolha === 'outra' && <span className="mente-tag">fora da lista</span>}
       <span className="mente-titulo">{l.titulo}</span>
       {l.deixa && <span className="mente-deixa">{l.deixa}</span>}
       {pega && <span className="mente-pega" aria-label="Arrastar pra outro galho" {...pega}><GripVertical size={14} /></span>}
@@ -886,7 +895,9 @@ function DetalheDoNo({ l, objetivo, onIr }) {
       {l.tipo === 'finta' && <p className="micro muted" style={{ marginTop: 6, lineHeight: 1.5 }}>A ameaça que faz ele reagir. O golpe de verdade vem depois.</p>}
       {l.chegou && (
         <p className="micro" style={{ marginTop: 6, lineHeight: 1.5, color: '#f5c542' }}>
-          {l.preferida ? 'Sua finalização preferida. ' : ''}Tentar aqui ainda não é chegar: se encaixar, chegou onde queria ({objetivo}).
+          {l.escolha === 'preferida' ? 'Sua finalização preferida. ' : ''}
+          {l.escolha === 'outra' ? 'Essa finalização não estava entre as que você escolheu, mas se encaixar o objetivo está alcançado.'
+            : l.finalizacao ? 'O objetivo só é alcançado quando a finalização encaixa.' : `O objetivo (${objetivo}) só é alcançado quando o golpe encaixa.`}
         </p>
       )}
       {l.segue && <p className="micro" style={{ marginTop: 6, color: 'var(--jade)' }}>Depois que encaixa: {l.segue}</p>}
