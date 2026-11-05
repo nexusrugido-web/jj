@@ -293,6 +293,15 @@ export default function Treinos() {
   /* o que a IA entendeu vira um treino aberto pra você conferir.
      Nada é salvo antes de você olhar. */
   /* o rola herda o tipo do treino: numa competição ela vale mais */
+  /* os parceiros dos últimos rolas, do mais recente pro mais antigo;
+     viram os chips de um toque no registro */
+  const parceirosRecentes = useMemo(() => {
+    const dataDe = new Map(sessions.map((x) => [x.id, x.data || '']));
+    const ordem = [...rolls].sort((a, b) => (dataDe.get(b.sessionId) || '').localeCompare(dataDe.get(a.sessionId) || '') || (b.id || 0) - (a.id || 0));
+    const ids = [...new Set(ordem.map((r) => r.partnerId).filter(Boolean))];
+    return [...ids, ...partners.map((p) => p.id).filter((id) => !ids.includes(id))].slice(0, 6);
+  }, [rolls, sessions, partners]);
+
   const novaRolaDoTreino = (dur, ultima) => novaRola(dur, ultima, editando?.tipo, settings.posInicialPadrao);
 
   async function montarDoFalado(d, falado) {
@@ -947,6 +956,7 @@ export default function Treinos() {
             academias={academias} professores={professores}
             duracaoPadrao={settings.duracaoRolaPadrao || 5}
             posPadrao={settings.posInicialPadrao}
+            parceirosRecentes={parceirosRecentes}
             padraoDe={(tipo) => padraoDoTipo(settings, tipo)}
             idade={idadeDe(settings.anoNascimento)}
             liberadas={settings.tecnicasLiberadas || []}
@@ -1373,7 +1383,7 @@ function BlocoCompeticao({ s, setS, onAbrirRegras }) {
   );
 }
 
-function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions = [], techniques, categories, finalizacoes, maisUsadas, recentesPorPonto, maisNoPonto = { tecMeus: {}, tecDele: {} }, recentesFoco, faixa, academias, professores, duracaoPadrao, posPadrao, padraoDe, onSalvarPadrao, idade = null, liberadas = [], onLiberar, tela = 'hub', setTela }) {
+function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions = [], techniques, categories, finalizacoes, maisUsadas, recentesPorPonto, maisNoPonto = { tecMeus: {}, tecDele: {} }, recentesFoco, faixa, academias, professores, duracaoPadrao, posPadrao, parceirosRecentes = [], padraoDe, onSalvarPadrao, idade = null, liberadas = [], onLiberar, tela = 'hub', setTela }) {
   const padrao = padraoDe(s.tipo);
   /* os planos de ataque do aluno, pro "usou qual plano?" do rola */
   const meusPlanosDeAtaque = planosDaPessoa(useLiveQuery(() => db.attackPlans.toArray(), [], []) || [], faixa);
@@ -1397,6 +1407,8 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
   /* cadastrar academia ou professor sem sair do treino */
   const [cadastro, setCadastro] = useState(null);
   const [rolaAberta, setRolaAberta] = useState(rolas.length ? 0 : null);
+  /* "Mais detalhes" de cada rola: fechado por padrão */
+  const [detalhesAbertos, setDetalhesAbertos] = useState({});
   const [seletor, setSeletor] = useState(null);
   const [parceirosAberto, setParceirosAberto] = useState(false);
   const [ajudaPesoAberta, setAjudaPesoAberta] = useState(false);
@@ -1413,8 +1425,24 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
   };
   const setRola = (i, patch) => setRolas(rolas.map((r, j) => (j === i ? { ...r, ...patch } : r)));
 
+  const vantagensMinhas = (r, i) => (
+    <div className="row" style={{ gap: 8, marginTop: 11, alignItems: 'center' }}>
+      <span className="micro muted" style={{ flex: 1 }}>Minhas vantagens: chegou perto, não segurou 3s</span>
+      <Stepper value={r.vantMinhas || 0} onChange={(v) => setRola(i, { vantMinhas: v })} min={0} max={20} />
+    </div>
+  );
+  const vantagensDele = (r, i) => (
+    <div className="row" style={{ gap: 8, marginTop: 11, alignItems: 'center' }}>
+      <span className="micro muted" style={{ flex: 1 }}>Vantagens dele</span>
+      <Stepper value={r.vantDele || 0} onChange={(v) => setRola(i, { vantDele: v })} min={0} max={20} />
+    </div>
+  );
+
   /* o que se registra de cada rola (ou luta): a lista de rolas abre ele
-     no lugar, e a tela de cada luta do campeonato mostra ele sozinho */
+     no lugar, e a tela de cada luta do campeonato mostra ele sozinho.
+     Ordem pensada pra um rola comum caber em ~4 toques: parceiro em
+     chip, os lances num bloco só, e o que já vem preenchido (duração,
+     de onde começou, vantagens, plano, anotação) fica em "Mais detalhes". */
   const corpoDaRola = (r, i) => (
                 <div className="col" style={{ padding: 12, gap: 12 }}>
                   {!partners.length && !forma.lutas && (
@@ -1441,6 +1469,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
                         <ParceiroRapido
                           valor={r.partnerId}
                           partners={partners}
+                          recentes={parceirosRecentes}
                           academias={academias}
                           academiaId={s.academiaId}
                           onNovaAcademia={() => setCadastro('academia')}
@@ -1473,6 +1502,102 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
                     </div>
                   </div>
 
+                  {/* o que rolou: um toque por lance, o placar sai sozinho */}
+                  <div className="o-que-rolou">
+                    <div className="bloco-cor-titulo"><Trophy size={15} /> O que rolou</div>
+                    <Placar r={r} />
+
+                  <div className="subs-bloco jade">
+                    <div className="subs-titulo">
+                      <Trophy size={12} /> Meus lances
+                      <span className="spacer" />
+                      <span className="num micro">{somarPontos(r.ptsMeus)} pts</span>
+                    </div>
+                    <PontosInput
+                      valor={r.ptsMeus || []} onChange={(v) => setRola(i, { ptsMeus: v, tecMeus: aparar(r.tecMeus, v) })}
+                      catalogo={PONTOS} tone="jade"
+                      nomes={r.tecMeus || {}}
+                      onNomear={(p, vaga) => setSeletor({ tipo: 'ponto', rola: i, lado: 'tecMeus', ponto: p, vaga })}
+                      rapidas={(id) => maisNoPonto.tecMeus[id] || []}
+                      onRapida={(p, nome) => nomearRapido(i, 'tecMeus', p, nome)}
+                    />
+                    {forma.lutas && vantagensMinhas(r, i)}
+                  </div>
+
+                  <div className="subs-bloco neutro">
+                    <div className="subs-titulo">
+                      <Trophy size={12} /> Lances dele
+                      <span className="spacer" />
+                      <span className="num micro">{somarPontos(r.ptsDele)} pts</span>
+                    </div>
+                    <PontosInput
+                      valor={r.ptsDele || []} onChange={(v) => setRola(i, { ptsDele: v, tecDele: aparar(r.tecDele, v) })}
+                      catalogo={PONTOS} tone="neutro"
+                      nomes={r.tecDele || {}}
+                      onNomear={(p, vaga) => setSeletor({ tipo: 'ponto', rola: i, lado: 'tecDele', ponto: p, vaga })}
+                      rapidas={(id) => maisNoPonto.tecDele[id] || []}
+                      onRapida={(p, nome) => nomearRapido(i, 'tecDele', p, nome)}
+                    />
+                    {forma.lutas && vantagensDele(r, i)}
+                  </div>
+
+                  <div className="subs-bloco jade">
+                    <div className="subs-titulo">
+                      <span className="subs-seta">▲</span> Eu finalizei
+                      <span className="spacer" />
+                      <span className="num micro">{(r.subsAplicadas || []).length}</span>
+                    </div>
+                    <SubsInput
+                      valor={r.subsAplicadas || []}
+                      onChange={(v) => {
+                        const nova = v.find((x) => !(r.subsAplicadas || []).includes(x));
+                        if (!nova) { setRola(i, { subsAplicadas: v }); return; }
+                        checarTecnica(nova, () => setRola(i, { subsAplicadas: v }));
+                      }}
+                      sugestoes={[...maisUsadas.apliquei, ...finalizacoes.filter((n) => !maisUsadas.apliquei.includes(n))]} rapidas={maisUsadas.apliquei}
+                      golpes={golpesPara(r, 'meu')} variacoesDe={variacoesDe}
+                      tone="jade" placeholder="Qual finalização?"
+                    />
+                  </div>
+
+                  <div className="subs-bloco neutro">
+                    <div className="subs-titulo">
+                      <span className="subs-seta">▼</span> Ele me finalizou
+                      <span className="spacer" />
+                      <span className="num micro">{(r.subsSofridas || []).length}</span>
+                    </div>
+                    <SubsInput
+                      valor={r.subsSofridas || []}
+                      onChange={(v) => setRola(i, { subsSofridas: v })}
+                      sugestoes={[...maisUsadas.sofri, ...finalizacoes.filter((n) => !maisUsadas.sofri.includes(n))]} rapidas={maisUsadas.sofri}
+                      golpes={golpesPara(r, 'dele')} variacoesDe={variacoesDe}
+                      tone="neutro" placeholder="Qual finalização?"
+                    />
+                  </div>
+                  </div>
+
+                  {/* o resto já vem preenchido; abre só se quiser mexer */}
+                  {(() => {
+                    const aberto = !!detalhesAbertos[i];
+                    const resumo = [
+                      !forma.lutas && `${r.duracao || 0} min`,
+                      posInicialPorId[r.posInicial]?.nome || 'posição não anotada',
+                      (r.vantMinhas || r.vantDele) && !forma.lutas ? `vantagens ${r.vantMinhas || 0}×${r.vantDele || 0}` : null,
+                      r.plano && 'plano',
+                      r.notas?.trim() && 'anotação',
+                    ].filter(Boolean).join(' · ');
+                    return (
+                      <div className="mais-detalhes">
+                        <button type="button" className="mais-detalhes-botao" aria-expanded={aberto}
+                          onClick={() => setDetalhesAbertos({ ...detalhesAbertos, [i]: !aberto })}>
+                          <span className="grow col" style={{ gap: 2, textAlign: 'left', minWidth: 0 }}>
+                            <span className="tiny" style={{ fontWeight: 700 }}>Mais detalhes</span>
+                            <span className="micro muted">{resumo}</span>
+                          </span>
+                          <ChevronDown size={16} style={{ transform: aberto ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
+                        </button>
+                        {aberto && (
+                          <div className="col" style={{ gap: 12, marginTop: 12 }}>
                   <div className="grid g2" style={{ gap: 10 }}>
                     {!forma.lutas && <Field label="Duração (min)"><NumeroInput valor={r.duracao} onChange={(v) => setRola(i, { duracao: v })} /></Field>}
                     <Field label="De onde começou" hint="Descobre de onde você ganha e de onde apanha.">
@@ -1516,82 +1641,21 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
                     />
                   </Field>
 
-                  <Placar r={r} />
+                            {!forma.lutas && (
+                              <div className="col" style={{ gap: 4 }}>
+                                {vantagensMinhas(r, i)}
+                                {vantagensDele(r, i)}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
 
-                  <div className="subs-bloco jade">
-                    <div className="subs-titulo">
-                      <Trophy size={12} /> Pontos que EU conquistei
-                      <span className="spacer" />
-                      <span className="num micro">{somarPontos(r.ptsMeus)} pts</span>
-                    </div>
-                    <PontosInput
-                      valor={r.ptsMeus || []} onChange={(v) => setRola(i, { ptsMeus: v, tecMeus: aparar(r.tecMeus, v) })}
-                      catalogo={PONTOS} tone="jade"
-                      nomes={r.tecMeus || {}}
-                      onNomear={(p, vaga) => setSeletor({ tipo: 'ponto', rola: i, lado: 'tecMeus', ponto: p, vaga })}
-                      rapidas={(id) => maisNoPonto.tecMeus[id] || []}
-                      onRapida={(p, nome) => nomearRapido(i, 'tecMeus', p, nome)}
-                    />
-                    <div className="row" style={{ gap: 8, marginTop: 11, alignItems: 'center' }}>
-                      <span className="micro muted" style={{ flex: 1 }}>Vantagens, chegou perto, não segurou 3s</span>
-                      <Stepper value={r.vantMinhas || 0} onChange={(v) => setRola(i, { vantMinhas: v })} min={0} max={20} />
-                    </div>
-                  </div>
-
-                  <div className="subs-bloco blood">
-                    <div className="subs-titulo">
-                      <Trophy size={12} /> Pontos que EU sofri
-                      <span className="spacer" />
-                      <span className="num micro">{somarPontos(r.ptsDele)} pts</span>
-                    </div>
-                    <PontosInput
-                      valor={r.ptsDele || []} onChange={(v) => setRola(i, { ptsDele: v, tecDele: aparar(r.tecDele, v) })}
-                      catalogo={PONTOS} tone="blood"
-                      nomes={r.tecDele || {}}
-                      onNomear={(p, vaga) => setSeletor({ tipo: 'ponto', rola: i, lado: 'tecDele', ponto: p, vaga })}
-                      rapidas={(id) => maisNoPonto.tecDele[id] || []}
-                      onRapida={(p, nome) => nomearRapido(i, 'tecDele', p, nome)}
-                    />
-                    <div className="row" style={{ gap: 8, marginTop: 11, alignItems: 'center' }}>
-                      <span className="micro muted" style={{ flex: 1 }}>Vantagens dele</span>
-                      <Stepper value={r.vantDele || 0} onChange={(v) => setRola(i, { vantDele: v })} min={0} max={20} />
-                    </div>
-                  </div>
-
-                  <div className="subs-bloco jade">
-                    <div className="subs-titulo">
-                      <span className="subs-seta">▲</span> Eu finalizei
-                      <span className="spacer" />
-                      <span className="num micro">{(r.subsAplicadas || []).length}</span>
-                    </div>
-                    <SubsInput
-                      valor={r.subsAplicadas || []}
-                      onChange={(v) => {
-                        const nova = v.find((x) => !(r.subsAplicadas || []).includes(x));
-                        if (!nova) { setRola(i, { subsAplicadas: v }); return; }
-                        checarTecnica(nova, () => setRola(i, { subsAplicadas: v }));
-                      }}
-                      sugestoes={[...maisUsadas.apliquei, ...finalizacoes.filter((n) => !maisUsadas.apliquei.includes(n))]} rapidas={maisUsadas.apliquei}
-                      golpes={golpesPara(r, 'meu')} variacoesDe={variacoesDe}
-                      tone="jade" placeholder="Qual finalização?"
-                    />
-                  </div>
-
-                  <div className="subs-bloco blood">
-                    <div className="subs-titulo">
-                      <span className="subs-seta">▼</span> Ele me finalizou
-                      <span className="spacer" />
-                      <span className="num micro">{(r.subsSofridas || []).length}</span>
-                    </div>
-                    <SubsInput
-                      valor={r.subsSofridas || []}
-                      onChange={(v) => setRola(i, { subsSofridas: v })}
-                      sugestoes={[...maisUsadas.sofri, ...finalizacoes.filter((n) => !maisUsadas.sofri.includes(n))]} rapidas={maisUsadas.sofri}
-                      golpes={golpesPara(r, 'dele')} variacoesDe={variacoesDe}
-                      tone="blood" placeholder="Qual finalização?"
-                    />
-                  </div>
-
+                  {!forma.lutas && i === rolas.length - 1 && (
+                    <Btn variant="contorno" icon={Plus} style={{ width: '100%' }} onClick={addRola}>Próximo rola</Btn>
+                  )}
 
                 </div>
   );
@@ -2008,7 +2072,7 @@ function Placar({ r }) {
         <Chip tone={TOM_RESULTADO[p.resultado] || ''}>{ROTULO_RESULTADO[p.resultado]}</Chip>
         <span className="micro muted">sai dos pontos e finalizações</span>
       </div>
-      <div className="placar-lado blood">
+      <div className="placar-lado neutro">
         <div className="placar-num num">{p.dele}</div>
         <div className="placar-lab">ele</div>
         {(p.finDele > 0 || (r.vantDele || 0) > 0) && (

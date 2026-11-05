@@ -42,6 +42,7 @@ Proposta:
 4. "Mais detalhes" recolhido: duração, de onde começou, vantagens, técnica de cada ponto, plano de ataque, anotação.
 5. "Próximo rola" já abre o seguinte do mesmo jeito.
 Meta: rola comum em ~4 toques, sem rolar a tela. Verificar: contar os toques antes e depois num teste, e o teste de telas continua verde.
+→ FEITO (teste-campeonato conta 4 toques; placar e lances dele em neutro).
 
 ## Planos de ataque: o que já existe (não refazer)
 - Tabela local `attackPlans` com sync (`src/db/db.js:69`, `src/lib/sync.js:109`) e 16 planos prontos em `src/db/attackPlans.js` (passos `gatilho → acao → seFalhar → proxima`). Nenhuma tela usa.

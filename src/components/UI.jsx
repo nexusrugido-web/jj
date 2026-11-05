@@ -513,7 +513,7 @@ export function EscolhaChips({ valor, onChange, opcoes, permiteLimpar = true }) 
    completo (onNovaAcademia abre o SheetAcademia do treino): nada
    de academia nascendo só de um nome digitado aqui.
    ============================================================ */
-export function ParceiroRapido({ valor, partners = [], onEscolher, academias = [], academiaId = null, onNovaAcademia }) {
+export function ParceiroRapido({ valor, partners = [], recentes = [], onEscolher, academias = [], academiaId = null, onNovaAcademia }) {
   const [criando, setCriando] = React.useState(false);
   const [nome, setNome] = React.useState('');
   const [faixa, setFaixa] = React.useState('');
@@ -602,26 +602,44 @@ export function ParceiroRapido({ valor, partners = [], onEscolher, academias = [
     );
   }
 
+  /* os parceiros de sempre num toque; o resto fica no "Outro" */
+  const porId = new Map(partners.map((p) => [p.id, p]));
+  const chips = [...new Set([...(valor && porId.has(valor) ? [valor] : []), ...recentes])]
+    .map((id) => porId.get(id)).filter(Boolean).slice(0, 6);
+  const sobram = partners.filter((p) => !chips.includes(p));
+
+  if (!partners.length) {
+    return (
+      <button type="button" className="parceiro-rapido-adicionar brilha" onClick={() => setCriando(true)}>
+        <span className="parceiro-rapido-mais"><Plus size={16} /></span>
+        <span className="parceiro-rapido-texto">
+          <strong>Adicionar parceiro</strong>
+          <small>Nome, faixa e onde vocês treinam; o resto pode ficar para depois</small>
+        </span>
+      </button>
+    );
+  }
+
   return (
     <div className="col" style={{ gap: 8 }}>
-      {partners.length > 0 && (
+      <div className="parceiro-chips">
+        {chips.map((p) => (
+          <button key={p.id} type="button" className={`chip ${valor === p.id ? 'on' : ''}`} aria-pressed={valor === p.id}
+            onClick={() => onEscolher(valor === p.id ? null : p.id)}>{p.nome}</button>
+        ))}
+        <button type="button" className="chip" onClick={() => setCriando(true)}><Plus size={13} /> Novo</button>
+      </div>
+      {sobram.length > 0 && (
         <Select
-          value={valor || ''}
+          value={sobram.some((p) => p.id === valor) ? valor : ''}
           onChange={(e) => onEscolher(e.target.value ? Number(e.target.value) : null)}
         >
-          <option value="">Escolher parceiro</option>
-          {partners.map((p) => (
+          <option value="">Outro parceiro</option>
+          {sobram.map((p) => (
             <option key={p.id} value={p.id}>{p.nome}{p.faixa ? ` (${p.faixa})` : ''}</option>
           ))}
         </Select>
       )}
-      <button type="button" className={`parceiro-rapido-adicionar ${partners.length ? '' : 'brilha'}`} onClick={() => setCriando(true)}>
-        <span className="parceiro-rapido-mais"><Plus size={16} /></span>
-        <span className="parceiro-rapido-texto">
-          <strong>{partners.length ? 'Novo parceiro' : 'Adicionar parceiro'}</strong>
-          <small>Nome, faixa e onde vocês treinam; o resto pode ficar para depois</small>
-        </span>
-      </button>
     </div>
   );
 }

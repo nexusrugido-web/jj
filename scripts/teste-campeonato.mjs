@@ -240,6 +240,29 @@ ok('o pódio fecha a categoria e dá a colocação',
 ok('nada foi gravado duas vezes', [b.ss.length, b.rs.length], [1, 2]);
 clicar(botao('pronto')); await esperar(1500);
 
+/* ---------- rola comum em 4 toques (Trilha D) ----------
+   passou 1x, raspou 1x, levou 1 passagem: parceiro em chip + 3 lances */
+clicar([...raiz.querySelectorAll('button.chip')].find((b) => b.textContent.trim() === 'Todos')); await esperar(600);
+clicar(botao('novo treino')); await esperar(900);
+clicar(botao('adicionar rola')); await esperar(700);
+const f = folha();
+let toques = 0;
+const tocar = (el) => { if (clicar(el)) toques++; };
+tocar(f.querySelector('.parceiro-chips .chip')); await esperar(200);
+tocar([...f.querySelectorAll('.subs-bloco.jade .pts-toque')].find((x) => x.textContent.includes('Passagem'))); await esperar(200);
+tocar([...f.querySelectorAll('.subs-bloco.jade .pts-toque')].find((x) => x.textContent.includes('Raspagem'))); await esperar(200);
+tocar([...f.querySelectorAll('.subs-bloco.neutro .pts-toque')].find((x) => x.textContent.includes('Passagem'))); await esperar(300);
+ok('rola comum em 4 toques', toques, 4);
+ok('o parceiro ficou marcado no chip', !!folha().querySelector('.parceiro-chips .chip.on'), true);
+ok('o placar sai sozinho: 5 x 3', [...folha().querySelectorAll('.o-que-rolou .placar-num')].map((x) => x.textContent).join(' x ') === '5 x 3', true);
+ok('duração e de onde começou ficam recolhidos', [!!botao('mais detalhes'), /De onde começou/.test(folha().textContent)], [true, false]);
+ok('o resumo mostra o padrão Em pé', /Em pé/.test(folha().querySelector('.mais-detalhes')?.textContent || ''), true);
+clicar(botao('mais detalhes')); await esperar(300);
+ok('abrindo, aparece de onde começou', /De onde começou/.test(folha().textContent), true);
+clicar(botao('próximo rola')); await esperar(500);
+ok('próximo rola abre o seguinte', folha().querySelectorAll('.rola-n').length, 2);
+clicar(botao('cancelar') || folha().querySelector('[aria-label="Fechar"]')); await esperar(600);
+
 const deVerdade = erros.filter((e) => !/act\(|not wrapped/.test(e));
 ok('nenhum erro no caminho', deVerdade.slice(0, 3), []);
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');

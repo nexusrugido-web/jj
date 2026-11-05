@@ -4026,3 +4026,25 @@ body::after {
 @media (prefers-reduced-motion: reduce) {
   .brilha { animation: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent); }
 }
+
+/* ============================================================
+   REGISTRO RÁPIDO DO ROLA (04/11/2026)
+   Parceiro em chips, os lances num bloco só ("O que rolou") e o
+   que já vem preenchido recolhido em "Mais detalhes". Os lances
+   dele ficam em neutro: o placar é seu, não uma conta de derrota.
+   ============================================================ */
+.parceiro-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.parceiro-chips .chip { min-height: 38px; padding-inline: 13px; }
+.o-que-rolou {
+  --cor: var(--jade);
+  display: grid; gap: 10px; padding: 12px; border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--jade) 28%, var(--seam));
+  background: linear-gradient(160deg, color-mix(in srgb, var(--jade) 7%, var(--void)), var(--void) 60%);
+}
+.pts-item.neutro { border-color: color-mix(in srgb, var(--chalk) 30%, var(--seam)); background: color-mix(in srgb, var(--chalk) 6%, var(--void)); }
+.pts-item.neutro .pts-valor, .pts-item.neutro .pts-n { color: var(--chalk); }
+.subs-bloco.neutro .subs-titulo, .subs-bloco.neutro .subs-seta { color: var(--dim); }
+.chip.neutro { color: var(--chalk); border-color: color-mix(in srgb, var(--chalk) 30%, var(--seam)); background: color-mix(in srgb, var(--chalk) 7%, transparent); }
+.mais-detalhes { padding: 10px 12px; border-radius: 14px; border: 1px dashed var(--seam); }
+.mais-detalhes-botao { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; color: var(--chalk); }
+.placar-lado.neutro .placar-num { color: var(--chalk); }
