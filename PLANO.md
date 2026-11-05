@@ -27,6 +27,7 @@ O formato guardado (passos com pai e via) continua; ele só ganha saídas novas,
 - R5. Preparação como peça própria (pegada, desequilíbrio, ajuste de pressão), separada da finta.
 - R6. Os 16 prontos reescritos nesse modelo (itens 5 e 6 de cima): nome do catálogo, objetivo, descrição em português de tatame.
 - R7. Registro no rola pelo caminho: finta usada, reação provocada, ataque, defesa, chegou ou não. Taxa por etapa, só com dado real do atleta, e com aviso quando há poucas tentativas.
+  Decisão de 05/11/2026: plano e registro de treinos/rolas são dois sistemas distintos; o registro já existia e não se recria campo, estatística nem registro. Até o R6, nenhuma integração nova, só preservar ids de peça e ligação, `removidos` e histórico. No R7, ANTES de codar: levantamento completo do registro de rola atual e proposta de integração pra aprovar. A integração precisa separar planejado × executado, reações, caminho percorrido, improviso (oportunidade fora do plano) e objetivo alcançado. Duas entradas (escolher o plano no registro do rola; "registrar uso" a partir do mapa) gravam no mesmo registro, sem duplicar. Já existe hoje: `r.plano = { uid, peca, caminho, encaixou }` no rola, `taxaDoPlano`, `taxaPorTipo`, `rodizio` e o drill do plano.
 - R8. Visão de competição: só os caminhos mais treinados e que mais funcionam, pra revisar antes da luta.
 
 ## Trilha A: Placar de conquistas
