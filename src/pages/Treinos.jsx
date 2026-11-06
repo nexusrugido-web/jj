@@ -39,6 +39,7 @@ import {
   competicaoVazia, EU, resultadoDoPodio, podioComEu, atletasDaChave,
   situacaoDoCampeonato, tempoDaLuta, ordinal, podioSugerido, colocarNoPodio, lugarNoPodio,
 } from '../lib/competicao';
+import { comTecUid, nomesDoRola } from '../lib/identidade';
 
 const TIPOS = [
   { id: 'gi', nome: 'Gi' },
@@ -498,10 +499,13 @@ export default function Treinos() {
          0x0 tambem vale; luta de competicao ainda descarta rascunho vazio. */
       const paraGravar = ehCompeticao(s.tipo) ? rolasDoTreino.filter(rolaTemDado) : rolasDoTreino;
       for (const r of paraGravar) {
-        const { id: _drop, uid: _u, updatedAt: _up, ...rest } = r;
+        const { id: _drop, uid: _u, updatedAt: _up, tecUid: _tu, ...rest } = r;
         const pos = posicoesImplicadas(r, positions);
+        /* o uid de cada técnica ao lado do nome (só a que bate com uma só) */
+        const tecUid = comTecUid(nomesDoRola(r), techniques, r.tecUid);
         await db.rolls.add({
           ...rest, ...pos,
+          ...(Object.keys(tecUid).length ? { tecUid } : {}),
           resultado: resultadoDerivado(r),
           /* o contexto sai do tipo do treino: rola de treino Drill nascia
              "rola" e contava como luta e como uso sob resistência */

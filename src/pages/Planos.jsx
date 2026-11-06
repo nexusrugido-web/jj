@@ -149,7 +149,7 @@ export default function Planos() {
         positions={positions} techniques={techniques} categories={categories} faixa={settings?.faixa} destinoDe={destinoDe}
         onSalvar={async (e) => {
           if (!e.objetivo) { toast('Escolha onde você quer chegar', 'err'); return; }
-          const dados = planoNovo({ ...e, posicao: nomeDaPosicao(e, positions) });
+          const dados = planoNovo({ ...e, posicao: nomeDaPosicao(e, positions), tecnicas: techniques });
           if (!dados.passos.length) { toast('Escolha pelo menos um golpe', 'err'); return; }
           if (e.id) await db.attackPlans.update(e.id, { ...dados, removidos: removidosAoSalvar(await db.attackPlans.get(e.id), dados) });
           else await db.attackPlans.add({ ...dados, criadoEm: Date.now() });
@@ -175,9 +175,10 @@ const paraEditar = (p) => {
   return {
     id: p.id, nome: p.nome, posicaoId: p.posicaoId || '', posicao: p.posicao || '', objetivo: c.objetivo, objetivoTipo: c.objetivoTipo,
     finalizacaoPreferida: c.finalizacaoPreferida || '', finalizacoesAceitas: c.finalizacoesAceitas || [],
-    paraAltura: p.paraAltura || [], paraPeso: p.paraPeso || [],
+    paraAltura: p.paraAltura || [], paraPeso: p.paraPeso || [], tecUid: p.tecUid || {},
     passos: c.passos.map((x) => ({
       id: x.id, lig: x.lig, tipo: x.tipo, golpe: x.golpe, detalhe: x.detalhe, pai: x.pai, via: x.via,
+      ...(x.golpeUid ? { golpeUid: x.golpeUid } : {}),
       reacao: x.reacao || (x.via === 'defendeu' ? c.passos[x.pai].defesa : ''),
     })),
     ligacoes: c.ligacoes,

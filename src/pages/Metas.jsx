@@ -28,6 +28,7 @@ import CalculadoraHoras from '../components/CalculadoraHoras';
 import ModoCampeonato from '../components/ModoCampeonato';
 import { categoriasDe } from '../lib/campeonato';
 import { ehPosicao } from '../lib/posicoes';
+import { comTecUid, nomesDaMeta } from '../lib/identidade';
 
 const vazia = () => ({
   tipo: 'frequencia',
@@ -108,15 +109,24 @@ export default function Metas() {
     if (!g.titulo || (antes && metaIncompleta(antes))) g.titulo = tituloAutomatico(g);
     /* ganhou a técnica agora: começa a contar de hoje */
     if (antes && metaIncompleta(antes)) g.inicio = hoje();
+    comUid(g);
     if (g.id) await db.goals.put(g);
     else await db.goals.add({ ...g, criadoEm: Date.now() });
     setEdit(null);
     toast('Meta salva');
   }
 
+  /* meta de técnica guarda o uid ao lado do nome (só se o nome for de uma técnica só) */
+  function comUid(g) {
+    const tecUid = comTecUid(nomesDaMeta(g), techniques, g.tecUid);
+    if (Object.keys(tecUid).length) g.tecUid = tecUid;
+    else delete g.tecUid;
+    return g;
+  }
+
   async function confirmarSugestao(s) {
     if (!livre && ativas.length >= LIMITES.metasAtivas) return setConvite(true);
-    await db.goals.add({
+    await db.goals.add(comUid({
       ...vazia(),
       tipo: s.tipo,
       alvo: s.alvo,
@@ -124,7 +134,7 @@ export default function Metas() {
       titulo: s.titulo,
       origem: 'confirmada',
       criadoEm: Date.now(),
-    });
+    }));
     toast('Meta criada');
   }
 

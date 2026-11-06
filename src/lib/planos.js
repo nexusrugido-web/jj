@@ -1,4 +1,5 @@
 import { ehFamilia, familiaDoGolpe } from './familias';
+import { comTecUid, uidDoGolpe, nomesDoPlano } from './identidade';
 
 /* ============================================================
    PLANOS DE ATAQUE
@@ -178,6 +179,8 @@ export function correnteDoPlano(p) {
     reacao: brutos[i].gatilho || '', golpe: textoGuardado(brutos[i]), detalhe: brutos[i].detalhe || '', defesa: brutos[i].seFalhar || '',
     pai: pai[i] === null ? null : novo.get(pai[i]),
     via: viaDe(brutos, i, pai[i]),
+    /* a identidade da técnica da peça anda junto pro editor e volta no salvar */
+    ...(brutos[i].golpeUid && tipoDe(brutos[i]) !== 'finta' ? { golpeUid: brutos[i].golpeUid } : {}),
   }));
   /* a finta do formato de antes era uma só, antes do 1º golpe: vira
      a peça de finta, no fim da lista, e o 1º golpe nasce dela */
@@ -547,7 +550,7 @@ export function nomeDaPosicao(plano, positions = []) {
 
 /* o plano novo que a tela salva. Golpe sem nome sai, e o que nasce
    dele também; passo sem pai (formato de fila) nasce do último que ficou */
-export function planoNovo({ nome, posicao, posicaoId = null, finta = '', objetivo = '', objetivoTipo = '', finalizacaoPreferida = '', finalizacoesAceitas = [], passos = [], ligacoes = [], paraAltura = [], paraPeso = [], copiadoDe = null, removidos }) {
+export function planoNovo({ nome, posicao, posicaoId = null, finta = '', objetivo = '', objetivoTipo = '', finalizacaoPreferida = '', finalizacoesAceitas = [], passos = [], ligacoes = [], paraAltura = [], paraPeso = [], copiadoDe = null, removidos, tecUid = {}, tecnicas = null }) {
   /* preferida e aceitas só no finalizar; a preferida não se repete nas aceitas */
   const fin = objetivoTipo === 'finalizar';
   const preferida = fin ? String(finalizacaoPreferida || '').trim() : '';
@@ -568,6 +571,14 @@ export function planoNovo({ nome, posicao, posicaoId = null, finta = '', objetiv
       via: p === null ? null : viaPeloPai(passos[pai[i]], x),
     };
   });
+  /* com a lista de técnicas (o salvar da tela), cada golpe e situação
+     guarda o uid da técnica, se o nome for de uma só; finta nunca */
+  if (tecnicas) {
+    guardados.forEach((g, k) => {
+      const u = uidDoGolpe({ ...passos[lista[k]], tipo: tipoDe(g) }, tecnicas);
+      if (u) g.golpeUid = u;
+    });
+  }
   return {
     paraAltura, paraPeso, copiadoDe,
     ...(removidos ? { removidos } : {}),
@@ -582,6 +593,8 @@ export function planoNovo({ nome, posicao, posicaoId = null, finta = '', objetiv
     finalizacoesAceitas: aceitas,
     passos: guardados,
     ligacoes: convergenciasValidas(guardados, ligacoes),
+    /* sempre presente quando salva: o update mescla e o uid que saiu tem que sair */
+    ...(tecnicas ? { tecUid: comTecUid(nomesDoPlano({ objetivo, objetivoTipo: objetivoTipo || (objetivo ? 'tecnica' : ''), finalizacaoPreferida: preferida, finalizacoesAceitas: aceitas }), tecnicas, tecUid) } : {}),
     tipo: 'ataque', modo: 'ambos', faixa: 'branca', legal: true, aviso: '', resumo: '',
     pronto: 0, favorito: 0, arquivada: 0,
   };
