@@ -40,7 +40,9 @@ function unico(lista, igual) {
   return achados.length === 1 ? achados[0] : null;
 }
 
-export async function repararRelacoes({ simular = true } = {}) {
+/* aoGravar(tabela, id): avisa cada registro corrigido que sobe pra nuvem
+   (quem roda isto dentro de uma transação põe na fila junto, tudo ou nada) */
+export async function repararRelacoes({ simular = true, aoGravar } = {}) {
   const r = {
     rolas: { conferidos: 0, corrigidos: 0, incertos: 0 },
     parceiros: { semProva: 0 },
@@ -65,7 +67,7 @@ export async function repararRelacoes({ simular = true } = {}) {
     const certo = rola.data ? naData(rola.data) : null;
     if (!certo) { r.rolas.incertos++; continue; }
     r.rolas.corrigidos++; mudou('rolls', 'sessionId');
-    if (!simular) await db.rolls.update(rola.id, { sessionId: certo.id });
+    if (!simular) { await db.rolls.update(rola.id, { sessionId: certo.id }); aoGravar?.('rolls', rola.id); }
   }
 
   /* treinos: academia, professor e foco, pelo nome guardado junto */
@@ -102,7 +104,7 @@ export async function repararRelacoes({ simular = true } = {}) {
     if (incerto) r.treinos.incertos++;
     if (!Object.keys(patch).length) continue;
     r.treinos.corrigidos++;
-    if (!simular) await db.sessions.update(s.id, patch);
+    if (!simular) { await db.sessions.update(s.id, patch); aoGravar?.('sessions', s.id); }
   }
 
   /* pontos: "treino:12" pela data do ponto */
@@ -114,7 +116,7 @@ export async function repararRelacoes({ simular = true } = {}) {
     const certo = naData(p.data);
     if (!certo) { r.pontos.incertos++; continue; }
     r.pontos.corrigidos++; mudou('pontos', 'refId');
-    if (!simular) await db.pontos.update(p.id, { refId: `${m[1]}:${certo.id}${m[3]}` });
+    if (!simular) { await db.pontos.update(p.id, { refId: `${m[1]}:${certo.id}${m[3]}` }); aoGravar?.('pontos', p.id); }
   }
 
   /* técnicas: a da biblioteca volta pro catálogo; a criada pelo atleta não tem prova */

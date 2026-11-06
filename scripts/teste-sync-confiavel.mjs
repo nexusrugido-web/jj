@@ -291,5 +291,36 @@ const primeira = await repararUmaVez();
 const registro = (await db.meta.get('reparo_s4'))?.value;
 ok('no ciclo do sync roda uma vez só e guarda o relatório', [primeira, await repararUmaVez(), registro?.rolas?.corrigidos], [false, false, 0]);
 
+/* ---------- S4 tudo ou nada (07/11): o app fecha no meio do reparo ---------- */
+await db.delete(); await db.open();
+await semear(CATS_DEPOIS);
+await aplicarLocal(nuvemVelha);
+await db.outbox.clear();
+const fotoS4 = async () => JSON.stringify({
+  rolls: await db.rolls.toArray(), sessions: await db.sessions.toArray(), pontos: await db.pontos.toArray(),
+  techniques: await db.techniques.toArray(), fila: await db.outbox.count(), marca: await db.meta.get('reparo_s4'),
+});
+const antesS4 = await fotoS4();
+const quebrarS4 = (tabela, metodo) => { tabela[metodo] = async () => { throw new Error('o app fechou'); }; return () => { delete tabela[metodo]; }; };
+const tentaS4 = async () => { try { await repararUmaVez({ comFila: true }); return 'gravou'; } catch (e) { return e.message; } };
+let voltaS4 = quebrarS4(db.meta, 'put');
+ok('S4: fecha na marca, a última gravação: falha', await tentaS4(), 'o app fechou');
+voltaS4();
+ok('S4: e nada mudou (nem registro corrigido sem fila)', await fotoS4() === antesS4, true);
+voltaS4 = quebrarS4(db.outbox, 'bulkAdd');
+ok('S4: fecha ao gravar a fila: falha', await tentaS4(), 'o app fechou');
+voltaS4();
+ok('S4: e nada mudou', await fotoS4() === antesS4, true);
+const [s4a, s4b] = await Promise.all([repararUmaVez({ comFila: true }), repararUmaVez({ comFila: true })]);
+const relS4 = (await db.meta.get('reparo_s4')).value;
+const corrigidosS4 = relS4.rolas.corrigidos + relS4.treinos.corrigidos + relS4.pontos.corrigidos;
+const filaS4 = await db.outbox.toArray();
+ok('S4: duas rodadas juntas aplicam uma vez', [s4a, s4b].sort(), [false, true]);
+ok('S4: a fila tem 1 item por registro corrigido, nada em dobro, e a biblioteca não sobe',
+  [filaS4.length, new Set(filaS4.map((i) => `${i.tabela}:${i.uid}`)).size, filaS4.some((i) => i.tabela === 'techniques')], [corrigidosS4, corrigidosS4, false]);
+const noAparelhoS4 = new Map([...(await db.rolls.toArray()), ...(await db.sessions.toArray()), ...(await db.pontos.toArray())].map((x) => [x.uid, x]));
+ok('S4: cada item da fila é o registro corrigido como ficou', filaS4.every((i) => JSON.stringify(i.dados) === JSON.stringify(noAparelhoS4.get(i.uid))), true);
+ok('S4: o que sobe leva o treino certo', (await comReferencias('rolls', filaS4.find((i) => i.uid === 'r1').dados)).refs.sessionId, 's1');
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

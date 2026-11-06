@@ -149,7 +149,12 @@ export async function sincronizar({ forcar = false } = {}) {
       if (!(await subirFila(sess.user.id)).subiram) break;
     }
     await baixar(sess.user.id);
-    if (await repararUmaVez()) await subirFila(sess.user.id);
+    /* falhou: o aparelho fica como estava e tenta no próximo ciclo */
+    try {
+      if (await repararUmaVez()) await subirFila(sess.user.id);
+    } catch (e) {
+      console.warn('[reparo S4] fica pro próximo ciclo', e);
+    }
     /* T5: técnica com identidade, uma vez por aparelho, tudo ou nada.
        Falhou: o aparelho fica como estava e tenta no próximo ciclo; o
        sync não para por causa dela. (import dinâmico: ela usa itemDaFila daqui) */
@@ -575,11 +580,27 @@ export async function garantirNuvem() {
    Depois da primeira descida completa (com o que já está na nuvem).
    Só corrige com prova (reparo.js); o relatório fica em meta pra
    conferência. Devolve true se mudou algo, pra subir no mesmo ciclo. */
-export async function repararUmaVez() {
-  if ((await db.meta.get('reparo_s4'))?.value) return false;
-  const r = await repararRelacoes({ simular: false });
-  await db.meta.put({ key: 'reparo_s4', value: { em: Date.now(), ...r } });
-  return r.rolas.corrigidos + r.treinos.corrigidos + r.pontos.corrigidos > 0;
+/* Tudo numa transação (07/11): os registros corrigidos, a fila e a marca
+   entram juntos ou nada entra. Antes a fila ia por fora (hooks) e um app
+   fechado entre gravar e enfileirar deixava a correção sem subir. */
+export async function repararUmaVez({ comFila = supabaseConfigurado } = {}) {
+  return db.transaction('rw', db.sessions, db.rolls, db.academies, db.professors, db.techniques,
+    db.pontos, db.categories, db.positions, db.outbox, db.meta, async (tx) => {
+      tx.semFila = true;
+      if ((await db.meta.get('reparo_s4'))?.value) return false;
+      const gravados = new Map();
+      const r = await repararRelacoes({ simular: false, aoGravar: (tabela, id) => gravados.set(`${tabela}:${id}`, [tabela, id]) });
+      const itens = [];
+      if (comFila) {
+        for (const [tabela, id] of gravados.values()) {
+          const g = await db[tabela].get(id);
+          if (g) itens.push(itemDaFila(tabela, 'upsert', g));
+        }
+      }
+      if (itens.length) await db.outbox.bulkAdd(itens);
+      await db.meta.put({ key: 'reparo_s4', value: { em: Date.now(), ...r } });
+      return r.rolas.corrigidos + r.treinos.corrigidos + r.pontos.corrigidos > 0;
+    });
 }
 
 /* ---------- limpar vínculo local (logout) ---------- */

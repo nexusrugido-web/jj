@@ -392,9 +392,11 @@ if (process.argv.includes('--gerar')) {
 let falhas = 0;
 const ok = (cond, msg) => { if (!cond) { falhas++; console.error('FALHOU:', msg); } };
 
-const noArquivo = await fs.readFile(ARQUIVO, 'utf8').catch(() => '');
+/* o git do Windows pode trocar LF por CRLF no checkout: a quebra de linha não conta */
+const semCr = (x) => x.replaceAll(String.fromCharCode(13) + String.fromCharCode(10), String.fromCharCode(10));
+const noArquivo = semCr(await fs.readFile(ARQUIVO, 'utf8').catch(() => ''));
 ok(noArquivo === sql, 'o SQL 57 está desatualizado com o catálogo: rode node scripts/teste-simulacao-tecnicas.mjs --gerar');
-ok(await fs.readFile(ARQUIVO_COPIA, 'utf8').catch(() => '') === sqlCopia, 'o SQL 58 está desatualizado: rode node scripts/teste-simulacao-tecnicas.mjs --gerar');
+ok(semCr(await fs.readFile(ARQUIVO_COPIA, 'utf8').catch(() => '')) === sqlCopia, 'o SQL 58 está desatualizado: rode node scripts/teste-simulacao-tecnicas.mjs --gerar');
 
 /* ---------- as contas de mentira ---------- */
 const cat = CATALOGO_TECNICAS;
