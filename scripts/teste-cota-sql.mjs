@@ -141,6 +141,48 @@ ok('técnica sem propria e fora do catálogo é recusada', await tenta(() => ups
 ok('técnica sem uid e sem propria é recusada', await tenta(() => upsert(uuid(), bia, 'techniques', { nome: 'Falsa' })), 'tecnica_fora_do_catalogo');
 ok('apagar uma técnica que nunca subiu passa (o sync manda só o uid)', await tenta(() => upsert(uuid(), bia, 'techniques', { uid: uuid() }, true)), 'aceito');
 
+/* técnica antiga já na nuvem, sem propria e com uid fora do catálogo (T5):
+   gravada antes da regra, então entra com a trigger desligada, como a nuvem de hoje */
+await pg.exec('reset role');
+const antigaId = uuid();
+const antigaUid = uuid();
+const antigaDados = { uid: antigaUid, nome: 'Cópia antiga do catálogo', status: 'nao_iniciada' };
+await pg.exec('alter table public.registros disable trigger registros_cota_tecnicas');
+await upsert(antigaId, bia, 'techniques', antigaDados);
+const mortaId = uuid();
+await upsert(mortaId, bia, 'techniques', { uid: uuid(), nome: 'Antiga apagada' }, true);
+await pg.exec('alter table public.registros enable trigger registros_cota_tecnicas');
+await pg.exec('set role authenticated');
+await como(bia);
+const antesBia = await contar(bia);
+ok('antiga: favoritar passa (era o travamento das 454)', await tenta(() => upsert(antigaId, bia, 'techniques', { ...antigaDados, favorita: 1 })), 'aceito');
+ok('antiga: mudar o status passa', await tenta(() => upsert(antigaId, bia, 'techniques', { ...antigaDados, favorita: 1, status: 'dominada' })), 'aceito');
+ok('antiga: o nome e o resto passam', await tenta(() => upsert(antigaId, bia, 'techniques', { ...antigaDados, nome: 'Outro nome', nota: 3 })), 'aceito');
+ok('antiga: apagar pelo sync passa', await tenta(() => upsert(antigaId, bia, 'techniques', { uid: antigaUid }, true)), 'aceito');
+await pg.exec('reset role');
+await pg.exec('alter table public.registros disable trigger registros_cota_tecnicas');
+await pg.query('update public.registros set deleted_at = null, dados = $2 where id = $1', [antigaId, JSON.stringify(antigaDados)]);
+await pg.exec('alter table public.registros enable trigger registros_cota_tecnicas');
+await pg.exec('set role authenticated');
+ok('antiga: não ganha propria e não entra na cota', [(await pg.query('select dados->>$2 p from public.registros where id = $1', [antigaId, 'propria'])).rows[0].p, await contar(bia)], [null, antesBia]);
+/* as brechas que a exceção não pode abrir */
+ok('brecha: trocar o uid da antiga é recusado', await tenta(() => upsert(antigaId, bia, 'techniques', { ...antigaDados, uid: uuid() })), 'tecnica_fora_do_catalogo');
+ok('brecha: tirar o uid da antiga é recusado', await tenta(() => upsert(antigaId, bia, 'techniques', { nome: 'sem uid' })), 'tecnica_fora_do_catalogo');
+ok('brecha: linha nova com uid de fora continua recusada, mesmo repetindo o uid da antiga', await tenta(() => upsert(uuid(), bia, 'techniques', { ...antigaDados })), 'tecnica_fora_do_catalogo');
+const guardada = uuid();
+await upsert(guardada, bia, 'techniques', { uid: uuid(), nome: 'Nasceu apagada' }, true); // apagada passa (sempre passou)
+ok('brecha: apagada com uid de fora não volta a viver', await tenta(() => upsert(guardada, bia, 'techniques', { uid: antigaUid, nome: 'Voltou' })), 'tecnica_fora_do_catalogo');
+const uidDaMorta = (await pg.query('select dados->>$2 u from public.registros where id = $1', [mortaId, 'uid'])).rows[0].u;
+ok('brecha: antiga apagada de verdade (já na nuvem) não volta a viver por aqui', await tenta(() => upsert(mortaId, bia, 'techniques', { uid: uidDaMorta, nome: 'Voltou' })), 'tecnica_fora_do_catalogo');
+const rolaViraTecnica = uuid();
+await upsert(rolaViraTecnica, bia, 'rolls', { uid: uuid() });
+ok('brecha: linha de outra tabela não vira técnica de fora do catálogo', await tenta(() => upsert(rolaViraTecnica, bia, 'techniques', { uid: uuid(), nome: 'Falsa' })), 'tecnica_fora_do_catalogo');
+ok('brecha: a antiga não vira própria sem passar pela cota (vira e conta)', [await tenta(() => upsert(antigaId, bia, 'techniques', { ...antigaDados, propria: 1 })), await contar(bia)], ['aceito', antesBia + 1]);
+await pg.exec('reset role');
+await pg.query('delete from public.registros where id in ($1, $2, $3, $4)', [antigaId, mortaId, guardada, rolaViraTecnica]);
+await pg.exec('set role authenticated');
+await como(bia);
+
 /* tamanhos */
 const nome = (n) => 'a'.repeat(n);
 ok(`nome com ${NOME_TECNICA_MAX} passa`, await tenta(() => upsert(uuid(), bia, 'techniques', propria(0, { nome: nome(NOME_TECNICA_MAX) }))), 'aceito');

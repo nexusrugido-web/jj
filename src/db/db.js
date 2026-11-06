@@ -171,7 +171,9 @@ for (const nome of TABELAS_SYNC) {
     const uid = obj.uid || crypto.randomUUID();
     const updatedAt = Date.now();
     const novo = { ...obj, ...mods, uid, updatedAt };
-    this.onsuccess = () => enfileirarRef?.(nome, 'upsert', novo);
+    /* transação que grava a própria fila (a passada de identidade): a fila
+       entra dentro dela, não por fora, senão não seria tudo-ou-nada */
+    if (!Dexie.currentTransaction?.semFila) this.onsuccess = () => enfileirarRef?.(nome, 'upsert', novo);
     return { ...mods, uid, updatedAt };
   });
 

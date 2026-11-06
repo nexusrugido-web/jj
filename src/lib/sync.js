@@ -34,6 +34,17 @@ export async function contarPendentes() {
 }
 
 /* ---------- enfileirar ---------- */
+/* o item da fila; quem grava a fila dentro da própria transação usa o mesmo formato */
+export const itemDaFila = (tabela, op, registro) => ({
+  tabela,
+  op, // upsert | delete
+  uid: registro.uid,
+  dados: op === 'delete' ? null : registro,
+  updatedAt: registro.updatedAt || Date.now(),
+  criadoEm: Date.now(),
+  tentativas: 0,
+});
+
 export async function enfileirar(tabela, op, registro) {
   if (!supabaseConfigurado) return;          // nuvem desligada: nada de fila
   if (!TABELAS_SYNC.includes(tabela)) return;
@@ -43,15 +54,7 @@ export async function enfileirar(tabela, op, registro) {
   // tabela não está no escopo. ignoreTransaction faz a gravação sair
   // da transação atual e rodar por fora.
   try {
-    await Dexie.ignoreTransaction(() => db.outbox.add({
-      tabela,
-      op, // upsert | delete
-      uid: registro.uid,
-      dados: op === 'delete' ? null : registro,
-      updatedAt: registro.updatedAt || Date.now(),
-      criadoEm: Date.now(),
-      tentativas: 0,
-    }));
+    await Dexie.ignoreTransaction(() => db.outbox.add(itemDaFila(tabela, op, registro)));
   } catch (e) {
     // fila é best-effort: nunca pode derrubar a gravação principal
     return;

@@ -15,7 +15,11 @@
 --    contando.
 -- 3. Técnica sem propria precisa ser do catálogo (uid na lista
 --    abaixo, gerada do código do app). Linha apagada fica de fora
---    dessa conferência.
+--    dessa conferência. Exceção (T5, 07/11): a técnica antiga que
+--    JÁ ESTÁ na nuvem, viva, sem propria e com uid de fora da lista
+--    (cópia do catálogo com uid aleatório, biblioteca antiga) segue
+--    editável desde que o uid não mude. Ela não ganha propria e não
+--    conta na cota. Linha nova com uid de fora continua recusada.
 -- 4. Nome até 80 e "como você faz" até 2.000 caracteres (só confere
 --    o que mudou: o que já está gravado não trava a edição).
 -- 5. propria só vale em techniques.
@@ -232,6 +236,7 @@ declare
   v_old       public.registros;
   v_tinha     boolean := false;
   v_tem       boolean;
+  v_antiga    boolean := false;
   v_total     integer;
 begin
   if tg_op = 'UPDATE' then
@@ -273,8 +278,19 @@ begin
     v_tem := true;
   end if;
 
-  -- sem propria, só técnica do catálogo (a apagada fica de fora)
-  if not v_tem and new.deleted_at is null
+  -- A técnica antiga que já está na nuvem sem propria (cópia do catálogo
+  -- com uid aleatório, biblioteca antiga) continua editável, mas só como
+  -- ela é: já existia viva como técnica, sem propria, e o uid não mudou.
+  -- Linha nova, linha apagada que volta, linha de outra tabela e uid
+  -- trocado não entram aqui e seguem a regra do catálogo.
+  v_antiga := v_old.id is not null and v_old.tabela = 'techniques'
+              and v_old.deleted_at is null
+              and not public.tecnica_e_propria(v_old.dados)
+              and coalesce(new.dados->>'uid', '') <> ''
+              and (new.dados->>'uid') = (v_old.dados->>'uid');
+
+  -- sem propria, só técnica do catálogo ou a antiga acima (a apagada fica de fora)
+  if not v_tem and new.deleted_at is null and not v_antiga
      and not coalesce(new.dados->>'uid', '') = any (public.uids_catalogo_tecnicas()) then
     raise exception 'tecnica_fora_do_catalogo: técnica criada precisa vir marcada como própria'
       using errcode = '23514';
@@ -338,9 +354,9 @@ create policy registros_delete on public.registros for delete
 
 -- ============================================================
 -- CONFERÊNCIA ANTES DE RODAR (cole sozinha, só lê)
--- Técnicas vivas sem propria e com uid fora do catálogo: cada uma
--- seria recusada na próxima edição. Tem que dar zero (ou só contas
--- que ainda vão abrir o app novo).
+-- Técnicas vivas sem propria e com uid fora do catálogo: são as
+-- antigas. Desde o T5 elas continuam editáveis (mesmo uid); só não
+-- entram como linha nova. Serve para saber quantas são.
 --
 -- select user_id, count(*) from public.registros
 --  where tabela = 'techniques' and deleted_at is null
