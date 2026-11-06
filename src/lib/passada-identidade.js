@@ -7,8 +7,9 @@ import { supabaseConfigurado } from './supabase';
 /* ============================================================
    A PASSADA DE IDENTIDADE, TUDO OU NADA (T5, 07/11/2026)
 
-   NÃO ESTÁ LIGADA NO APP: nada chama isto fora dos testes. Ligar
-   é decisão do dono, depois da revisão conjunta.
+   Ligada no sync (sincronizar, depois do reparo S4), autorizada pelo
+   dono em 07/11 depois da revisão conjunta. Antes de subir pra main:
+   SQL 58 (cópia). Depois: SQL 59 e 57.
 
    Uma vez por aparelho (marca `identidade_t` em meta). Roda numa
    transação só do banco do aparelho: os registros corrigidos, a

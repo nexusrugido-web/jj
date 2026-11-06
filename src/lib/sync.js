@@ -150,6 +150,16 @@ export async function sincronizar({ forcar = false } = {}) {
     }
     await baixar(sess.user.id);
     if (await repararUmaVez()) await subirFila(sess.user.id);
+    /* T5: técnica com identidade, uma vez por aparelho, tudo ou nada.
+       Falhou: o aparelho fica como estava e tenta no próximo ciclo; o
+       sync não para por causa dela. (import dinâmico: ela usa itemDaFila daqui) */
+    try {
+      const { aplicarIdentidadeUmaVez } = await import('./passada-identidade');
+      const r = await aplicarIdentidadeUmaVez();
+      if (r.naFila) await subirFila(sess.user.id);
+    } catch (e) {
+      console.warn('[passada de identidade] fica pro próximo ciclo', e);
+    }
     const agora = Date.now();
     await db.meta.put({ key: 'ultimo_sync', value: agora });
     /* registro recusado continua na fila: o ciclo terminou, mas não está
