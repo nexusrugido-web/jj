@@ -20,7 +20,8 @@ Contrato em `docs/CONTRATO-TECNICAS.md`. Cada frente numa branch própria, integ
     - T5a. SQL 56 aceita a técnica antiga já na nuvem (viva, sem `propria`, uid igual ao que já tem); linha nova, apagada que volta, outra tabela e uid trocado continuam recusadas. → verificar: `teste:cota` (50 verificações, 4 brechas). → FEITO.
     - T5b. Passada de identidade tudo-ou-nada: `aplicarIdentidadeUmaVez` (`src/lib/passada-identidade.js`), registros + marca de pessoal + fila + marca `identidade_t` numa transação; hooks quietos por `semFila`. → verificar: `teste:passada-atomica` (fecha no meio, na fila, tenta de novo, duas abas, rodar de novo). → FEITO, NÃO LIGADA.
     - T5c. SQL 58 (cópia antes, em `copias.passada_identidade`, recusa rodar duas vezes) e SQL 59 (comparação, só leitura, 21 verificações com ok/DIVERGE/ATENÇÃO e ids de exemplo); SQL 57 separa nomes, referências e técnicas diferentes. → verificar: `teste:simulacao-tecnicas` (58 e 59 no PGlite com a passada do app, 7 sabotagens acusadas). → FEITO, nada rodado em produção.
-    - T5d. Falta: o dono rodar o 57 de novo (números reais de referências), autorizar; rodar o 58; ligar no sync; rodar o 59. Decidir à parte o S4 (janela de perda em `repararUmaVez`).
+    - T5d. 07/11: dono rodou o 57 (22 rolas, 1 plano, 4 metas; 31/3/4 nomes = referências; 9/3/4 técnicas) e o 58 (27 registros copiados, todos previstos); passada ligada no sync e publicada na main (`1dfed80`). → FEITO.
+    - T5e. Falta: em 2 a 3 dias, rodar o 59 e o 57 (NEUROJITSU-COLAR); só depois, o SQL 56. Decidir à parte o S4 (janela de perda em `repararUmaVez`).
 - Depois: `contra` no seed, assuntos.
 
 ## Trilha S: sync confiável entre aparelhos e entre contas (06/11/2026, antes das técnicas próprias)
