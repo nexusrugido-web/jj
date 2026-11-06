@@ -4,6 +4,16 @@ Ordem aprovada em 04/11/2026: Trilha A → B → C → D. Um commit por item.
 
 Decidido em 04/11/2026. Uma tarefa por vez; cada uma termina com `npm run check` verde, README atualizado e push.
 
+## Trilha S: sync confiável entre aparelhos e entre contas (06/11/2026, antes das técnicas próprias)
+Decidido em 06/11: corrigir antes de técnicas próprias. Causas e provas no relatório de 06/11 (técnicas próprias) e na resposta da sessão.
+- S0. Reproduzir P2 com duas contas reais (SQL só leitura, termina em rollback) → aguardando o usuário rodar.
+- S1. Fila que não trava: upsert em lote; se o lote falhar, um por um; o que falhou fica na fila com erro, tentativas e próxima tentativa; o resto sobe. Verificar: teste com um registro recusado no meio de vários.
+- S2. Id por conta na nuvem para o que nasce igual em todo aparelho (posições, categorias, técnicas e planos prontos): id da linha = hash(conta + uid); o uid de verdade vai em dados.uid; a descida lê dados.uid. Linhas antigas continuam valendo. Sem SQL e sem afrouxar RLS. Verificar: duas contas marcando a mesma técnica, as duas sobem e cada uma só vê a sua.
+- S3. Referência por uid na fronteira do sync: ao subir, cada campo de número local ganha o uid do registro apontado (sessionId → sessionUid, partnerId, academiaId, professorId, categoriaId, origemId, destinoId, techniqueId, posicaoId, vinculoId, focoTecnicas[].tecnicaId, settings academiaPadraoId e professorPadraoId); ao descer, o uid vira o número local daquele aparelho; o que chegar antes do registro apontado fica pendente e liga quando ele chegar. Verificar: cenário A (3 treinos, edita um, aparelho B com outra ordem) e categoria nova no meio da lista.
+- S4. Reparo do que já está nos aparelhos, sem chute: rola fica no treino se a data bate; se não bate e há um só treino naquela data, liga nele; senão fica como está e é contado como incerto. Técnica da biblioteca volta à categoria e às posições do catálogo pelo uid. Parceiro sem prova fica como está (contado). Depois do reparo o aparelho sobe de novo o que consertou, já com os uids.
+- S5. Resumo semanal no servidor contando rolas pelo sessionUid (hoje compara com dados->>'id', que nunca sobe, e dá sempre zero). SQL com create or replace, sem apagar nada.
+- Fora daqui: telas de técnica própria. Mas a técnica passa a ser referenciável pelo uid (S3), o que prepara referência permanente em plano, rola e meta.
+
 ## Trilha H: Plano com objetivo, finta em qualquer ponto e montar no mapa (05/11/2026)
 O que achei: o catálogo já tem 15 armlocks com origem no nome ("Armlock da guarda fechada"); a busca falhou só por causa do espaço ("arm l" não casa com "armlock"). Os 16 prontos usam texto livre fora do catálogo ("Triângulo", "Omoplata"), nenhum tem objetivo nem finta, e o último passo vira o "se ele defender tudo" automático. A finta hoje é uma só, do plano inteiro, e a "deixa" mistura reação à finta com defesa do golpe.
 1. Busca sem espaço ("arm l", "arm lock") e "chave de braço reta" nos armlocks. Verificar: casos novos no teste. → FEITO.

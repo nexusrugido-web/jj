@@ -141,40 +141,98 @@ export async function sincronizar({ forcar = false } = {}) {
   try {
     /* sobe em lotes até a fila esvaziar: antes subia 400 e esperava o
        próximo ciclo, e a fila de quem reenviava tudo ficava horas em "pendentes" */
-    for (let lote = 0; lote < 50 && (await subir(sess.user.id)) > 0; lote++);
+    for (let lote = 0; lote < 50; lote++) {
+      if (!(await subirFila(sess.user.id)).subiram) break;
+    }
     await baixar(sess.user.id);
     const agora = Date.now();
     await db.meta.put({ key: 'ultimo_sync', value: agora });
-    emitir({ rodando: false, ultimo: agora });
-    await contarPendentes();
-    return { ok: true };
+    /* registro recusado continua na fila: o ciclo terminou, mas não está
+       tudo na nuvem enquanto houver pendente */
+    const falhas = await db.outbox.filter((i) => !!i.erro).count();
+    emitir({ rodando: false, ultimo: agora, falhas });
+    const pendentes = await contarPendentes();
+    return { ok: true, pendentes, falhas };
   } catch (e) {
     emitir({ rodando: false, erro: String(e?.message || e) });
     return { ok: false, motivo: 'erro', erro: e };
   }
 }
 
-/* ---------- SUBIR (outbox -> nuvem) ---------- */
-async function subir(userId) {
-  const itens = await db.outbox.orderBy('criadoEm').limit(400).toArray();
-  if (!itens.length) return 0;
+/* ============================================================
+   SUBIR (outbox -> nuvem), SEM TRAVAR A FILA
 
-  // deduplica: só a última versão de cada uid importa. Biblioteca intocada
-  // que ficou na fila de antes sai da fila sem subir.
-  const mapa = new Map();
-  for (const i of itens) if (!(i.op === 'upsert' && sementeIntacta(i.tabela, i.dados))) mapa.set(i.uid, i);
-  const finais = [...mapa.values()];
+   Antes, um registro recusado derrubava o lote de 100 inteiro, nada
+   saía da fila e a mesma recusa se repetia a cada ciclo: os treinos
+   novos ficavam presos atrás dela pra sempre.
 
-  const lote = paraRegistros(finais, userId);
-  for (let i = 0; i < lote.length; i += 100) {
-    const parte = lote.slice(i, i + 100);
-    const { error } = await supabase.from('registros').upsert(parte, { onConflict: 'id' });
-    if (error) throw error;
+   Agora: o lote sobe junto; se for recusado, cada registro tenta
+   sozinho. O que o banco aceitou sai da fila. O recusado fica, com
+   o motivo, quantas tentativas e quando tentar de novo (espera que
+   dobra, até 6 horas). Nada é descartado.
+
+   Erro que vale pra tudo (sem internet, sessão vencida, servidor
+   fora do ar) não é do registro: para o ciclo na hora, sem tentar
+   um por um, e a fila fica como estava.
+   ============================================================ */
+export function erroGeral(error, status) {
+  const st = Number(status ?? error?.status ?? 0);
+  const code = String(error?.code || '');
+  if (code === '42501' || /^2[23]/.test(code)) return false; // a regra de segurança ou o dado daquele registro
+  if (!st || st === 401 || st === 408 || st === 429 || st >= 500) return true;
+  return code.startsWith('PGRST');
+}
+
+const ESPERA_MAX = 6 * 60 * 60 * 1000;
+export const esperaDaTentativa = (n) => Math.min(60 * 1000 * 2 ** Math.max(0, n - 1), ESPERA_MAX);
+
+const enviarAoSupabase = (linhas) => supabase.from('registros').upsert(linhas, { onConflict: 'id' });
+
+export async function subirFila(userId, enviar = enviarAoSupabase, agora = Date.now()) {
+  const itens = await db.outbox.orderBy('criadoEm').filter((i) => !(i.proximaEm > agora)).limit(400).toArray();
+  if (!itens.length) return { subiram: 0, falharam: 0 };
+
+  // deduplica: só a última versão de cada uid importa; as anteriores saem
+  // junto com ela. Biblioteca intocada que ficou na fila sai sem subir.
+  const ultima = new Map();
+  const intactas = [];
+  for (const i of itens) {
+    if (i.op === 'upsert' && sementeIntacta(i.tabela, i.dados)) { intactas.push(i.id); continue; }
+    ultima.set(i.uid, i);
   }
+  if (intactas.length) await db.outbox.bulkDelete(intactas);
+  const finais = [...ultima.values()];
+  /* sai a versão que subiu e todas as anteriores do mesmo registro,
+     inclusive uma recusada antes que ainda esperava a vez: senão ela
+     subiria depois por cima da mais nova */
+  const ateEsta = (i, inclusive = true) => db.outbox.where('uid').equals(i.uid)
+    .filter((x) => (inclusive ? x.id <= i.id : x.id < i.id)); // o id da fila só cresce
+  const tirar = async (lista) => { for (const i of lista) await ateEsta(i).delete(); };
 
-  await db.outbox.bulkDelete(itens.map((i) => i.id));
+  let subiram = intactas.length;
+  let falharam = 0;
+  for (let k = 0; k < finais.length; k += 100) {
+    const parte = finais.slice(k, k + 100);
+    const r = await enviar(paraRegistros(parte, userId));
+    if (!r.error) { await tirar(parte); subiram += parte.length; continue; }
+    if (erroGeral(r.error, r.status)) throw r.error;
+    for (const item of parte) {
+      const s = await enviar(paraRegistros([item], userId));
+      if (!s.error) { await tirar([item]); subiram++; continue; }
+      if (erroGeral(s.error, s.status)) throw s.error;
+      const tentativas = (item.tentativas || 0) + 1;
+      /* as versões velhas saem: a última leva o registro inteiro */
+      await ateEsta(item, false).delete();
+      await db.outbox.update(item.id, {
+        tentativas,
+        erro: `${s.error.code || s.status || ''} ${s.error.message || ''}`.trim(),
+        proximaEm: agora + esperaDaTentativa(tentativas),
+      });
+      falharam++;
+    }
+  }
   await contarPendentes();
-  return itens.length;
+  return { subiram, falharam };
 }
 
 /* os itens da fila no formato da tabela registros. As configurações

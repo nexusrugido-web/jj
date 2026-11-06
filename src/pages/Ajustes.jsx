@@ -389,9 +389,11 @@ export default function Ajustes() {
             <p className="tiny muted" style={{ lineHeight: 1.65 }}>
               Seus treinos sincronizam sozinhos entre os seus aparelhos. Sem internet, o app guarda e manda quando a conexão voltar.
             </p>
-            <p className="micro" style={{ color: sync?.erro ? 'var(--blood)' : 'var(--dim)' }}>
+            <p className="micro" style={{ color: sync?.erro || sync?.falhas ? 'var(--blood)' : 'var(--dim)' }}>
               {sync?.erro
                 ? `A nuvem não respondeu: ${sync.erro}. O app tenta de novo sozinho.`
+                : sync?.falhas > 0
+                  ? `A nuvem recusou ${sync.falhas === 1 ? '1 registro' : `${sync.falhas} registros`}. Eles continuam guardados no aparelho e o app tenta de novo sozinho; o resto já subiu.`
                 : sync?.pendentes > 0
                   ? `Mandando ${sync.pendentes} ${sync.pendentes === 1 ? 'registro' : 'registros'} pra nuvem…`
                   : sync?.ultimo
