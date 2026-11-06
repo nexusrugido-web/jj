@@ -30,7 +30,7 @@ const limpo = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
 
 /* todo nome que já foi de uma técnica do catálogo: o de hoje, o antigo,
    os que juntaram, os da lista de renomeios, os apelidos e o inglês */
-const NOMES_DO_CATALOGO = new Map();
+export const NOMES_DO_CATALOGO = new Map();
 const guarda = (nome, atual) => { const k = limpo(nome); if (k && !NOMES_DO_CATALOGO.has(k)) NOMES_DO_CATALOGO.set(k, atual); };
 for (const t of SEED.techniques) {
   guarda(t.pt, t.pt);

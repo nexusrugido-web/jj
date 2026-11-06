@@ -448,6 +448,8 @@ export function nomeFinal(nome) {
   const velho = RENOMEAR.find(([de]) => de === nome);
   return nomeAtual(velho ? velho[1] : nome);
 }
+/* os nomes da lista acima, pra simulação no servidor (scripts/teste-simulacao-tecnicas.mjs) */
+export const NOMES_ANTIGOS_DO_BANCO = RENOMEAR.map(([de]) => de);
 
 /* qualquer falha aqui custa o histórico da pessoa, então
    vale saber exatamente onde quebrou */

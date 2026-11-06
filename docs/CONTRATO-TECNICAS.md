@@ -47,7 +47,7 @@ Regra: o uid é a identidade, o nome é o que aparece. As listas de nomes contin
 - O valor de `tecUid` é o nome na época e nunca é reescrito. Renomear muda as listas de nomes, não o `tecUid`.
 - Finta não tem uid nem `golpeUid` (é texto, etapa 3 da V3).
 - Uid e `fam:*` são iguais em todo aparelho: sobem e descem sem tradução no `refs` do S3.
-- Registros antigos: passada uma vez por aparelho, **simular primeiro**, números para o dono aprovar, só depois aplicar. Ambíguo ou sem par fica como está e é contado.
+- Registros antigos: passada uma vez por aparelho, **simular primeiro**, números para o dono aprovar, só depois aplicar. Ambíguo ou sem par fica como está e é contado. A prévia na nuvem é o `supabase/57-simulacao-tecnicas.sql` (as duas passadas, mesmas regras do app, conferido por `teste:simulacao-tecnicas`).
 
 ## 4. Cota no servidor (Frente C)
 
