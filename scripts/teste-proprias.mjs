@@ -20,7 +20,7 @@ register('./como-vite.mjs', import.meta.url);
 const { db, ensureSeed, registrarSync } = await import('../src/db/db.js');
 const P = await import('../src/lib/proprias.js');
 const { familiaDoGolpe } = await import('../src/lib/familias.js');
-const { TECNICA_POR_UID } = await import('../src/lib/tecnicas.js');
+const { TECNICA_POR_UID, origemDaTecnica } = await import('../src/lib/tecnicas.js');
 const { uidEstavel, chaveNome } = await import('../src/lib/uid.js');
 const { paraRegistros, aplicarLocal, sementeIntacta } = await import('../src/lib/sync.js');
 const { LIMITE_TECNICAS_PROPRIAS } = await import('../src/lib/limites.js');
@@ -41,7 +41,7 @@ const catalogoNoAparelho = await db.techniques.count();
 let r = await P.criarTecnicaPropria({ nome: '  Raspagem do Zé  ' });
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 ok('criar grava propria 1, uid uuid fora do catálogo e o nome sem espaço sobrando',
-  [r.tecnica.propria, UUID.test(r.tecnica.uid), TECNICA_POR_UID.has(r.tecnica.uid), r.tecnica.nome], [1, true, false, 'Raspagem do Zé']);
+  [r.tecnica.propria, UUID.test(r.tecnica.uid), origemDaTecnica(r.tecnica.uid), r.tecnica.nome], [1, true, 'propria', 'Raspagem do Zé']);
 const subiu = fila.find((f) => f.op === 'upsert' && f.r.uid === r.tecnica.uid);
 ok('a criação entra na fila de envio com propria', [!!subiu, subiu?.r.propria], [true, 1]);
 ok('a própria nunca é biblioteca intacta (sobe sempre)', sementeIntacta('techniques', r.tecnica), false);
@@ -108,6 +108,7 @@ const antigas = [
   { id: 1, uid: uidDe('Baiana com blast'), nome: 'Baiana com blast', criadoEm: H },
   { id: 2, uid: uidDe('Chave de braço da montada'), nome: 'Armlock da montada', criadoEm: H },        // uid do nome antigo
   { id: 3, uid: uidDe('Blast double'), nome: 'Baiana com blast', criadoEm: H },                       // juntou
+  { id: 11, uid: uidDe('Short choke'), nome: 'Mata-leão de uma mão só', criadoEm: H + 8e8 },          // nome antigo de RENOMEAR
   { id: 4, uid: crypto.randomUUID(), nome: 'Passagem toureando', criadoEm: H },                       // catálogo sem uid fixo
   { id: 5, uid: crypto.randomUUID(), nome: 'Passagem em toureio', criadoEm: H },                      // nome de antes da varredura
   { id: 6, nome: 'Sem uid nenhum', criadoEm: H + 9e6 },
@@ -119,7 +120,8 @@ const antigas = [
 ];
 const sim = await P.marcarProprias(antigas, { simular: true });
 ok('simulado: conta certo', { m: sim.marcadas, j: sim.jaMarcadas, c: sim.catalogo, d: sim.duvidosas, mot: sim.motivos },
-  { m: 2, j: 1, c: 3, d: 29, mot: { nome_do_catalogo: 2, sem_uid: 1, sem_data: 1, nasceu_com_a_biblioteca: 25 } });
+  { m: 2, j: 1, c: 4, d: 29, mot: { nome_do_catalogo: 2, sem_uid: 1, sem_data: 1, nasceu_com_a_biblioteca: 25 } });
+ok('o uid de Short choke (RENOMEAR) é catálogo e não é marcado', [origemDaTecnica(uidDe('Short choke')), sim.patches.some((p) => p.id === 11)], ['catalogo', false]);
 ok('simulado: só as duas com prova nos patches', sim.patches.map((p) => [p.id, p.patch]), [[8, { propria: 1 }], [9, { propria: 1 }]]);
 ok('a cota conta as mesmas (catálogo e duvidosa fora)', P.contarProprias(antigas), 3);
 

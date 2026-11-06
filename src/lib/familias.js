@@ -1,6 +1,6 @@
 import { SEED } from '../db/seed';
 import { nomeAtual } from '../db/renomeios';
-import { TECNICA_POR_UID } from './tecnicas';
+import { origemDaTecnica } from './tecnicas';
 
 /* ============================================================
    AS FAMÍLIAS DE FINALIZAÇÃO
@@ -53,7 +53,7 @@ const FAM_POR_NOME = new Map(SEED.techniques.filter((t) => t.fam).map((t) => [t.
 export function familiaDoGolpe(nome, tecnicas = null) {
   const doSeed = FAM_POR_NOME.get(nome) || FAM_POR_NOME.get(nomeAtual(nome));
   if (doSeed || !Array.isArray(tecnicas)) return doSeed || null;
-  const propria = tecnicas.find((t) => t.nome === nome && t.fam && !TECNICA_POR_UID.has(t.uid));
+  const propria = tecnicas.find((t) => t.nome === nome && t.fam && origemDaTecnica(t.uid) === 'propria');
   return FAMILIA_POR_ID.has(propria?.fam) ? propria.fam : null;
 }
 

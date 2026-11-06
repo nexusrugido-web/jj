@@ -2,7 +2,7 @@ import { db, nomeFinal } from '../db/db';
 import { SEED } from '../db/seed';
 import { RENOMEAR } from '../db/renomeios';
 import { APELIDOS } from '../db/sinonimos';
-import { CATALOGO_TECNICAS, TECNICA_POR_UID } from './tecnicas';
+import { CATALOGO_TECNICAS, origemDaTecnica } from './tecnicas';
 import { FAMILIA_POR_ID } from './familias';
 import { LIMITE_TECNICAS_PROPRIAS, NOME_TECNICA_MAX, DETALHES_TECNICA_MAX } from './limites';
 
@@ -73,7 +73,7 @@ function classificador(tecnicas) {
   return (t) => {
     if (t.propria) return { origem: 'propria' };
     if (!t.uid) return { origem: 'duvidosa', motivo: 'sem_uid' };
-    if (TECNICA_POR_UID.has(t.uid)) return { origem: 'catalogo' };
+    if (origemDaTecnica(t.uid) === 'catalogo') return { origem: 'catalogo' };
     if (nomeDoCatalogo(t.nome)) return { origem: 'duvidosa', motivo: 'nome_do_catalogo' };
     if (!Number.isFinite(t.criadoEm)) return { origem: 'duvidosa', motivo: 'sem_data' };
     if (daSemente(t)) return { origem: 'duvidosa', motivo: 'nasceu_com_a_biblioteca' };
@@ -111,7 +111,7 @@ export function nomeRepetido(nome, tecnicas = []) {
   const k = limpo(nome);
   const igual = tecnicas.find((t) => limpo(t.nome) === k);
   if (!igual) return null;
-  if (TECNICA_POR_UID.has(igual.uid)) return `Já existe "${igual.nome}" no app. Escolha ela na lista.`;
+  if (origemDaTecnica(igual.uid) === 'catalogo') return `Já existe "${igual.nome}" no app. Escolha ela na lista.`;
   return igual.arquivada
     ? `Você já criou "${igual.nome}". Ela está arquivada.`
     : `Você já criou "${igual.nome}". Escolha ela na lista.`;
