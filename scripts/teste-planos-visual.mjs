@@ -162,6 +162,10 @@ try {
     assert.ok(ver.aVista >= 1, 'nenhum cartão à vista');
     assert.equal(ver.vaza, false, 'mapa vaza a página');
     assert.equal(ver.sobrepostos, 0, 'cartões sobrepostos no mapa');
+    /* etapa 6: a finta diz o que finge e a reação que busca; sem inventar a que não foi escrita */
+    assert.equal(await page.locator('.mente-tela .mente-no.finta .mente-titulo', { hasText: 'Finta: Guilhotina' }).count(), 1, 'a finta abre com Finta:');
+    assert.equal(await page.locator('.mente-tela .mente-no.finta', { hasText: 'A reação que você busca: levantou a cabeça' }).count(), 1, 'a finta mostra a reação que busca');
+    assert.equal(await page.locator('.mente-tela .mente-sem-reacao').count(), 0, 'fora do editor nada de reação não descrita');
     await page.keyboard.press('Escape');
     await page.goto(`${url}/?go=planos`, { waitUntil: 'networkidle' });
 
@@ -189,6 +193,8 @@ try {
     assert.equal(ed.vaza, false, 'editor vaza a página');
     assert.equal(ed.sobrepostos, 0, 'cartões sobrepostos no editor');
     assert.ok(await page.getByText('Outra ameaça pra trocar').count() >= 1, 'o "não reagiu" aceita outra ameaça');
+    /* Kimura e Mata-leão nasceram do não reagiu sem o que ele fez */
+    assert.equal(await page.locator('.mente-tela .mente-no .mente-sem-reacao', { hasText: 'reação não descrita' }).count(), 2, 'no editor a reação vazia aparece apagada');
     /* fechar o mapa, mudar uma resposta e reabrir: o mesmo plano, atualizado */
     await page.getByRole('button', { name: 'Voltar às respostas' }).click();
     await page.locator('.sheet.cheia').waitFor({ state: 'detached' });
@@ -226,6 +232,8 @@ try {
     assert.equal(fv.sobrepostos, 0, 'fuga: cartões sobrepostos');
     assert.equal(fv.vaza, false, 'fuga: vaza a página');
     assert.equal(await page.locator('.mente-tela .mente-no.situacao').count(), 2, 'as duas situações aparecem');
+    assert.equal(await page.locator('.mente-tela .mente-no.situacao .mente-titulo', { hasText: 'A luta foi pra Guarda fechada' }).count(), 1, 'a situação diz pra onde a luta foi');
+    assert.equal(await page.getByText('a luta mudou', { exact: true }).count(), 0, 'sem a etiqueta antiga');
     assert.equal(await page.locator('.mente-tela .mente-folha.fecha').count(), 1, 'a situação sem ataque diz que fecha');
     assert.ok(await page.locator('.mente-tela .mente-folha.chegada').count() >= 1, 'a reconstrução chega no objetivo');
     await page.getByRole('button', { name: 'Ver inteiro' }).click();
@@ -297,7 +305,7 @@ try {
     await page.locator('.mente-tela .mente-vaga.defendeu', { hasText: 'Outra defesa dele' }).first().click();
     await page.getByText('Ou segue numa peça que já está no mapa').waitFor();
     await page.screenshot({ path: `${pasta}/${nome}-conv-peca.png` });
-    await page.locator('.chip', { hasText: 'finta: Guilhotina' }).click();
+    await page.locator('.chip', { hasText: 'Finta: Guilhotina' }).click();
     await page.getByPlaceholder('Ex.: colou o cotovelo no corpo').fill('empurrou meu quadril');
     await page.getByRole('button', { name: 'Pronto' }).click();
     await page.locator('.mente-tela .mente-atalho', { hasText: 'empurrou meu quadril' }).waitFor();

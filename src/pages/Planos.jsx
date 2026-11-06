@@ -185,6 +185,8 @@ const paraEditar = (p) => {
 };
 
 const juntar = (l) => (l.length < 2 ? l[0] : `${l.slice(0, -1).join(', ')} e ${l[l.length - 1]}`);
+/* o texto da peça fora do cartão: a finta é o que ele finge, a situação é onde a luta foi */
+const textoDaPeca = (x) => (x.tipo === 'finta' ? `Finta: ${x.golpe}` : x.tipo === 'situacao' ? `A luta foi pra ${x.golpe}` : x.golpe);
 /* finalizar: a preferida na frente, as aceitas depois; sem lista, qualquer uma serve */
 const textoDoObjetivo = (c) => {
   if (c.objetivoTipo === 'familia') return nomeDoItem(c.objetivo, true);
@@ -347,7 +349,7 @@ function CartaoPlano({ p, exemplo = false, onAssistir, acerto = null, children }
           <React.Fragment key={i}>
             <ChevronRight size={13} className="muted" />
             <span className={`plano-peca ${c.passos[i].tipo === 'finta' ? 't-finta' : 't-golpe'}`}>
-              {c.passos[i].tipo === 'finta' ? `finta: ${c.passos[i].golpe}` : c.passos[i].golpe}
+              {textoDaPeca(c.passos[i])}
             </span>
           </React.Fragment>
         ))}
@@ -418,7 +420,7 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
     if (para === null) return `${c.posicao || 'A posição'} · onde começa`;
     const k = passos.findIndex((x) => x.id === para);
     const x = passos[k];
-    return `${x.tipo === 'finta' ? 'finta: ' : ''}${x.golpe}${x.tipo === 'situacao' ? ' (a luta mudou)' : ''} · Plano ${letraDo(trilhoDe[k])}`;
+    return `${textoDaPeca(x)} · Plano ${letraDo(trilhoDe[k])}`;
   };
   /* a peça nova com o nome de uma que já está no mapa: dá pra ligar nela em vez de repetir */
   const repetida = podeLigar && !ligacao && peca.golpe
@@ -576,7 +578,7 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
           />
           {soltas.length > 0 && (
             <p className="micro" style={{ marginTop: 8, lineHeight: 1.5, color: '#f5c542' }}>
-              Ainda não chega {chegaEm(c)}: {juntar(soltas.map((x) => x.golpe))}. Toque no + depois {soltas.length === 1 ? 'dele' : 'deles'} pra seguir até lá.
+              Ainda não chega {chegaEm(c)}: {juntar(soltas.map(textoDaPeca))}. Toque no + depois {soltas.length === 1 ? 'dele' : 'deles'} pra seguir até lá.
             </p>
           )}
           {fugasNoObjetivo.length > 0 && (
@@ -586,7 +588,7 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
           )}
           {semMotivo.length > 0 && (
             <p className="micro" style={{ marginTop: 8, lineHeight: 1.5, color: '#f5c542' }}>
-              Mais de um caminho sai do mesmo ponto: diga o que ele fez em {juntar(semMotivo.map((x) => x.golpe))}. É por isso que você sabe qual escolher na hora.
+              Mais de um caminho sai do mesmo ponto: diga o que ele fez em {juntar(semMotivo.map(textoDaPeca))}. É por isso que você sabe qual escolher na hora.
             </p>
           )}
         </div>
@@ -793,6 +795,9 @@ function linhasDoMapa(plano, destinoDe, editar = false) {
       /* a fuga deixou a luta onde ele quer chegar: ainda falta firmar */
       noObjetivo: situacaoNoObjetivo(x, c),
       chegam: chegamEm(x.id),
+      /* a finta: as reações que ela busca, só as que o atleta escreveu */
+      busca: x.tipo === 'finta' ? [...filhos[i].filter((k) => c.passos[k].via === 'reagiu').map((k) => c.passos[k].reacao),
+        ...extras.filter((l) => l.via === 'reagiu').map((l) => l.gatilho)].filter(Boolean) : [],
     };
     linhas.push(g);
     /* os caminhos que ligam numa peça que já está no mapa: um atalho
@@ -880,7 +885,10 @@ const corDoAlvo = (l) => (l.alvoTipo === 'golpe' ? `trilho-${cor(l.alvoTrilho)}`
 /* a saída que já tem caminho e ganha outro */
 const TEXTO_DE_MAIS = { raiz: 'Outra entrada', encaixou: 'Outra opção daqui', defendeu: 'Outra defesa dele', reagiu: 'Reagiu de outro jeito', naoReagiu: 'Outra ameaça pra trocar', escapou: 'Escapou de outro jeito', retoma: 'Outro jeito de voltar' };
 
-function NoDoMapa({ l, guardar, aberto, onTocar, pega, vaga = '' }) {
+/* a saída que pede o que ele fez: sem texto, o mapa diz que falta, sem inventar */
+const VIA_COM_REACAO = new Set(['reagiu', 'naoReagiu', 'defendeu', 'escapou']);
+
+function NoDoMapa({ l, guardar, aberto, onTocar, pega, editar = false, vaga = '' }) {
   if (l.tipo === 'vaga') {
     return (
       <button type="button" ref={guardar(l.n)} data-vaga={l.n} className={`mente-vaga ${l.via}${l.mais ? ' mais' : ''}${vaga}`} onClick={onTocar}>
@@ -913,12 +921,12 @@ function NoDoMapa({ l, guardar, aberto, onTocar, pega, vaga = '' }) {
   return (
     <button type="button" ref={guardar(l.n)} className={`mente-no ${classe}${l.tipo === 'finta' ? ' finta' : ''}${l.tipo === 'situacao' ? ' situacao' : ''}${pega ? ' com-pega' : ''}${aberto ? ' aberto' : ''}`} onClick={onTocar}>
       {l.tipo === 'posicao' ? <span className="mapa-rotulo">{l.rotulo}</span> : <span className={`mapa-rotulo ${l.via}`}><RotuloDaVia l={l} /></span>}
-      {l.tipo === 'finta' && <span className="mente-tag">finta</span>}
-      {l.tipo === 'situacao' && <span className="mente-tag situacao">a luta mudou</span>}
       {l.escolha === 'preferida' && <span className="mente-tag preferida"><Flag size={9} /> preferida</span>}
       {l.escolha === 'outra' && <span className="mente-tag">fora da lista</span>}
-      <span className="mente-titulo">{l.titulo}</span>
-      {l.deixa && <span className="mente-deixa">{l.deixa}</span>}
+      <span className="mente-titulo">{l.tipo === 'posicao' ? l.titulo : textoDaPeca({ tipo: l.tipo, golpe: l.titulo })}</span>
+      {l.busca?.length > 0 && <span className="mente-deixa">A reação que você busca: {l.busca.join(' ou ')}</span>}
+      {l.deixa ? <span className="mente-deixa">{l.deixa}</span>
+        : editar && VIA_COM_REACAO.has(l.via) && <span className="mente-deixa mente-sem-reacao">reação não descrita</span>}
       {pega && <span className="mente-pega" aria-label="Arrastar pra outro galho" {...pega}><GripVertical size={14} /></span>}
     </button>
   );
@@ -944,9 +952,8 @@ function DetalheDoNo({ l, objetivo, onIr }) {
   return (
     <div className={`mente-detalhe ${l.tipo === 'golpe' ? `trilho-${cor(l.trilho)}` : `t-${l.tipo}`}`}>
       <span className={`mapa-rotulo ${l.via || ''}`}>{l.tipo === 'posicao' ? l.rotulo : <RotuloDaVia l={l} />}</span>
-      {l.tipo === 'finta' && <span className="mente-tag" style={{ marginLeft: 8 }}>finta</span>}
-      {l.tipo === 'situacao' && <span className="mente-tag situacao" style={{ marginLeft: 8 }}>a luta mudou</span>}
-      <div className="mapa-titulo">{l.titulo}</div>
+      <div className="mapa-titulo">{l.tipo === 'posicao' ? l.titulo : textoDaPeca({ tipo: l.tipo, golpe: l.titulo })}</div>
+      {l.busca?.length > 0 && <div className="mapa-deixa"><b>A reação que você busca:</b> {l.busca.join(' ou ')}</div>}
       {l.deixa && <div className="mapa-deixa"><b>{REACAO[l.via]?.nome}:</b> {l.deixa}</div>}
       {l.detalhe && <p className="micro muted" style={{ marginTop: 6, lineHeight: 1.5 }}>{l.detalhe}</p>}
       {l.tipo === 'finta' && <p className="micro muted" style={{ marginTop: 6, lineHeight: 1.5 }}>A ameaça que faz ele reagir. O golpe de verdade vem depois.</p>}
@@ -1190,7 +1197,7 @@ function MapaDoPlano({ plano, ate = Infinity, destinoDe, editar = null }) {
                     visibility: p && visivel ? 'visible' : 'hidden',
                   }}>
                     <NoDoMapa
-                      l={l} guardar={guardar} aberto={!editar && aberto === l.n} vaga={solta}
+                      l={l} guardar={guardar} aberto={!editar && aberto === l.n} vaga={solta} editar={!!editar}
                       onTocar={l.tipo === 'folha' || (editar && l.tipo === 'posicao') ? undefined : tocar(l)}
                       pega={editar && (l.tipo === 'golpe' || l.tipo === 'finta' || l.tipo === 'situacao') && l.via !== 'raiz' ? pega(l) : null}
                     />
