@@ -19,6 +19,7 @@ Este arquivo é o que as frentes A, B e C seguem. Mudou aqui, muda nas três.
 - Origem: `origemDaTecnica(uid)` em `src/lib/tecnicas.js`, que conta como catálogo `TECNICA_POR_UID` e os nomes antigos de `RENOMEAR` (`'catalogo'` ou `'propria'`). O campo `propria` existe para o servidor contar; no app a resposta é pelo uid.
 - Na nuvem, linha do catálogo tem `id = hash(conta + uid)` (S2) e o uid de verdade em `dados->>'uid'`. Própria tem `id` = uuid da linha e `dados->>'uid'`.
 - O app nunca apaga técnica de vez.
+- Aparelho muito antigo pode ter técnica do catálogo com uid aleatório (versão 1 do banco, `dedupe`). Por isso `origemDaTecnica` sozinha não basta para mostrar "criada por você": a tela usa a marca `propria`, e a marcação das antigas (`marcarProprias` em `src/lib/proprias.js`) só marca com prova (uid fora do catálogo, nome fora do catálogo, com `criadoEm` e sem ter nascido junto com a semente); o resto fica como duvidosa, contada, sem marca.
 
 ## 2. Limites (um lugar por lado)
 
