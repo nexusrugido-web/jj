@@ -531,6 +531,14 @@ export function copiaDoPronto(p) {
   };
 }
 
+/* o nome da posição de onde o plano começa: vem da escolhida no
+   formulário (posicaoId). O nome guardado só vale pro plano antigo
+   sem id ou com a posição que não existe mais */
+export function nomeDaPosicao(plano, positions = []) {
+  const pos = positions.find((x) => String(x.id) === String(plano?.posicaoId));
+  return pos?.nome || plano?.posicao || '';
+}
+
 /* o plano novo que a tela salva. Golpe sem nome sai, e o que nasce
    dele também; passo sem pai (formato de fila) nasce do último que ficou */
 export function planoNovo({ nome, posicao, posicaoId = null, finta = '', objetivo = '', objetivoTipo = '', finalizacaoPreferida = '', finalizacoesAceitas = [], passos = [], ligacoes = [], paraAltura = [], paraPeso = [], copiadoDe = null, removidos }) {

@@ -8,7 +8,7 @@ register('./como-vite.mjs', import.meta.url);
    sem perder os passos.
    ============================================================ */
 const {
-  correnteDoPlano, copiaDoPronto, planoNovo, podeCriarPlano, meusPlanos,
+  correnteDoPlano, copiaDoPronto, planoNovo, podeCriarPlano, meusPlanos, nomeDaPosicao,
 } = await import('../src/lib/planos.js');
 const { PLANOS_ATAQUE } = await import('../src/db/attackPlans.js');
 
@@ -679,6 +679,23 @@ ok('recarregar mantém os ids de família',
   (() => { const p = planoNovo({ ...famSync, passos: editar(famSync) }); return [p.finalizacaoPreferida, p.finalizacoesAceitas, p.passos.map((x) => x.id)]; })(),
   ['fam:armlock', ['fam:kimura'], golpes41.map((_, i) => `g${i}`)]);
 ok('os 16 prontos seguem sem objetivo de família', PLANOS_ATAQUE.every((p) => correnteDoPlano(p).objetivoTipo !== 'familia'), true);
+
+/* a posição de onde começa: a escolhida no formulário manda, antes de salvar */
+const posicoes = [{ id: 1, nome: 'Em pé' }, { id: 2, nome: 'Sentado' }, { id: 3, nome: 'Guarda fechada' }];
+const noMapa = (e) => correnteDoPlano(planoNovo({ ...e, posicao: nomeDaPosicao(e, posicoes) })).posicao;
+const rasc = { nome: '', posicaoId: '', posicao: '', objetivo: 'Montada', objetivoTipo: 'posicao', passos: [{ id: 'g0', golpe: 'Single leg' }] };
+ok('plano novo sem posição escolhida: fica vazio, sem nome inventado', noMapa(rasc), '');
+ok('plano novo com Em pé: o mapa mostra Em pé', noMapa({ ...rasc, posicaoId: '1' }), 'Em pé');
+ok('plano novo com Sentado: o mapa mostra Sentado', noMapa({ ...rasc, posicaoId: '2' }), 'Sentado');
+ok('trocar a posição depois de preencher o resto: muda na hora e mantém os passos',
+  (() => { const e = { ...rasc, posicaoId: '2' }; const c = correnteDoPlano(planoNovo({ ...e, posicao: nomeDaPosicao(e, posicoes) })); return [c.posicao, c.passos.map((x) => x.golpe), c.objetivo]; })(),
+  ['Sentado', ['Single leg'], 'Montada']);
+ok('editar plano salvo e trocar a posição: vale a nova, não o nome guardado',
+  noMapa({ ...rasc, posicaoId: '3', posicao: 'Em pé' }), 'Guarda fechada');
+ok('plano antigo sem posicaoId: mostra o nome guardado', noMapa({ ...rasc, posicaoId: undefined, posicao: 'Meia guarda' }), 'Meia guarda');
+ok('plano com posição que não existe mais: mostra o nome guardado', noMapa({ ...rasc, posicaoId: '99', posicao: 'Meia guarda' }), 'Meia guarda');
+ok('id numérico ou texto dá na mesma', [nomeDaPosicao({ posicaoId: 2 }, posicoes), nomeDaPosicao({ posicaoId: '2' }, posicoes)], ['Sentado', 'Sentado']);
+ok('sem lista de posições (ainda carregando): cai no nome guardado', nomeDaPosicao({ posicaoId: '1', posicao: 'Em pé' }), 'Em pé');
 
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

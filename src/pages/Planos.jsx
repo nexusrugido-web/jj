@@ -21,6 +21,7 @@ import {
   taxaDoPlano, taxaPorTipo, arvoreDoPlano, semOGolpe, letraDo, novoId, removidosAoSalvar, VIAS,
   semAFinta, fintaAntes, moverPasso, chegaNoObjetivo, finaliza, pontasSoltas, semGatilho, OBJETIVO_FINALIZAR,
   destinosDaLigacao, comLigacao, situacaoNoObjetivo, continua, escolhaDaFinalizacao, jaCoberta, limparAceitas,
+  nomeDaPosicao,
 } from '../lib/planos';
 import { FAIXAS } from '../lib/faixas';
 import { PESO_REL } from '../db/scoring';
@@ -148,8 +149,7 @@ export default function Planos() {
         positions={positions} techniques={techniques} categories={categories} faixa={settings?.faixa} destinoDe={destinoDe}
         onSalvar={async (e) => {
           if (!e.objetivo) { toast('Escolha onde você quer chegar', 'err'); return; }
-          const pos = positions.find((x) => String(x.id) === String(e.posicaoId));
-          const dados = planoNovo({ ...e, posicao: pos?.nome || e.posicao });
+          const dados = planoNovo({ ...e, posicao: nomeDaPosicao(e, positions) });
           if (!dados.passos.length) { toast('Escolha pelo menos um golpe', 'err'); return; }
           if (e.id) await db.attackPlans.update(e.id, { ...dados, removidos: removidosAoSalvar(await db.attackPlans.get(e.id), dados) });
           else await db.attackPlans.add({ ...dados, criadoEm: Date.now() });
@@ -393,7 +393,7 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
   /* qual campo o seletor de técnica preenche: 'objetivo', 'peca' ou 'fintaAntes' */
   const [escolhendo, setEscolhendo] = useState(null);
   const [ajuda, setAjuda] = useState(false);
-  const plano = useMemo(() => (edit ? planoNovo(edit) : null), [edit]);
+  const plano = useMemo(() => (edit ? planoNovo({ ...edit, posicao: nomeDaPosicao(edit, positions) }) : null), [edit, positions]);
   if (!edit) return null;
   const passos = edit.passos;
   const mudar = (patch) => setEdit({ ...edit, ...patch });
