@@ -86,5 +86,55 @@ srv = servidor();
 await subirFila('conta', srv.enviar, T);
 ok('duas versões na fila sobem como uma, a última', [srv.aceitos.size, srv.aceitos.get('d').dados.nota, await db.outbox.count()], [1, '2', 0]);
 
+/* ---------- S2: duas contas, a mesma técnica da biblioteca ----------
+   O banco de mentira faz o que o Supabase faz: o id é único no banco
+   inteiro e a regra de segurança só deixa cada conta mexer na sua linha
+   (é o que a prova 53 mostrou no banco de verdade). */
+const { paraRegistros, aplicarLocal, idNaNuvem } = await import('../src/lib/sync.js');
+const { uidEstavel, chaveNome } = await import('../src/lib/uid.js');
+function bancoComRls() {
+  const linhas = new Map();
+  return {
+    linhas,
+    como: (conta) => async (envio) => {
+      for (const l of envio) {
+        if (l.user_id !== conta) return recusa;                       // insert: with check
+        const ja = linhas.get(l.id);
+        if (ja && ja.user_id !== conta) return recusa;                // update: using
+      }
+      for (const l of envio) linhas.set(l.id, { ...l });
+      return { error: null, status: 201 };
+    },
+    doDono: (conta) => [...linhas.values()].filter((l) => l.user_id === conta),   // select: using
+  };
+}
+const ARMLOCK = uidEstavel(chaveNome('techniques', 'Chave de braço (armlock)'));
+const marca = (status) => ({ tabela: 'techniques', op: 'upsert', uid: ARMLOCK, updatedAt: T, criadoEm: T, tentativas: 0,
+  dados: { uid: ARMLOCK, nome: 'Armlock da guarda fechada', status, updatedAt: T, criadoEm: T - 999999 } });
+const banco = bancoComRls();
+await db.outbox.clear();
+await db.outbox.add(marca('aprendendo'));
+r = await subirFila('conta-A', banco.como('conta-A'), T);
+await db.outbox.add(marca('dominada'));
+const rB = await subirFila('conta-B', banco.como('conta-B'), T);
+ok('as duas contas marcam a mesma técnica e as duas sobem', [r, rB, await db.outbox.count()], [{ subiram: 1, falharam: 0 }, { subiram: 1, falharam: 0 }, 0]);
+ok('cada conta tem a sua linha, com o seu progresso', [banco.doDono('conta-A').map((l) => l.dados.status), banco.doDono('conta-B').map((l) => l.dados.status)], [['aprendendo'], ['dominada']]);
+ok('o id na nuvem é por conta, e o uid de verdade vai nos dados', [banco.doDono('conta-A')[0].id === banco.doDono('conta-B')[0].id, banco.doDono('conta-B')[0].dados.uid], [false, ARMLOCK]);
+ok('treino e rola continuam com o próprio uid (não colidem)', idNaNuvem('sessions', 'abc', 'conta-A'), 'abc');
+ok('as configurações continuam com o id da conta', idNaNuvem('settings', 'settings', 'conta-A'), 'conta-A');
+const aMexe = await banco.como('conta-A')([{ ...banco.doDono('conta-B')[0], user_id: 'conta-A' }]);
+ok('a conta A não consegue mexer na linha da B', aMexe.error?.code, '42501');
+
+/* a descida: o aparelho da conta B só recebe a dela e grava no uid certo */
+const tec = await db.techniques.add({ uid: ARMLOCK, nome: 'Armlock da guarda fechada', status: 'nao_iniciada', updatedAt: 1, __local: 1 });
+await aplicarLocal(banco.doDono('conta-B'));
+ok('o aparelho da B grava o progresso dela na técnica certa, sem criar outra', [(await db.techniques.get(tec)).status, await db.techniques.where('uid').equals(ARMLOCK).count()], ['dominada', 1]);
+/* linha antiga (id = uid, de antes desta correção) continua valendo */
+await aplicarLocal([{ id: ARMLOCK, user_id: 'conta-B', tabela: 'techniques', dados: { uid: ARMLOCK, nome: 'Armlock da guarda fechada', status: 'aprendendo' }, updated_at: new Date(T + 5000).toISOString(), deleted_at: null }]);
+ok('linha antiga, mais nova, ainda vale e não duplica', [(await db.techniques.get(tec)).status, await db.techniques.where('uid').equals(ARMLOCK).count()], ['aprendendo', 1]);
+/* apagar: a linha de apagado leva o uid nos dados */
+const del = paraRegistros([{ tabela: 'attackPlans', op: 'delete', uid: 'plano-1', updatedAt: T }], 'conta-A')[0];
+ok('apagar vai pro id da conta e leva o uid', [del.id === idNaNuvem('attackPlans', 'plano-1', 'conta-A'), del.dados.uid], [true, 'plano-1']);
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

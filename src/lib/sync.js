@@ -235,10 +235,29 @@ export async function subirFila(userId, enviar = enviarAoSupabase, agora = Date.
   return { subiram, falharam };
 }
 
+/* ============================================================
+   CADA CONTA COM A SUA CÓPIA DA BIBLIOTECA NA NUVEM
+
+   Posição, categoria, técnica e plano pronto nascem com o mesmo uid
+   em todo aparelho e em toda conta. O id da linha na nuvem era esse
+   uid, e o id é único no banco inteiro: quando o atleta B marcava
+   uma técnica que o atleta A já tinha marcado, a regra de segurança
+   recusava (a linha era do A). Prova: SQL 53, 06/11/2026.
+
+   Agora, nessas quatro tabelas, o id da linha é derivado da conta e
+   do uid; o uid de verdade vai dentro dos dados e é ele que a
+   descida usa. A regra de segurança não muda. As linhas antigas
+   continuam valendo (são do próprio atleta e nada dessas tabelas é
+   apagado, só arquivado): vence a versão mais nova, como sempre.
+   ============================================================ */
+const POR_CONTA = new Set(['positions', 'categories', 'techniques', 'attackPlans']);
+export const idNaNuvem = (tabela, uid, userId) =>
+  (tabela === TABELA_AJUSTES ? userId : POR_CONTA.has(tabela) ? uidEstavel(`registros:${userId}:${uid}`) : uid);
+
 /* os itens da fila no formato da tabela registros. As configurações
    usam o id da conta como id do registro: um por pessoa. */
 export function paraRegistros(itens, userId) {
-  const idDe = (i) => (i.tabela === TABELA_AJUSTES ? userId : i.uid);
+  const idDe = (i) => idNaNuvem(i.tabela, i.uid, userId);
   const upserts = itens
     .filter((i) => i.op === 'upsert' && i.dados)
     .map((i) => ({
@@ -255,7 +274,7 @@ export function paraRegistros(itens, userId) {
       id: idDe(i),
       user_id: userId,
       tabela: i.tabela,
-      dados: {},
+      dados: { uid: i.uid },
       updated_at: new Date(i.updatedAt || Date.now()).toISOString(),
       deleted_at: new Date().toISOString(),
     }));
@@ -295,7 +314,10 @@ export async function aplicarLocal(linhas) {
     if (tabela === TABELA_AJUSTES) { await aplicarAjustes(linha); continue; }
     if (!TABELAS_SYNC.includes(tabela) || !db[tabela]) continue;
 
-    const existente = await db[tabela].where('uid').equals(linha.id).first();
+    /* o uid do registro: o que veio nos dados (a linha da biblioteca tem
+       id por conta); linha antiga sem ele usa o id */
+    const uid = linha.dados?.uid || linha.id;
+    const existente = await db[tabela].where('uid').equals(uid).first();
 
     if (linha.deleted_at) {
       if (existente) await db[tabela].delete(existente.id);
@@ -307,7 +329,7 @@ export async function aplicarLocal(linhas) {
 
     /* __local: grava sem voltar pra fila de envio (db.js). Sem isso,
        o que descia voltava a subir, e o ciclo não parava. */
-    const registro = { ...linha.dados, uid: linha.id, updatedAt: remotoEm, sincronizado: 1, __local: Math.random() };
+    const registro = { ...linha.dados, uid, updatedAt: remotoEm, sincronizado: 1, __local: Math.random() };
     if (existente) {
       await db[tabela].update(existente.id, registro);
     } else {
