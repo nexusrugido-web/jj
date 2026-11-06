@@ -142,7 +142,7 @@ ok('apagar vai pro id da conta e leva o uid', [del.id === idNaNuvem('attackPlans
    (Compressões entrou no meio da lista), e baixa pelo aplicarLocal. */
 const { default: Dexie } = await import('dexie');
 const { registrarSync } = await import('../src/db/db.js');
-const { resolverPendentes } = await import('../src/lib/sync.js');
+const { resolverPendentes, comReferencias } = await import('../src/lib/sync.js');
 let relogio = T;
 registrarSync((tabela, op, reg) => Dexie.ignoreTransaction(() => db.outbox.add({
   tabela, op, uid: reg.uid, dados: op === 'delete' ? null : reg, updatedAt: reg.updatedAt, criadoEm: ++relogio, tentativas: 0,
@@ -152,7 +152,7 @@ const CATS_ANTES = ['queda', 'passagem', 'raspagem', 'estrangulamento', 'articul
 const CATS_DEPOIS = ['queda', 'passagem', 'raspagem', 'estrangulamento', 'articular', 'perna', 'compressao', 'escapada', 'transicao'];
 const semear = async (cats) => {
   for (const slug of cats) await db.categories.add({ slug, nome: slug, uid: uidEstavel(chaveNome('categories', slug)), __local: 1 });
-  for (const slug of ['guarda_fechada', 'montada', 'costas']) await db.positions.add({ slug, nome: slug, uid: uidEstavel(chaveNome('positions', slug)), __local: 1 });
+  for (const slug of ['guarda_fechada', 'montada', 'costas', 'sob_montada']) await db.positions.add({ slug, nome: slug, uid: uidEstavel(chaveNome('positions', slug)), __local: 1 });
 };
 const idCat = async (slug) => (await db.categories.filter((c) => c.slug === slug).first()).id;
 const idPos = async (slug) => (await db.positions.filter((c) => c.slug === slug).first()).id;
@@ -221,6 +221,71 @@ ok('não sobra pendência', [(await db.meta.get('refs_pendentes'))?.value?.lengt
 const antigo = { id: 'rola-velho', user_id: 'conta-A', tabela: 'rolls', dados: { uid: 'rola-velho', sessionId: 2, data: '2026-09-01' }, updated_at: new Date(T).toISOString(), deleted_at: null };
 await aplicarLocal([antigo]);
 ok('registro antigo, sem refs, desce igual a antes', (await db.rolls.where('uid').equals('rola-velho').first()).sessionId, 2);
+
+/* ---------- S4: reparo do que já está no aparelho, sem chute ----------
+   O aparelho B do jeito que o bug deixou: o que desceu antes da S3
+   trouxe o número local do aparelho A. */
+const { repararRelacoes } = await import('../src/lib/reparo.js');
+await db.delete(); await db.open();
+await semear(CATS_DEPOIS);
+const velha = (tabela, uid, dados, seg) => ({ id: uid, user_id: 'conta-A', tabela, dados: { uid, ...dados }, updated_at: new Date(T + seg * 1000).toISOString(), deleted_at: null });
+/* no A: treinos 1 (01/10), 2 (02/10), 3 (03/10) e 4 (03/10, segundo treino do dia); o 1 foi editado e desce por último */
+const UPA = 'Escapada da montada (upa / bridge and roll)';
+const nuvemVelha = [
+  velha('sessions', 's2', { data: '2026-10-02', academia: 'Academia X', academiaId: 2 }, 2),
+  velha('sessions', 's3', { data: '2026-10-03' }, 3),
+  velha('sessions', 's4', { data: '2026-10-03' }, 4),
+  velha('academies', 'ac', { nome: 'Academia X' }, 0),
+  velha('academies', 'ac2', { nome: 'Academia Z' }, 0),
+  velha('rolls', 'r1', { sessionId: 1, data: '2026-10-01', partnerId: 1 }, 5),
+  velha('rolls', 'r2', { sessionId: 2, data: '2026-10-02' }, 6),
+  velha('rolls', 'r3', { sessionId: 3, data: '2026-10-03' }, 7),
+  velha('rolls', 'r4', { sessionId: 4, data: '2026-10-03' }, 8),
+  velha('pontos', 'p1', { evento: 'treino', refId: 'treino:1', data: '2026-10-01' }, 9),
+  velha('techniques', uidEstavel(chaveNome('techniques', UPA)), { nome: UPA, categoriaId: 7, origemId: 1, status: 'aprendendo' }, 10),
+  velha('techniques', 'minha', { nome: 'Minha raspagem', categoriaId: 3 }, 11),
+  velha('sessions', 's1', { data: '2026-10-01', focoTecnicas: [{ tecnicaId: 1, nome: 'Minha raspagem' }] }, 12),
+];
+await aplicarLocal(nuvemVelha);
+/* a técnica da biblioteca não estava no aparelho e desceu: o uid é da biblioteca */
+const doB = async () => {
+  const s = await db.sessions.toArray();
+  const dataDe = (id) => s.find((x) => x.id === id)?.data;
+  return {
+    rolas: (await db.rolls.toArray()).map((x) => [x.uid, x.data, dataDe(x.sessionId) ?? null]),
+    ponto: dataDe(Number((await db.pontos.toArray())[0].refId.split(':')[1])),
+  };
+};
+const antes = await doB();
+ok('o B está com o defeito (rola no treino de outra data)', antes.rolas.filter(([, d, t]) => d !== t).length > 0, true);
+const fila0 = await db.outbox.count();
+const sim = await repararRelacoes({ simular: true });
+console.log('      simulação:', JSON.stringify(sim));
+ok('simular só conta: não grava nem põe nada na fila', [JSON.stringify(await doB()) === JSON.stringify(antes), await db.outbox.count()], [true, fila0]);
+const ap = await repararRelacoes({ simular: false });
+ok('aplicar faz exatamente o que a simulação contou', JSON.stringify(ap), JSON.stringify(sim));
+const depois = await doB();
+ok('rola com um treino só na data volta pro treino certo', depois.rolas.filter(([u]) => ['r1', 'r2'].includes(u)).map(([, d, t]) => d === t), [true, true]);
+ok('dois treinos no mesmo dia: o rola cujo treino bate a data fica; nenhum é trocado por aproximação',
+  depois.rolas.filter(([u]) => ['r3', 'r4'].includes(u)).map(([u, , t]) => [u, t === antes.rolas.find(([x]) => x === u)[2]]), [['r3', true], ['r4', true]]);
+ok('o ponto volta pro treino da data dele', depois.ponto, '2026-10-01');
+const s1 = await db.sessions.where('uid').equals('s1').first();
+const minhaT = await db.techniques.where('uid').equals('minha').first();
+ok('a técnica do foco volta pela técnica de mesmo nome', s1.focoTecnicas[0].tecnicaId, minhaT.id);
+const s2 = await db.sessions.where('uid').equals('s2').first();
+ok('a academia do treino volta pela academia de mesmo nome', (await db.academies.get(s2.academiaId)).nome, 'Academia X');
+const upaT = await db.techniques.where('uid').equals(uidEstavel(chaveNome('techniques', UPA))).first();
+ok('técnica da biblioteca volta à categoria do catálogo, sem perder o progresso', [upaT.categoriaId === await idCat('escapada'), upaT.origemId === await idPos('sob_montada'), upaT.destinoId === await idPos('guarda_fechada'), upaT.status], [true, true, true, 'aprendendo']);
+ok('a criada pelo atleta e o parceiro do rola não têm prova: não mexe, só conta', [minhaT.categoriaId, (await db.rolls.where('uid').equals('r1').first()).partnerId, sim.tecnicasProprias.semProva, sim.parceiros.semProva], [3, 1, 1, 1]);
+ok('a simulação conta a academia e a técnica da biblioteca', [sim.treinos.corrigidos, sim.biblioteca.corrigidas, sim.campos['sessions.academiaId']], [2, 1, 1]);
+const filaDepois = (await db.outbox.toArray()).map((i) => i.tabela).sort();
+ok('o que foi corrigido sobe (rolas, treinos, ponto), a biblioteca não', filaDepois.filter((t) => t === 'techniques').length, 0);
+ok('o que sobe já leva o id permanente do treino certo', await (async () => {
+  const item = (await db.outbox.toArray()).find((i) => i.tabela === 'rolls' && i.uid === 'r1');
+  return (await comReferencias('rolls', item.dados)).refs.sessionId;
+})(), 's1');
+const denovo = await repararRelacoes({ simular: true });
+ok('rodar de novo não muda mais nada', [denovo.rolas.corrigidos, denovo.treinos.corrigidos, denovo.pontos.corrigidos, denovo.biblioteca.corrigidas], [0, 0, 0, 0]);
 
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);
