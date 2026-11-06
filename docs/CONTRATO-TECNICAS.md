@@ -16,7 +16,7 @@ Este arquivo é o que as frentes A, B e C seguem. Mudou aqui, muda nas três.
 | `contra` | do seed (etapa futura) | lista de `fam:*` ou uid | opcional; só o confirmado |
 | `arquivada` | — | `1` | some das listas, continua nos registros e na cota |
 
-- Origem: `origemDaTecnica(uid)` em `src/lib/tecnicas.js` (`'catalogo'` ou `'propria'`). O campo `propria` existe para o servidor contar; no app a resposta é pelo uid.
+- Origem: `origemDaTecnica(uid)` em `src/lib/tecnicas.js`, que conta como catálogo `TECNICA_POR_UID` e os nomes antigos de `RENOMEAR` (`'catalogo'` ou `'propria'`). O campo `propria` existe para o servidor contar; no app a resposta é pelo uid.
 - Na nuvem, linha do catálogo tem `id = hash(conta + uid)` (S2) e o uid de verdade em `dados->>'uid'`. Própria tem `id` = uuid da linha e `dados->>'uid'`.
 - O app nunca apaga técnica de vez.
 
