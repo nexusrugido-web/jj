@@ -16,6 +16,22 @@ import { indiceDeTecnicas, semAcento } from './classificar';
    A família é o que impede o motor de responder "defesa contra
    Americana" com a aula de defesa de estrangulamento.
    ============================================================ */
+/* O lado de quem faz a técnica. O mapa das posições (DE_POSICAO_BIBLIOTECA)
+   diz o lado de quem ESTÁ naquela posição, e duas famílias de técnica saem
+   dela do lado oposto, pela categoria:
+   - passagem: quem passa está por cima, a posição é da guarda de quem está
+     por baixo (guarda_aberta:baixo → guarda_aberta:cima);
+   - atacar a tartaruga (finalização, transição, pegada): quem ataca está por
+     cima. Escapada, defesa, queda e movimento base saem de quem está por baixo.
+   Só troca o lado "baixo"; neutro e cima ficam como estão. Nunca pelo nome. */
+const ATACA_A_TARTARUGA = new Set(['estrangulamento', 'articular', 'perna', 'compressao', 'transicao', 'pegada']);
+export function deDaTecnica(t) {
+  const de = DE_POSICAO_BIBLIOTECA[t.from] || null;
+  if (!de || separar(de).lado !== 'baixo') return de;
+  const topo = t.cat === 'passagem' || (t.from === 'tartaruga' && ATACA_A_TARTARUGA.has(t.cat));
+  return topo ? `${separar(de).posicao}:cima` : de;
+}
+
 export const CATALOGO_TECNICAS = SEED.techniques.map((t) => ({
   /* o uid sai do nome antigo, quando teve: as aulas marcadas antes da troca continuam ligadas */
   uid: uidEstavel(chaveNome('techniques', t.antigo || t.pt)),
@@ -23,8 +39,17 @@ export const CATALOGO_TECNICAS = SEED.techniques.map((t) => ({
   antigo: t.antigo || null,
   en: t.en,
   cat: t.cat,
-  de: DE_POSICAO_BIBLIOTECA[t.from] || null,
-  posicao: separar(DE_POSICAO_BIBLIOTECA[t.from] || '').posicao || null,
+  de: deDaTecnica(t),
+  posicao: separar(deDaTecnica(t) || '').posicao || null,
+  /* o que as regras dos assuntos leem (assuntos.js): slug de posição, família e etiquetas.
+     contra: o que a defesa defende, só o confirmado (fam:* ou uid); pendente: o que ainda
+     precisa de decisão do dono e por isso NÃO entra no contra */
+  from: t.from,
+  to: t.to,
+  fam: t.fam || null,
+  tags: t.tags || [],
+  contra: t.contra || [],
+  pendente: t.pendente || null,
   busca: semAcento(`${t.pt} ${t.en} ${t.antigo || ''}`),
   /* a cópia repetida que saiu da biblioteca tinha uid próprio: a aula
      marcada com ele continua achando esta */

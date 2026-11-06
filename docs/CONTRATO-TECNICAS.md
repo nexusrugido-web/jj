@@ -13,7 +13,8 @@ Este arquivo é o que as frentes A, B e C seguem. Mudou aqui, muda nas três.
 | `detalhes` | do seed | "como você faz" | até `DETALHES_TECNICA_MAX` (2.000) |
 | `versaoDe` | ausente | uid da origem (oficial ou própria) | opcional; o catálogo nunca é alterado |
 | `fam` | do seed | `fam:*`, só se o atleta confirmar | opcional |
-| `contra` | do seed (etapa futura) | lista de `fam:*` ou uid | opcional; só o confirmado |
+| `contra` | do seed (feito em 07/11, só nas defesas) | lista de `fam:*` ou uid | opcional; só o confirmado |
+| `pendente` | do seed (só defesa) | — | `{ motivo, candidatas: [uid] }`: o que ainda precisa de decisão do dono. **Nunca entra no `contra`** |
 | `arquivada` | — | `1` | some das listas, continua nos registros e na cota |
 
 - Origem: `origemDaTecnica(uid)` em `src/lib/tecnicas.js`, que conta como catálogo `TECNICA_POR_UID` e os nomes antigos de `RENOMEAR` (`'catalogo'` ou `'propria'`). O campo `propria` existe para o servidor contar; no app a resposta é pelo uid.
@@ -67,6 +68,14 @@ Migração SQL nova, não rodada em produção nesta fase.
 Recusa do servidor: o S1 deixa o registro na fila com o motivo (aparece em Ajustes). Nada some.
 
 **Ordem de produção:** a migração só pode rodar depois que os aparelhos já marcam `propria` nas técnicas criadas (Frente B). Antes disso, a técnica própria antiga sem `propria` seria recusada ao ser editada.
+
+## 4b. Assuntos e `contra` (07/11/2026)
+
+- Os 14 assuntos estão em `src/lib/assuntos.js`: id permanente (`assunto:*`) e regra feita só de categoria, slug de posição, família e etiqueta. Nenhuma regra lê nome; `teste:assuntos` passa a técnica por um objeto que lança erro se alguém ler nome. 506 técnicas em algum assunto, 108 em nenhum (as guardas e posições, os movimentos base e 10 pegadas e transições), 73 em dois.
+- `contra` das defesas (`seed.js`): 15 defesas, só o confirmado. Família (`fam:*`) ou uid permanente. As 5 defesas gerais ficam sem `contra` e sem `pendente`: o motor segue a regra de hoje (sair da posição, com aviso).
+- `pendente`: variação que o relatório não conferiu individualmente (High crotch, Single leg com running the pipe, Berimbolo invertido) e a defesa de estrangulamento de lapela (alvo genérico). Não vira `contra` até o dono confirmar uma a uma.
+- O lado "por cima/por baixo" de quem faz a técnica sai da categoria e da posição, nunca do nome (`deDaTecnica` em `tecnicas.js`): passagem e ataque à tartaruga (finalização, transição, pegada) saem de quem está por cima.
+- Ainda não lê `contra` nem assunto: a tela e o motor continuam como estavam.
 
 ## 5. Quem mexe em quê
 

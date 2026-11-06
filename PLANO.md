@@ -22,7 +22,7 @@ Contrato em `docs/CONTRATO-TECNICAS.md`. Cada frente numa branch própria, integ
     - T5c. SQL 58 (cópia antes, em `copias.passada_identidade`, recusa rodar duas vezes) e SQL 59 (comparação, só leitura, 21 verificações com ok/DIVERGE/ATENÇÃO e ids de exemplo); SQL 57 separa nomes, referências e técnicas diferentes. → verificar: `teste:simulacao-tecnicas` (58 e 59 no PGlite com a passada do app, 7 sabotagens acusadas). → FEITO, nada rodado em produção.
     - T5d. 07/11: dono rodou o 57 (22 rolas, 1 plano, 4 metas; 31/3/4 nomes = referências; 9/3/4 técnicas) e o 58 (27 registros copiados, todos previstos); passada ligada no sync e publicada na main (`1dfed80`). → FEITO.
     - T5e. Falta: em 2 a 3 dias, rodar o 59 e o 57 (NEUROJITSU-COLAR); só depois, o SQL 56. S4 tudo ou nada → FEITO 07/11 (`teste:sync-confiavel`, fecha no meio, duas abas, nada em dobro). SQL 56 rodado pelo dono em 07/11. Trilha T fechada; falta aprovar os 14 assuntos.
-- Depois: `contra` no seed, assuntos.
+- 07/11: os 12 itens da lista dos assuntos aprovados. FEITO na `frentes/base`: 14 assuntos (`src/lib/assuntos.js`), `contra` das 15 defesas confirmadas e `pendente` do que não foi conferido (`seed.js`), lado por cima/por baixo da passagem e do ataque à tartaruga (`tecnicas.js`). → verificar: `teste:assuntos`. Falta: o dono confirmar os pendentes (High crotch, running the pipe, Berimbolo invertido, lapela); ligar assunto e `contra` à tela de Estudo e ao motor.
 
 ## Trilha S: sync confiável entre aparelhos e entre contas (06/11/2026, antes das técnicas próprias)
 Decidido em 06/11: corrigir antes de técnicas próprias. Causas e provas no relatório de 06/11 (técnicas próprias) e na resposta da sessão.
