@@ -11,7 +11,10 @@ Contrato em `docs/CONTRATO-TECNICAS.md`. Cada frente numa branch própria, integ
 - C. SQL 56 da cota (não rodar). → verificar: `teste-cota-sql` com PGlite.
 - D. lista dos 14 assuntos para aprovação, sem implementar.
 - Família própria no plano: técnica própria com `fam` confirmado conta no "qualquer armlock" (objetivo, preferida, aceitas). → FEITO, `teste-planos`.
-- Depois: telas de técnica própria (dependem de A para renomear), `contra` no seed, assuntos.
+- Telas de técnica própria (decidido 07/11: na ficha de Minhas técnicas; renomear propaga pelo uid só na própria):
+  - T1. Dados: `editarPropria` (nome, como você faz, família; nome repetido barra, ela mesma não conta; renomear aplica `patchesDoRenomeio` em rolas, planos e metas), `arquivarPropria` (liga e desliga), versão de técnica do catálogo (`versaoDe`, já preenchida com a da origem). → verificar: `teste-proprias`. → FEITO.
+  - T2. Ficha: própria mostra Editar e Arquivar; do catálogo mostra "Criar minha versão". → verificar: print 360px, `teste:telas`, `lint:copy`.
+- Depois: `contra` no seed, assuntos.
 
 ## Trilha S: sync confiável entre aparelhos e entre contas (06/11/2026, antes das técnicas próprias)
 Decidido em 06/11: corrigir antes de técnicas próprias. Causas e provas no relatório de 06/11 (técnicas próprias) e na resposta da sessão.

@@ -3,7 +3,8 @@ import { SEED } from '../db/seed';
 import { RENOMEAR } from '../db/renomeios';
 import { APELIDOS } from '../db/sinonimos';
 import { CATALOGO_TECNICAS, origemDaTecnica } from './tecnicas';
-import { FAMILIA_POR_ID } from './familias';
+import { FAMILIA_POR_ID, familiaDoGolpe } from './familias';
+import { patchesDoRenomeio } from './identidade';
 import { LIMITE_TECNICAS_PROPRIAS, NOME_TECNICA_MAX, DETALHES_TECNICA_MAX } from './limites';
 
 /* ============================================================
@@ -150,6 +151,51 @@ export async function criarTecnicaPropria(campos) {
   const id = await db.techniques.add(nova);
   return { tecnica: await db.techniques.get(id) };
 }
+
+/* ---------- editar, arquivar e versão ----------
+   Só a própria muda (o catálogo nunca é alterado). Renomear troca o
+   nome nos rolas, planos e metas que apontam pra ela pelo uid; o que
+   só tem o nome fica como está. Família: o que a pessoa escolheu, ou
+   nenhuma. */
+export async function editarPropria(id, campos = {}) {
+  const t = await db.techniques.get(id);
+  if (!t?.propria) return { erro: 'Só dá pra editar técnica criada por você.' };
+  const nome = String(campos.nome ?? t.nome).trim().slice(0, NOME_TECNICA_MAX).trim();
+  if (!nome) return { erro: 'Coloca o nome' };
+  if (nome !== t.nome) {
+    const repetido = nomeRepetido(nome, (await db.techniques.toArray()).filter((x) => x.id !== id));
+    if (repetido) return { erro: repetido };
+  }
+  const patch = { nome };
+  if ('detalhes' in campos) patch.detalhes = String(campos.detalhes || '').slice(0, DETALHES_TECNICA_MAX);
+  if ('fam' in campos) patch.fam = FAMILIA_POR_ID.has(campos.fam) ? campos.fam : null;
+  await db.transaction('rw', db.techniques, db.rolls, db.attackPlans, db.goals, async () => {
+    await db.techniques.update(id, patch);
+    if (nome === t.nome || !t.uid) return;
+    const [rolls, attackPlans, goals] = await Promise.all([db.rolls.toArray(), db.attackPlans.toArray(), db.goals.toArray()]);
+    for (const p of patchesDoRenomeio({ uid: t.uid, nomeNovo: nome, nomeAntigo: t.nome }, { rolls, attackPlans, goals })) {
+      await db[p.tabela].update(p.id, p.patch);
+    }
+  });
+  return { tecnica: await db.techniques.get(id) };
+}
+
+/* arquivada some das listas, continua nos registros e na cota */
+export async function arquivarPropria(id, arquivar = true) {
+  const t = await db.techniques.get(id);
+  if (!t?.propria) return { erro: 'Só dá pra arquivar técnica criada por você.' };
+  await db.techniques.update(id, { arquivada: arquivar ? 1 : 0 });
+  return { tecnica: await db.techniques.get(id) };
+}
+
+/* "Criar minha versão": parte da técnica de origem (lugar, categoria,
+   família) e o nome fica pra pessoa, que não pode repetir o da origem */
+export const camposDaVersao = (origem) => ({
+  nome: '', detalhes: '', versaoDe: origem.uid,
+  categoriaId: origem.categoriaId ?? null, origemId: origem.origemId ?? null, destinoId: origem.destinoId ?? null,
+  modo: origem.modo || 'ambos', faixaMin: origem.faixaMin || 'branca', restricao: origem.restricao || '',
+  fam: origem.fam || familiaDoGolpe(origem.nome) || null,
+});
 
 /* ---------- marcar as próprias que já existem ----------
    Uma passada por aparelho, simular primeiro: o dono vê os números

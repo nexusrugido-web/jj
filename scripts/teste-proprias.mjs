@@ -137,5 +137,35 @@ ok('aplicado: marca e sobe pela fila', [(await db.techniques.get(velha)).propria
 real = await P.marcarProprias(await db.techniques.toArray(), { simular: false });
 ok('rodar de novo não muda nada', [real.marcadas, real.patches.length, await db.techniques.count()], [0, 0, antes + 1]);
 
+/* ---------- editar, arquivar e versão (telas, 07/11) ----------
+   Renomear troca o nome onde o registro aponta pelo uid; o que só tem
+   o nome fica como está. Catálogo não edita. */
+/* a cota encheu lá em cima: tira as de número pra caber estas */
+await db.techniques.filter((t) => String(t.nome).startsWith('Própria número')).delete();
+const ed = (await P.criarTecnicaPropria({ nome: 'Raspagem do Tio' })).tecnica;
+const outra = (await P.criarTecnicaPropria({ nome: 'Passagem do Tio' })).tecnica;
+const rolaUid = await db.rolls.add({ subsAplicadas: ['Raspagem do Tio'], tecMeus: { raspagem: ['Raspagem do Tio', 'Kimura'] }, tecUid: { [ed.uid]: 'Raspagem do Tio' } });
+const rolaNome = await db.rolls.add({ subsAplicadas: ['Raspagem do Tio'] });
+const planoUid = await db.attackPlans.add({ passos: [{ id: 'a', acao: 'Raspagem do Tio', golpeUid: ed.uid }], objetivoTipo: 'tecnica', objetivo: 'Raspagem do Tio', tecUid: { [ed.uid]: 'Raspagem do Tio' } });
+const metaUid = await db.goals.add({ tipo: 'tecnica', alvo: 'Raspagem do Tio', tecUid: { [ed.uid]: 'Raspagem do Tio' } });
+ok('nome repetido (de outra dela ou do catálogo) não passa; o próprio nome passa',
+  [(await P.editarPropria(ed.id, { nome: 'Passagem do Tio' })).erro, !!(await P.editarPropria(ed.id, { nome: 'Kimura' })).erro, !!(await P.editarPropria(ed.id, { nome: 'Raspagem do Tio', detalhes: 'puxa a manga' })).tecnica],
+  ['Você já criou "Passagem do Tio". Escolha ela na lista.', true, true]);
+const ren = await P.editarPropria(ed.id, { nome: 'Raspagem do Velho', fam: 'fam:nada' });
+const r1 = await db.rolls.get(rolaUid), r2 = await db.rolls.get(rolaNome), pl = await db.attackPlans.get(planoUid), mt = await db.goals.get(metaUid);
+ok('renomear: rola, peça do plano, objetivo e meta pelo uid trocam; o tecUid guarda o nome da época',
+  [ren.tecnica.nome, ren.tecnica.uid, r1.subsAplicadas, r1.tecMeus.raspagem, r1.tecUid[ed.uid], pl.passos[0].acao, pl.objetivo, mt.alvo],
+  ['Raspagem do Velho', ed.uid, ['Raspagem do Velho'], ['Raspagem do Velho', 'Kimura'], 'Raspagem do Tio', 'Raspagem do Velho', 'Raspagem do Velho', 'Raspagem do Velho']);
+ok('o rola que só tem o nome fica como está; família inventada vira nenhuma; "como você faz" fica',
+  [r2.subsAplicadas, ren.tecnica.fam, ren.tecnica.detalhes], [['Raspagem do Tio'], null, 'puxa a manga']);
+ok('família escolhida entra', (await P.editarPropria(ed.id, { fam: 'fam:armlock' })).tecnica.fam, 'fam:armlock');
+const kimura = await db.techniques.where('nome').equals('Kimura').first();
+ok('catálogo não edita nem arquiva', [!!(await P.editarPropria(kimura.id, { nome: 'Kimura minha' })).erro, !!(await P.arquivarPropria(kimura.id)).erro, (await db.techniques.get(kimura.id)).nome], [true, true, 'Kimura']);
+ok('arquivar e desarquivar', [(await P.arquivarPropria(outra.id)).tecnica.arquivada, (await P.arquivarPropria(outra.id, false)).tecnica.arquivada], [1, 0]);
+const versao = P.camposDaVersao(kimura);
+ok('versão: parte da origem, sem nome, com a família do catálogo', [versao.nome, versao.versaoDe, versao.categoriaId, versao.fam], ['', kimura.uid, kimura.categoriaId, 'fam:kimura']);
+const criada = await P.criarTecnicaPropria({ ...versao, nome: 'Kimura do meu jeito' });
+ok('a versão criada grava versaoDe e é própria', [criada.tecnica.propria, criada.tecnica.versaoDe, criada.tecnica.fam], [1, kimura.uid, 'fam:kimura']);
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);
