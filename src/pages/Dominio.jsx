@@ -31,10 +31,14 @@ export default function Dominio() {
   const [busca, setBusca] = useState('');
   const [detalhe, setDetalhe] = useState(null);
   const [comoFunciona, setComoFunciona] = useState(false);
+  const [semRolaAberta, setSemRolaAberta] = useState(null);
 
   const faixa = settings.faixa || 'branca';
   const feitas = useLiveQuery(() => db.recFeitas.toArray(), [], []) || [];
   const vistas = useLiveQuery(() => db.aulasVistas.toArray(), [], []) || [];
+  /* o app esconde as arquivadas; as suas voltam aqui pra dar pra tirar do arquivo */
+  const propriasArquivadas = useLiveQuery(() => db.techniques.filter((t) => t.propria && t.arquivada).toArray(), [], []) || [];
+  const comArquivadas = useMemo(() => [...techniques, ...propriasArquivadas], [techniques, propriasArquivadas]);
 
   const tecnicas = useMemo(
     () => minhasTecnicas(rolls, partners, sessions, techniques, faixa, gradings, settings.graus || 0, { comPosicoes: true }),
@@ -98,10 +102,20 @@ export default function Dominio() {
     return buscaMatch(`${t.nome} ${t.nomeEn}`, busca);
   }), [soTecnicas, filtro, busca]);
 
+  /* criada por você e ainda fora de qualquer rola: a lista de cima não
+     mostra, então ela fica aqui pra dar pra editar e arquivar */
+  const usadas = new Set(tecnicas.map((t) => t.tecnicaId));
+  const semRola = comArquivadas.filter((t) => t.propria && !usadas.has(t.id))
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  const criadasSemRola = (
+    <SemRola lista={semRola} aberta={semRolaAberta} onAbrir={setSemRolaAberta} techniques={comArquivadas} />
+  );
+
   if (!tecnicas.length && !secaoPosicoes.length) {
     return (
       <div className="page">
         <Cabecalho onComo={() => setComoFunciona(true)} />
+        {criadasSemRola}
         <Card>
           <Empty
             icon={Award}
@@ -318,13 +332,15 @@ export default function Dominio() {
         </Card>
       )}
 
+      {criadasSemRola}
+
       <Detalhe
         t={detalhe} onClose={() => setDetalhe(null)}
         variacoes={detalhe ? variacoesDoGolpe(detalhe.nome) : null}
         onAbrir={setDetalhe}
         cat={detalhe ? catById[detalhe.categoriaId] : null}
         faixa={faixa} graus={settings.graus || 0} partners={partners} sessions={sessions} goals={goals}
-        techniques={techniques}
+        techniques={comArquivadas}
       />
       <ComoFunciona aberto={comoFunciona} onClose={() => setComoFunciona(false)} faixa={faixa} graus={settings.graus || 0} />
     </div>
@@ -509,6 +525,38 @@ function Detalhe({ t, onClose, cat, faixa, graus = 0, partners, sessions, goals,
 
       <MinhaVersao reg={techniques.find((x) => x.id === t.tecnicaId)} techniques={techniques} onClose={onClose} />
     </Sheet>
+  );
+}
+
+/* as criadas por você que ainda não entraram em rola; tocar abre a
+   mesma parte de Editar e Arquivar da ficha */
+function SemRola({ lista, aberta, onAbrir, techniques }) {
+  if (!lista.length) return null;
+  const reg = aberta && techniques.find((t) => t.id === aberta);
+  return (
+    <Card style={{ margin: '14px 0' }}>
+      <div className="card-head">
+        <div>
+          <div className="eyebrow">entram na lista de cima no primeiro rola</div>
+          <h2 className="h-sec">Criadas por você, ainda sem rola</h2>
+        </div>
+      </div>
+      <div className="col" style={{ gap: 4 }}>
+        {lista.map((t) => (
+          <button key={t.id} type="button" className="trilha-item" onClick={() => onAbrir(t.id)}>
+            <span />
+            <div style={{ minWidth: 0, textAlign: 'left' }}>
+              <span style={{ fontWeight: 600, fontSize: 14 }}>{t.nome}</span>
+              {!!t.arquivada && <div className="micro muted" style={{ marginTop: 3 }}>arquivada</div>}
+            </div>
+            <ChevronRight size={16} className="muted" />
+          </button>
+        ))}
+      </div>
+      <Sheet aberto={!!reg} onClose={() => onAbrir(null)} titulo={reg?.nome || ''} wide>
+        {reg && <MinhaVersao key={reg.id} reg={reg} techniques={techniques} onClose={() => onAbrir(null)} />}
+      </Sheet>
+    </Card>
   );
 }
 

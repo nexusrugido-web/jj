@@ -64,6 +64,27 @@ try {
     assert.equal(versao.fam, 'fam:kimura');
     assert.ok(versao.versaoDe, 'grava versaoDe');
 
+    /* criada e sem rola: aparece em "Criadas por você, ainda sem rola" e arquiva dali */
+    await page.goto(`${url}/?go=dominio`, { waitUntil: 'networkidle' });
+    const semRola = page.locator('.card', { hasText: 'Criadas por você, ainda sem rola' });
+    await semRola.getByText('Kimura do meu jeito').waitFor({ timeout: 15000 });
+    assert.equal(await semRola.getByText('Raspagem do Velho').count(), 0, 'a que já tem rola não entra');
+    await semRola.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `${pasta}/${nome}-sem-rola.png` });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `vaza em ${nome} (sem rola)`);
+    await semRola.getByText('Kimura do meu jeito').click();
+    const ficha3 = page.locator('.sheet').last();
+    await ficha3.getByRole('button', { name: 'Arquivar' }).click();
+    await page.waitForTimeout(500);
+    const arquivada = await page.evaluate(async () => (await (await import('/src/db/db.js')).db.techniques.where('nome').equals('Kimura do meu jeito').first()));
+    assert.equal(arquivada.arquivada, 1, 'arquivou pela parte sem rola');
+    await semRola.getByText('arquivada', { exact: true }).waitFor({ timeout: 5000 });
+    await semRola.getByText('Kimura do meu jeito').click();
+    await page.locator('.sheet').last().getByRole('button', { name: 'Tirar do arquivo' }).click();
+    await page.waitForTimeout(500);
+    const volta = await page.evaluate(async () => (await (await import('/src/db/db.js')).db.techniques.where('nome').equals('Kimura do meu jeito').first()));
+    assert.equal(volta.arquivada, 0, 'tirou do arquivo');
+
     assert.deepEqual(erros, [], `erros em ${nome}`);
     await contexto.close();
   }
