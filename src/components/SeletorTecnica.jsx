@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Plus, X, Check, Sparkles, Loader, ShieldAlert,
 } from 'lucide-react';
@@ -10,6 +10,8 @@ import { casaApelido } from '../db/sinonimos';
 import { autopreencherTecnica } from '../lib/ai';
 import { ehPosicao } from '../lib/posicoes';
 import { FAMILIA_POR_ID, MEMBROS, nomeDoItem, quantasVariacoes, variacoesEmResumo } from '../lib/familias';
+import { criarTecnicaPropria, contarProprias, textoDaCota } from '../lib/proprias';
+import { NOME_TECNICA_MAX, DETALHES_TECNICA_MAX } from '../lib/limites';
 import './Aprendizado.css';
 
 /* ============================================================
@@ -40,6 +42,14 @@ export function SeletorTecnica({
   const [cat, setCat] = useState('todas');
   const [criando, setCriando] = useState(null);
   const [carregandoIa, setCarregandoIa] = useState(false);
+  /* quantas o atleta já criou (arquivadas contam): lê o aparelho
+     inteiro, porque a lista que chega aqui pode vir filtrada */
+  const [criadas, setCriadas] = useState(null);
+  const abriuCriacao = !!criando;
+  useEffect(() => {
+    if (!abriuCriacao) return;
+    db.techniques.toArray().then((l) => setCriadas(contarProprias(l))).catch(() => {});
+  }, [abriuCriacao]);
 
   const catById = useMemo(() => Object.fromEntries(categories.map((c) => [c.id, c])), [categories]);
 
@@ -110,7 +120,7 @@ export function SeletorTecnica({
         const dst = acha(positions, d.destino);
         setCriando({
           ...criando,
-          nome: d.nomePt || criando.nome,
+          nome: String(d.nomePt || criando.nome).slice(0, NOME_TECNICA_MAX),
           nomeEn: d.nomeEn || '',
           categoriaId: c?.id ?? criando.categoriaId,
           origemId: o?.id ?? null,
@@ -118,7 +128,7 @@ export function SeletorTecnica({
           faixaMin: d.faixaMin || 'branca',
           modo: d.modo || 'ambos',
           restricao: d.restricao || '',
-          detalhes: d.detalhes || '',
+          detalhes: String(d.detalhes || '').slice(0, DETALHES_TECNICA_MAX),
         });
         toast('Preenchido pela IA, confira');
       }
@@ -130,17 +140,11 @@ export function SeletorTecnica({
   }
 
   async function salvarNova() {
-    if (!criando.nome.trim()) return toast('Coloca o nome', 'err');
-    const id = await db.techniques.add({
-      nome: criando.nome.trim(), nomeEn: criando.nomeEn || '',
-      categoriaId: criando.categoriaId ?? catsPermitidas[0]?.id ?? null,
-      origemId: criando.origemId ?? null, destinoId: criando.destinoId ?? null,
-      modo: criando.modo || 'ambos', faixaMin: criando.faixaMin || 'branca',
-      restricao: criando.restricao || '', detalhes: criando.detalhes || '',
-      status: 'aprendendo', nivel: 0, favorita: 0, tags: [], video: '',
-      arquivada: 0, criadoEm: Date.now(),
-    });
-    const nova = await db.techniques.get(id);
+    /* própria (proprias.js): propria 1, nome e "como você faz" no
+       limite, sem nome repetido e até a cota */
+    const r = await criarTecnicaPropria({ ...criando, categoriaId: criando.categoriaId ?? catsPermitidas[0]?.id ?? null });
+    if (r.erro) return toast(r.erro, 'err');
+    const nova = r.tecnica;
     toast('Técnica criada');
     setCriando(null);
     onEscolher(nova);
@@ -165,8 +169,8 @@ export function SeletorTecnica({
     >
       {criando ? (
         <>
-          <Field label="Nome da técnica">
-            <Input value={criando.nome} onChange={(e) => setCriando({ ...criando, nome: e.target.value })} autoFocus />
+          <Field label="Nome da técnica" hint={criadas != null ? textoDaCota(criadas) : undefined}>
+            <Input value={criando.nome} maxLength={NOME_TECNICA_MAX} onChange={(e) => setCriando({ ...criando, nome: e.target.value })} autoFocus />
           </Field>
           <Btn icon={carregandoIa ? Loader : Sparkles} onClick={criarComIA} disabled={carregandoIa}>
             {carregandoIa ? 'Consultando…' : 'Preencher o resto com IA'}

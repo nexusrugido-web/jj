@@ -1,5 +1,6 @@
 import { SEED } from '../db/seed';
 import { nomeAtual } from '../db/renomeios';
+import { TECNICA_POR_UID } from './tecnicas';
 
 /* ============================================================
    AS FAMÍLIAS DE FINALIZAÇÃO
@@ -46,8 +47,15 @@ export const MEMBROS = new Map(FAMILIAS.map((f) => [f.id, SEED.techniques.filter
 const FAM_POR_NOME = new Map(SEED.techniques.filter((t) => t.fam).map((t) => [t.pt, t.fam]));
 
 /* a família de um golpe pelo nome gravado (nome antigo também vale).
-   Técnica criada pela pessoa não tem família: conta só como ela. */
-export const familiaDoGolpe = (nome) => FAM_POR_NOME.get(nome) || FAM_POR_NOME.get(nomeAtual(nome)) || null;
+   Técnica criada pela pessoa só entra numa família quando ela
+   confirmou (campo fam): pra isso, quem chama passa a lista de
+   técnicas do aparelho. Nome parecido nunca decide família. */
+export function familiaDoGolpe(nome, tecnicas = null) {
+  const doSeed = FAM_POR_NOME.get(nome) || FAM_POR_NOME.get(nomeAtual(nome));
+  if (doSeed || !Array.isArray(tecnicas)) return doSeed || null;
+  const propria = tecnicas.find((t) => t.nome === nome && t.fam && !TECNICA_POR_UID.has(t.uid));
+  return FAMILIA_POR_ID.has(propria?.fam) ? propria.fam : null;
+}
 
 /* as variações pra mostrar embaixo do nome ("da guarda fechada, da
    montada..."): o nome da família no começo sai, pra não repetir */
