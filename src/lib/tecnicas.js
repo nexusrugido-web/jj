@@ -37,3 +37,7 @@ export const INDICE_TECNICAS = indiceDeTecnicas(CATALOGO_TECNICAS);
 export const FAMILIAS_DE_FINALIZACAO = new Set(['estrangulamento', 'articular', 'perna', 'compressao']);
 
 export const familiaDaTecnica = (uid) => TECNICA_POR_UID.get(uid)?.cat || null;
+
+/* de onde a técnica vem, só pelo uid: no catálogo (inclui os uids de nome
+   antigo e das que juntaram) é oficial; fora dele é a que o atleta criou */
+export const origemDaTecnica = (uid) => (TECNICA_POR_UID.has(uid) ? 'catalogo' : 'propria');

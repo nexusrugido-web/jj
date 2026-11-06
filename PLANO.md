@@ -4,6 +4,14 @@ Ordem aprovada em 04/11/2026: Trilha A → B → C → D. Um commit por item.
 
 Decidido em 04/11/2026. Uma tarefa por vez; cada uma termina com `npm run check` verde, README atualizado e push.
 
+## Trilha T: técnicas com identidade, próprias e cota (07/11/2026)
+Contrato em `docs/CONTRATO-TECNICAS.md`. Cada frente numa branch própria, integração na `frentes/base`, main só depois da revisão do dono.
+- A. uid ao lado do nome em rola, plano e meta; passada antiga só em simulação. → verificar: `teste-identidade`.
+- B. técnica própria nos dados: `propria`, `versaoDe`, `fam`, cota no app; marcar as antigas só em simulação. → verificar: `teste-proprias`.
+- C. SQL 56 da cota (não rodar). → verificar: `teste-cota-sql` com PGlite.
+- D. lista dos 14 assuntos para aprovação, sem implementar.
+- Depois: telas de técnica própria (dependem de A para renomear), `contra` no seed, assuntos.
+
 ## Trilha S: sync confiável entre aparelhos e entre contas (06/11/2026, antes das técnicas próprias)
 Decidido em 06/11: corrigir antes de técnicas próprias. Causas e provas no relatório de 06/11 (técnicas próprias) e na resposta da sessão.
 - S0. Reproduzir P2 com duas contas reais (SQL 53, rollback) → FEITO 06/11: conta B recusada pela RLS.
