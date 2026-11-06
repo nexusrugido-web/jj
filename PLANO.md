@@ -19,7 +19,8 @@ Contrato em `docs/CONTRATO-TECNICAS.md`. Cada frente numa branch própria, integ
   - T5. Antes de ligar a passada (revisão de 07/11 em NEUROJITSU-RELATORIOS/2026-11-07-revisao-passada-identidade.md): SQL 56 aceitar a técnica antiga sem `propria` que já existe na nuvem (hoje recusaria 454); ligar com marca `identidade_t` e transação única (teste fechando no meio); SQL da cópia e da comparação. Ligar só com autorização do dono.
     - T5a. SQL 56 aceita a técnica antiga já na nuvem (viva, sem `propria`, uid igual ao que já tem); linha nova, apagada que volta, outra tabela e uid trocado continuam recusadas. → verificar: `teste:cota` (50 verificações, 4 brechas). → FEITO.
     - T5b. Passada de identidade tudo-ou-nada: `aplicarIdentidadeUmaVez` (`src/lib/passada-identidade.js`), registros + marca de pessoal + fila + marca `identidade_t` numa transação; hooks quietos por `semFila`. → verificar: `teste:passada-atomica` (fecha no meio, na fila, tenta de novo, duas abas, rodar de novo). → FEITO, NÃO LIGADA.
-    - T5c. Falta: SQL da cópia e da comparação (itens 1 e 3 da conferência); ligar no sync com autorização do dono; decidir à parte se o S4 ganha a mesma transação (janela de perda, `repararUmaVez`).
+    - T5c. SQL 58 (cópia antes, em `copias.passada_identidade`, recusa rodar duas vezes) e SQL 59 (comparação, só leitura, 21 verificações com ok/DIVERGE/ATENÇÃO e ids de exemplo); SQL 57 separa nomes, referências e técnicas diferentes. → verificar: `teste:simulacao-tecnicas` (58 e 59 no PGlite com a passada do app, 7 sabotagens acusadas). → FEITO, nada rodado em produção.
+    - T5d. Falta: o dono rodar o 57 de novo (números reais de referências), autorizar; rodar o 58; ligar no sync; rodar o 59. Decidir à parte o S4 (janela de perda em `repararUmaVez`).
 - Depois: `contra` no seed, assuntos.
 
 ## Trilha S: sync confiável entre aparelhos e entre contas (06/11/2026, antes das técnicas próprias)

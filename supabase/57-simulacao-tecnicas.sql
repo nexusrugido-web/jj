@@ -3332,7 +3332,7 @@ reg as (
   where deleted_at is null and tabela in ('techniques', 'rolls', 'attackPlans', 'goals')
 ),
 tec as (
-  select user_id, dados, dados->>'uid' as uid, dados->>'nome' as nome,
+  select id, user_id, dados, dados->>'uid' as uid, dados->>'nome' as nome,
          case when jsonb_typeof(dados->'criadoEm') = 'number' then (dados->>'criadoEm')::numeric end as criado,
          case jsonb_typeof(dados->'propria')
            when 'number' then (dados->>'propria')::numeric <> 0
@@ -3349,7 +3349,7 @@ tec_s as (
 
 /* ---------- parte 1: de onde vem cada técnica ---------- */
 origem as (
-  select t.user_id, case
+  select t.id, t.user_id, case
     when t.propria then 'ja_marcada'
     when coalesce(t.uid, '') = '' then 'sem_uid'
     when t.uid in (select uid from principal) or t.uid in (select uid from renomeados) then 'catalogo'
@@ -3452,7 +3452,7 @@ resolvidos as (
   ) r
 ),
 estado_nomes as (
-  select tabela, id, case
+  select tabela, id, user_id, nome, u, case
     when qtd = 1 and jsonb_typeof(antes) = 'object' and antes ? u then 'ja_ligado'
     when qtd = 1 then 'ligado'
     when qtd > 1 then 'ambiguo'
@@ -3462,7 +3462,7 @@ estado_nomes as (
 ),
 /* a peça do plano: o golpe ganha uid; situação (posição) nunca */
 estado_pecas as (
-  select 'attackPlans' as tabela, c.id, case
+  select 'attackPlans' as tabela, c.id, c.user_id, c.peca->>'acao' as nome, g.u, case
     when coalesce(c.peca->>'golpeUid', '') <> '' and g.u = c.peca->>'golpeUid' then 'ja_ligado'
     when g.u is not null then 'ligado'
     when a.qtd > 1 then 'ambiguo'
@@ -3488,6 +3488,13 @@ estado_pecas as (
   ) a
 ),
 estados as (select * from estado_nomes union all select * from estado_pecas),
+/* cada vez que um nome aparece no registro (com repetição), pra separar
+   referência de nome: o mesmo nome duas vezes no rola é 1 nome e 2 referências */
+ocorrencias as (
+  select n.id, regexp_replace(x #>> '{}', '^\s+|\s+$', '', 'g') as nome from rola_itens n
+  union all select id, regexp_replace(nome, '^\s+|\s+$', '', 'g') from plano_nomes_ok
+  union all select id, regexp_replace(dados->>'alvo', '^\s+|\s+$', '', 'g') from metas
+),
 partes(tabela, nome, ordem) as (values ('rolls', 'rolas', 10), ('attackPlans', 'planos', 20), ('goals', 'metas', 30))
 
 select o_que, numero from (
@@ -3512,5 +3519,10 @@ select o_que, numero from (
   union all select p.ordem + 4, p.nome || ': nomes já ligados', (select count(*) from estados e where e.tabela = p.tabela and e.e = 'ja_ligado') from partes p
   union all select p.ordem + 5, p.nome || ': nomes ambíguos (ficam como estão)', (select count(*) from estados e where e.tabela = p.tabela and e.e = 'ambiguo') from partes p
   union all select p.ordem + 6, p.nome || ': nomes sem par (ficam como estão)', (select count(*) from estados e where e.tabela = p.tabela and e.e = 'sem_par') from partes p
+  union all select p.ordem + 7, p.nome || ': referências que ganham o uid (cada vez que o nome aparece)', (
+    (select count(*) from estado_nomes e join ocorrencias o on o.id = e.id and o.nome = e.nome where e.tabela = p.tabela and e.e = 'ligado')
+    + (select count(*) from estado_pecas e where e.tabela = p.tabela and e.e = 'ligado')) from partes p
+  union all select p.ordem + 8, p.nome || ': técnicas diferentes que ganham o uid', (
+    select count(distinct (e.user_id, e.u)) from estados e where e.tabela = p.tabela and e.e = 'ligado') from partes p
 ) x
 order by ordem;
