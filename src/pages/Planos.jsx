@@ -394,6 +394,9 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
   /* o texto da finta que entra antes da peça aberta (null: fechado) */
   const [fintaNova, setFintaNova] = useState(null);
   useEffect(() => { setFintaNova(null); }, [peca?.i, !peca]);
+  /* o mapa abre num popup em tela cheia, lendo o mesmo edit do formulário */
+  const [mapaAberto, setMapaAberto] = useState(false);
+  useEffect(() => { if (!edit) setMapaAberto(false); }, [edit]);
   const [ajuda, setAjuda] = useState(false);
   const plano = useMemo(() => (edit ? planoNovo({ ...edit, posicao: nomeDaPosicao(edit, positions) }) : null), [edit, positions]);
   if (!edit) return null;
@@ -525,38 +528,6 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
         )}
       </Field>
 
-      <div className="eyebrow" style={{ marginTop: 18, marginBottom: 8 }}>O caminho</div>
-      <MapaDoPlano
-        plano={plano} destinoDe={destinoDe}
-        editar={{
-          onVaga: (pai, via) => setPeca({ pai, via, tipo: via === 'escapou' ? 'situacao' : 'golpe', golpe: '', reacao: '' }),
-          onPeca: (i) => setPeca({ i, tipo: passos[i].tipo, golpe: passos[i].golpe, reacao: passos[i].reacao || '' }),
-          onLigacao: (lig) => {
-            const l = c.ligacoes.find((x) => x.id === lig);
-            if (l) setPeca({ lig, tipo: 'ligacao', pai: passos.findIndex((x) => x.id === l.de), via: l.via, para: l.para, golpe: '', reacao: l.gatilho });
-          },
-          onMover: (i, pai, via) => {
-            const movido = moverPasso(passos, i, pai, via);
-            if (movido) mudar({ passos: movido });
-          },
-        }}
-      />
-      {soltas.length > 0 && (
-        <p className="micro" style={{ marginTop: 8, lineHeight: 1.5, color: '#f5c542' }}>
-          Ainda não chega {chegaEm(c)}: {juntar(soltas.map((x) => x.golpe))}. Toque no + depois {soltas.length === 1 ? 'dele' : 'deles'} pra seguir até lá.
-        </p>
-      )}
-      {fugasNoObjetivo.length > 0 && (
-        <p className="micro" style={{ marginTop: 8, lineHeight: 1.5, color: '#f5c542' }}>
-          A fuga deixou a luta em {c.objetivo}, onde você quer chegar, mas ainda não conta: foi ele que saiu do controle. Falta a ação que estabelece o controle da posição. Toque no + depois {fugasNoObjetivo.length === 1 ? 'dela' : 'delas'}.
-        </p>
-      )}
-      {semMotivo.length > 0 && (
-        <p className="micro" style={{ marginTop: 8, lineHeight: 1.5, color: '#f5c542' }}>
-          Mais de um caminho sai do mesmo ponto: diga o que ele fez em {juntar(semMotivo.map((x) => x.golpe))}. É por isso que você sabe qual escolher na hora.
-        </p>
-      )}
-
       <div style={{ marginTop: 18 }} />
       <Field label="Pra quem serve (opcional)" hint="O parceiro com essa altura ou esse peso vê o plano na ficha dele.">
         <div className="chips-grupo">
@@ -576,6 +547,50 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
           </div>
         </div>
       </Field>
+
+      <div className="eyebrow" style={{ marginTop: 18, marginBottom: 8 }}>O caminho</div>
+      <Btn variant="contorno" icon={GitMerge} style={{ width: '100%' }} disabled={!edit.objetivo} onClick={() => setMapaAberto(true)}>Montar o caminho</Btn>
+      {!edit.objetivo && <p className="micro muted" style={{ marginTop: 6, lineHeight: 1.5 }}>Falta escolher onde você quer chegar. Depois disso, o caminho abre aqui.</p>}
+
+      {/* o mapa: o mesmo edit do formulário, sem cópia; fechar não perde nada */}
+      <Sheet
+        aberto={mapaAberto} onClose={() => setMapaAberto(false)} cheia alturaMobile={100}
+        titulo="O caminho" subtitulo={edit.nome || 'Novo plano'}
+        footer={<Btn variant="primary" style={{ width: '100%' }} onClick={() => setMapaAberto(false)}>Voltar às respostas</Btn>}
+      >
+        <div className="mapa-cheio">
+          <MapaDoPlano
+            plano={plano} destinoDe={destinoDe}
+            editar={{
+              onVaga: (pai, via) => setPeca({ pai, via, tipo: via === 'escapou' ? 'situacao' : 'golpe', golpe: '', reacao: '' }),
+              onPeca: (i) => setPeca({ i, tipo: passos[i].tipo, golpe: passos[i].golpe, reacao: passos[i].reacao || '' }),
+              onLigacao: (lig) => {
+                const l = c.ligacoes.find((x) => x.id === lig);
+                if (l) setPeca({ lig, tipo: 'ligacao', pai: passos.findIndex((x) => x.id === l.de), via: l.via, para: l.para, golpe: '', reacao: l.gatilho });
+              },
+              onMover: (i, pai, via) => {
+                const movido = moverPasso(passos, i, pai, via);
+                if (movido) mudar({ passos: movido });
+              },
+            }}
+          />
+          {soltas.length > 0 && (
+            <p className="micro" style={{ marginTop: 8, lineHeight: 1.5, color: '#f5c542' }}>
+              Ainda não chega {chegaEm(c)}: {juntar(soltas.map((x) => x.golpe))}. Toque no + depois {soltas.length === 1 ? 'dele' : 'deles'} pra seguir até lá.
+            </p>
+          )}
+          {fugasNoObjetivo.length > 0 && (
+            <p className="micro" style={{ marginTop: 8, lineHeight: 1.5, color: '#f5c542' }}>
+              A fuga deixou a luta em {c.objetivo}, onde você quer chegar, mas ainda não conta: foi ele que saiu do controle. Falta a ação que estabelece o controle da posição. Toque no + depois {fugasNoObjetivo.length === 1 ? 'dela' : 'delas'}.
+            </p>
+          )}
+          {semMotivo.length > 0 && (
+            <p className="micro" style={{ marginTop: 8, lineHeight: 1.5, color: '#f5c542' }}>
+              Mais de um caminho sai do mesmo ponto: diga o que ele fez em {juntar(semMotivo.map((x) => x.golpe))}. É por isso que você sabe qual escolher na hora.
+            </p>
+          )}
+        </div>
+      </Sheet>
 
       {/* a peça: golpe ou finta, o nome do catálogo e o que ele fez pra chegar aqui */}
       <Sheet

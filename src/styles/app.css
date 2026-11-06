@@ -4170,3 +4170,18 @@ body::after {
 .chips-grupo-nome { font-size: var(--fs-sec); font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--chalk); }
 .chip.on { font-weight: 600; }
 .chip-check { flex: none; }
+
+/* ============================================================
+   MAPA EM TELA CHEIA (06/11/2026)
+   O mapa do editor abre num Sheet "cheia": larga e alta no
+   computador, a tela inteira no celular. O quadro do mapa ocupa
+   o que sobra; o desenho do mapa é o mesmo.
+   ============================================================ */
+.sheet.cheia { max-width: min(1400px, 100%); height: min(94dvh, 1100px); max-height: none; }
+.sheet.cheia .sheet-body > .mapa-cheio { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.mapa-cheio > * { flex: none; }
+.mapa-cheio > .mente-quadro { flex: 1 1 auto; min-height: 240px; display: flex; flex-direction: column; }
+.mapa-cheio .mente-tela { flex: 1 1 auto; max-height: none; }
+@media (max-width: 780px) {
+  .sheet.cheia { height: 100dvh; border-radius: 0; }
+}

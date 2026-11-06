@@ -17,7 +17,7 @@ const ehMobile = () => typeof window !== 'undefined' && window.matchMedia('(max-
 
 export default function Sheet({
   aberto, onClose, titulo, subtitulo, children, footer,
-  wide = false, alturaMobile = 92,
+  wide = false, alturaMobile = 92, cheia = false,
 }) {
   const [mobile, setMobile] = useState(ehMobile);
   const [arrastoY, setArrastoY] = useState(0);
@@ -35,7 +35,13 @@ export default function Sheet({
 
   useEffect(() => {
     if (!aberto) { setArrastoY(0); setFechando(false); return; }
-    const esc = (e) => { if (e.key === 'Escape') onClose?.(); };
+    /* com uma janela aberta em cima da outra, o Esc fecha só a de cima */
+    const esc = (e) => {
+      if (e.key !== 'Escape') return;
+      const todas = document.querySelectorAll('.sheet');
+      if (painelRef.current && todas.length && todas[todas.length - 1] !== painelRef.current) return;
+      onClose?.();
+    };
     document.addEventListener('keydown', esc);
     return () => document.removeEventListener('keydown', esc);
   }, [aberto, onClose]);
@@ -85,7 +91,7 @@ export default function Sheet({
           role="dialog"
           aria-modal="true"
           aria-label={titulo || 'Janela'}
-          className={`sheet ${wide ? 'wide' : ''} ${fechando ? 'saindo' : ''}`}
+          className={`sheet ${wide ? 'wide' : ''} ${cheia ? 'cheia' : ''} ${fechando ? 'saindo' : ''}`}
           style={{
             transform: arrastoY ? `translateY(${arrastoY}px)` : undefined,
             transition: arrastoY ? 'none' : undefined,

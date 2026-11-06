@@ -168,7 +168,17 @@ try {
     /* editor */
     await page.getByText(PLANO.nome).first().waitFor();
     await page.locator('.plano-cartao', { hasText: PLANO.nome }).first().getByRole('button', { name: 'Editar' }).first().click();
+    /* etapa 5: primeiro as respostas; o mapa só no popup */
+    await page.getByRole('button', { name: 'Montar o caminho' }).waitFor();
+    assert.equal(await page.locator('.mente-tela').count(), 0, 'o mapa não aparece no formulário');
+    await page.screenshot({ path: `${pasta}/${nome}-editor-respostas.png` });
+    await page.getByRole('button', { name: 'Montar o caminho' }).click();
     await page.locator('.mente-tela .mente-vaga').first().waitFor();
+    const cheia = await page.evaluate(() => { const r = document.querySelector('.sheet.cheia').getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height), tela: document.querySelector('.sheet.cheia .mente-tela').clientHeight }; });
+    console.log(`${nome} popup do mapa:`, JSON.stringify(cheia));
+    if (nome === '360') assert.ok(cheia.w >= 359 && cheia.h >= 795, 'no celular o popup ocupa a tela inteira');
+    else assert.ok(cheia.w >= 650 && cheia.h >= 800, 'no maior o popup é largo e alto');
+    assert.ok(cheia.tela >= 350, 'o quadro do mapa ocupa o espaço do popup');
     await page.locator('.mente-tela').scrollIntoViewIfNeeded();
     await page.waitForTimeout(400);
     const ed = await page.evaluate(medirMapa, '.mente-tela');
@@ -179,6 +189,29 @@ try {
     assert.equal(ed.vaza, false, 'editor vaza a página');
     assert.equal(ed.sobrepostos, 0, 'cartões sobrepostos no editor');
     assert.ok(await page.getByText('Outra ameaça pra trocar').count() >= 1, 'o "não reagiu" aceita outra ameaça');
+    /* fechar o mapa, mudar uma resposta e reabrir: o mesmo plano, atualizado */
+    await page.getByRole('button', { name: 'Voltar às respostas' }).click();
+    await page.locator('.sheet.cheia').waitFor({ state: 'detached' });
+    assert.equal(await page.getByRole('button', { name: 'Salvar plano' }).count(), 1, 'fechar o mapa volta pro formulário, sem fechar o editor');
+    await page.locator('select').first().selectOption({ label: 'Meia-guarda' });
+    await page.getByRole('button', { name: 'Montar o caminho' }).click();
+    await page.locator('.mente-tela .mente-no', { hasText: 'Meia-guarda' }).first().waitFor();
+    assert.equal(await page.locator('.mente-tela .mente-no').count(), ed.nos, 'reabrir mantém as peças');
+    /* o Esc fecha só o mapa; o editor fica */
+    await page.keyboard.press('Escape');
+    await page.locator('.sheet.cheia').waitFor({ state: 'detached' });
+    assert.equal(await page.getByRole('button', { name: 'Montar o caminho' }).count(), 1, 'Esc no mapa não fecha o editor');
+    /* plano novo sem objetivo: o botão espera e diz o que falta */
+    await page.goto(`${url}/?go=planos`, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'Criar plano' }).first().click();
+    await page.getByRole('button', { name: 'Montar o caminho' }).waitFor();
+    assert.equal(await page.getByRole('button', { name: 'Montar o caminho' }).isDisabled(), true, 'sem objetivo o botão espera');
+    assert.ok(await page.getByText('Falta escolher onde você quer chegar').count() >= 1, 'diz o que falta');
+    await page.locator('.chip', { hasText: 'Finalizar' }).first().click();
+    assert.equal(await page.getByRole('button', { name: 'Montar o caminho' }).isDisabled(), false, 'com objetivo o botão libera, sem salvar');
+    await page.getByRole('button', { name: 'Montar o caminho' }).click();
+    await page.locator('.mente-tela .mente-vaga').first().waitFor();
+    await page.screenshot({ path: `${pasta}/${nome}-novo-mapa.png` });
 
     /* R2: a fuga abre a situação; dela volto a atacar ou o caminho fecha */
     await page.goto(`${url}/?go=planos`, { waitUntil: 'networkidle' });
@@ -204,6 +237,7 @@ try {
     await page.goto(`${url}/?go=planos`, { waitUntil: 'networkidle' });
     await page.getByText(FUGA.nome).first().waitFor();
     await page.locator('.plano-cartao', { hasText: FUGA.nome }).first().getByRole('button', { name: 'Editar' }).first().click();
+    await page.getByRole('button', { name: 'Montar o caminho' }).click();
     await page.locator('.mente-tela .mente-vaga.escapou').first().waitFor();
     const fe = await page.evaluate(medirMapa, '.mente-tela');
     console.log(`${nome} fuga, editor:`, JSON.stringify(fe));
@@ -251,6 +285,7 @@ try {
     await page.goto(`${url}/?go=planos`, { waitUntil: 'networkidle' });
     await page.getByText(CONV.nome).first().waitFor();
     await page.locator('.plano-cartao', { hasText: CONV.nome }).first().getByRole('button', { name: 'Editar' }).first().click();
+    await page.getByRole('button', { name: 'Montar o caminho' }).click();
     await page.locator('.mente-tela .mente-atalho').first().waitFor();
     await page.waitForTimeout(400);
     const ce = await page.evaluate(medirMapa, '.mente-tela');
@@ -291,6 +326,7 @@ try {
     await page.getByRole('button', { name: 'Pronto' }).click();
     assert.equal(await page.locator('.mente-tela .mente-atalho').count(), 6, 'a fuga virou ligação, sem cartão novo');
     assert.equal(await page.locator('.mente-tela .mente-no.situacao').count(), 1, 'continua uma situação só');
+    await page.getByRole('button', { name: 'Voltar às respostas' }).click();
     await page.getByRole('button', { name: 'Salvar plano' }).click();
     await page.getByText('Plano salvo').first().waitFor();
     const salvo = await page.evaluate(async (n) => {
@@ -451,6 +487,7 @@ try {
       const cartao = page.locator('.plano-cartao', { hasText: GRANDE.nome }).first();
       const t0 = Date.now();
       await cartao.getByRole('button', { name: modo }).first().click();
+      if (modo === 'Editar') await page.getByRole('button', { name: 'Montar o caminho' }).click();
       await page.locator('.mente-tela .mente-no').nth(GRANDE.passos.length).waitFor();
       await page.waitForTimeout(400);
       const ms = Date.now() - t0;
