@@ -1,5 +1,6 @@
 import { SEED } from '../db/seed';
 import { uidEstavel, chaveNome } from './uid';
+import { RENOMEAR } from '../db/renomeios';
 import { DE_POSICAO_BIBLIOTECA, separar } from './vocab';
 import { indiceDeTecnicas, semAcento } from './classificar';
 
@@ -39,5 +40,7 @@ export const FAMILIAS_DE_FINALIZACAO = new Set(['estrangulamento', 'articular', 
 export const familiaDaTecnica = (uid) => TECNICA_POR_UID.get(uid)?.cat || null;
 
 /* de onde a técnica vem, só pelo uid: no catálogo (inclui os uids de nome
-   antigo e das que juntaram) é oficial; fora dele é a que o atleta criou */
-export const origemDaTecnica = (uid) => (TECNICA_POR_UID.has(uid) ? 'catalogo' : 'propria');
+   antigo e das que juntaram, e os nomes antigos de RENOMEAR, que o sync
+   também trata como biblioteca) é oficial; fora dele é a que o atleta criou */
+const UIDS_RENOMEADOS = new Set(Object.keys(RENOMEAR).map((n) => uidEstavel(chaveNome('techniques', n))));
+export const origemDaTecnica = (uid) => (TECNICA_POR_UID.has(uid) || UIDS_RENOMEADOS.has(uid) ? 'catalogo' : 'propria');
