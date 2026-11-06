@@ -1630,7 +1630,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
                             ))}
                             {saiu && <Chip on>{saiu.golpe} (saiu do plano)</Chip>}
                             <Chip tone={r.plano.encaixou ? 'jade' : ''} on={r.plano.encaixou} onClick={() => setRola(i, { plano: { ...r.plano, encaixou: !r.plano.encaixou } })}>
-                              {r.plano.encaixou ? <Check size={12} /> : null} Encaixou
+                              Encaixou
                             </Chip>
                           </div>
                         )}

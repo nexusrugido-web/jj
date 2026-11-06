@@ -4159,3 +4159,14 @@ body::after {
 .mais-detalhes { padding: 10px 12px; border-radius: 14px; border: 1px dashed var(--seam); }
 .mais-detalhes-botao { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; color: var(--chalk); }
 .placar-lado.neutro .placar-num { color: var(--chalk); }
+
+/* ============================================================
+   PERGUNTA × RESPOSTA (06/11/2026)
+   A pergunta do campo fala mais alto que as opções: maior, em
+   negrito, na cor do texto. A opção escolhida ganha o ✓ (no Chip)
+   além do verde.
+   ============================================================ */
+.field > .label { font-size: var(--fs-body); font-weight: 700; color: var(--chalk); margin-bottom: 2px; }
+.chips-grupo-nome { font-size: var(--fs-sec); font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--chalk); }
+.chip.on { font-weight: 600; }
+.chip-check { flex: none; }

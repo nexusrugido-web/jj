@@ -157,6 +157,7 @@ export function Chip({ children, on, onClick, tone = '', ...p }) {
   const C = onClick ? 'button' : 'span';
   return (
     <C className={`chip ${on ? 'on' : ''} ${tone}`} onClick={onClick} type={onClick ? 'button' : undefined} {...p}>
+      {on && <Check size={12} strokeWidth={3} className="chip-check" aria-hidden />}
       {children}
     </C>
   );
