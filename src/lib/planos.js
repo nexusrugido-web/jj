@@ -180,7 +180,7 @@ export function correnteDoPlano(p) {
     pai: pai[i] === null ? null : novo.get(pai[i]),
     via: viaDe(brutos, i, pai[i]),
     /* a identidade da técnica da peça anda junto pro editor e volta no salvar */
-    ...(brutos[i].golpeUid && tipoDe(brutos[i]) !== 'finta' ? { golpeUid: brutos[i].golpeUid } : {}),
+    ...(brutos[i].golpeUid && tipoDe(brutos[i]) === 'golpe' ? { golpeUid: brutos[i].golpeUid } : {}),
   }));
   /* a finta do formato de antes era uma só, antes do 1º golpe: vira
      a peça de finta, no fim da lista, e o 1º golpe nasce dela */
@@ -571,8 +571,8 @@ export function planoNovo({ nome, posicao, posicaoId = null, finta = '', objetiv
       via: p === null ? null : viaPeloPai(passos[pai[i]], x),
     };
   });
-  /* com a lista de técnicas (o salvar da tela), cada golpe e situação
-     guarda o uid da técnica, se o nome for de uma só; finta nunca */
+  /* com a lista de técnicas (o salvar da tela), cada golpe guarda o uid
+     da técnica, se o nome for de uma só; finta e situação nunca */
   if (tecnicas) {
     guardados.forEach((g, k) => {
       const u = uidDoGolpe({ ...passos[lista[k]], tipo: tipoDe(g) }, tecnicas);

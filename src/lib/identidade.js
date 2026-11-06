@@ -102,7 +102,8 @@ export function comTecUid(nomes = [], tecnicas = [], tecUidAntigo = {}) {
 /* o uid da peça do plano: o que ela já tinha, se o golpe ainda é dele;
    senão, o que o nome resolve. Finta é texto do atleta: nunca tem uid */
 export function uidDoGolpe(peca, tecnicas = []) {
-  if (peca?.tipo === 'finta') return null;
+  /* finta é texto e situação é posição (Montada é as duas coisas): só o golpe é técnica */
+  if (peca?.tipo === 'finta' || peca?.tipo === 'situacao') return null;
   const nome = peca?.golpe ?? peca?.acao;
   if (peca?.golpeUid && aindaE(peca.golpeUid, nome, tecnicas)) return peca.golpeUid;
   return uidDaTecnica(nome, tecnicas);

@@ -80,6 +80,12 @@ const salvo = planoNovo({ ...edit, tecnicas: techniques });
 ok('finta não ganha uid', salvo.passos[0].golpeUid, undefined);
 ok('golpe ganha golpeUid', salvo.passos[1].golpeUid, armlock.uid);
 ok('situação sem técnica fica sem uid', salvo.passos[2].golpeUid, undefined);
+{
+  /* situação é posição; com nome igual ao de uma técnica (Montada é as duas) continua sem uid */
+  const lista = [{ uid: singleLeg.uids[0], nome: singleLeg.nome }];
+  ok('o golpe com o mesmo nome liga', uidDoGolpe({ tipo: 'golpe', golpe: singleLeg.nome }, lista), singleLeg.uids[0]);
+  ok('a situação com o mesmo nome não liga', uidDoGolpe({ tipo: 'situacao', golpe: singleLeg.nome }, lista), null);
+}
 ok('preferida e aceitas no tecUid do plano, família fora', salvo.tecUid,
   { 'pp-minha-kimura': 'Kimura do meu jeito', [triangulo.uid]: triangulo.nome });
 ok('sem a lista de técnicas, o plano sai como antes', 'tecUid' in planoNovo(edit) || planoNovo(edit).passos.some((x) => x.golpeUid), false);

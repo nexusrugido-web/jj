@@ -5,6 +5,7 @@ import { db } from '../db/db';
 import { QUIZ, estiloDoQuiz, estiloPorId } from '../db/scoring';
 import { hoje } from '../lib/utils';
 import { horasPeloRitmo } from '../lib/metas';
+import { comTecUid, nomesDaMeta } from '../lib/identidade';
 import { podeVer, LIMITES } from '../lib/plano';
 import { EscolherDificuldades } from '../components/Dificuldades';
 import { idadeDe } from '../lib/regras';
@@ -136,10 +137,14 @@ export default function Onboarding({ settings, salvarSettings, acesso, onPronto 
         onboardingFeito: 1,
       });
 
+      const tecnicas = metasEscolhidas.length ? await db.techniques.toArray() : [];
       for (const id of metasEscolhidas) {
         const s = sugestoes.find((x) => x.id === id);
         if (!s) continue;
+        /* meta de técnica guarda o uid ao lado do nome, como no Metas */
+        const tecUid = comTecUid(nomesDaMeta(s), tecnicas);
         await db.goals.add({
+          ...(Object.keys(tecUid).length ? { tecUid } : {}),
           tipo: s.tipo,
           alvo: s.alvo,
           grauAlvo: 3,

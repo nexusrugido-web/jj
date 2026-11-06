@@ -37,7 +37,7 @@ Regra: o uid é a identidade, o nome é o que aparece. As listas de nomes contin
 | Onde | Continua | Novo ao lado |
 |---|---|---|
 | Rola | `subsAplicadas`, `subsSofridas`, `tecMeus`, `tecDele` | `tecUid: { "<uid>": "<nome na época>" }` |
-| Peça do plano (`tipo` golpe ou situação de técnica) | `golpe` / `acao` | `golpeUid` |
+| Peça do plano (só `tipo` golpe; situação é posição, finta é texto) | `golpe` / `acao` | `golpeUid` |
 | Objetivo, preferida, aceitas do plano | nome ou `fam:*` | `tecUid` do plano, mesmo formato do rola (família já é id e não entra) |
 | Meta que aponta técnica | o campo de nome que existir | `tecUid`, mesmo formato |
 | Foco do treino | `nome` + `tecnicaId` | já sobe o uid (S3); não muda |
