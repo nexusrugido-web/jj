@@ -4,7 +4,7 @@ import { RENOMEAR } from '../db/renomeios';
 import { APELIDOS } from '../db/sinonimos';
 import { CATALOGO_TECNICAS, origemDaTecnica } from './tecnicas';
 import { FAMILIA_POR_ID, familiaDoGolpe } from './familias';
-import { patchesDoRenomeio } from './identidade';
+import { patchesDoRenomeio, nascidasComABiblioteca } from './identidade';
 import { LIMITE_TECNICAS_PROPRIAS, NOME_TECNICA_MAX, DETALHES_TECNICA_MAX } from './limites';
 
 /* ============================================================
@@ -45,25 +45,6 @@ for (const [nome, apelidos] of Object.entries(APELIDOS)) if (ATUAIS.has(nome)) a
 /* o nome de hoje da técnica do catálogo que tem esse nome, ou null */
 export function nomeDoCatalogo(nome) {
   return NOMES_DO_CATALOGO.get(limpo(nome)) || NOMES_DO_CATALOGO.get(limpo(nomeFinal(nome))) || null;
-}
-
-/* a biblioteca é semeada de uma vez: centenas de técnicas no mesmo
-   minuto. Pela tela, ninguém cria 20 técnicas num minuto. */
-const JANELA_DA_SEMENTE = 60 * 1000;
-const MINIMO_DA_SEMENTE = 20;
-
-function nascidasComABiblioteca(tecnicas) {
-  const datas = tecnicas.map((t) => t.criadoEm).filter(Number.isFinite).sort((a, b) => a - b);
-  const vizinhas = (d) => {
-    let n = 0;
-    for (const x of datas) if (Math.abs(x - d) <= JANELA_DA_SEMENTE) n++;
-    return n;
-  };
-  const cache = new Map();
-  return (t) => {
-    if (!cache.has(t.criadoEm)) cache.set(t.criadoEm, vizinhas(t.criadoEm) >= MINIMO_DA_SEMENTE);
-    return cache.get(t.criadoEm);
-  };
 }
 
 /* de onde a técnica do aparelho vem: 'catalogo', 'propria' ou

@@ -155,6 +155,29 @@ const segunda = passadaDeIdentidade(depois, { simular: false });
 ok('rodar de novo não muda nada', segunda.patches, []);
 ok('na segunda vez o que ligou conta como já ligado', [segunda.numeros.rolls.jaLigados, segunda.numeros.attackPlans.jaLigados], [2, 2]);
 
+/* ---------- cópia antiga do catálogo (uid aleatório, aparelho da versão 1) ----------
+   Responde pelo uid oficial só com prova: não é própria, nome de uma técnica
+   só do catálogo e nascida junto com a biblioteca. Sem prova, fica ambígua. */
+{
+  const { uidOficial: oficial, nomeDoUid } = await import('../src/lib/identidade.js');
+  const T = 1_700_000_000_000;
+  const semente = Array.from({ length: 20 }, (_, i) => ({ id: 8000 + i, uid: `sem-${i}`, nome: `Velha ${i}`, criadoEm: T + i * 1000 }));
+  const copia = { id: 8100, uid: 'copia-sl', nome: 'Single leg', criadoEm: T + 25_000 };
+  const lista = [...semente, copia, { id: 8101, uid: singleLeg.uid, nome: 'Single leg', criadoEm: T }];
+  ok('cópia nascida com a biblioteca liga no uid oficial', uidDaTecnica('Single leg', lista), singleLeg.uid);
+  ok('o uid antigo da cópia vira o oficial', oficial('copia-sl', lista), singleLeg.uid);
+  ok('o uid antigo da cópia ainda acha o nome', nomeDoUid('copia-sl', lista), 'Single leg');
+  ok('peça com o uid antigo da cópia fica com o oficial', uidDoGolpe({ tipo: 'golpe', acao: 'Single leg', golpeUid: 'copia-sl' }, lista), singleLeg.uid);
+  ok('nada é apagado: a cópia continua na lista', lista.includes(copia), true);
+
+  const solta = [{ id: 8200, uid: 'solta-sl', nome: 'Single leg', criadoEm: T }, { id: 8201, uid: singleLeg.uid, nome: 'Single leg', criadoEm: T }];
+  ok('cópia sem prova de semente fica ambígua', resolverNome('Single leg', solta), { ambiguo: true });
+  ok('sem data também fica ambígua', resolverNome('Single leg', [{ id: 8202, uid: 'x-sl', nome: 'Single leg' }]), { ambiguo: true });
+  const propria = [...semente, { ...copia, uid: 'minha-sl', propria: 1 }];
+  ok('própria com nome do catálogo nunca vira o oficial', resolverNome('Single leg', propria), { ambiguo: true });
+  ok('a própria continua com o uid dela', oficial('minha-sl', propria), 'minha-sl');
+}
+
 /* ---------- registro sem uid continua pelo nome ---------- */
 ok('rola sem tecUid: as listas de nomes seguem iguais', nomesDoRola(antigos.rolls[1]), ['Kimura do meu jeito']);
 

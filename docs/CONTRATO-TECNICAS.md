@@ -44,6 +44,7 @@ Regra: o uid é a identidade, o nome é o que aparece. As listas de nomes contin
 | Foco do treino | `nome` + `tecnicaId` | já sobe o uid (S3); não muda |
 
 - O uid só é gravado quando o nome bate com **exatamente uma** técnica (catálogo por `nomeAtual`, ou própria). Senão fica sem uid e segue pelo nome.
+- Cópia antiga do catálogo (aparelho da versão 1, uid aleatório) responde pelo uid oficial só com três provas: não é `propria`, o nome (exato, só sem acento e com o nome de hoje) é de **uma** técnica do catálogo, e ela nasceu junto com a biblioteca (20 ou mais técnicas no mesmo minuto). Não ter `propria` sozinho não prova nada. Sem prova, a cópia fica com o uid dela e o nome continua ambíguo. Nada é apagado: o uid antigo continua achando o nome e `uidOficial(uid, tecnicas)` leva ao oficial (`copiaDoCatalogo` em `src/lib/identidade.js`).
 - O valor de `tecUid` é o nome na época e nunca é reescrito. Renomear muda as listas de nomes, não o `tecUid`.
 - Finta não tem uid nem `golpeUid` (é texto, etapa 3 da V3).
 - Uid e `fam:*` são iguais em todo aparelho: sobem e descem sem tradução no `refs` do S3.

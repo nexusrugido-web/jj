@@ -29,6 +29,8 @@ const { semAcento } = await import('../src/lib/classificar.js');
 const { uidEstavel, chaveNome } = await import('../src/lib/uid.js');
 const { NOMES_DO_CATALOGO, nomeDoCatalogo, marcarProprias } = await import('../src/lib/proprias.js');
 const { passadaDeIdentidade } = await import('../src/lib/compatibilidade.js');
+const { uidOficial, resolverNome } = await import('../src/lib/identidade.js');
+const { origemDaTecnica } = await import('../src/lib/tecnicas.js');
 
 const ARQUIVO = new URL('../supabase/57-simulacao-tecnicas.sql', import.meta.url);
 
@@ -114,6 +116,11 @@ tec as (
            when 'object' then true when 'array' then true else false end as propria
   from reg where tabela = 'techniques'
 ),
+tec_s as (
+  select t.*, t.criado is not null and (select count(*) from tec v where v.user_id = t.user_id and v.criado is not null
+          and abs(v.criado - t.criado) <= 60000) >= 20 as semente
+  from tec t
+),
 
 /* ---------- parte 1: de onde vem cada técnica ---------- */
 origem as (
@@ -123,21 +130,34 @@ origem as (
     when t.uid in (select uid from principal) or t.uid in (select uid from renomeados) then 'catalogo'
     when ${sqlLimpo('t.nome')} in (select k from nomes_catalogo) or t.nome in (select de from final_do_catalogo) then 'nome_do_catalogo'
     when t.criado is null then 'sem_data'
-    when (select count(*) from tec v where v.user_id = t.user_id and v.criado is not null
-          and abs(v.criado - t.criado) <= 60000) >= 20 then 'nasceu_com_a_biblioteca'
+    when t.semente then 'nasceu_com_a_biblioteca'
     else 'marcar' end as o
-  from tec t
+  from tec_s t
 ),
 
 /* ---------- parte 2: o índice de nomes de cada conta ---------- */
-tec_indice as (
-  select t.user_id, ${sqlChave('t.nome')} as chave,
-         case when p.p is not null then p.p
-              when t.uid in (select uid from renomeados) then coalesce(
-                (select dc.uid from do_catalogo dc where dc.chave = ${sqlChave('t.nome')}), t.uid)
-              else t.uid end as uid
-  from tec t left join principal p on p.uid = t.uid
+/* cópia antiga do catálogo (uid aleatório): responde pelo uid oficial só
+   com as três provas, não é própria, o nome é de uma técnica só do
+   catálogo e nasceu junto com a biblioteca (copiaDoCatalogo, identidade.js) */
+tec_k as (
+  select t.*, ${sqlChave('t.nome')} as chave, p.p as principal,
+         (select case when count(distinct ci.uid) = 1 then min(ci.uid) end from cat_indice ci where ci.chave = ${sqlChave('t.nome')}) as oficial_unico,
+         ${sqlLimpo('t.nome')} in (select k from nomes_catalogo) or t.nome in (select de from final_do_catalogo) as nome_cat
+  from tec_s t left join principal p on p.uid = t.uid
   where coalesce(t.uid, '') <> '' and coalesce(t.nome, '') <> ''
+),
+tec_indice as (
+  select t.user_id, t.chave, t.uid as uid_antigo,
+         case when t.principal is not null then t.principal
+              when t.uid in (select uid from renomeados) then coalesce(
+                (select dc.uid from do_catalogo dc where dc.chave = t.chave), t.uid)
+              when not t.propria and t.semente and t.oficial_unico is not null then t.oficial_unico
+              else t.uid end as uid,
+         not t.propria and t.semente and t.oficial_unico is not null
+           and t.principal is null and t.uid not in (select uid from renomeados) as copia,
+         not t.propria and t.nome_cat and t.principal is null and t.uid not in (select uid from renomeados)
+           and not (t.semente and t.oficial_unico is not null) as sem_prova
+  from tec_k t
 ),
 rolas as (select id, user_id, dados from reg where tabela = 'rolls'),
 rola_itens as (
@@ -196,7 +216,8 @@ nomes as (
 ),
 /* o que o nome resolve na conta: quantos uids e qual, se for um só */
 resolvidos as (
-  select n.*, case when n.nome like 'fam:%' then 0 else r.qtd end as qtd, r.u
+  select n.*, case when n.nome like 'fam:%' then 0 else r.qtd end as qtd, r.u,
+         (select count(distinct ci.uid) from cat_indice ci where ci.chave = ${sqlChave('n.nome')}) as n_oficiais
   from nomes n, lateral (
     select count(distinct a.uid) as qtd, min(a.uid) as u from (
       select ci.uid from cat_indice ci where ci.chave = ${sqlChave('n.nome')}
@@ -210,7 +231,8 @@ estado_nomes as (
     when qtd = 1 and jsonb_typeof(antes) = 'object' and antes ? u then 'ja_ligado'
     when qtd = 1 then 'ligado'
     when qtd > 1 then 'ambiguo'
-    else 'sem_par' end as e
+    else 'sem_par' end as e,
+    case when n_oficiais > 1 then 'dois_oficiais' else 'copia_sem_prova' end as porque
   from resolvidos
 ),
 /* a peça do plano: o golpe ganha uid; situação (posição) nunca */
@@ -219,7 +241,8 @@ estado_pecas as (
     when coalesce(c.peca->>'golpeUid', '') <> '' and g.u = c.peca->>'golpeUid' then 'ja_ligado'
     when g.u is not null then 'ligado'
     when a.qtd > 1 then 'ambiguo'
-    else 'sem_par' end as e
+    else 'sem_par' end as e,
+    case when a.oficiais > 1 then 'dois_oficiais' else 'copia_sem_prova' end as porque
   from pecas c,
   lateral (
     select case when c.peca->>'tipo' = 'situacao' then null else (
@@ -231,7 +254,8 @@ estado_pecas as (
     from (select coalesce(c.peca->>'golpe', c.peca->>'acao') as nm) z
   ) g,
   lateral (
-    select case when (c.peca->>'acao') like 'fam:%' then 0 else count(distinct b.uid) end as qtd from (
+    select case when (c.peca->>'acao') like 'fam:%' then 0 else count(distinct b.uid) end as qtd,
+           (select count(distinct ci.uid) from cat_indice ci where ci.chave = ${sqlChave("(c.peca->>'acao')")}) as oficiais from (
       select ci.uid from cat_indice ci where ci.chave = ${sqlChave("(c.peca->>'acao')")}
       union all
       select ti.uid from tec_indice ti where ti.user_id = c.user_id and ti.chave = ${sqlChave("(c.peca->>'acao')")}
@@ -250,6 +274,13 @@ select o_que, numero from (
   union all select 6, 'técnicas duvidosas: sem data', count(*) filter (where o = 'sem_data') from origem
   union all select 7, 'técnicas duvidosas: nasceram com a biblioteca', count(*) filter (where o = 'nasceu_com_a_biblioteca') from origem
   union all select 8, 'contas com técnica que vira própria', count(distinct user_id) filter (where o = 'marcar') from origem
+  union all select 40, 'cópias antigas do catálogo que passam a responder pelo uid oficial', (select count(*) from tec_indice where copia)
+  union all select 41, 'técnicas com nome do catálogo sem prova (ficam com o uid delas)',
+    (select count(*) from tec_indice where sem_prova)
+  union all select 42, 'pendentes: dois nomes oficiais iguais', (select count(*) from estados where e = 'ambiguo' and porque = 'dois_oficiais')
+  union all select 43, 'pendentes: cópia sem prova de ser do catálogo', (select count(*) from estados where e = 'ambiguo' and porque = 'copia_sem_prova')
+  union all select 44, 'uids oficiais com mais de uma técnica na mesma conta (nada é apagado)',
+    (select count(*) from (select user_id, uid from tec_indice group by 1, 2 having count(*) > 1) d)
   union all select p.ordem + 1, p.nome || ': registros com técnica', (select count(*) from registros_t g where g.tabela = p.tabela) from partes p
   union all select p.ordem + 2, p.nome || ': registros que mudam', (select count(distinct e.id) from estados e where e.tabela = p.tabela and e.e = 'ligado') from partes p
   union all select p.ordem + 3, p.nome || ': nomes que ganham o uid', (select count(*) from estados e where e.tabela = p.tabela and e.e = 'ligado') from partes p
@@ -284,6 +315,8 @@ const antigoDoBanco = NOMES_ANTIGOS_DO_BANCO.find((n) => nomeDoCatalogo(n) && !N
 const [a1, a2, a3] = cat;
 const fin = cat.find((t) => t.cat === 'articular') || a3;
 const T0 = 1_700_000_000_000;
+/* nome que duas técnicas do catálogo usam (se houver): fica pendente sempre */
+const doisOficiais = cat.flatMap((t) => [t.nome, t.antigo]).filter(Boolean).find((n) => resolverNome(n, []).ambiguo);
 
 const ana = randomUUID();
 const bia = randomUUID();
@@ -300,6 +333,11 @@ const tecAna = [
   { nome: 'Sem código' },
   { uid: randomUUID(), nome: a3.nome, criadoEm: T0 + 6e6 },                                  // mesmo nome do catálogo: ambíguo
   ...Array.from({ length: 22 }, (_, i) => ({ uid: randomUUID(), nome: `Semente ${i}`, criadoEm: T0 + 1000 * i })),
+  /* aparelho velho: a biblioteca com uid aleatório, nascida no mesmo minuto */
+  { uid: randomUUID(), nome: comAntigo.nome, criadoEm: T0 + 30_000 },                          // cópia: vira o uid oficial
+  { uid: randomUUID(), nome: a1.nome, criadoEm: T0 + 31_000 },                                  // cópia de uma que já está com o uid certo
+  { uid: randomUUID(), nome: a3.nome, criadoEm: T0 + 32_000, propria: 1 },                      // própria: nunca vira catálogo
+  ...(doisOficiais ? [{ uid: randomUUID(), nome: doisOficiais, criadoEm: T0 + 33_000 }] : []),
 ];
 const tecBia = [
   { uid: randomUUID(), nome: 'Guarda da Bia', criadoEm: T0 + 5e6, arquivada: 1 },
@@ -312,6 +350,7 @@ const rolasAna = [
   { subsAplicadas: [a1.nome], tecUid: { [a1.uid]: a1.nome } },                               // já ligado
   { subsAplicadas: [] },
   { subsAplicadas: [''] },
+  { subsAplicadas: [comAntigo.nome, comAntigo.nome.toUpperCase(), ...(doisOficiais ? [doisOficiais] : [])] },
 ];
 const rolasBia = [{ subsAplicadas: ['Raspagem do Zé', 'Guarda da Bia', fin.nome] }];
 const planosAna = [
@@ -354,7 +393,21 @@ for (const c of contas) {
   soma('técnicas duvidosas: sem data', m.motivos.sem_data || 0);
   soma('técnicas duvidosas: nasceram com a biblioteca', m.motivos.nasceu_com_a_biblioteca || 0);
   soma('contas com técnica que vira própria', m.marcadas ? 1 : 0);
-  const { numeros } = passadaDeIdentidade({ ...c, rolls: c.rolls.map((r, i) => ({ id: i, ...r })) }, { simular: true });
+  const dados = { ...c, rolls: c.rolls.map((r, i) => ({ id: i, ...r })) };
+  const { numeros } = passadaDeIdentidade(dados, { simular: true });
+  const soCatalogo = passadaDeIdentidade({ ...dados, techniques: [] }, { simular: true }).numeros;
+  const ambiguos = (n) => n.rolls.ambiguos + n.attackPlans.ambiguos + n.goals.ambiguos;
+  soma('pendentes: dois nomes oficiais iguais', ambiguos(soCatalogo));
+  soma('pendentes: cópia sem prova de ser do catálogo', ambiguos(numeros) - ambiguos(soCatalogo));
+  const comNome = c.techniques.filter((t) => t.uid && t.nome);
+  const deFora = (t) => origemDaTecnica(t.uid) === 'propria';
+  soma('cópias antigas do catálogo que passam a responder pelo uid oficial',
+    comNome.filter((t) => deFora(t) && uidOficial(t.uid, c.techniques) !== t.uid).length);
+  soma('técnicas com nome do catálogo sem prova (ficam com o uid delas)',
+    comNome.filter((t) => deFora(t) && !t.propria && nomeDoCatalogo(t.nome) && uidOficial(t.uid, c.techniques) === t.uid).length);
+  const porUid = new Map();
+  for (const t of comNome) { const u = uidOficial(t.uid, c.techniques); porUid.set(u, (porUid.get(u) || 0) + 1); }
+  soma('uids oficiais com mais de uma técnica na mesma conta (nada é apagado)', [...porUid.values()].filter((n) => n > 1).length);
   for (const [tab, nome] of [['rolls', 'rolas'], ['attackPlans', 'planos'], ['goals', 'metas']]) {
     const n = numeros[tab];
     soma(`${nome}: registros com técnica`, n.registros);
@@ -393,7 +446,10 @@ for (const [k, v] of esperado) ok(obtido.get(k) === v, `${k}: app ${v}, SQL ${ob
 for (const k of ['técnicas: viram própria (com prova)', 'técnicas duvidosas: nome do catálogo', 'técnicas duvidosas: sem data',
   'técnicas duvidosas: nasceram com a biblioteca', 'técnicas duvidosas: sem código', 'técnicas: do catálogo',
   'rolas: nomes que ganham o uid', 'rolas: nomes já ligados', 'rolas: nomes ambíguos (ficam como estão)', 'rolas: nomes sem par (ficam como estão)',
-  'planos: nomes que ganham o uid', 'planos: nomes ambíguos (ficam como estão)', 'planos: nomes sem par (ficam como estão)', 'metas: nomes que ganham o uid']) {
+  'planos: nomes que ganham o uid', 'planos: nomes ambíguos (ficam como estão)', 'planos: nomes sem par (ficam como estão)', 'metas: nomes que ganham o uid',
+  'cópias antigas do catálogo que passam a responder pelo uid oficial', 'técnicas com nome do catálogo sem prova (ficam com o uid delas)',
+  'pendentes: cópia sem prova de ser do catálogo', 'uids oficiais com mais de uma técnica na mesma conta (nada é apagado)',
+  ...(doisOficiais ? ['pendentes: dois nomes oficiais iguais'] : [])]) {
   ok(esperado.get(k) > 0, `caso sem exemplo no teste: ${k}`);
 }
 

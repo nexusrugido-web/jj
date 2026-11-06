@@ -3341,6 +3341,11 @@ tec as (
            when 'object' then true when 'array' then true else false end as propria
   from reg where tabela = 'techniques'
 ),
+tec_s as (
+  select t.*, t.criado is not null and (select count(*) from tec v where v.user_id = t.user_id and v.criado is not null
+          and abs(v.criado - t.criado) <= 60000) >= 20 as semente
+  from tec t
+),
 
 /* ---------- parte 1: de onde vem cada técnica ---------- */
 origem as (
@@ -3350,21 +3355,34 @@ origem as (
     when t.uid in (select uid from principal) or t.uid in (select uid from renomeados) then 'catalogo'
     when regexp_replace(lower(regexp_replace(translate(t.nome, 'áàâãäåÁÀÂÃÄÅéèêëÉÈÊËíìîïÍÌÎÏóòôõöÓÒÔÕÖúùûüÚÙÛÜçÇñÑýÿÝ', 'aaaaaaAAAAAAeeeeEEEEiiiiIIIIoooooOOOOOuuuuUUUUcCnNyyY'), '^\s+|\s+$', '', 'g')), '\s+', ' ', 'g') in (select k from nomes_catalogo) or t.nome in (select de from final_do_catalogo) then 'nome_do_catalogo'
     when t.criado is null then 'sem_data'
-    when (select count(*) from tec v where v.user_id = t.user_id and v.criado is not null
-          and abs(v.criado - t.criado) <= 60000) >= 20 then 'nasceu_com_a_biblioteca'
+    when t.semente then 'nasceu_com_a_biblioteca'
     else 'marcar' end as o
-  from tec t
+  from tec_s t
 ),
 
 /* ---------- parte 2: o índice de nomes de cada conta ---------- */
-tec_indice as (
-  select t.user_id, btrim(regexp_replace(lower(translate(coalesce((select para from renomear where de = regexp_replace(t.nome, '^\s+|\s+$', '', 'g')), regexp_replace(t.nome, '^\s+|\s+$', '', 'g')), 'áàâãäåÁÀÂÃÄÅéèêëÉÈÊËíìîïÍÌÎÏóòôõöÓÒÔÕÖúùûüÚÙÛÜçÇñÑýÿÝ', 'aaaaaaAAAAAAeeeeEEEEiiiiIIIIoooooOOOOOuuuuUUUUcCnNyyY')), '[^a-z0-9]+', ' ', 'g')) as chave,
-         case when p.p is not null then p.p
-              when t.uid in (select uid from renomeados) then coalesce(
-                (select dc.uid from do_catalogo dc where dc.chave = btrim(regexp_replace(lower(translate(coalesce((select para from renomear where de = regexp_replace(t.nome, '^\s+|\s+$', '', 'g')), regexp_replace(t.nome, '^\s+|\s+$', '', 'g')), 'áàâãäåÁÀÂÃÄÅéèêëÉÈÊËíìîïÍÌÎÏóòôõöÓÒÔÕÖúùûüÚÙÛÜçÇñÑýÿÝ', 'aaaaaaAAAAAAeeeeEEEEiiiiIIIIoooooOOOOOuuuuUUUUcCnNyyY')), '[^a-z0-9]+', ' ', 'g'))), t.uid)
-              else t.uid end as uid
-  from tec t left join principal p on p.uid = t.uid
+/* cópia antiga do catálogo (uid aleatório): responde pelo uid oficial só
+   com as três provas, não é própria, o nome é de uma técnica só do
+   catálogo e nasceu junto com a biblioteca (copiaDoCatalogo, identidade.js) */
+tec_k as (
+  select t.*, btrim(regexp_replace(lower(translate(coalesce((select para from renomear where de = regexp_replace(t.nome, '^\s+|\s+$', '', 'g')), regexp_replace(t.nome, '^\s+|\s+$', '', 'g')), 'áàâãäåÁÀÂÃÄÅéèêëÉÈÊËíìîïÍÌÎÏóòôõöÓÒÔÕÖúùûüÚÙÛÜçÇñÑýÿÝ', 'aaaaaaAAAAAAeeeeEEEEiiiiIIIIoooooOOOOOuuuuUUUUcCnNyyY')), '[^a-z0-9]+', ' ', 'g')) as chave, p.p as principal,
+         (select case when count(distinct ci.uid) = 1 then min(ci.uid) end from cat_indice ci where ci.chave = btrim(regexp_replace(lower(translate(coalesce((select para from renomear where de = regexp_replace(t.nome, '^\s+|\s+$', '', 'g')), regexp_replace(t.nome, '^\s+|\s+$', '', 'g')), 'áàâãäåÁÀÂÃÄÅéèêëÉÈÊËíìîïÍÌÎÏóòôõöÓÒÔÕÖúùûüÚÙÛÜçÇñÑýÿÝ', 'aaaaaaAAAAAAeeeeEEEEiiiiIIIIoooooOOOOOuuuuUUUUcCnNyyY')), '[^a-z0-9]+', ' ', 'g'))) as oficial_unico,
+         regexp_replace(lower(regexp_replace(translate(t.nome, 'áàâãäåÁÀÂÃÄÅéèêëÉÈÊËíìîïÍÌÎÏóòôõöÓÒÔÕÖúùûüÚÙÛÜçÇñÑýÿÝ', 'aaaaaaAAAAAAeeeeEEEEiiiiIIIIoooooOOOOOuuuuUUUUcCnNyyY'), '^\s+|\s+$', '', 'g')), '\s+', ' ', 'g') in (select k from nomes_catalogo) or t.nome in (select de from final_do_catalogo) as nome_cat
+  from tec_s t left join principal p on p.uid = t.uid
   where coalesce(t.uid, '') <> '' and coalesce(t.nome, '') <> ''
+),
+tec_indice as (
+  select t.user_id, t.chave, t.uid as uid_antigo,
+         case when t.principal is not null then t.principal
+              when t.uid in (select uid from renomeados) then coalesce(
+                (select dc.uid from do_catalogo dc where dc.chave = t.chave), t.uid)
+              when not t.propria and t.semente and t.oficial_unico is not null then t.oficial_unico
+              else t.uid end as uid,
+         not t.propria and t.semente and t.oficial_unico is not null
+           and t.principal is null and t.uid not in (select uid from renomeados) as copia,
+         not t.propria and t.nome_cat and t.principal is null and t.uid not in (select uid from renomeados)
+           and not (t.semente and t.oficial_unico is not null) as sem_prova
+  from tec_k t
 ),
 rolas as (select id, user_id, dados from reg where tabela = 'rolls'),
 rola_itens as (
@@ -3423,7 +3441,8 @@ nomes as (
 ),
 /* o que o nome resolve na conta: quantos uids e qual, se for um só */
 resolvidos as (
-  select n.*, case when n.nome like 'fam:%' then 0 else r.qtd end as qtd, r.u
+  select n.*, case when n.nome like 'fam:%' then 0 else r.qtd end as qtd, r.u,
+         (select count(distinct ci.uid) from cat_indice ci where ci.chave = btrim(regexp_replace(lower(translate(coalesce((select para from renomear where de = regexp_replace(n.nome, '^\s+|\s+$', '', 'g')), regexp_replace(n.nome, '^\s+|\s+$', '', 'g')), 'áàâãäåÁÀÂÃÄÅéèêëÉÈÊËíìîïÍÌÎÏóòôõöÓÒÔÕÖúùûüÚÙÛÜçÇñÑýÿÝ', 'aaaaaaAAAAAAeeeeEEEEiiiiIIIIoooooOOOOOuuuuUUUUcCnNyyY')), '[^a-z0-9]+', ' ', 'g'))) as n_oficiais
   from nomes n, lateral (
     select count(distinct a.uid) as qtd, min(a.uid) as u from (
       select ci.uid from cat_indice ci where ci.chave = btrim(regexp_replace(lower(translate(coalesce((select para from renomear where de = regexp_replace(n.nome, '^\s+|\s+$', '', 'g')), regexp_replace(n.nome, '^\s+|\s+$', '', 'g')), 'áàâãäåÁÀÂÃÄÅéèêëÉÈÊËíìîïÍÌÎÏóòôõöÓÒÔÕÖúùûüÚÙÛÜçÇñÑýÿÝ', 'aaaaaaAAAAAAeeeeEEEEiiiiIIIIoooooOOOOOuuuuUUUUcCnNyyY')), '[^a-z0-9]+', ' ', 'g'))
@@ -3437,7 +3456,8 @@ estado_nomes as (
     when qtd = 1 and jsonb_typeof(antes) = 'object' and antes ? u then 'ja_ligado'
     when qtd = 1 then 'ligado'
     when qtd > 1 then 'ambiguo'
-    else 'sem_par' end as e
+    else 'sem_par' end as e,
+    case when n_oficiais > 1 then 'dois_oficiais' else 'copia_sem_prova' end as porque
   from resolvidos
 ),
 /* a peça do plano: o golpe ganha uid; situação (posição) nunca */
@@ -3446,7 +3466,8 @@ estado_pecas as (
     when coalesce(c.peca->>'golpeUid', '') <> '' and g.u = c.peca->>'golpeUid' then 'ja_ligado'
     when g.u is not null then 'ligado'
     when a.qtd > 1 then 'ambiguo'
-    else 'sem_par' end as e
+    else 'sem_par' end as e,
+    case when a.oficiais > 1 then 'dois_oficiais' else 'copia_sem_prova' end as porque
   from pecas c,
   lateral (
     select case when c.peca->>'tipo' = 'situacao' then null else (
@@ -3458,7 +3479,8 @@ estado_pecas as (
     from (select coalesce(c.peca->>'golpe', c.peca->>'acao') as nm) z
   ) g,
   lateral (
-    select case when (c.peca->>'acao') like 'fam:%' then 0 else count(distinct b.uid) end as qtd from (
+    select case when (c.peca->>'acao') like 'fam:%' then 0 else count(distinct b.uid) end as qtd,
+           (select count(distinct ci.uid) from cat_indice ci where ci.chave = btrim(regexp_replace(lower(translate(coalesce((select para from renomear where de = regexp_replace((c.peca->>'acao'), '^\s+|\s+$', '', 'g')), regexp_replace((c.peca->>'acao'), '^\s+|\s+$', '', 'g')), 'áàâãäåÁÀÂÃÄÅéèêëÉÈÊËíìîïÍÌÎÏóòôõöÓÒÔÕÖúùûüÚÙÛÜçÇñÑýÿÝ', 'aaaaaaAAAAAAeeeeEEEEiiiiIIIIoooooOOOOOuuuuUUUUcCnNyyY')), '[^a-z0-9]+', ' ', 'g'))) as oficiais from (
       select ci.uid from cat_indice ci where ci.chave = btrim(regexp_replace(lower(translate(coalesce((select para from renomear where de = regexp_replace((c.peca->>'acao'), '^\s+|\s+$', '', 'g')), regexp_replace((c.peca->>'acao'), '^\s+|\s+$', '', 'g')), 'áàâãäåÁÀÂÃÄÅéèêëÉÈÊËíìîïÍÌÎÏóòôõöÓÒÔÕÖúùûüÚÙÛÜçÇñÑýÿÝ', 'aaaaaaAAAAAAeeeeEEEEiiiiIIIIoooooOOOOOuuuuUUUUcCnNyyY')), '[^a-z0-9]+', ' ', 'g'))
       union all
       select ti.uid from tec_indice ti where ti.user_id = c.user_id and ti.chave = btrim(regexp_replace(lower(translate(coalesce((select para from renomear where de = regexp_replace((c.peca->>'acao'), '^\s+|\s+$', '', 'g')), regexp_replace((c.peca->>'acao'), '^\s+|\s+$', '', 'g')), 'áàâãäåÁÀÂÃÄÅéèêëÉÈÊËíìîïÍÌÎÏóòôõöÓÒÔÕÖúùûüÚÙÛÜçÇñÑýÿÝ', 'aaaaaaAAAAAAeeeeEEEEiiiiIIIIoooooOOOOOuuuuUUUUcCnNyyY')), '[^a-z0-9]+', ' ', 'g'))
@@ -3477,6 +3499,13 @@ select o_que, numero from (
   union all select 6, 'técnicas duvidosas: sem data', count(*) filter (where o = 'sem_data') from origem
   union all select 7, 'técnicas duvidosas: nasceram com a biblioteca', count(*) filter (where o = 'nasceu_com_a_biblioteca') from origem
   union all select 8, 'contas com técnica que vira própria', count(distinct user_id) filter (where o = 'marcar') from origem
+  union all select 40, 'cópias antigas do catálogo que passam a responder pelo uid oficial', (select count(*) from tec_indice where copia)
+  union all select 41, 'técnicas com nome do catálogo sem prova (ficam com o uid delas)',
+    (select count(*) from tec_indice where sem_prova)
+  union all select 42, 'pendentes: dois nomes oficiais iguais', (select count(*) from estados where e = 'ambiguo' and porque = 'dois_oficiais')
+  union all select 43, 'pendentes: cópia sem prova de ser do catálogo', (select count(*) from estados where e = 'ambiguo' and porque = 'copia_sem_prova')
+  union all select 44, 'uids oficiais com mais de uma técnica na mesma conta (nada é apagado)',
+    (select count(*) from (select user_id, uid from tec_indice group by 1, 2 having count(*) > 1) d)
   union all select p.ordem + 1, p.nome || ': registros com técnica', (select count(*) from registros_t g where g.tabela = p.tabela) from partes p
   union all select p.ordem + 2, p.nome || ': registros que mudam', (select count(distinct e.id) from estados e where e.tabela = p.tabela and e.e = 'ligado') from partes p
   union all select p.ordem + 3, p.nome || ': nomes que ganham o uid', (select count(*) from estados e where e.tabela = p.tabela and e.e = 'ligado') from partes p

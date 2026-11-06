@@ -26,6 +26,36 @@ const chave = (nome) => semAcento(nomeAtual(String(nome || '').trim()));
 /* o uid de catálogo que juntou com outro aponta pro uid principal */
 const principal = (uid) => TECNICA_POR_UID.get(uid)?.uid || uid;
 
+/* a biblioteca é semeada de uma vez: centenas de técnicas no mesmo
+   minuto. Pela tela, ninguém cria 20 técnicas num minuto. */
+const JANELA_DA_SEMENTE = 60 * 1000;
+const MINIMO_DA_SEMENTE = 20;
+
+export function nascidasComABiblioteca(tecnicas) {
+  const datas = tecnicas.map((t) => t.criadoEm).filter(Number.isFinite).sort((a, b) => a - b);
+  const vizinhas = (d) => {
+    let n = 0;
+    for (const x of datas) if (Math.abs(x - d) <= JANELA_DA_SEMENTE) n++;
+    return n;
+  };
+  const cache = new Map();
+  return (t) => {
+    if (!cache.has(t.criadoEm)) cache.set(t.criadoEm, vizinhas(t.criadoEm) >= MINIMO_DA_SEMENTE);
+    return cache.get(t.criadoEm);
+  };
+}
+
+/* Aparelho antigo tem o catálogo com uid aleatório (versão 1 do banco).
+   Essa cópia responde pelo uid oficial só com as três provas: não é
+   própria, o nome (exato, só sem acento e com o nome de hoje) é de uma
+   técnica só do catálogo, e ela nasceu junto com a biblioteca. Sem
+   prova, fica com o uid dela: o nome continua ambíguo, nada é chutado. */
+function copiaDoCatalogo(t, porNome, daSemente) {
+  if (t.propria || !Number.isFinite(t.criadoEm) || !daSemente(t)) return null;
+  const oficiais = [...(porNome.get(chave(t.nome)) || [])].filter((u) => TECNICA_POR_UID.has(u));
+  return oficiais.length === 1 ? oficiais[0] : null;
+}
+
 /* nome → uids que respondem por ele. Um índice por lista */
 const INDICES = new WeakMap();
 function indice(tecnicas) {
@@ -33,6 +63,7 @@ function indice(tecnicas) {
   if (INDICES.has(lista)) return INDICES.get(lista);
   const porNome = new Map();
   const porUid = new Map();
+  const legados = new Map(); // uid da cópia antiga → uid oficial
   const por = (nome, uid) => {
     const k = chave(nome);
     if (!k || !uid) return;
@@ -48,14 +79,18 @@ function indice(tecnicas) {
      A linha do catálogo com uid de um nome antigo de RENOMEAR é do catálogo
      (origemDaTecnica): responde pelo uid da biblioteca, igual em todo aparelho */
   const doCatalogo = new Map(CATALOGO_TECNICAS.map((t) => [chave(t.nome), t.uid]));
+  const daSemente = nascidasComABiblioteca(lista);
   for (const t of lista) {
     if (!t?.uid || !t.nome) continue;
     const u = TECNICA_POR_UID.has(t.uid) ? principal(t.uid)
-      : origemDaTecnica(t.uid) === 'catalogo' ? doCatalogo.get(chave(t.nome)) || t.uid : t.uid;
+      : origemDaTecnica(t.uid) === 'catalogo' ? doCatalogo.get(chave(t.nome)) || t.uid
+      : copiaDoCatalogo(t, porNome, daSemente) || t.uid;
     por(t.nome, u);
     porUid.set(u, t.nome);
+    /* o uid antigo da cópia continua achando o nome (referência legada) */
+    if (u !== t.uid) { porUid.set(t.uid, t.nome); legados.set(t.uid, u); }
   }
-  const ix = { porNome, porUid };
+  const ix = { porNome, porUid, legados };
   INDICES.set(lista, ix);
   return ix;
 }
@@ -68,6 +103,9 @@ export function resolverNome(nome, tecnicas = []) {
   if (uids.size > 1) return { ambiguo: true };
   return { uid: [...uids][0] };
 }
+
+/* o uid oficial de um uid legado (cópia antiga do catálogo); os outros ficam como estão */
+export const uidOficial = (uid, tecnicas = []) => indice(tecnicas).legados.get(uid) || uid;
 
 export const uidDaTecnica = (nome, tecnicas = []) => resolverNome(nome, tecnicas).uid || null;
 
@@ -105,7 +143,7 @@ export function uidDoGolpe(peca, tecnicas = []) {
   /* finta é texto e situação é posição (Montada é as duas coisas): só o golpe é técnica */
   if (peca?.tipo === 'finta' || peca?.tipo === 'situacao') return null;
   const nome = peca?.golpe ?? peca?.acao;
-  if (peca?.golpeUid && aindaE(peca.golpeUid, nome, tecnicas)) return peca.golpeUid;
+  if (peca?.golpeUid && aindaE(peca.golpeUid, nome, tecnicas)) return uidOficial(peca.golpeUid, tecnicas);
   return uidDaTecnica(nome, tecnicas);
 }
 
