@@ -50,7 +50,8 @@ export default function Planos() {
     const pos = new Map(positions.map((x) => [x.id, x]));
     const tec = new Map(techniques.map((t) => [t.nome, t]));
     /* o golpe gravado com um nome que mudou (técnicas que juntaram) acha a de hoje */
-    return (nome) => pos.get((tec.get(nome) || tec.get(nomeAtual(nome)))?.destinoId) || null;
+    /* .tecnicas: a família que a pessoa confirmou na técnica dela também conta */
+    return Object.assign((nome) => pos.get((tec.get(nome) || tec.get(nomeAtual(nome)))?.destinoId) || null, { tecnicas: techniques });
   }, [positions, techniques]);
 
   const [edit, setEdit] = useState(null);
@@ -691,14 +692,14 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
         titulo={tituloSeletor}
         semPosicoes
         familias={escolhendo === 'preferida' || escolhendo === 'aceita' ? FAMILIAS.map((f) => f.id) : null}
-        jaConta={escolhendo === 'aceita' ? (n) => jaCoberta(n, edit.finalizacaoPreferida, aceitas)
+        jaConta={escolhendo === 'aceita' ? (n) => jaCoberta(n, edit.finalizacaoPreferida, aceitas, techniques)
           : escolhendo === 'preferida' ? (n) => (n === edit.finalizacaoPreferida ? n : '') : undefined}
         onEscolher={(t) => {
           if (escolhendo === 'objetivo') mudar({ objetivo: t.nome });
           /* a preferida não se repete nas aceitas */
           /* a família leva junto as variações dela que já estavam nas aceitas */
-          else if (escolhendo === 'preferida') mudar({ finalizacaoPreferida: t.nome, finalizacoesAceitas: limparAceitas(t.nome, aceitas) });
-          else if (escolhendo === 'aceita') { if (!jaCoberta(t.nome, edit.finalizacaoPreferida, aceitas)) mudar({ finalizacoesAceitas: limparAceitas(edit.finalizacaoPreferida, [...aceitas, t.nome]) }); }
+          else if (escolhendo === 'preferida') mudar({ finalizacaoPreferida: t.nome, finalizacoesAceitas: limparAceitas(t.nome, aceitas, techniques) });
+          else if (escolhendo === 'aceita') { if (!jaCoberta(t.nome, edit.finalizacaoPreferida, aceitas, techniques)) mudar({ finalizacoesAceitas: limparAceitas(edit.finalizacaoPreferida, [...aceitas, t.nome], techniques) }); }
           else setPeca({ ...peca, golpe: t.nome });
           setEscolhendo(null);
         }}

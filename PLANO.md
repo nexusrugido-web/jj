@@ -10,6 +10,7 @@ Contrato em `docs/CONTRATO-TECNICAS.md`. Cada frente numa branch própria, integ
 - B. técnica própria nos dados: `propria`, `versaoDe`, `fam`, cota no app; marcar as antigas só em simulação. → verificar: `teste-proprias`.
 - C. SQL 56 da cota (não rodar). → verificar: `teste-cota-sql` com PGlite.
 - D. lista dos 14 assuntos para aprovação, sem implementar.
+- Família própria no plano: técnica própria com `fam` confirmado conta no "qualquer armlock" (objetivo, preferida, aceitas). → FEITO, `teste-planos`.
 - Depois: telas de técnica própria (dependem de A para renomear), `contra` no seed, assuntos.
 
 ## Trilha S: sync confiável entre aparelhos e entre contas (06/11/2026, antes das técnicas próprias)

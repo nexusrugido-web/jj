@@ -699,6 +699,24 @@ ok('preferida família limpa as variações dela nas aceitas',
 ok('salvar o plano aplica a mesma limpeza',
   p41({ objetivo: 'Finalizar', objetivoTipo: 'finalizar', finalizacaoPreferida: 'Armlock da montada', finalizacoesAceitas: ['Armlock das costas', 'fam:armlock', 'Armlock da montada', 'fam:armlock'] }).finalizacoesAceitas,
   ['fam:armlock']);
+/* técnica da pessoa com a família confirmada entra no "qualquer armlock";
+   sem confirmar, ou sem a lista do aparelho, fica de fora */
+const minhas = [{ uid: crypto.randomUUID(), nome: 'Meu armlock inventado', fam: 'fam:armlock', propria: 1 },
+  { uid: crypto.randomUUID(), nome: 'Meu armlock sem família', propria: 1 }];
+const destMeu = Object.assign(destCat, { tecnicas: minhas });
+const pm = (extra) => correnteDoPlano(planoNovo({ passos: [{ id: 'm0', golpe: 'Meu armlock inventado', reacao: 'r' }, { id: 'm1', golpe: 'Meu armlock sem família', reacao: 'r', pai: 0, via: 'defendeu' }], ...extra }));
+const pmFam = pm({ objetivo: 'fam:armlock', objetivoTipo: 'familia' });
+const pmFin = pm({ objetivo: 'Finalizar', objetivoTipo: 'finalizar', finalizacaoPreferida: 'Kimura', finalizacoesAceitas: ['fam:armlock'] });
+ok('técnica própria com família confirmada chega no qualquer armlock; sem família não',
+  [pmFam.passos.map((x) => chegaNoObjetivo(x, pmFam, destMeu)), pmFin.passos.map((x) => escolhaDaFinalizacao(x, pmFin, destMeu))],
+  [[true, false], ['aceita', '']]);
+ok('sem a lista do aparelho a técnica própria não entra na família',
+  [cobre('fam:armlock', 'Meu armlock inventado'), cobre('fam:armlock', 'Meu armlock inventado', minhas)], [false, true]);
+ok('aceitas: a própria da família some quando a família entra',
+  [limparAceitas('', ['Meu armlock inventado', 'fam:armlock'], minhas), jaCoberta('Meu armlock inventado', '', ['fam:armlock'], minhas)],
+  [['fam:armlock'], 'fam:armlock']);
+delete destCat.tecnicas;
+
 const tirou = p41({ objetivo: 'Finalizar', objetivoTipo: 'finalizar', finalizacaoPreferida: '', finalizacoesAceitas: ['Armlock das costas'] });
 ok('tirar a família e voltar pra uma técnica: só ela conta como aceita',
   (() => { const k = correnteDoPlano(tirou); return k.passos.map((x) => escolhaDaFinalizacao(x, k, destCat)).slice(0, 3); })(), ['outra', 'outra', 'aceita']);

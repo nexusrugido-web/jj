@@ -355,22 +355,25 @@ export function comLigacao(ligacoes = [], l) {
    ele conta. O cartão é a tentativa: o objetivo só conta quando encaixa.
    R4.1: o objetivo também pode ser uma família ("qualquer armlock"), e
    a preferida e as aceitas também. A família grava o id (fam:armlock) e
-   vale pra toda variação ligada a ela no catálogo (familias.js). */
+   vale pra toda variação ligada a ela no catálogo (familias.js) e pra
+   técnica da pessoa que confirmou a família: pra isso vem a lista de
+   técnicas do aparelho (o destinoDe da tela carrega ela em .tecnicas). */
 export const OBJETIVO_FINALIZAR = 'Finalizar';
 /* o item (técnica ou família) cobre o golpe */
-export const cobre = (item, golpe) => !!item && !!golpe
-  && (item === golpe || (ehFamilia(item) && familiaDoGolpe(golpe) === item));
+export const cobre = (item, golpe, tecnicas = null) => !!item && !!golpe
+  && (item === golpe || (ehFamilia(item) && familiaDoGolpe(golpe, tecnicas) === item));
 export const finalizacoesDoObjetivo = (plano) => (plano?.objetivoTipo === 'finalizar'
   ? [plano.finalizacaoPreferida, ...(plano.finalizacoesAceitas || [])].filter(Boolean) : []);
-export const ehPreferida = (passo, plano) => !!passo && tipoDe(passo) === 'golpe'
-  && plano?.objetivoTipo === 'finalizar' && cobre(plano.finalizacaoPreferida, passo.golpe);
+export const ehPreferida = (passo, plano, tecnicas = null) => !!passo && tipoDe(passo) === 'golpe'
+  && plano?.objetivoTipo === 'finalizar' && cobre(plano.finalizacaoPreferida, passo.golpe, tecnicas);
 export function chegaNoObjetivo(passo, plano, destinoDe = () => null) {
   if (!passo || tipoDe(passo) !== 'golpe') return false;
   const tipo = plano?.objetivoTipo || (plano?.objetivo ? 'tecnica' : '');
   const destino = destinoDe(passo.golpe);
-  if (tipo === 'finalizar') return destino?.slug === 'finalizacao' || finalizacoesDoObjetivo(plano).some((f) => cobre(f, passo.golpe));
+  const tecnicas = destinoDe.tecnicas || null;
+  if (tipo === 'finalizar') return destino?.slug === 'finalizacao' || finalizacoesDoObjetivo(plano).some((f) => cobre(f, passo.golpe, tecnicas));
   if (tipo === 'posicao') return !!destino && destino.nome === plano.objetivo;
-  if (tipo === 'familia') return ehFamilia(plano.objetivo) && cobre(plano.objetivo, passo.golpe);
+  if (tipo === 'familia') return ehFamilia(plano.objetivo) && cobre(plano.objetivo, passo.golpe, tecnicas);
   if (tipo === 'tecnica') return passo.golpe === plano.objetivo;
   return false;
 }
@@ -380,20 +383,20 @@ export function chegaNoObjetivo(passo, plano, destinoDe = () => null) {
    preferida). A exceção: preferir uma técnica e aceitar a família dela
    ("prefiro o da montada, mas qualquer armlock vale"). Devolve quem já
    cobre o item, ou '' quando ele pode entrar. */
-export function jaCoberta(item, preferida = '', aceitas = []) {
+export function jaCoberta(item, preferida = '', aceitas = [], tecnicas = null) {
   if (!item) return '';
   if (item === preferida || aceitas.includes(item)) return item;
   if (ehFamilia(item)) return '';
-  return [preferida, ...aceitas].find((f) => ehFamilia(f) && cobre(f, item)) || '';
+  return [preferida, ...aceitas].find((f) => ehFamilia(f) && cobre(f, item, tecnicas)) || '';
 }
 /* as aceitas sem repetição: a família que entra leva junto as variações
    dela que já estavam na lista */
-export function limparAceitas(preferida = '', aceitas = []) {
+export function limparAceitas(preferida = '', aceitas = [], tecnicas = null) {
   const fora = [preferida, ...aceitas].filter(ehFamilia);
   const out = [];
   for (const n of aceitas) {
     if (!n || n === preferida || out.includes(n)) continue;
-    if (!ehFamilia(n) && fora.some((f) => cobre(f, n))) continue;
+    if (!ehFamilia(n) && fora.some((f) => cobre(f, n, tecnicas))) continue;
     out.push(n);
   }
   return out;
@@ -403,7 +406,8 @@ export function limparAceitas(preferida = '', aceitas = []) {
 export function escolhaDaFinalizacao(passo, plano, destinoDe = () => null) {
   const lista = finalizacoesDoObjetivo(plano);
   if (!lista.length || plano?.objetivoTipo !== 'finalizar' || !chegaNoObjetivo(passo, plano, destinoDe)) return '';
-  return ehPreferida(passo, plano) ? 'preferida' : lista.some((f) => cobre(f, passo.golpe)) ? 'aceita' : 'outra';
+  const tecnicas = destinoDe.tecnicas || null;
+  return ehPreferida(passo, plano, tecnicas) ? 'preferida' : lista.some((f) => cobre(f, passo.golpe, tecnicas)) ? 'aceita' : 'outra';
 }
 export const finaliza = (passo, destinoDe = () => null) => !!passo && tipoDe(passo) === 'golpe' && destinoDe(passo?.golpe)?.slug === 'finalizacao';
 
@@ -555,7 +559,7 @@ export function planoNovo({ nome, posicao, posicaoId = null, finta = '', objetiv
   const fin = objetivoTipo === 'finalizar';
   const preferida = fin ? String(finalizacaoPreferida || '').trim() : '';
   const aceitas = fin ? limparAceitas(preferida, (Array.isArray(finalizacoesAceitas) ? finalizacoesAceitas : [])
-    .map((n) => String(n || '').trim())) : [];
+    .map((n) => String(n || '').trim()), tecnicas) : [];
   const fintaDe = (x) => String(x.golpe || '').trim().slice(0, FINTA_MAX);
   const { lista, pai, novo } = podar(passos, (x) => (tipoDe(x) === 'finta' ? fintaDe(x) : x.golpe));
   const guardados = lista.map((i) => {
