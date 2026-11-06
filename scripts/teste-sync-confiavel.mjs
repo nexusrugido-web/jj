@@ -136,5 +136,91 @@ ok('linha antiga, mais nova, ainda vale e não duplica', [(await db.techniques.g
 const del = paraRegistros([{ tabela: 'attackPlans', op: 'delete', uid: 'plano-1', updatedAt: T }], 'conta-A')[0];
 ok('apagar vai pro id da conta e leva o uid', [del.id === idNaNuvem('attackPlans', 'plano-1', 'conta-A'), del.dados.uid], [true, 'plano-1']);
 
+/* ---------- S3: trocar de aparelho, relações pelo id permanente ----------
+   O aparelho A grava pelo caminho de verdade (hooks → fila → subirFila);
+   o B é um banco zerado, com as categorias numa ordem diferente
+   (Compressões entrou no meio da lista), e baixa pelo aplicarLocal. */
+const { default: Dexie } = await import('dexie');
+const { registrarSync } = await import('../src/db/db.js');
+const { resolverPendentes } = await import('../src/lib/sync.js');
+let relogio = T;
+registrarSync((tabela, op, reg) => Dexie.ignoreTransaction(() => db.outbox.add({
+  tabela, op, uid: reg.uid, dados: op === 'delete' ? null : reg, updatedAt: reg.updatedAt, criadoEm: ++relogio, tentativas: 0,
+})));
+const espera = () => new Promise((res) => setTimeout(res, 3));
+const CATS_ANTES = ['queda', 'passagem', 'raspagem', 'estrangulamento', 'articular', 'perna', 'escapada', 'transicao', 'compressao'];
+const CATS_DEPOIS = ['queda', 'passagem', 'raspagem', 'estrangulamento', 'articular', 'perna', 'compressao', 'escapada', 'transicao'];
+const semear = async (cats) => {
+  for (const slug of cats) await db.categories.add({ slug, nome: slug, uid: uidEstavel(chaveNome('categories', slug)), __local: 1 });
+  for (const slug of ['guarda_fechada', 'montada', 'costas']) await db.positions.add({ slug, nome: slug, uid: uidEstavel(chaveNome('positions', slug)), __local: 1 });
+};
+const idCat = async (slug) => (await db.categories.filter((c) => c.slug === slug).first()).id;
+const idPos = async (slug) => (await db.positions.filter((c) => c.slug === slug).first()).id;
+
+/* aparelho A */
+await db.delete(); await db.open();
+await semear(CATS_ANTES);
+const fuga = await db.techniques.add({ nome: 'Fuga de quadril', uid: uidEstavel(chaveNome('techniques', 'Fuga de quadril')), categoriaId: await idCat('escapada'), origemId: await idPos('montada'), destinoId: await idPos('guarda_fechada'), status: 'nao_iniciada', criadoEm: T - 999999, __local: 1 });
+await db.techniques.update(fuga, { status: 'aprendendo' });                 // marcou: vira dado dele e sobe
+const minha = await db.techniques.add({ nome: 'Minha raspagem', categoriaId: await idCat('raspagem'), origemId: await idPos('guarda_fechada'), status: 'aprendendo', criadoEm: T });
+const acad = await db.academies.add({ nome: 'Academia X' });
+const prof = await db.professors.add({ nome: 'Professor Y', academiaId: acad });
+const parceiros = [await db.partners.add({ nome: 'Ana' }), await db.partners.add({ nome: 'Bruno' })];
+const datas = ['2026-10-01', '2026-10-02', '2026-10-03'];
+for (const [i, d] of datas.entries()) {
+  const sid = await db.sessions.add({ data: d, tipo: 'gi', academiaId: acad, professorId: prof, focoTecnicas: [{ tecnicaId: i === 0 ? fuga : minha, nome: i === 0 ? 'Fuga de quadril' : 'Minha raspagem' }] }); await espera();
+  await db.rolls.add({ sessionId: sid, partnerId: parceiros[i % 2], data: d, subsSofridas: [] }); await espera();
+  await db.pontos.add({ evento: 'treino', xp: 10, refId: `treino:${sid}`, data: d }); await espera();
+}
+const primeiroTreino = (await db.sessions.toArray())[0];
+await db.sessions.update(primeiroTreino.id, { notas: 'editado depois' }); await espera();
+const nuvemS3 = bancoComRls();
+while ((await subirFila('conta-A', nuvemS3.como('conta-A'), Date.now())).subiram);
+const linhasA = nuvemS3.doDono('conta-A').sort((a, b) => a.updated_at.localeCompare(b.updated_at) || 0);
+ok('o rola sobe com o id permanente do treino e do parceiro', linhasA.filter((l) => l.tabela === 'rolls').every((l) => l.dados.refs?.sessionId && l.dados.refs?.partnerId), true);
+ok('categoria e posição da biblioteca sobem pelo slug', linhasA.find((l) => l.dados.nome === 'Fuga de quadril').dados.refs, { categoriaId: 'slug:escapada', origemId: 'slug:montada', destinoId: 'slug:guarda_fechada' });
+
+/* aparelho B: outra ordem de categorias, a nuvem desce na ordem de updated_at */
+await db.delete(); await db.open();
+await semear(CATS_DEPOIS);
+/* a biblioteca do celular novo nasce agora, mais nova que a marca que vem da nuvem */
+await db.techniques.add({ nome: 'Fuga de quadril', uid: uidEstavel(chaveNome('techniques', 'Fuga de quadril')), categoriaId: await idCat('escapada'), status: 'nao_iniciada', criadoEm: Date.now() + 9e6, updatedAt: Date.now() + 9e6, __local: 1 });
+ok('no B, a numeração das categorias é outra mesmo (escapada era 7 no A)', await idCat('escapada'), 8);
+await aplicarLocal(linhasA);
+const sesB = await db.sessions.toArray();
+const rolB = await db.rolls.toArray();
+const parB = await db.partners.toArray();
+ok('cada rola continua no treino certo (mesmo com o treino editado e outra ordem)',
+  rolB.map((r) => [r.data, sesB.find((s) => s.id === r.sessionId)?.data]), datas.map((d) => [d, d]));
+ok('e com o parceiro certo', rolB.map((r) => parB.find((p) => p.id === r.partnerId)?.nome), ['Ana', 'Bruno', 'Ana']);
+const fugaB = await db.techniques.where('uid').equals(uidEstavel(chaveNome('techniques', 'Fuga de quadril'))).first();
+ok('técnica marcada fica na categoria certa do B e com o progresso (a biblioteca recém-criada não ganha da marca)', [fugaB.categoriaId === await idCat('escapada'), fugaB.origemId === await idPos('montada'), fugaB.status, 'refs' in fugaB], [true, true, 'aprendendo', false]);
+const minhaB = await db.techniques.filter((t) => t.nome === 'Minha raspagem').first();
+ok('técnica criada pelo atleta também', minhaB.categoriaId === await idCat('raspagem'), true);
+ok('a técnica do foco do treino aponta pra técnica certa do B', sesB.map((s) => s.focoTecnicas[0].tecnicaId === (s.focoTecnicas[0].nome === 'Minha raspagem' ? minhaB.id : fugaB.id)), [true, true, true]);
+const profB = await db.professors.toArray();
+const acadB = await db.academies.toArray();
+ok('professor aponta pra academia do B', profB[0].academiaId === acadB[0].id && sesB.every((s) => s.academiaId === acadB[0].id && s.professorId === profB[0].id), true);
+const ptsB = await db.pontos.toArray();
+ok('o ponto aponta pro treino do B', ptsB.map((p) => sesB.find((s) => `treino:${s.id}` === p.refId)?.data), datas);
+ok('repetir a descida não duplica nada', await (async () => { await aplicarLocal(linhasA); return [await db.sessions.count(), await db.rolls.count(), await db.partners.count(), await db.techniques.count()]; })(), [3, 3, 2, 2]);
+ok('a descida não volta pra fila', await db.outbox.count(), 0);
+
+/* rola que chega antes do treino: fica pendente, sem número de ninguém, e liga quando o treino chega */
+await db.delete(); await db.open();
+await semear(CATS_DEPOIS);
+const soRolas = linhasA.filter((l) => l.tabela === 'rolls');
+await aplicarLocal(soRolas);
+ok('rola sem o treino ainda: sem número de outro aparelho', (await db.rolls.toArray()).map((r) => r.sessionId), [null, null, null]);
+await aplicarLocal(linhasA.filter((l) => l.tabela !== 'rolls'));
+const sesC = await db.sessions.toArray();
+ok('o treino chegou: o rola liga nele', (await db.rolls.toArray()).map((r) => sesC.find((s) => s.id === r.sessionId)?.data), datas);
+ok('não sobra pendência', [(await db.meta.get('refs_pendentes'))?.value?.length, await resolverPendentes()], [0, 0]);
+
+/* registro antigo (sem refs) desce como sempre desceu */
+const antigo = { id: 'rola-velho', user_id: 'conta-A', tabela: 'rolls', dados: { uid: 'rola-velho', sessionId: 2, data: '2026-09-01' }, updated_at: new Date(T).toISOString(), deleted_at: null };
+await aplicarLocal([antigo]);
+ok('registro antigo, sem refs, desce igual a antes', (await db.rolls.where('uid').equals('rola-velho').first()).sessionId, 2);
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

@@ -201,7 +201,12 @@ export async function subirFila(userId, enviar = enviarAoSupabase, agora = Date.
     ultima.set(i.uid, i);
   }
   if (intactas.length) await db.outbox.bulkDelete(intactas);
-  const finais = [...ultima.values()];
+  /* cada referência sobe com o id permanente (S3); vale também pro que
+     já estava na fila antes desta versão */
+  const finais = [];
+  for (const i of ultima.values()) {
+    finais.push(i.op === 'upsert' && i.dados ? { ...i, dados: await comReferencias(i.tabela, i.dados) } : i);
+  }
   /* sai a versão que subiu e todas as anteriores do mesmo registro,
      inclusive uma recusada antes que ainda esperava a vez: senão ela
      subiria depois por cima da mais nova */
@@ -233,6 +238,142 @@ export async function subirFila(userId, enviar = enviarAoSupabase, agora = Date.
   }
   await contarPendentes();
   return { subiram, falharam };
+}
+
+/* ============================================================
+   REFERÊNCIA PELO ID PERMANENTE, NÃO PELO NÚMERO DO APARELHO
+
+   No aparelho, um registro aponta pra outro pelo número local do
+   Dexie (rola → treino nº 3). Esse número é de cada aparelho: o
+   outro celular numera na ordem em que os registros chegam, e o
+   nº 3 de lá é outro treino. Prova: rola ligado no treino errado
+   depois de trocar de celular (06/11/2026).
+
+   Na fronteira do sync, o número vira id permanente e volta a ser
+   número no outro lado:
+   - ao subir, o registro leva `refs` com o uid de cada registro
+     apontado (categoria e posição da biblioteca vão pelo slug, que
+     não muda com a ordem da lista nem com nome novo);
+   - ao descer, cada ref vira o número local daquele aparelho. O que
+     aponta pra um registro que ainda não chegou fica pendente e liga
+     quando ele chegar. Nunca fica com o número de outro aparelho.
+   Registro antigo, sem `refs`, desce como sempre desceu (o reparo
+   do que já está nos aparelhos é outra etapa).
+   ============================================================ */
+const REFS = {
+  rolls: { sessionId: 'sessions', partnerId: 'partners' },
+  sessions: { academiaId: 'academies', professorId: 'professors', 'focoTecnicas.*.tecnicaId': 'techniques' },
+  professors: { academiaId: 'academies' },
+  techniques: { categoriaId: 'categories', origemId: 'positions', destinoId: 'positions' },
+  reviews: { techniqueId: 'techniques' },
+  gameplans: { posicaoId: 'positions' },
+  settings: { academiaPadraoId: 'academies', professorPadraoId: 'professors' },
+  /* o ponto guarda o treino num texto: "treino:12", "rola:12:0" */
+  pontos: { refId: 'sessions' },
+};
+const PONTO = /^(treino|competicao|rola):(\d+|pendente)(.*)$/;
+const COM_SLUG = new Set(['categories', 'positions']);
+
+/* os campos de referência que o registro tem: [chave, tabela apontada, número local] */
+function camposDeRef(tabela, dados) {
+  const out = [];
+  for (const [campo, alvo] of Object.entries(REFS[tabela] || {})) {
+    if (campo.includes('.*.')) {
+      const [lista, sub] = campo.split('.*.');
+      (Array.isArray(dados[lista]) ? dados[lista] : []).forEach((x, i) => out.push([`${lista}.${i}.${sub}`, alvo, x?.[sub]]));
+    } else if (tabela === 'pontos') {
+      const m = String(dados.refId || '').match(PONTO);
+      if (m) out.push(['refId', alvo, Number(m[2])]);
+    } else out.push([campo, alvo, dados[campo]]);
+  }
+  return out.filter(([, , n]) => Number.isInteger(n) && n > 0);
+}
+
+function gravarCampo(tabela, dados, chave, numero) {
+  if (tabela === 'pontos' && chave === 'refId') {
+    const m = String(dados.refId || '').match(PONTO);
+    if (m) dados.refId = `${m[1]}:${numero ?? 'pendente'}${m[3]}`;
+    return;
+  }
+  const partes = chave.split('.');
+  if (partes.length === 3) {
+    const lista = [...(dados[partes[0]] || [])];
+    lista[Number(partes[1])] = { ...lista[Number(partes[1])], [partes[2]]: numero };
+    dados[partes[0]] = lista;
+  } else dados[chave] = numero;
+}
+
+const chaveDoRegistro = (alvo, r) => (COM_SLUG.has(alvo) && r.slug ? `slug:${r.slug}` : r.uid);
+async function numeroLocal(alvo, chave) {
+  if (!db[alvo] || !chave) return null;
+  const r = chave.startsWith('slug:')
+    ? await db[alvo].filter((x) => x.slug === chave.slice(5)).first()
+    : await db[alvo].where('uid').equals(chave).first();
+  return r?.id ?? null;
+}
+
+/* subida: o registro com os ids permanentes do que ele aponta */
+export async function comReferencias(tabela, dados) {
+  if (!dados || !REFS[tabela]) return dados;
+  const refs = {};
+  for (const [chave, alvo, numero] of camposDeRef(tabela, dados)) {
+    const r = await db[alvo]?.get(numero);
+    const k = r && chaveDoRegistro(alvo, r);
+    if (k) refs[chave] = k;
+  }
+  const { refs: _velhas, ...resto } = dados;
+  return Object.keys(refs).length ? { ...resto, refs } : resto;
+}
+
+/* descida: os ids permanentes viram os números deste aparelho */
+export async function traduzirReferencias(tabela, dados) {
+  if (!dados?.refs) return { dados, pendentes: [] };
+  const { refs, ...novo } = dados;
+  const pendentes = [];
+  for (const [chave, ref] of Object.entries(refs)) {
+    const alvo = REFS[tabela]?.[chave] || REFS[tabela]?.[chave.replace(/\.\d+\./, '.*.')];
+    if (!alvo) continue;
+    const numero = await numeroLocal(alvo, ref);
+    gravarCampo(tabela, novo, chave, numero);
+    if (numero == null) pendentes.push({ chave, ref, alvo });
+  }
+  return { dados: novo, pendentes };
+}
+
+const CHAVE_PENDENTES = 'refs_pendentes';
+async function guardarPendentes(tabela, uid, lista) {
+  if (!lista.length) return;
+  const atual = (await db.meta.get(CHAVE_PENDENTES))?.value || [];
+  const fora = new Set(lista.map((p) => `${tabela}|${uid}|${p.chave}`));
+  const novos = lista.map((p) => ({ tabela, uid, ...p }));
+  await db.meta.put({ key: CHAVE_PENDENTES, value: [...atual.filter((p) => !fora.has(`${p.tabela}|${p.uid}|${p.chave}`)), ...novos] });
+}
+
+/* liga o que estava esperando o registro apontado chegar */
+export async function resolverPendentes() {
+  const lista = (await db.meta.get(CHAVE_PENDENTES))?.value || [];
+  if (!lista.length) return 0;
+  const ficam = [];
+  let ligados = 0;
+  for (const p of lista) {
+    const numero = await numeroLocal(p.alvo, p.ref);
+    if (numero == null) { ficam.push(p); continue; }
+    if (p.tabela === TABELA_AJUSTES) {
+      const s = (await db.meta.get('settings'))?.value;
+      if (s) { gravarCampo(p.tabela, s, p.chave, numero); await db.meta.put({ key: 'settings', value: s }); }
+    } else {
+      const r = await db[p.tabela]?.where('uid').equals(p.uid).first();
+      if (!r) continue; // o registro saiu: a pendência sai junto
+      const copia = { ...r };
+      gravarCampo(p.tabela, copia, p.chave, numero);
+      const topo = p.chave.split('.')[0];
+      /* __local: é tradução, não edição; não volta pra fila */
+      await db[p.tabela].update(r.id, { [topo]: copia[topo], __local: Math.random() });
+    }
+    ligados++;
+  }
+  await db.meta.put({ key: CHAVE_PENDENTES, value: ficam });
+  return ligados;
 }
 
 /* ============================================================
@@ -325,18 +466,25 @@ export async function aplicarLocal(linhas) {
     }
 
     const remotoEm = new Date(linha.updated_at).getTime();
-    if (existente && (existente.updatedAt || 0) >= remotoEm) continue; // local é mais novo
+    /* local é mais novo: fica. Menos a biblioteca intocada, que o celular
+       novo cria na instalação com a hora de agora: ela não é dado do
+       atleta e nunca ganha do progresso que veio da nuvem */
+    if (existente && (existente.updatedAt || 0) >= remotoEm && !sementeIntacta(tabela, existente)) continue;
 
     /* __local: grava sem voltar pra fila de envio (db.js). Sem isso,
        o que descia voltava a subir, e o ciclo não parava. */
-    const registro = { ...linha.dados, uid, updatedAt: remotoEm, sincronizado: 1, __local: Math.random() };
+    const { dados, pendentes } = await traduzirReferencias(tabela, linha.dados);
+    const registro = { ...dados, uid, updatedAt: remotoEm, sincronizado: 1, __local: Math.random() };
     if (existente) {
       await db[tabela].update(existente.id, registro);
     } else {
       delete registro.id;
       await db[tabela].add(registro);
     }
+    await guardarPendentes(tabela, uid, pendentes);
   }
+  /* o rola que chegou antes do treino liga agora */
+  await resolverPendentes();
 }
 
 /* as configurações que vieram da nuvem: valem se forem mais novas que as
@@ -350,8 +498,10 @@ async function aplicarAjustes(linha) {
      hora mais nova: ele só aceitou os termos, não configurou nada */
   const virgem = !local.onboardingFeito && linha.dados?.onboardingFeito;
   if (!virgem && (local.updatedAt || 0) >= remotoEm) return;
-  const novo = { ...local, ...linha.dados, aceite: local.aceite || linha.dados?.aceite, updatedAt: Math.max(remotoEm, local.updatedAt || 0) };
+  const { dados, pendentes } = await traduzirReferencias(TABELA_AJUSTES, linha.dados);
+  const novo = { ...local, ...dados, aceite: local.aceite || linha.dados?.aceite, updatedAt: Math.max(remotoEm, local.updatedAt || 0) };
   await db.meta.put({ key: 'settings', value: novo });
+  await guardarPendentes(TABELA_AJUSTES, TABELA_AJUSTES, pendentes);
   if (typeof window !== 'undefined' && window.dispatchEvent) {
     window.dispatchEvent(new CustomEvent('ajustes-da-nuvem', { detail: novo }));
   }
