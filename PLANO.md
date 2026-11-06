@@ -16,6 +16,7 @@ Contrato em `docs/CONTRATO-TECNICAS.md`. Cada frente numa branch própria, integ
   - T2. Ficha: própria mostra Editar e Arquivar; do catálogo mostra "Criar minha versão". → verificar: print 360px, `teste:telas`, `lint:copy`. → FEITO (`teste:proprias-visual`).
   - T3. "Criadas por você, ainda sem rola" em Minhas técnicas, com as arquivadas. → FEITO.
   - T4. Simulações das duas passadas (marcar as próprias antigas; ligar rolas, planos e metas ao uid) no servidor: SQL 57, só leitura. → verificar: `teste:simulacao-tecnicas` (mesmos números do app). → FEITO; falta o dono colar e aprovar os números.
+  - T5. Antes de ligar a passada (revisão de 07/11 em NEUROJITSU-RELATORIOS/2026-11-07-revisao-passada-identidade.md): SQL 56 aceitar a técnica antiga sem `propria` que já existe na nuvem (hoje recusaria 454); ligar com marca `identidade_t` e transação única (teste fechando no meio); SQL da cópia e da comparação. Ligar só com autorização do dono.
 - Depois: `contra` no seed, assuntos.
 
 ## Trilha S: sync confiável entre aparelhos e entre contas (06/11/2026, antes das técnicas próprias)
