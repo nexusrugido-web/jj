@@ -94,10 +94,19 @@ const SAIR_DE = {
 };
 export const sairDe = (posicao) => SAIR_DE[posicao] || `de ${nomeDe(POSICOES, posicao)}`;
 
+const OUTRA_DA_CATEGORIA = {
+  compressao: 'outra compressão, com a mesma mecânica', articular: 'outra chave articular',
+  perna: 'outra chave de perna', estrangulamento: 'outro estrangulamento',
+};
+
 /* o que a tela diz da aula escolhida: o que ela ensina, ou, quando o
    acervo ainda não tem a aula certa, o que ela é de verdade */
 export function rotuloDaAula(aula, pedido, alvo) {
   if (pedido?.defesa && alvo) {
+    /* aula de defesa de outra técnica da mesma categoria (a do Banana
+       split pra quem toma Bicep slicer): diz isso, sem fingir que é dela */
+    const daTecnica = !(pedido.tecnicas || []).length || (pedido.tecnicas || []).some((u) => (aula.tecnicas || []).includes(u));
+    if (!aula.generico && !daTecnica && OUTRA_DA_CATEGORIA[pedido.familia]) return `ainda não há aula de defesa de ${alvo} · esta ensina a defesa de ${OUTRA_DA_CATEGORIA[pedido.familia]}`;
     if (!aula.generico) return `ensina a defesa de ${alvo}`;
     if (aula.saidaDe) return `ainda não há aula de defesa de ${alvo} · esta ensina a sair ${sairDe(aula.saidaDe)}, de onde ela costuma sair`;
     return `ainda não há aula de defesa de ${alvo} · esta é de defesa em geral`;

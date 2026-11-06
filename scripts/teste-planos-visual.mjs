@@ -395,6 +395,18 @@ try {
     await page.getByText('A família inteira', { exact: true }).waitFor();
     await page.waitForTimeout(400);
     await page.screenshot({ path: `${pasta}/${nome}-familia-seletor.png` });
+    /* R4.1: Compressões no seletor: as quatro, cada uma como técnica só (categoria não é família) */
+    const chips = await page.locator('.chips-scroll .chip').allInnerTexts();
+    console.log(`${nome} chips do seletor:`, JSON.stringify(chips));
+    assert.equal(chips.some((c) => /Quedas|Passagens/.test(c)), false, 'seletor de finalização sem categoria que não finaliza');
+    await page.locator('.chip', { hasText: 'Compressões' }).click();
+    await page.waitForTimeout(300);
+    const comp = (await page.locator('.list-item').allInnerTexts()).map((x) => x.split(String.fromCharCode(10))[0].trim());
+    console.log(`${nome} Compressões:`, JSON.stringify(comp));
+    for (const n of ['Cadeira elétrica (finalização)', 'Banana split', 'Compressão de panturrilha (calf slicer)', 'Chave de bíceps (bicep slicer)']) assert.ok(comp.includes(n), `${n} em Compressões`);
+    assert.equal(comp.some((x) => /^Qualquer/.test(x)), false, 'Compressões não vira família');
+    await page.screenshot({ path: `${pasta}/${nome}-compressoes.png` });
+    await page.locator('.chip', { hasText: 'Todas' }).click();
     await page.locator('.list-item', { hasText: 'Qualquer armlock' }).click();
     await page.locator('.chip', { hasText: 'Outra finalização' }).click();
     await page.getByPlaceholder('Buscar em português ou inglês…').fill('armlock da montada');

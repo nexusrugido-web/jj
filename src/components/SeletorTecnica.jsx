@@ -44,10 +44,14 @@ export function SeletorTecnica({
   const catById = useMemo(() => Object.fromEntries(categories.map((c) => [c.id, c])), [categories]);
 
   const catsPermitidas = useMemo(() => {
-    if (!categoriaFiltro) return categories;
+    /* só a categoria que tem técnica na lista: no seletor de finalização, Quedas não aparece */
+    if (!categoriaFiltro) {
+      const comTecnica = new Set(techniques.map((t) => t.categoriaId));
+      return categories.filter((c) => comTecnica.has(c.id));
+    }
     const alvos = Array.isArray(categoriaFiltro) ? categoriaFiltro : [categoriaFiltro];
     return categories.filter((c) => alvos.includes(c.slug));
-  }, [categories, categoriaFiltro]);
+  }, [categories, categoriaFiltro, techniques]);
 
   const idsPermitidos = useMemo(() => new Set(catsPermitidas.map((c) => c.id)), [catsPermitidas]);
 
@@ -69,10 +73,12 @@ export function SeletorTecnica({
   }, [techniques, cat, busca, categoriaFiltro, idsPermitidos, recentes, semPosicoes]);
 
   const familiasVistas = useMemo(() => (familias || []).filter((id) => {
+    /* com uma categoria escolhida, só a família que tem técnica nela */
+    if (cat !== 'todas' && !techniques.some((t) => t.categoriaId === Number(cat) && (MEMBROS.get(id) || []).includes(t.nome))) return false;
     if (!busca) return true;
     const f = FAMILIA_POR_ID.get(id);
     return buscaMatch(`${f.nome} ${f.qualquer} ${(MEMBROS.get(id) || []).join(' ')}`, busca);
-  }), [familias, busca]);
+  }), [familias, busca, cat, techniques]);
 
   const atalhos = useMemo(
     () => recentes

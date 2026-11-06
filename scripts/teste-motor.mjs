@@ -111,6 +111,13 @@ const comDefesaDaCadeira = [...acervoCadeira, v('defesa-banana-split', { tecnica
 ok('com aula da própria técnica, ela vem primeiro; a de outra compressão (Banana split) também serve',
   ids(aulasPara(pedidoCadeira, { lista: comDefesaDaCadeira, quantidade: 2, soAula: true })), ['defesa-cadeira', 'defesa-banana-split']);
 
+const pedidoBicep = pedidoDaRec({ intencao: 'corrigir', alvo: 'Chave de bíceps (bicep slicer)' });
+ok('o pedido do Bicep slicer leva a família compressão', pedidoBicep.familia, 'compressao');
+const bicepAulas = aulasPara(pedidoBicep, { lista: [...acervoCadeira, v('defesa-banana-split', { tecnicas: [uid('Banana split')], habilidades: ['defesa'] })], quantidade: 1, soAula: true });
+ok('quem toma Bicep slicer recebe a defesa de outra compressão', ids(bicepAulas), ['defesa-banana-split']);
+ok('e a tela não finge que a aula é do Bicep slicer', rotuloDaAula(bicepAulas[0], pedidoBicep, 'Chave de bíceps (bicep slicer)'),
+  'ainda não há aula de defesa de Chave de bíceps (bicep slicer) · esta ensina a defesa de outra compressão, com a mesma mecânica');
+
 /* ---------- katagatame: o caso do Painel (25/09) ----------
    A sugestão "Defesa contra Katagatame" trazia "O katagatame que
    apaga", que ensina a aplicar. Sem aula de defesa dele, a resposta
