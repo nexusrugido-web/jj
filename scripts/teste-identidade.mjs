@@ -15,7 +15,8 @@ const {
 } = await import('../src/lib/identidade.js');
 const { passadaDeIdentidade } = await import('../src/lib/compatibilidade.js');
 const { planoNovo, correnteDoPlano } = await import('../src/lib/planos.js');
-const { CATALOGO_TECNICAS } = await import('../src/lib/tecnicas.js');
+const { CATALOGO_TECNICAS, origemDaTecnica } = await import('../src/lib/tecnicas.js');
+const { uidEstavel, chaveNome } = await import('../src/lib/uid.js');
 
 let falhas = 0;
 const ok = (nome, real, esperado) => {
@@ -45,6 +46,12 @@ ok('técnica própria liga', uidDaTecnica('Kimura do meu jeito', techniques), 'p
 ok('nome ambíguo não liga', resolverNome('Pegada do tio', techniques), { ambiguo: true });
 ok('nome sem par não liga', resolverNome('Golpe que não existe', techniques), { semPar: true });
 ok('família não é técnica', uidDaTecnica('fam:armlock', techniques), null);
+/* aparelho antigo: a linha do catálogo ficou com o uid do nome de antes de RENOMEAR */
+const uidVelho = uidEstavel(chaveNome('techniques', 'Katagatame (triângulo de braço)'));
+const katagatame = doCatalogo('Katagatame dos 100kg');
+const comUidVelho = [...techniques.filter((t) => t.uid !== katagatame.uid), { id: 9100, uid: uidVelho, nome: 'Katagatame dos 100kg' }];
+ok('linha do catálogo com uid de nome antigo é do catálogo (origemDaTecnica)', origemDaTecnica(uidVelho), 'catalogo');
+ok('e liga no uid da biblioteca, sem virar ambíguo', uidDaTecnica('Katagatame dos 100kg', comUidVelho), katagatame.uid);
 
 /* ---------- o rola ---------- */
 const rola = {

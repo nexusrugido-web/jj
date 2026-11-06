@@ -1,4 +1,4 @@
-import { CATALOGO_TECNICAS, TECNICA_POR_UID } from './tecnicas';
+import { CATALOGO_TECNICAS, TECNICA_POR_UID, origemDaTecnica } from './tecnicas';
 import { nomeAtual } from '../db/renomeios';
 import { semAcento } from './classificar';
 import { ehFamilia } from './familias';
@@ -44,10 +44,14 @@ function indice(tecnicas) {
     if (t.antigo) por(t.antigo, t.uid);
     porUid.set(t.uid, t.nome);
   }
-  /* o que está no aparelho: o catálogo de novo (sem duplicar) e as próprias */
+  /* o que está no aparelho: o catálogo de novo (sem duplicar) e as próprias.
+     A linha do catálogo com uid de um nome antigo de RENOMEAR é do catálogo
+     (origemDaTecnica): responde pelo uid da biblioteca, igual em todo aparelho */
+  const doCatalogo = new Map(CATALOGO_TECNICAS.map((t) => [chave(t.nome), t.uid]));
   for (const t of lista) {
     if (!t?.uid || !t.nome) continue;
-    const u = principal(t.uid);
+    const u = TECNICA_POR_UID.has(t.uid) ? principal(t.uid)
+      : origemDaTecnica(t.uid) === 'catalogo' ? doCatalogo.get(chave(t.nome)) || t.uid : t.uid;
     por(t.nome, u);
     porUid.set(u, t.nome);
   }
