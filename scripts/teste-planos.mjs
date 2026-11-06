@@ -66,6 +66,36 @@ ok('a lista do parceiro junta meus e prontos', planosQueServem([
   { nome: 'a', pronto: 0, paraPeso: ['pesado'] }, { nome: 'b', pronto: 1, paraAltura: ['alto'] }, { nome: 'c', pronto: 1 },
 ], altoPesado).map((p) => p.nome), ['a', 'b']);
 
+/* "qualquer" é escolha; lista vazia é "não informei" */
+const { escolherPraQuem, QUALQUER } = await import('../src/lib/planos.js');
+const { PESO_REL } = await import('../src/db/scoring.js');
+const toques = (...ids) => ids.reduce((l, id) => escolherPraQuem(l, id), []);
+ok('qualquer altura', toques(QUALQUER), ['qualquer']);
+ok('qualquer desmarca as específicas', toques('alto', 'parecida', QUALQUER), ['qualquer']);
+ok('específica depois de qualquer: tira o qualquer', toques(QUALQUER, 'baixo'), ['baixo']);
+ok('específicas seguem somando', toques('leve', 'similar'), ['leve', 'similar']);
+ok('tocar de novo no qualquer volta pro não informei', toques(QUALQUER, QUALQUER), []);
+ok('sem lista (plano antigo): funciona igual', escolherPraQuem(undefined, QUALQUER), ['qualquer']);
+ok('as duas dimensões não se misturam',
+  (() => { let e = { paraAltura: [], paraPeso: ['leve'] };
+    e = { ...e, paraAltura: escolherPraQuem(e.paraAltura, QUALQUER) };
+    e = { ...e, paraAltura: escolherPraQuem(e.paraAltura, 'alto') };
+    e = { ...e, paraPeso: escolherPraQuem(e.paraPeso, QUALQUER) };
+    return [e.paraAltura, e.paraPeso]; })(), [['alto'], ['qualquer']]);
+const semInfo = {}, soAltura = { alturaRel: 'baixo' };
+ok('qualquer altura + qualquer peso: serve pra todo parceiro',
+  [altoPesado, soAltura, semInfo].map((p) => servePara({ paraAltura: [QUALQUER], paraPeso: [QUALQUER] }, p)), [true, true, true]);
+ok('qualquer altura + peso específico: o peso continua valendo',
+  [altoPesado, { alturaRel: 'alto', pesoRel: 'leve' }].map((p) => servePara({ paraAltura: [QUALQUER], paraPeso: ['pesado'] }, p)), [true, false]);
+ok('altura específica + qualquer peso: a altura continua valendo',
+  [altoPesado, { alturaRel: 'baixo', pesoRel: 'pesado' }].map((p) => servePara({ paraAltura: ['alto'], paraPeso: [QUALQUER] }, p)), [true, false]);
+ok('só qualquer peso, sem altura informada: serve', servePara({ paraPeso: [QUALQUER] }, soAltura), true);
+ok('não informado continua fora da ficha (plano antigo)', [servePara({}, altoPesado), servePara({ paraAltura: [], paraPeso: [] }, altoPesado)], [false, false]);
+ok('salvar, sincronizar (JSON) e reabrir mantém o qualquer',
+  (() => { const p = JSON.parse(JSON.stringify(planoNovo({ objetivo: 'Montada', objetivoTipo: 'posicao', paraAltura: [QUALQUER], paraPeso: ['leve'] })));
+    return [p.paraAltura, p.paraPeso]; })(), [['qualquer'], ['leve']]);
+ok('a lista de peso do rola não ganhou o qualquer', PESO_REL.map((p) => p.id), ['leve', 'similar', 'pesado']);
+
 /* taxa de acerto, onde morre, por tipo e rodízio */
 const { taxaDoPlano, taxaPorTipo, rodizio } = await import('../src/lib/planos.js');
 const A = { uid: 'A', nome: 'A', pronto: 0, passos: [{ id: 'q', acao: 'Queda', pai: null }, { id: 'a', acao: 'Armlock', pai: 0, via: 'encaixou' }, { id: 't', acao: 'Triângulo', pai: 1, via: 'defendeu' }] }, B = { uid: 'B', nome: 'B', pronto: 0 }, C = { uid: 'C', nome: 'C', pronto: 0 };

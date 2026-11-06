@@ -21,7 +21,7 @@ import {
   taxaDoPlano, taxaPorTipo, arvoreDoPlano, semOGolpe, letraDo, novoId, removidosAoSalvar, VIAS,
   semAFinta, fintaAntes, moverPasso, chegaNoObjetivo, finaliza, pontasSoltas, semGatilho, OBJETIVO_FINALIZAR,
   destinosDaLigacao, comLigacao, situacaoNoObjetivo, continua, escolhaDaFinalizacao, jaCoberta, limparAceitas,
-  nomeDaPosicao, FINTA_MAX,
+  nomeDaPosicao, FINTA_MAX, QUALQUER, escolherPraQuem,
 } from '../lib/planos';
 import { FAIXAS } from '../lib/faixas';
 import { PESO_REL } from '../db/scoring';
@@ -321,7 +321,6 @@ function AcertoDoPlano({ p, rolls, partners, porTipo }) {
   );
 }
 
-const alternar = (lista, id) => (lista.includes(id) ? lista.filter((x) => x !== id) : [...lista, id]);
 
 /* o cartão: nome, posição e o Plano A em miniatura; os outros planos num selo */
 function CartaoPlano({ p, exemplo = false, onAssistir, acerto = null, children }) {
@@ -563,16 +562,16 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
         <div className="chips-grupo">
           <span className="chips-grupo-nome"><Ruler size={13} /> Altura dele</span>
           <div className="row wrap" style={{ gap: 6 }}>
-            {ALTURA_REL.map((o) => (
-              <Chip key={o.id} on={edit.paraAltura.includes(o.id)} onClick={() => mudar({ paraAltura: alternar(edit.paraAltura, o.id) })}>{o.nome}</Chip>
+            {[...ALTURA_REL, { id: QUALQUER, nome: 'Qualquer altura' }].map((o) => (
+              <Chip key={o.id} on={edit.paraAltura.includes(o.id)} onClick={() => mudar({ paraAltura: escolherPraQuem(edit.paraAltura, o.id) })}>{o.nome}</Chip>
             ))}
           </div>
         </div>
         <div className="chips-grupo">
           <span className="chips-grupo-nome"><Weight size={13} /> Peso dele</span>
           <div className="row wrap" style={{ gap: 6 }}>
-            {PESO_REL.map((o) => (
-              <Chip key={o.id} on={edit.paraPeso.includes(o.id)} onClick={() => mudar({ paraPeso: alternar(edit.paraPeso, o.id) })}>{o.nome}</Chip>
+            {[...PESO_REL, { id: QUALQUER, nome: 'Qualquer peso' }].map((o) => (
+              <Chip key={o.id} on={edit.paraPeso.includes(o.id)} onClick={() => mudar({ paraPeso: escolherPraQuem(edit.paraPeso, o.id) })}>{o.nome}</Chip>
             ))}
           </div>
         </div>

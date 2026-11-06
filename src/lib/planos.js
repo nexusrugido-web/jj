@@ -598,12 +598,23 @@ export const ALTURA_REL = [
 ];
 export const alturaRelPorId = Object.fromEntries(ALTURA_REL.map((a) => [a.id, a]));
 
+/* "qualquer" é escolha: a dimensão serve pra todo parceiro. Lista
+   vazia é "não informei". Fica só no plano, fora do PESO_REL do rola. */
+export const QUALQUER = 'qualquer';
+/* qualquer e as específicas não andam juntas; as específicas somam */
+export function escolherPraQuem(lista = [], id) {
+  if (id === QUALQUER) return lista.includes(QUALQUER) ? [] : [QUALQUER];
+  const sem = lista.filter((x) => x !== QUALQUER);
+  return sem.includes(id) ? sem.filter((x) => x !== id) : [...sem, id];
+}
+
 export function servePara(plano, parceiro) {
   const dims = [['paraAltura', 'alturaRel'], ['paraPeso', 'pesoRel']];
   let bateu = 0;
   for (const [tag, campo] of dims) {
     const tags = plano?.[tag] || [];
     if (!tags.length) continue;
+    if (tags.includes(QUALQUER)) { bateu++; continue; }
     if (!parceiro?.[campo]) continue;
     if (!tags.includes(parceiro[campo])) return false;
     bateu++;
