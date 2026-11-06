@@ -286,6 +286,10 @@ ok('o que sobe já leva o id permanente do treino certo', await (async () => {
 })(), 's1');
 const denovo = await repararRelacoes({ simular: true });
 ok('rodar de novo não muda mais nada', [denovo.rolas.corrigidos, denovo.treinos.corrigidos, denovo.pontos.corrigidos, denovo.biblioteca.corrigidas], [0, 0, 0, 0]);
+const { repararUmaVez } = await import('../src/lib/sync.js');
+const primeira = await repararUmaVez();
+const registro = (await db.meta.get('reparo_s4'))?.value;
+ok('no ciclo do sync roda uma vez só e guarda o relatório', [primeira, await repararUmaVez(), registro?.rolas?.corrigidos], [false, false, 0]);
 
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

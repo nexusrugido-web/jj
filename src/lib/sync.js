@@ -3,6 +3,7 @@ import { db, TABELAS_SYNC } from '../db/db';
 import { RENOMEAR } from '../db/renomeios';
 import { uidEstavel, chaveNome } from './uid';
 import { supabase, supabaseConfigurado, sessaoAtual } from './supabase';
+import { repararRelacoes } from './reparo';
 
 /* ============================================================
    SYNC OFFLINE-FIRST
@@ -145,6 +146,7 @@ export async function sincronizar({ forcar = false } = {}) {
       if (!(await subirFila(sess.user.id)).subiram) break;
     }
     await baixar(sess.user.id);
+    if (await repararUmaVez()) await subirFila(sess.user.id);
     const agora = Date.now();
     await db.meta.put({ key: 'ultimo_sync', value: agora });
     /* registro recusado continua na fila: o ciclo terminou, mas não está
@@ -554,6 +556,17 @@ export async function garantirNuvem() {
   if (!faltam.length) return sincronizar({ forcar: true });
   await migrarParaNuvem(faltam);
   await db.meta.put({ key: 'nuvem_tabelas', value: TABELAS_SYNC });
+}
+
+/* ---------- S4: reparo das relações, uma vez por aparelho ----------
+   Depois da primeira descida completa (com o que já está na nuvem).
+   Só corrige com prova (reparo.js); o relatório fica em meta pra
+   conferência. Devolve true se mudou algo, pra subir no mesmo ciclo. */
+export async function repararUmaVez() {
+  if ((await db.meta.get('reparo_s4'))?.value) return false;
+  const r = await repararRelacoes({ simular: false });
+  await db.meta.put({ key: 'reparo_s4', value: { em: Date.now(), ...r } });
+  return r.rolas.corrigidos + r.treinos.corrigidos + r.pontos.corrigidos > 0;
 }
 
 /* ---------- limpar vínculo local (logout) ---------- */
