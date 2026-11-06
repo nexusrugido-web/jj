@@ -187,7 +187,7 @@ export default function Treinos() {
       db.attackPlans.where('uid').equals(drillPlano).first().then((p) => {
         if (!p) return;
         const c = correnteDoPlano(p);
-        const nomes = [...new Set(c.passos.filter((x) => x.tipo !== 'situacao').map((x) => x.golpe).filter(Boolean))];
+        const nomes = [...new Set(c.passos.filter((x) => x.tipo === 'golpe').map((x) => x.golpe).filter(Boolean))];
         const porNome = new Map(techniques.map((t) => [String(t.nome).toLowerCase(), t]));
         setEditando({
           ...novaSessao(settings, 'drill'),

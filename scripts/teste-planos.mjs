@@ -292,7 +292,7 @@ const nr = planoNovo({ passos: [
   { golpe: 'Omoplata', pai: 0, via: 'naoReagiu' },
 ] });
 const anr = arvoreDoPlano(correnteDoPlano(nr).passos);
-ok('duas ameaças no "não reagiu", cada uma com letra', anr.ordem.map((i) => `${letraDo(anr.trilho[i])}:${nr.passos[i].acao}`), ['A:Guilhotina', 'A:Armlock', 'B:Kimura', 'C:Omoplata']);
+ok('duas ameaças no "não reagiu", cada uma com letra', anr.ordem.map((i) => `${letraDo(anr.trilho[i])}:${nr.passos[i].acao || nr.passos[i].descricao}`), ['A:Guilhotina', 'A:Armlock', 'B:Kimura', 'C:Omoplata']);
 ok('"não reagiu" não pede gatilho (é escolha sua)', semGatilho(correnteDoPlano(nr).passos), []);
 
 ok('"meia guarda" acha Kimura da meia-guarda', casaApelido('Kimura da meia-guarda', 'meia guarda'), true);
@@ -696,6 +696,32 @@ ok('plano antigo sem posicaoId: mostra o nome guardado', noMapa({ ...rasc, posic
 ok('plano com posição que não existe mais: mostra o nome guardado', noMapa({ ...rasc, posicaoId: '99', posicao: 'Meia guarda' }), 'Meia guarda');
 ok('id numérico ou texto dá na mesma', [nomeDaPosicao({ posicaoId: 2 }, posicoes), nomeDaPosicao({ posicaoId: '2' }, posicoes)], ['Sentado', 'Sentado']);
 ok('sem lista de posições (ainda carregando): cai no nome guardado', nomeDaPosicao({ posicaoId: '1', posicao: 'Em pé' }), 'Em pé');
+
+/* a finta é o texto do atleta, nunca técnica */
+const fintaTexto = planoNovo({ objetivo: 'Finalizar', objetivoTipo: 'finalizar', passos: [
+  { id: 'f', tipo: 'finta', golpe: '  fingir que vou no armlock pra ele recolher o braço  ', pai: null },
+  { id: 'g', golpe: 'Triângulo', pai: 0, via: 'reagiu', reacao: 'recolheu o braço' },
+] });
+ok('finta salva só o texto: descricao, sem acao', [fintaTexto.passos[0].descricao, 'acao' in fintaTexto.passos[0], fintaTexto.passos[0].tipo],
+  ['fingir que vou no armlock pra ele recolher o braço', false, 'finta']);
+ok('golpe segue com acao, sem descricao', [fintaTexto.passos[1].acao, 'descricao' in fintaTexto.passos[1]], ['Triângulo', false]);
+ok('finta sem id de técnica, família ou categoria',
+  Object.keys(fintaTexto.passos[0]).filter((k) => /uid|tecnica|familia|categoria|acao/i.test(k)), []);
+ok('finta passa de 120: corta no 120', planoNovo({ passos: [{ tipo: 'finta', golpe: 'x'.repeat(130), pai: null }] }).passos[0].descricao.length, 120);
+ok('finta só com espaço: sai, como golpe sem nome', planoNovo({ passos: [{ tipo: 'finta', golpe: '   ', pai: null }] }).passos.length, 0);
+ok('o mapa lê a finta nova pelo texto', correnteDoPlano(fintaTexto).passos.map((x) => [x.tipo, x.golpe]),
+  [['finta', 'fingir que vou no armlock pra ele recolher o braço'], ['golpe', 'Triângulo']]);
+const fintaNomeAntigo = { passos: [{ id: 'f', tipo: 'finta', acao: 'Guilhotina', pai: null }, { id: 'g', acao: 'Armlock', pai: 0, via: 'reagiu' }] };
+ok('finta antiga (nome de técnica em acao) aparece como texto, sem migrar', correnteDoPlano(fintaNomeAntigo).passos.map((x) => x.golpe), ['Guilhotina', 'Armlock']);
+ok('finta antiga editada e salva vira descricao e perde o acao',
+  (() => { const k = correnteDoPlano(fintaNomeAntigo); const s2 = planoNovo({ passos: k.passos }); return [s2.passos[0].descricao, 'acao' in s2.passos[0], s2.passos[1].acao]; })(),
+  ['Guilhotina', false, 'Armlock']);
+ok('finta do formato mais antigo (p.finta) continua aparecendo', correnteDoPlano({ finta: 'Raspagem de gancho', passos: [{ acao: 'Kimura' }] }).passos.map((x) => [x.tipo, x.golpe]),
+  [['golpe', 'Kimura'], ['finta', 'Raspagem de gancho']]);
+ok('salvar duas vezes não muda a finta',
+  (() => { const k = correnteDoPlano(fintaTexto); return JSON.stringify(planoNovo({ ...fintaTexto, passos: k.passos }).passos) === JSON.stringify(fintaTexto.passos); })(), true);
+ok('finta com nome de finalização não chega no objetivo', chegaNoObjetivo(correnteDoPlano({ passos: [{ tipo: 'finta', descricao: 'Armlock', pai: null }] }).passos[0], { objetivo: 'Armlock', objetivoTipo: 'tecnica' }, destinoDe), false);
+
 
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

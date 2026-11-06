@@ -21,7 +21,7 @@ import {
   taxaDoPlano, taxaPorTipo, arvoreDoPlano, semOGolpe, letraDo, novoId, removidosAoSalvar, VIAS,
   semAFinta, fintaAntes, moverPasso, chegaNoObjetivo, finaliza, pontasSoltas, semGatilho, OBJETIVO_FINALIZAR,
   destinosDaLigacao, comLigacao, situacaoNoObjetivo, continua, escolhaDaFinalizacao, jaCoberta, limparAceitas,
-  nomeDaPosicao,
+  nomeDaPosicao, FINTA_MAX,
 } from '../lib/planos';
 import { FAIXAS } from '../lib/faixas';
 import { PESO_REL } from '../db/scoring';
@@ -390,8 +390,11 @@ const posicoesDoPlano = (positions) => positions.filter((p) => p.slug !== 'final
 function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, destinoDe, onSalvar }) {
   /* a peça aberta: com "i" é uma que existe; sem, é a vaga nova (pai e via) */
   const [peca, setPeca] = useState(null);
-  /* qual campo o seletor de técnica preenche: 'objetivo', 'peca' ou 'fintaAntes' */
+  /* qual campo o seletor de técnica preenche: 'objetivo' ou 'peca' */
   const [escolhendo, setEscolhendo] = useState(null);
+  /* o texto da finta que entra antes da peça aberta (null: fechado) */
+  const [fintaNova, setFintaNova] = useState(null);
+  useEffect(() => { setFintaNova(null); }, [peca?.i, !peca]);
   const [ajuda, setAjuda] = useState(false);
   const plano = useMemo(() => (edit ? planoNovo({ ...edit, posicao: nomeDaPosicao(edit, positions) }) : null), [edit, positions]);
   if (!edit) return null;
@@ -439,7 +442,7 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
       setPeca(null);
       return;
     }
-    if (!peca.golpe) return;
+    if (!peca.golpe.trim()) return;
     if (existe) {
       mudar({ passos: passos.map((x, k) => (k === peca.i ? { ...x, golpe: peca.golpe, reacao: peca.reacao } : x)) });
     } else {
@@ -455,7 +458,7 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
   const viaDaPeca = peca ? (existe ? passos[peca.i].via || 'raiz' : peca.via || 'raiz') : 'raiz';
   const tituloSeletor = escolhendo === 'objetivo' ? 'Onde você quer chegar'
     : escolhendo === 'preferida' ? 'Sua finalização preferida' : escolhendo === 'aceita' ? 'Outra finalização que vale'
-    : escolhendo === 'fintaAntes' || peca?.tipo === 'finta' ? 'Qual é a finta' : 'Qual é o golpe';
+    : 'Qual é o golpe';
 
   return (
     <Sheet
@@ -580,15 +583,15 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
         aberto={!!peca} onClose={() => setPeca(null)}
         titulo={peca?.lig ? 'Caminho até uma peça do mapa' : peca?.tipo === 'situacao' || (!existe && peca?.via === 'escapou') ? 'Ele escapou' : existe ? (peca.tipo === 'finta' ? 'A finta' : 'O golpe') : 'O que vem aqui'}
         subtitulo={peca && (existe ? passos[peca.i].pai : peca.pai) !== null ? `vem de: ${passos[existe ? passos[peca.i].pai : peca.pai]?.golpe || ''}` : 'a primeira peça do plano'}
-        footer={<Btn variant="primary" style={{ width: '100%' }} disabled={ligacao ? peca.para === undefined : !peca?.golpe} onClick={guardarPeca}>Pronto</Btn>}
+        footer={<Btn variant="primary" style={{ width: '100%' }} disabled={ligacao ? peca.para === undefined : !peca?.golpe?.trim()} onClick={guardarPeca}>Pronto</Btn>}
       >
         {peca && (
           <>
             {!existe && !peca.lig && peca.via !== 'escapou' && (
               <Field label="É golpe ou finta?">
                 <div className="row wrap" style={{ gap: 6 }}>
-                  <Chip on={peca.tipo === 'golpe'} onClick={() => setPeca({ ...peca, tipo: 'golpe', para: undefined })}>Golpe de verdade</Chip>
-                  <Chip on={peca.tipo === 'finta'} onClick={() => setPeca({ ...peca, tipo: 'finta', para: undefined })}>Finta</Chip>
+                  <Chip on={peca.tipo === 'golpe'} onClick={() => peca.tipo !== 'golpe' && setPeca({ ...peca, tipo: 'golpe', golpe: '', para: undefined })}>Golpe de verdade</Chip>
+                  <Chip on={peca.tipo === 'finta'} onClick={() => peca.tipo !== 'finta' && setPeca({ ...peca, tipo: 'finta', golpe: '', para: undefined })}>Finta</Chip>
                 </div>
               </Field>
             )}
@@ -600,10 +603,14 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
                   {posicoesDoPlano(positions).map((p) => <option key={p.id} value={p.nome}>{p.nome}</option>)}
                 </Select>
               </Field>
+            ) : !ligacao && peca.tipo === 'finta' ? (
+              <Field label="O que você vai fingir?" hint="A ameaça que faz ele reagir, com as suas palavras. O golpe de verdade vem na próxima peça.">
+                <Input value={peca.golpe} maxLength={FINTA_MAX} placeholder="Ex.: fingir que vou no armlock pra ele recolher o braço" onChange={(e) => setPeca({ ...peca, golpe: e.target.value })} />
+              </Field>
             ) : !ligacao && (
-              <Field label={peca.tipo === 'finta' ? 'A finta' : 'O golpe'} hint={peca.tipo === 'finta' ? 'A ameaça que faz ele reagir. O golpe de verdade vem na próxima peça.' : undefined}>
+              <Field label="O golpe">
                 <button type="button" className="input plano-escolher" onClick={() => setEscolhendo('peca')}>
-                  {peca.golpe || (peca.tipo === 'finta' ? 'Escolher a finta' : 'Escolher o golpe')}
+                  {peca.golpe || 'Escolher o golpe'}
                 </button>
               </Field>
             )}
@@ -642,9 +649,16 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
                 Se tirar, {chegamNaPeca === 1 ? 'ele sai' : 'eles saem'} junto. O rola que já passou por aqui continua no histórico.
               </p>
             )}
+            {existe && fintaNova !== null && (
+              <Field label="O que você vai fingir antes?" hint="A finta entra antes desta peça, e ela passa a vir da reação dele.">
+                <Input value={fintaNova} maxLength={FINTA_MAX} placeholder="Ex.: fingir que vou no armlock pra ele recolher o braço" onChange={(e) => setFintaNova(e.target.value)} />
+                <Btn size="sm" variant="contorno" icon={Sparkles} disabled={!fintaNova.trim()} style={{ marginTop: 8 }}
+                  onClick={() => { mudar({ passos: fintaAntes(passos, peca.i, fintaNova.trim()) }); setPeca(null); }}>Pôr a finta</Btn>
+              </Field>
+            )}
             {existe && (
               <div className="row wrap" style={{ gap: 6 }}>
-                {peca.tipo !== 'situacao' && <Btn size="sm" variant="ghost" icon={Sparkles} onClick={() => setEscolhendo('fintaAntes')}>Pôr uma finta antes</Btn>}
+                {peca.tipo !== 'situacao' && fintaNova === null && <Btn size="sm" variant="ghost" icon={Sparkles} onClick={() => setFintaNova('')}>Pôr uma finta antes</Btn>}
                 <Btn size="sm" variant="ghost" icon={Trash2} onClick={tirarPeca}>
                   {peca.tipo === 'finta' ? 'Tirar a finta' : 'Tirar, e o que vem depois'}
                 </Btn>
@@ -668,7 +682,6 @@ function EditorPlano({ edit, setEdit, positions, techniques, categories, faixa, 
           /* a família leva junto as variações dela que já estavam nas aceitas */
           else if (escolhendo === 'preferida') mudar({ finalizacaoPreferida: t.nome, finalizacoesAceitas: limparAceitas(t.nome, aceitas) });
           else if (escolhendo === 'aceita') { if (!jaCoberta(t.nome, edit.finalizacaoPreferida, aceitas)) mudar({ finalizacoesAceitas: limparAceitas(edit.finalizacaoPreferida, [...aceitas, t.nome]) }); }
-          else if (escolhendo === 'fintaAntes') { mudar({ passos: fintaAntes(passos, peca.i, t.nome) }); setPeca(null); }
           else setPeca({ ...peca, golpe: t.nome });
           setEscolhendo(null);
         }}

@@ -162,14 +162,20 @@ function viaDe(brutos, i, pai) {
   return viaPeloPai(brutos[pai], brutos[i]);
 }
 
+/* a finta é o texto do atleta, nunca técnica: guardada em descricao,
+   sem acao. A finta de antes (acao com nome de técnica) vira o texto.
+   Na tela, golpe é o texto da peça, como o nome da posição na situação. */
+export const FINTA_MAX = 120;
+const textoGuardado = (x) => (tipoDe(x) === 'finta' ? x.descricao || x.acao || '' : x.acao);
+
 /* o que a tela desenha, venha do pronto ou do aluno */
 export function correnteDoPlano(p) {
   const brutos = p?.passos || [];
-  const { lista, pai, novo } = podar(brutos, (x) => x.acao);
+  const { lista, pai, novo } = podar(brutos, textoGuardado);
   const passos = lista.map((i) => ({
     id: brutos[i].id || `p${i}`, lig: brutos[i].lig || `l${i}`,
     tipo: tipoDe(brutos[i]),
-    reacao: brutos[i].gatilho || '', golpe: brutos[i].acao, detalhe: brutos[i].detalhe || '', defesa: brutos[i].seFalhar || '',
+    reacao: brutos[i].gatilho || '', golpe: textoGuardado(brutos[i]), detalhe: brutos[i].detalhe || '', defesa: brutos[i].seFalhar || '',
     pai: pai[i] === null ? null : novo.get(pai[i]),
     via: viaDe(brutos, i, pai[i]),
   }));
@@ -547,14 +553,17 @@ export function planoNovo({ nome, posicao, posicaoId = null, finta = '', objetiv
   const preferida = fin ? String(finalizacaoPreferida || '').trim() : '';
   const aceitas = fin ? limparAceitas(preferida, (Array.isArray(finalizacoesAceitas) ? finalizacoesAceitas : [])
     .map((n) => String(n || '').trim())) : [];
-  const { lista, pai, novo } = podar(passos, (x) => x.golpe);
+  const fintaDe = (x) => String(x.golpe || '').trim().slice(0, FINTA_MAX);
+  const { lista, pai, novo } = podar(passos, (x) => (tipoDe(x) === 'finta' ? fintaDe(x) : x.golpe));
   const guardados = lista.map((i) => {
     const x = passos[i];
     const p = pai[i] === null ? null : novo.get(pai[i]);
     return {
       id: x.id || novoId(), lig: x.lig || novoId(),
       ...(tipoDe(x) !== 'golpe' ? { tipo: x.tipo } : {}),
-      gatilho: String(x.reacao || '').trim(), acao: x.golpe, seFalhar: '', proxima: '', detalhe: x.detalhe || '',
+      gatilho: String(x.reacao || '').trim(),
+      ...(tipoDe(x) === 'finta' ? { descricao: fintaDe(x) } : { acao: x.golpe }),
+      seFalhar: '', proxima: '', detalhe: x.detalhe || '',
       pai: p,
       via: p === null ? null : viaPeloPai(passos[pai[i]], x),
     };
