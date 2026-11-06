@@ -7,7 +7,11 @@ import {
 import Guia, { Linha } from '../components/Guia';
 import { db } from '../db/db';
 import { useApp } from '../contexto';
-import { Card, Btn, Chip, Empty, Stat, Sheet, Busca, Bar } from '../components/UI';
+import { Card, Btn, Chip, Empty, Stat, Sheet, Busca, Bar, Field, Input, Textarea, Select } from '../components/UI';
+import { editarPropria, arquivarPropria, camposDaVersao, criarTecnicaPropria, contarProprias, textoDaCota } from '../lib/proprias';
+import { origemDaTecnica } from '../lib/tecnicas';
+import { FAMILIAS } from '../lib/familias';
+import { NOME_TECNICA_MAX, DETALHES_TECNICA_MAX } from '../lib/limites';
 import {
   minhasTecnicas, meusBuracos, resumoGraus, jogoPrincipal,
   GRAUS, grauPorN, TENDENCIAS, contextoPorId, requisitosDaFaixa, vezesNaPosicao,
@@ -320,6 +324,7 @@ export default function Dominio() {
         onAbrir={setDetalhe}
         cat={detalhe ? catById[detalhe.categoriaId] : null}
         faixa={faixa} graus={settings.graus || 0} partners={partners} sessions={sessions} goals={goals}
+        techniques={techniques}
       />
       <ComoFunciona aberto={comoFunciona} onClose={() => setComoFunciona(false)} faixa={faixa} graus={settings.graus || 0} />
     </div>
@@ -339,7 +344,7 @@ function Cabecalho({ onComo }) {
 }
 
 /* ================= a ficha da técnica ================= */
-function Detalhe({ t, onClose, cat, faixa, graus = 0, partners, sessions, goals, variacoes = null, onAbrir }) {
+function Detalhe({ t, onClose, cat, faixa, graus = 0, partners, sessions, goals, variacoes = null, onAbrir, techniques = [] }) {
   if (!t) return null;
   const g = grauPorN(t.grau);
   const falta = faltaPara(t, faixa);
@@ -501,7 +506,88 @@ function Detalhe({ t, onClose, cat, faixa, graus = 0, partners, sessions, goals,
           </p>
         </div>
       )}
+
+      <MinhaVersao reg={techniques.find((x) => x.id === t.tecnicaId)} techniques={techniques} onClose={onClose} />
     </Sheet>
+  );
+}
+
+/* ================= técnica criada por você =================
+   A própria (marca propria) edita nome, "como você faz" e família, e
+   arquiva. A do catálogo não muda: dela sai "Criar minha versão".
+   Renomear troca o nome nos rolas, planos e metas que apontam pra ela. */
+function MinhaVersao({ reg, techniques, onClose }) {
+  const [form, setForm] = useState(null);
+  const [erro, setErro] = useState('');
+  const [feito, setFeito] = useState('');
+  if (!reg) return null;
+  const propria = !!reg.propria;
+  if (!propria && origemDaTecnica(reg.uid) !== 'catalogo') return null;
+  const criadas = contarProprias(techniques);
+
+  const abrir = () => {
+    setErro(''); setFeito('');
+    setForm(propria ? { nome: reg.nome, detalhes: reg.detalhes || '', fam: reg.fam || '' } : (() => { const v = camposDaVersao(reg); return { ...v, fam: v.fam || '' }; })());
+  };
+  const salvar = async () => {
+    const r = propria
+      ? await editarPropria(reg.id, { nome: form.nome, detalhes: form.detalhes, fam: form.fam })
+      : await criarTecnicaPropria({ ...form, fam: form.fam || null });
+    if (r.erro) { setErro(r.erro); return; }
+    if (propria) { onClose(); return; }
+    setForm(null);
+    setFeito(`"${r.tecnica.nome}" está na sua lista. Ela aparece aqui quando entrar num rola.`);
+  };
+  const arquivar = async () => {
+    await arquivarPropria(reg.id, !reg.arquivada);
+    onClose();
+  };
+
+  return (
+    <div>
+      <div className="eyebrow" style={{ marginBottom: 9 }}>{propria ? 'criada por você' : 'do seu jeito'}</div>
+      {!form ? (
+        <>
+          <div className="row wrap" style={{ gap: 8 }}>
+            {propria ? (
+              <>
+                <Btn onClick={abrir}>Editar</Btn>
+                <Btn onClick={arquivar}>{reg.arquivada ? 'Tirar do arquivo' : 'Arquivar'}</Btn>
+              </>
+            ) : <Btn onClick={abrir}>Criar minha versão</Btn>}
+          </div>
+          <p className="micro muted" style={{ marginTop: 9, lineHeight: 1.6 }}>
+            {propria
+              ? (reg.arquivada ? 'Arquivada: some das listas, mas continua nos seus rolas.' : 'Arquivar tira ela das listas. Os rolas e a contagem continuam.')
+              : 'Você faz diferente? Crie a sua com outro nome. Esta continua como está.'}
+          </p>
+          {feito && <p className="tiny" style={{ marginTop: 9, color: 'var(--jade)' }}>{feito}</p>}
+        </>
+      ) : (
+        <div className="col" style={{ gap: 12 }}>
+          <Field label="Nome" hint={propria ? undefined : textoDaCota(criadas)}>
+            <Input value={form.nome} maxLength={NOME_TECNICA_MAX} onChange={(e) => setForm({ ...form, nome: e.target.value })} autoFocus />
+          </Field>
+          <Field label="Como você faz">
+            <Textarea rows={4} value={form.detalhes} maxLength={DETALHES_TECNICA_MAX} onChange={(e) => setForm({ ...form, detalhes: e.target.value })} />
+          </Field>
+          <Field label="Família de finalização" hint={form.fam ? `Ela conta no "${FAMILIAS.find((f) => f.id === form.fam)?.qualquer}" do plano.` : 'Só se ela for variação de uma família, como um armlock ou uma kimura.'}>
+            <Select value={form.fam} onChange={(e) => setForm({ ...form, fam: e.target.value })}>
+              <option value="">Nenhuma</option>
+              {FAMILIAS.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+            </Select>
+          </Field>
+          {erro && <p className="tiny" style={{ color: 'var(--blood)' }}>{erro}</p>}
+          <div className="row" style={{ gap: 8 }}>
+            <Btn onClick={() => setForm(null)}>Cancelar</Btn>
+            <Btn variant="primary" onClick={salvar} disabled={!form.nome.trim()}>{propria ? 'Salvar' : 'Criar'}</Btn>
+          </div>
+          {propria && form.nome.trim() !== reg.nome && (
+            <p className="micro muted" style={{ lineHeight: 1.6 }}>O nome novo vai pros rolas, planos e metas que já usam ela.</p>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

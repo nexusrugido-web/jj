@@ -17,6 +17,7 @@
     "teste:aprendizado-visual": "node scripts/teste-aprendizado-visual.mjs",
     "teste:faixas": "node scripts/teste-faixas.mjs",
     "teste:faixas-visual": "node scripts/teste-faixas-visual.mjs",
+    "teste:proprias-visual": "node scripts/teste-proprias-visual.mjs",
     "teste:boot": "node scripts/teste-boot.mjs",
     "lint:simbolos": "node scripts/simbolos.mjs",
     "teste:limites": "node scripts/teste-limites.mjs",

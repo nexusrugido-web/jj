@@ -13,7 +13,7 @@ Contrato em `docs/CONTRATO-TECNICAS.md`. Cada frente numa branch própria, integ
 - Família própria no plano: técnica própria com `fam` confirmado conta no "qualquer armlock" (objetivo, preferida, aceitas). → FEITO, `teste-planos`.
 - Telas de técnica própria (decidido 07/11: na ficha de Minhas técnicas; renomear propaga pelo uid só na própria):
   - T1. Dados: `editarPropria` (nome, como você faz, família; nome repetido barra, ela mesma não conta; renomear aplica `patchesDoRenomeio` em rolas, planos e metas), `arquivarPropria` (liga e desliga), versão de técnica do catálogo (`versaoDe`, já preenchida com a da origem). → verificar: `teste-proprias`. → FEITO.
-  - T2. Ficha: própria mostra Editar e Arquivar; do catálogo mostra "Criar minha versão". → verificar: print 360px, `teste:telas`, `lint:copy`.
+  - T2. Ficha: própria mostra Editar e Arquivar; do catálogo mostra "Criar minha versão". → verificar: print 360px, `teste:telas`, `lint:copy`. → FEITO (`teste:proprias-visual`).
 - Depois: `contra` no seed, assuntos.
 
 ## Trilha S: sync confiável entre aparelhos e entre contas (06/11/2026, antes das técnicas próprias)
