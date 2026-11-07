@@ -16,7 +16,8 @@ import { ehFamilia } from './familias';
    posição vira filtro dentro do assunto. Uma técnica pode estar em dois
    assuntos (o Berimbolo raspa e termina nas costas): é certo.
 
-   Só dado e regra. Nenhuma tela lê isto ainda.
+   Só dado e regra. Nenhuma tela lê isto ainda (o motor e o Estudo
+   passam a ler na Trilha R: defesasContra e assuntosDaAula, no fim).
    ============================================================ */
 
 /* os grupos de posição vêm da tabela de posições do seed, não de nome */
@@ -162,4 +163,40 @@ export const assuntosDaTecnica = (uid) => ASSUNTOS_DO_UID.get(TECNICA_POR_UID.ge
 export function contraDaTecnica(uid) {
   const t = TECNICA_POR_UID.get(uid);
   return { contra: t?.contra || [], pendente: t?.pendente || null };
+}
+
+/* ---------- a ponte pro motor e pra tela (Trilha R, R1) ----------
+   FAMÍLIA DE MECÂNICA: a fonte de verdade é o campo `fam` da técnica
+   do CATÁLOGO (seed.js), com os ids de FAMILIAS (familias.js). Não é:
+   - a categoria (`cat`: articular, estrangulamento, compressão), que o
+     motor ainda chama de `familia` e que NUNCA prova a mesma mecânica;
+   - FAMILIAS_DE_FINALIZACAO (tecnicas.js), que apesar do nome é um
+     conjunto de categorias;
+   - o `fam` da técnica criada pelo atleta: as duas funções abaixo só
+     respondem pelo catálogo (a própria entra no R4, se o dono decidir).
+
+   A defesa serve contra a técnica quando o `contra` dela traz o uid da
+   técnica (qualquer uid dela, inclusive o de nome antigo) ou a família
+   de mecânica dela. Técnica sem `fam` só pega defesa que a cita pelo uid.
+   Lê só uid, `fam` e `contra`: nunca nome. */
+export function defende(defesa, tecnica) {
+  return defesa.contra.some((c) => (ehFamilia(c)
+    ? c === tecnica.fam
+    : TECNICA_POR_UID.get(c)?.uid === tecnica.uid));
+}
+
+const DEFESAS = CATALOGO_TECNICAS.filter((t) => t.contra.length);
+
+/* as defesas do catálogo que servem contra a técnica (pelo uid dela) */
+export function defesasContra(uid) {
+  const t = TECNICA_POR_UID.get(uid);
+  return t ? DEFESAS.filter((d) => defende(d, t)) : [];
+}
+
+/* os assuntos de uma aula: os das técnicas marcadas nela, pelo uid, na
+   ordem dos 14. Aula sem técnica marcada não tem assunto (o título não
+   decide). Lê só `tecnicas`. */
+export function assuntosDaAula(aula) {
+  const ids = new Set((aula?.tecnicas || []).flatMap(assuntosDaTecnica));
+  return ASSUNTOS.filter((a) => ids.has(a.id)).map((a) => a.id);
 }

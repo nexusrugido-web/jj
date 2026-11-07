@@ -77,6 +77,17 @@ Recusa do servidor: o S1 deixa o registro na fila com o motivo (aparece em Ajust
 - O lado "por cima/por baixo" de quem faz a técnica sai da categoria e da posição, nunca do nome (`deDaTecnica` em `tecnicas.js`): passagem e ataque à tartaruga (finalização, transição, pegada) saem de quem está por cima.
 - Ainda não lê `contra` nem assunto: a tela e o motor continuam como estavam.
 
+## 4c. Família de mecânica e a ponte pro motor (Trilha R, R1, 07/11/2026)
+
+- **Fonte de verdade da família de mecânica:** o campo `fam` da técnica do **catálogo** (`seed.js`, exposto em `CATALOGO_TECNICAS[].fam`), com os ids de `FAMILIAS` (`src/lib/familias.js`). Nada mais conta como família de mecânica:
+  - a categoria (`cat`: articular, estrangulamento, compressão...) nunca prova a mesma mecânica. O motor ainda chama a categoria de `familia` (`familiaDaTecnica` em `tecnicas.js`, `pedido.familia` em `necessidades.js`); isso muda no R2;
+  - `FAMILIAS_DE_FINALIZACAO` (`tecnicas.js`) é um conjunto de **categorias**, apesar do nome;
+  - o `fam` da técnica criada pelo atleta é decisão dele e fica fora do R1 (as funções abaixo respondem só pelo catálogo).
+- `defende(defesa, tecnica)` (`assuntos.js`): verdadeiro quando o `contra` da defesa tem a `fam` da técnica ou um uid dela (qualquer uid, inclusive o de nome antigo). Lê só `contra`, `fam` e `uid`. Técnica sem `fam` (as 4 compressões, por exemplo) só pega defesa que a cita pelo uid.
+- `defesasContra(uid)`: as defesas do catálogo que servem contra a técnica. Hoje 63 técnicas têm defesa; só os 15 armlocks têm duas. Uid fora do catálogo devolve lista vazia.
+- `assuntosDaAula(aula)`: os assuntos das técnicas marcadas na aula (`aula.tecnicas`), na ordem dos 14, sem repetir. Aula sem técnica marcada não tem assunto: título, tema e posição não decidem. Lê só `tecnicas`.
+- Contagem no servidor: `supabase/62-contar-aulas-por-assunto.sql`, só leitura, gerado por `node scripts/gerar-sql-assuntos.mjs` com o mapa uid → assunto do catálogo dentro (mesma regra do `assuntosDaAula`). Não rodado.
+
 ## 5. Quem mexe em quê
 
 | Frente | Arquivos (só estes) |

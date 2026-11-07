@@ -163,5 +163,54 @@ ok('o resto do catálogo não mudou de lado (só passagem e ataque à tartaruga)
 ok('passagem que já saía de uma posição de cima ou neutra não muda', passagens.filter((t) => t.from !== 'guarda_aberta').every((t) => t.de === (DE_POSICAO_BIBLIOTECA[t.from] || null)), true);
 ok('a posição (sem o lado) de cada técnica é a mesma de antes', CATALOGO_TECNICAS.every((t) => t.posicao === ((DE_POSICAO_BIBLIOTECA[t.from] || '').split(':')[0] || null)), true);
 
+/* ---------- 5. a ponte pro motor e pra tela (Trilha R, R1) ----------
+   Família de mecânica = `fam` da técnica do catálogo. Categoria nunca
+   prova a mesma mecânica; nome nunca decide. */
+const { defende, defesasContra, assuntosDaAula } = await import('../src/lib/assuntos.js');
+const defesasDe = (nome) => defesasContra(id(nome)).map((d) => d.nome).sort();
+
+ok('Armlock da guarda fechada: as duas defesas de armlock (pela família), nenhuma outra',
+  defesasDe('Armlock da guarda fechada'), ['Defesa de armlock (esconder o cotovelo)', 'Defesa de armlock (hitchhiker)']);
+ok('Kimura: a defesa de kimura, nunca a de armlock (as duas são chave articular)', defesasDe('Kimura'), ['Defesa de kimura']);
+ok('Triângulo: a defesa de triângulo, nunca a de armlock', defesasDe('Triângulo'), ['Defesa de triângulo (postura)']);
+ok('Estrangulamento de perna (leg choke) é família do triângulo sem dizer no nome: pega a defesa de triângulo',
+  defesasDe('Estrangulamento de perna (leg choke)'), ['Defesa de triângulo (postura)']);
+ok('Costas para armlock diz armlock no nome mas é transição: nenhuma defesa', defesasDe('Costas para armlock'), []);
+ok('Ezequiel de lapela por trás: a defesa de lapela (pelo uid)', defesasDe('Ezequiel de lapela por trás'), ['Defesa de estrangulamento de lapela']);
+ok('Ezequiel de baixo e Estrangulamento Ezequiel: não pegam a defesa de lapela (sem família inteira)',
+  [defesasDe('Ezequiel de baixo'), defesasDe('Estrangulamento Ezequiel')], [[], []]);
+ok('High crotch e running the pipe: a defesa de single leg',
+  [defesasDe('High crotch (single leg alto)'), defesasDe('Single leg com running the pipe')], [['Defesa de single leg (limp leg)'], ['Defesa de single leg (limp leg)']]);
+ok('Berimbolo invertido: a defesa de berimbolo', defesasDe('Berimbolo invertido'), ['Defesa de berimbolo']);
+ok('Ankle pick é queda de wrestling, mas nenhuma defesa cita: nenhuma defesa só pela categoria', defesasDe('Ankle pick'), []);
+ok('compressão (4 no catálogo, nenhuma com família de mecânica): nenhuma defesa só por ser compressão',
+  CATALOGO_TECNICAS.filter((t) => t.cat === 'compressao').map((t) => defesasContra(t.uid).length), [0, 0, 0, 0]);
+ok('uid fora do catálogo (técnica criada pelo atleta) não pega defesa', defesasContra('uid-que-nao-existe'), []);
+const comDefesa = CATALOGO_TECNICAS.filter((t) => defesasContra(t.uid).length);
+ok('63 técnicas têm defesa; só os 15 armlocks têm duas', [comDefesa.length, comDefesa.filter((t) => defesasContra(t.uid).length > 1).every((t) => t.fam === 'fam:armlock')], [63, true]);
+
+/* a defesa nunca sai da categoria: técnica de mesma categoria e outra família não pega */
+const mesmaCatOutraFam = CATALOGO_TECNICAS.filter((t) => t.fam && defesasContra(t.uid).some((d) => !d.contra.includes(t.fam) && !d.contra.some((c) => TECNICA_POR_UID.get(c)?.uid === t.uid)));
+ok('nenhuma técnica pega defesa que não cite a família ou o uid dela', mesmaCatOutraFam.map((t) => t.nome), []);
+
+let pontaLeuNome = null;
+try {
+  for (const d of CATALOGO_TECNICAS.filter((x) => x.contra.length)) for (const t of CATALOGO_TECNICAS) defende(cego(d), cego(t));
+} catch (e) { pontaLeuNome = e.message; }
+ok('defende() não lê nome, antigo, inglês ou busca (16 defesas × 614 técnicas)', pontaLeuNome, null);
+
+ok('aula com o Armlock da guarda fechada: Braço e Guarda fechada',
+  assuntosDaAula({ tecnicas: [id('Armlock da guarda fechada')] }), ['assunto:finalizacoes_braco', 'assunto:guarda_fechada']);
+ok('aula com a defesa de armlock: Defesas', assuntosDaAula({ tecnicas: [id('Defesa de armlock (esconder o cotovelo)')] }), ['assunto:defesas']);
+ok('aula com duas técnicas: a união, na ordem dos 14, sem repetir',
+  assuntosDaAula({ tecnicas: [id('Triângulo'), id('Armlock da guarda fechada')] }), ['assunto:finalizacoes_braco', 'assunto:estrangulamentos', 'assunto:guarda_fechada']);
+ok('aula sem técnica marcada: nenhum assunto, mesmo com "armlock" no título',
+  [assuntosDaAula({ t: 'O ajuste que falta no seu armlock', tecnicas: [] }), assuntosDaAula({}), assuntosDaAula(null)], [[], [], []]);
+ok('uid desconhecido na aula não inventa assunto', assuntosDaAula({ tecnicas: ['uid-que-nao-existe'] }), []);
+const aulaCega = new Proxy({ tecnicas: [id('Kimura')] }, { get(o, k) { if (k !== 'tecnicas') throw new Error(`leu "${String(k)}"`); return o[k]; } });
+let aulaLeu = null;
+try { assuntosDaAula(aulaCega); } catch (e) { aulaLeu = e.message; }
+ok('assuntosDaAula lê só `tecnicas` (nem título, nem tema, nem posição)', aulaLeu, null);
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

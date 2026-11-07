@@ -4,8 +4,9 @@ Ordem aprovada em 04/11/2026: Trilha A → B → C → D. Um commit por item.
 
 Decidido em 04/11/2026. Uma tarefa por vez; cada uma termina com `npm run check` verde, README atualizado e push.
 
-## Trilha R: assunto e `contra` no Estudo e no motor (proposta de 07/11/2026, AGUARDA APROVAÇÃO)
-Tudo na `frentes/base`. Nenhuma etapa mexe no Supabase.
+## Trilha R: assunto e `contra` no Estudo e no motor (aprovada em 07/11/2026)
+Tudo na `frentes/base`. Nenhuma etapa mexe no Supabase. Decisões do dono em 07/11: (1) técnica sem família de mecânica confirmada, inclusive compressão, só gera relação "em geral" pela categoria; (2) os 14 assuntos **substituem** a organização de "Por tema", sem segunda taxonomia e sem descartar dado útil; (3) a contagem por SQL só de leitura é apresentada antes de rodar; (4) ordem R1 → R2 → R3 → R4 → R5, **uma etapa autorizada por vez**. Antes do R2 e do R3: relatório de pertinência pedagógica com o acervo real, revisado pelo dono.
+- **R1 → FEITO (07/11)**, aguarda validação do dono. Fonte de verdade da família de mecânica = `fam` do catálogo (contrato 4c). `defende`, `defesasContra` e `assuntosDaAula` em `assuntos.js`; `teste:assuntos` com 22 casos novos (categoria nunca vira família, nome nunca decide, a função recusa ler nome). SQL 62 de contagem (só leitura) gerado e conferido no PGlite; não rodado.
 
 ### Como funciona hoje (levantado no código)
 - **Estudo** (`src/pages/Estudo.jsx`): "Pra você" (Premium) monta um bloco por recomendação (`recomendar.js` → `pedidoDaRec` em `necessidades.js` → `aulasPara` em `motor.js`), outro por dificuldade marcada e outro pelo estilo. Um vídeo não se repete entre blocos. A exclusiva do Premium entra pelo `exclusivaPara`, que nunca aceita aula genérica. "Por tema" usa os 11 `TEMAS_AULA` (`db/aulas.js`), pela etiqueta `tm` do vídeo, sem olhar a técnica. Os 14 assuntos (`assuntos.js`) ainda não aparecem em nenhuma tela.
