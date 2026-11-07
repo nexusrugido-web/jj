@@ -72,8 +72,8 @@ Recusa do servidor: o S1 deixa o registro na fila com o motivo (aparece em Ajust
 ## 4b. Assuntos e `contra` (07/11/2026)
 
 - Os 14 assuntos estão em `src/lib/assuntos.js`: id permanente (`assunto:*`) e regra feita só de categoria, slug de posição, família e etiqueta. Nenhuma regra lê nome; `teste:assuntos` passa a técnica por um objeto que lança erro se alguém ler nome. 506 técnicas em algum assunto, 108 em nenhum (as guardas e posições, os movimentos base e 10 pegadas e transições), 73 em dois.
-- `contra` das defesas (`seed.js`): 15 defesas, só o confirmado. Família (`fam:*`) ou uid permanente. As 5 defesas gerais ficam sem `contra` e sem `pendente`: o motor segue a regra de hoje (sair da posição, com aviso).
-- `pendente`: variação que o relatório não conferiu individualmente (High crotch, Single leg com running the pipe, Berimbolo invertido) e a defesa de estrangulamento de lapela (alvo genérico). Não vira `contra` até o dono confirmar uma a uma.
+- `contra` das defesas (`seed.js`): 16 defesas, só o confirmado. Família (`fam:*`) ou uid permanente. As 5 defesas gerais ficam sem `contra` e sem `pendente`: o motor segue a regra de hoje (sair da posição, com aviso).
+- `pendente`: o que ainda não foi conferido. Não vira `contra` até o dono confirmar um a um. Hoje está vazio: em 07/11 o dono confirmou High crotch, Single leg com running the pipe e Berimbolo invertido, e a defesa de lapela ganhou 4 técnicas pelas costas (lapela por trás, arco e flecha, single wing, Ezequiel de lapela por trás), sem família inteira.
 - O lado "por cima/por baixo" de quem faz a técnica sai da categoria e da posição, nunca do nome (`deDaTecnica` em `tecnicas.js`): passagem e ataque à tartaruga (finalização, transição, pegada) saem de quem está por cima.
 - Ainda não lê `contra` nem assunto: a tela e o motor continuam como estavam.
 

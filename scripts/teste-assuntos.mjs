@@ -65,7 +65,7 @@ ok('Jogo em pé: wrestling 41 e judô 58 entre as quedas, puxada 4, pegada 5',
   [emPe.filter((t) => t.cat === 'queda' && t.tags.includes('wrestling')).length, filtro('jogo_em_pe', 'judo'), filtro('jogo_em_pe', 'puxada'), filtro('jogo_em_pe', 'pegada')], [41, 58, 4, 5]);
 ok('Jogo em pé: nenhuma técnica é wrestling e judô ao mesmo tempo', emPe.filter((t) => t.tags.includes('wrestling') && t.tags.includes('judo')).length, 0);
 ok('Defesas: finalização 12, queda 5, raspagem 1, geral 2, alvo a confirmar 1 (somam as 21)',
-  ['finalizacao', 'queda', 'raspagem', 'geral', 'pendente'].map((f) => filtro('defesas', f)), [12, 5, 1, 2, 1]);
+  ['finalizacao', 'queda', 'raspagem', 'geral', 'pendente'].map((f) => filtro('defesas', f)), [13, 5, 1, 2, 0]);
 
 /* ---------- 2. nenhuma regra lê nome ---------- */
 const PROIBIDO = new Set(['nome', 'antigo', 'en', 'busca', 'pt']);
@@ -117,17 +117,15 @@ const CONTRA = new Map([
   ['Defesa de heel hook (rolar na direção)', ['fam:heel_hook']],
   ['Defesa de brabo/anaconda', alvos("Brabo (D'arce)", 'Anaconda')],
   ['Defesa de baiana (crossface e sprawl)', alvos('Baiana (double leg)', 'Baiana com blast')],
-  ['Defesa de single leg (limp leg)', alvos('Single leg')],
-  ['Defesa de berimbolo', alvos('Berimbolo')],
+  ['Defesa de single leg (limp leg)', alvos('Single leg', 'High crotch (single leg alto)', 'Single leg com running the pipe')],
+  ['Defesa de berimbolo', alvos('Berimbolo', 'Berimbolo invertido')],
+  ['Defesa de estrangulamento de lapela', alvos('Estrangulamento de lapela por trás', 'Arco e flecha (bow and arrow)', 'Estrangulamento de mão na lapela (single wing)', 'Ezequiel de lapela por trás')],
 ]);
-const PENDENTE = new Map([
-  ['Defesa de single leg (limp leg)', { motivo: 'variacao_a_confirmar', candidatas: alvos('High crotch (single leg alto)', 'Single leg com running the pipe') }],
-  ['Defesa de berimbolo', { motivo: 'variacao_a_confirmar', candidatas: alvos('Berimbolo invertido') }],
-  ['Defesa de estrangulamento de lapela', { motivo: 'alvo_generico', candidatas: [] }],
-]);
+// os 4 pendentes foram confirmados pelo dono em 07/11 e viraram contra; não sobrou pendente
+const PENDENTE = new Map([]);
 const defesas = CATALOGO_TECNICAS.filter((t) => t.cat === 'defesa');
-ok('são 21 defesas: 15 com contra confirmado, 1 só pendente, 5 sem alvo',
-  [defesas.length, defesas.filter((t) => t.contra.length).length, defesas.filter((t) => !t.contra.length && t.pendente).length, defesas.filter((t) => !t.contra.length && !t.pendente).length], [21, 15, 1, 5]);
+ok('são 21 defesas: 16 com contra confirmado, nenhuma só pendente, 5 sem alvo',
+  [defesas.length, defesas.filter((t) => t.contra.length).length, defesas.filter((t) => !t.contra.length && t.pendente).length, defesas.filter((t) => !t.contra.length && !t.pendente).length], [21, 16, 0, 5]);
 ok('o contra de cada defesa é exatamente o da tabela aprovada', ordenado(Object.fromEntries(defesas.filter((t) => t.contra.length).map((t) => [t.nome, t.contra]))), ordenado(Object.fromEntries(CONTRA)));
 ok('o pendente é exatamente o conferido como pendente', ordenado(Object.fromEntries(defesas.filter((t) => t.pendente).map((t) => [t.nome, t.pendente]))), ordenado(Object.fromEntries(PENDENTE)));
 ok('as 5 sem alvo continuam sem contra e sem pendente (o motor segue a regra atual: sair da posição, com aviso)',
@@ -141,15 +139,13 @@ ok('todo item do contra existe: família real do app ou uid de técnica do catá
 ok('toda família do contra tem técnica no catálogo', [...new Set(todosOsContra.filter(ehFamilia))].every((f) => CATALOGO_TECNICAS.some((t) => t.fam === f)), true);
 ok('o uid do contra é o uid permanente (o mesmo que o catálogo usa), não um número solto',
   todosOsContra.filter((c) => !ehFamilia(c)).every((c) => TECNICA_POR_UID.get(c).uid === c), true);
-ok('nenhuma variação não conferida entrou no contra (High crotch, running the pipe, Berimbolo invertido)',
-  alvos('High crotch (single leg alto)', 'Single leg com running the pipe', 'Berimbolo invertido').filter((u) => todosOsContra.includes(u)), []);
 ok('os candidatos pendentes existem, são técnicas e não estão no contra da própria defesa',
   defesas.filter((t) => t.pendente).every((t) => t.pendente.candidatas.every((u) => TECNICA_POR_UID.has(u) && !t.contra.includes(u))), true);
-ok('contraDaTecnica devolve confirmado e pendente separados',
-  [contraDaTecnica(id('Defesa de berimbolo')).contra, contraDaTecnica(id('Defesa de berimbolo')).pendente.candidatas, contraDaTecnica(id('Whizzer'))],
-  [alvos('Berimbolo'), alvos('Berimbolo invertido'), { contra: [], pendente: null }]);
-ok('a defesa de lapela não ganha família (a Cruzada é lapela, mas o catálogo tem 15 estrangulamentos de lapela)',
-  [porNome('Defesa de estrangulamento de lapela').contra, grupoDaDefesa(porNome('Defesa de estrangulamento de lapela'))], [[], 'pendente']);
+ok('contraDaTecnica devolve o confirmado e nenhum pendente',
+  [contraDaTecnica(id('Defesa de berimbolo')), contraDaTecnica(id('Whizzer'))],
+  [{ contra: alvos('Berimbolo', 'Berimbolo invertido'), pendente: null }, { contra: [], pendente: null }]);
+ok('a defesa de lapela aponta para as 4 técnicas de lapela pelas costas, nunca para uma família inteira (Cruzada e Ezequiel têm golpes de outras posições)',
+  [porNome('Defesa de estrangulamento de lapela').contra.some(ehFamilia), grupoDaDefesa(porNome('Defesa de estrangulamento de lapela'))], [false, 'finalizacao']);
 ok('o uid do catálogo continua o mesmo de antes (seed não mudou de identidade)',
   porNome('Single leg').uid, uidEstavel(chaveNome('techniques', 'Solo (single leg)')));
 
