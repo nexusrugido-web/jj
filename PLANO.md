@@ -4,6 +4,52 @@ Ordem aprovada em 04/11/2026: Trilha A → B → C → D. Um commit por item.
 
 Decidido em 04/11/2026. Uma tarefa por vez; cada uma termina com `npm run check` verde, README atualizado e push.
 
+## Trilha R: assunto e `contra` no Estudo e no motor (proposta de 07/11/2026, AGUARDA APROVAÇÃO)
+Tudo na `frentes/base`. Nenhuma etapa mexe no Supabase.
+
+### Como funciona hoje (levantado no código)
+- **Estudo** (`src/pages/Estudo.jsx`): "Pra você" (Premium) monta um bloco por recomendação (`recomendar.js` → `pedidoDaRec` em `necessidades.js` → `aulasPara` em `motor.js`), outro por dificuldade marcada e outro pelo estilo. Um vídeo não se repete entre blocos. A exclusiva do Premium entra pelo `exclusivaPara`, que nunca aceita aula genérica. "Por tema" usa os 11 `TEMAS_AULA` (`db/aulas.js`), pela etiqueta `tm` do vídeo, sem olhar a técnica. Os 14 assuntos (`assuntos.js`) ainda não aparecem em nenhuma tela.
+- **Aula e técnica**: o vídeo traz `tecnicas` (uids), `habilidades`, `posicaoLado`, `formato`, `nivel` e `classificacao`. Isso vem do servidor (a esteira). O acervo que está no código não tem `tecnicas`. Quando o vídeo não foi classificado, o motor procura o nome da técnica no título.
+- **Motor** (`relevancia`): +30 se for a técnica exata, +20 se o título citar o nome dela, **+8 se for a mesma `familia`**. Depois vêm posição com lado, habilidade, situação e formato. O desempate olha faixa, nível, confiança e se o vídeo já foi visto. Sem nada relevante, cai na reserva (aula de conceito).
+- **Problema 1, comprovado com um teste avulso:** no motor e no `pedidoDaRec`, `familia` é a **categoria** (`cat`: articular, estrangulamento), e não a família de mecânica `fam:*`. Pedir Armlock da guarda fechada devolve a aula de **Kimura** com o mesmo peso do Armlock da montada, com a etiqueta "ensina Chave articular" e sem a marca de "em geral". É exatamente a ligação sem fundamento que não pode acontecer.
+- **Problema 2, comprovado:** quem toma armlock (pedido `corrigir`) **não recebe** a aula marcada com a técnica "Defesa de armlock (esconder o cotovelo)". O `deOutraTecnica` vê uma técnica da categoria `defesa`, que é diferente de `articular`, e corta. Só passa a aula de defesa geral. O `contra` resolve isso, mas ninguém lê esse campo ainda.
+- **Identidade**: a recomendação leva o golpe pelo **nome** (`rec.alvo`), e o `pedidoDaRec` acha o uid por busca de nome (`acharTecnicas`). `meusBuracos` também agrupa por nome. O rola já guarda o uid desde a Trilha T.
+
+### Regras pedagógicas da trilha
+1. Uma aula só é **específica** quando é da técnica pedida, da mesma família de mecânica (`fam:*`) ou, num pedido de defesa, da defesa cujo `contra` aponta pra técnica ou pra família dela.
+2. Ter só a mesma categoria **nunca** é específico: a aula pode aparecer, mas marcada como "em geral" e atrás de todas as específicas.
+3. O assunto organiza a tela e **não soma nota** no motor. Pertencer ao mesmo assunto ("Ataques da guarda fechada") traria raspagem pra quem pediu armlock.
+4. Defesa recebe aula de defesa ou de saída, nunca a aula de aplicar o golpe (regra já em vigor). Defesa com `pendente` não entra.
+5. O que decide é o uid, a `fam`, a `from` e o `contra`. Nome e título só servem pra vídeo que ainda não foi classificado, como já acontece hoje.
+
+### Etapas (cada uma independente, com `npm run check` verde e push)
+- **R1. Ponte de dados, sem mudar tela nem motor.** Criar em `assuntos.js` duas funções. `defesasContra(uid)` devolve as defesas cujo `contra` tem o uid ou a `fam` dele. `assuntosDaAula(aula)` junta os assuntos das técnicas do vídeo, pelo uid.
+  - Preservar: `teste:assuntos` como está. Nenhuma das duas lê nome.
+  - Testes (`teste:assuntos`): armlock → defesa de armlock; triângulo → defesa de triângulo, nunca a de armlock; Ezequiel da montada → **não** traz a defesa de lapela (a ligação é técnica por técnica); High crotch → defesa de single leg; Berimbolo invertido → defesa de berimbolo; vídeo sem `tecnicas` → nenhum assunto; a função recusa um objeto que leia nome.
+- **R2. Motor: família de mecânica no lugar da categoria.** Em `motor.js`, o nível do meio passa a exigir a mesma `fam:*`. Ter só a mesma categoria vira resposta "em geral" (`generico`) e ganha nota menor. O `pedidoDaRec` passa a levar `fam` ao lado de `familia`, que continua existindo pros textos do `rotuloDaAula`.
+  - Preservar: técnica exata em primeiro, título valendo pra vídeo não classificado, o corte de outra técnica, o lado da posição, os vistos no fim, a ordem por faixa, aula longa como preferência, a reserva e os textos do `rotuloDaAula`.
+  - Testes (`teste:motor`): pedir Armlock da guarda fechada traz o da montada antes da Kimura, e a Kimura sai como "em geral"; o `exclusivaPara` não aceita a Kimura como "aula que destrava"; todos os casos atuais do teste continuam passando.
+- **R3. Motor: defesa pelo `contra`.** No `corrigir`, o pedido passa a levar `defesas` (vindo do R1). O vídeo marcado com uma dessas defesas conta como específico e não é cortado pelo `deOutraTecnica`. Ordem da resposta: defesa pelo `contra`, depois aula de defesa marcada com o golpe, depois saída da posição de onde o golpe sai, e por último defesa geral.
+  - Preservar: aula de aplicar o golpe nunca entra; o `rotuloDaAula` diz "ensina a defesa de X".
+  - Testes: o caso do Problema 2 passa a trazer "Defesa de armlock" em primeiro; quem toma triângulo não recebe a defesa de armlock; defesa com `pendente` não entra.
+- **R4. Recomendação pelo uid.** `meusBuracos` e as recomendações levam o uid do rola. O `pedidoDaRec` usa o uid quando ele existe e só cai na busca por nome quando não existe (rola antigo, sem uid).
+  - Preservar: `chaveDaRec` (as recomendações já marcadas como feitas continuam valendo), as frases e a técnica criada pelo atleta.
+  - Testes (`teste:motor`, `teste:identidade`): técnica renomeada continua achando a aula; técnica própria com `fam` confirmada entra na família, e sem `fam` não entra.
+- **R5. Tela: "Por tema" passa a mostrar os assuntos.** Os 14 assuntos aparecem como cartões, junto dos 4 temas que não são de técnica (Entender o porquê, Corpo e gás, Drill e timing, Faixa e competição). Dentro do assunto ficam os filtros que já existem (raspagens por guarda; defesas contra finalização, queda e raspagem). Um vídeo entra no assunto só pelo `assuntosDaAula`, nunca pelo título. Assunto vazio mostra "ainda sem aula deste assunto" e registra `faltou` no `medir`, que já vira a pauta de gravação.
+  - Preservar: busca, a escolha entre aula completa e aula rápida, paginação, vistos, cadeado e selo, o `?tema=` que outras telas usam e o aviso do grátis.
+  - Testes: `teste:estudo` (contagem por assunto e filtro); `teste:telas`; print com 360 px de largura; `lint:copy`.
+  - **Antes do R5:** uma contagem de quantos vídeos cada assunto tem hoje, por SQL **só de leitura**, colado pelo dono (NEUROJITSU-COLAR). Se um assunto tiver poucas aulas, o dono decide se ele já aparece.
+
+### Como verificar que a recomendação serve ao atleta
+- **Tabela de casos reais** no `teste:motor`, um por situação de tatame, cada um com a aula que deve vir e a que nunca pode vir: toma armlock, toma triângulo, toma lapela por trás, toma Ezequiel da montada, preso no 100kg, quer firmar o armlock da guarda fechada, leva single leg, contra mais pesado.
+- **Relatório no acervo real:** um script roda esses casos no acervo baixado e gera, em NEUROJITSU-RELATORIOS, uma tabela com a situação, as 3 aulas escolhidas e o motivo de cada uma. O dono confere com olho de professor antes do push de cada etapa do motor (R2 e R3).
+- **Depois de publicado:** comparar no painel, pelo `medir`, a taxa de "exibiu → abriu" de cada origem e as ocorrências de "faltou", antes e depois.
+
+### Decisões do dono antes de codar
+1. Técnica sem `fam` (avulsa): a mesma categoria vira "em geral" também pra ela? Isso inclui a compressão, que hoje o texto chama de "mesma mecânica".
+2. R5: os assuntos entram **no lugar** dos temas de técnica em "Por tema" (proposta), ou numa aba nova?
+3. Ordem proposta: R1 → R2 → R3 → R4 → R5. O R2 e o R3 são os que corrigem os dois problemas comprovados.
+
 ## Trilha T: técnicas com identidade, próprias e cota (07/11/2026)
 Contrato em `docs/CONTRATO-TECNICAS.md`. Cada frente numa branch própria, integração na `frentes/base`, main só depois da revisão do dono.
 - A. uid ao lado do nome em rola, plano e meta; passada antiga só em simulação. → verificar: `teste-identidade`.
