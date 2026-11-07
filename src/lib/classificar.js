@@ -79,17 +79,66 @@ export function indiceDeTecnicas(catalogo) {
     for (const v of variantes) if (!exato.has(v)) exato.set(v, t.uid);
     return { uid: t.uid, tamanho: nome.length, texto: variantes.join(' '), palavras: new Set(variantes.join(' ').split(' ')) };
   });
-  return { exato, itens };
+  return { exato, itens, inteiro: nomesInteiros(catalogo) };
 }
 
-export function acharTecnicas(nomes, indice) {
+/* ------------------------------------------------------------
+   O NOME INTEIRO (o que a esteira grava)
+
+   A esteira só grava técnica quando o que a IA mandou é o nome de
+   UMA técnica. Palavra que serve pra várias ("raspagem", "chave de
+   pé", "estrangulamento", "costas") não vira técnica nenhuma: antes
+   virava a de nome mais curto, e "raspagem" gravava Berimbolo.
+   Vale:
+   - o nome, com ou sem o parêntese, e o nome antigo;
+   - o apelido (depois da vírgula), o inglês e o parêntese, só quando
+     nenhuma outra técnica usa a mesma expressão (defesa citar o golpe,
+     "Defesa de double leg", não conta). O nome da família ("armlock",
+     de fam:armlock) vale pra técnica da família que o catálogo chama
+     assim;
+   - parêntese que só separa duas técnicas de mesmo nome ("Cadeira
+     elétrica (posição)" e "(finalização)") não é apelido.
+   Posição ("Guarda fechada", "Montada": etiqueta posicao) não é técnica:
+   vai em posicao_lado.
+   ------------------------------------------------------------ */
+function nomesInteiros(catalogo) {
+  const semParentese = (t) => semAcento(String(t.nome).replace(/\(.*?\)/g, ''));
+  const repetidos = new Map();
+  for (const t of catalogo) repetidos.set(semParentese(t), (repetidos.get(semParentese(t)) || 0) + 1);
+  const itens = catalogo.filter((t) => !t.tags?.includes('posicao')).map((t) => ({
+    t,
+    principais: [semAcento(t.nome), semParentese(t), ...(t.antigo ? [semAcento(t.antigo)] : [])],
+    apelidos: [
+      ...String(t.nome).replace(/\(.*?\)/g, '').split(',').slice(1).map(semAcento),
+      ...String(t.en || '').split('/').map(semAcento),
+      ...(repetidos.get(semParentese(t)) > 1 ? [] : [...String(t.nome).matchAll(/\(([^)]+)\)/g)].map((m) => semAcento(m[1]))),
+    ],
+  }));
+  const inteiro = new Map();
+  for (const i of itens) for (const v of i.principais) if (v && !inteiro.has(v)) inteiro.set(v, i.t.uid);
+  const golpes = itens.filter((i) => i.t.cat !== 'defesa');
+  for (const i of itens) {
+    const familia = i.t.fam ? semAcento(i.t.fam.slice(4)) : null;
+    for (const v of i.apelidos) {
+      if (!v || inteiro.has(v)) continue;
+      const outra = golpes.some((o) => o !== i && [...o.principais, ...o.apelidos].some((x) => citaPalavra(x, v)));
+      if (!outra || v === familia) inteiro.set(v, i.t.uid);
+    }
+  }
+  return inteiro;
+}
+
+/* inteiro: true é o da esteira (só nome inteiro, sem chute). Sem ele,
+   o nome solto ainda cai na técnica mais curta (o motor, até o R2). */
+export function acharTecnicas(nomes, indice, { inteiro = false } = {}) {
   if (!indice) return [];
   const achadas = [];
   for (const bruto of Array.isArray(nomes) ? nomes : []) {
     const n = semAcento(bruto);
     if (n.length < 4) continue;
-    let uid = indice.exato.get(n);
-    if (!uid) {
+    /* "arm lock" do título é o "armlock" do catálogo */
+    let uid = inteiro ? indice.inteiro.get(n) || indice.inteiro.get(n.replace(/ /g, '')) : indice.exato.get(n);
+    if (!uid && !inteiro) {
       const palavras = n.split(' ');
       uid = indice.itens
         .filter((t) => palavras.every((p) => t.palavras.has(p)))
@@ -109,7 +158,7 @@ export function limparDaIa(bruta, indice) {
     situacoes: so(bruta?.situacoes, VALIDAS.situacao),
     formato: VALIDAS.formato.has(bruta?.formato) ? bruta.formato : null,
     nivel: VALIDAS.nivel.has(bruta?.nivel) ? bruta.nivel : null,
-    tecnicas: acharTecnicas(bruta?.tecnicas, indice),
+    tecnicas: acharTecnicas(bruta?.tecnicas, indice, { inteiro: true }),
     certeza: Number.isFinite(certeza) ? Math.min(1, Math.max(0, certeza)) : 0,
     duvida: String(bruta?.duvida || '').trim().slice(0, 200),
   };
@@ -288,7 +337,7 @@ export function decidir(video, ia, { indice = null } = {}) {
 const DOMINIO = new Set(['costas', 'montada', 'cem', 'joelho_barriga', 'norte_sul']);
 /* "saindo" só é fuga abrindo o título ("Saindo da norte-sul"); no meio,
    é de onde o golpe sai ("Triângulo saindo das costas") */
-const TITULO_DE_DEFESA = /(^\W*saindo\b)|\b(defes\w*|defend\w*|sair|saida|saidas|escap\w*|fug\w*|evit\w*|preso|presa|por baixo|embaixo|sobreviv\w*|recuper\w*|nao (deixar|tomar|ser|bater|dar)|o que fazer quando|quando (pegam|te pegam|ele pega|pegarem|montam|te montam|estiver|esta|estao))\b/;
+const TITULO_DE_DEFESA = /(^\W*saindo\b)|\b(defes\w*|defend\w*|sair|saida|saidas|escap\w*|fug\w*|fuj\w*|evit\w*|preso|presa|por baixo|embaixo|sobreviv\w*|recuper\w*|nao (deixar|tomar|ser|bater|dar)|o que fazer quando|quando (pegam|te pegam|ele pega|pegarem|montam|te montam|estiver|esta|estao))\b/;
 const TITULO_DE_ATAQUE = /\b(atac\w*|ataque\w*|finaliz\w*|pegar as costas|tomar as costas|chegar n\w* costas|ir para as costas|como (pegar|chegar|montar|estrangular|aplicar)|estrangulamentos?|controlar|domin\w*|manter)\b/;
 /* a posição só citada de passagem ("passar sem dar as costas") não é o assunto */
 const SO_CITADA = /\bsem (dar|entregar) as costas\b/;
@@ -335,4 +384,14 @@ export function corrigirClassificacao(aula) {
 export function ehAulaDeDefesa(aula) {
   const t = semAcento(aula?.t || aula?.titulo || '');
   return TITULO_DE_DEFESA.test(t) && !TITULO_DE_ATAQUE.test(t);
+}
+
+/* a esteira: aula de defesa grava a defesa, não o golpe. Vale o título
+   só de defesa, ou o título que fala em defender ("DEFENDER o
+   ESTRANGULAMENTO X") com a IA dizendo defesa ou escapada e nenhum ataque */
+export function aulaDeDefender(titulo, habilidades = []) {
+  if (ehAulaDeDefesa({ titulo })) return true;
+  return TITULO_DE_DEFESA.test(semAcento(titulo))
+    && habilidades.some((h) => h === 'defesa' || h === 'escapada')
+    && !habilidades.some((h) => ['finalizacao', 'estrangulamento', 'articular'].includes(h));
 }

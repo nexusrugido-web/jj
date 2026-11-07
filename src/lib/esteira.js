@@ -1,7 +1,8 @@
 import { supabase } from './supabase';
 import { cabecalhoIA } from './ai';
 import { buscarNoYoutube } from './youtube';
-import { limparDaIa, decidir } from './classificar';
+import { limparDaIa, decidir, aulaDeDefender } from './classificar';
+import { defesaNoLugarDoGolpe } from './assuntos';
 
 /* ============================================================
    A ESTEIRA, RODANDO
@@ -117,7 +118,9 @@ export async function rodarEsteira(videos, { indice, aoAndar, parar }) {
     for (const v of lote) {
       const bruta = respostas.find((r) => r?.id === v.id);
       if (!bruta) { conta.erros++; continue; }
-      const campos = { ...decidir(v, limparDaIa(bruta, indice), { indice }), classificado_em: new Date().toISOString() };
+      const ia = limparDaIa(bruta, indice);
+      if (aulaDeDefender(v.titulo, ia.habilidades)) ia.tecnicas = defesaNoLugarDoGolpe(ia.tecnicas);
+      const campos = { ...decidir(v, ia, { indice }), classificado_em: new Date().toISOString() };
       /* só grava se ninguém conferiu na mão enquanto a IA pensava */
       const { data, error } = await supabase.from('aula').update(campos)
         .eq('id', v.id).eq('classificacao', 'legado').select('*');

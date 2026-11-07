@@ -193,6 +193,22 @@ export function defesasContra(uid) {
   return t ? DEFESAS.filter((d) => defende(d, t)) : [];
 }
 
+/* aula de defesa leva a defesa, nunca o golpe (esteira, E1). O golpe vira
+   a defesa do catálogo que serve contra ele (a que cita o uid dele antes
+   da que serve à família toda). Ataque sem defesa no catálogo sai (falta
+   de catálogo, E3); o resto fica (fuga de quadril é o que a aula de sair
+   ensina). Lê só uid, cat e contra. */
+export function defesaNoLugarDoGolpe(uids) {
+  return [...new Set((uids || []).flatMap((u) => {
+    const t = TECNICA_POR_UID.get(u);
+    if (!t || t.cat === 'defesa') return [u];
+    const defesas = defesasContra(u);
+    const diretas = defesas.filter((d) => d.contra.some((c) => !ehFamilia(c) && TECNICA_POR_UID.get(c)?.uid === t.uid));
+    if (!defesas.length) return ATAQUE.has(t.cat) ? [] : [u];
+    return (diretas.length ? diretas : defesas).map((d) => d.uid);
+  }))];
+}
+
 /* os assuntos de uma aula: os das técnicas marcadas nela, pelo uid, na
    ordem dos 14. Aula sem técnica marcada não tem assunto (o título não
    decide). Lê só `tecnicas`. */

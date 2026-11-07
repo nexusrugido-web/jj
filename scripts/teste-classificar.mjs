@@ -138,5 +138,86 @@ ok('sem técnica marcada: sem conflito', comTecnica(tituloAmericana, []).classif
 ok('grafia do título diferente do nome da técnica: sem conflito',
   comTecnica('Armlock da guarda fechada', ['Chave de braço, armlock']).classificacao_motivo, null);
 
+/* ============================================================
+   E1: GABARITO COM AS AULAS REAIS (relatório 2026-11-07-pertinencia-estudo)
+
+   O catálogo de verdade, e o que a esteira faz com o nome que a IA
+   manda: só nome inteiro grava técnica, aula de defesa grava a defesa.
+   Cada linha: id, título, o que a IA manda (como o prompt pede: o nome
+   citado no título), habilidades e o que tem que ficar gravado. As 10
+   vagas ficam de fora: o título não deixa conferir.
+   ============================================================ */
+{
+  const { INDICE_TECNICAS, TECNICA_POR_UID } = await import('../src/lib/tecnicas.js');
+  const { defesaNoLugarDoGolpe } = await import('../src/lib/assuntos.js');
+  const grava = (titulo, tecnicas, habilidades = []) => {
+    const ia = C.limparDaIa({ tecnicas, habilidades }, INDICE_TECNICAS);
+    const uids = C.aulaDeDefender(titulo, ia.habilidades) ? defesaNoLugarDoGolpe(ia.tecnicas) : ia.tecnicas;
+    return uids.map((u) => TECNICA_POR_UID.get(u).nome);
+  };
+
+  /* palavra que serve pra várias técnicas não vira técnica nenhuma */
+  for (const p of ['raspagem', 'passagem', 'queda', 'estrangulamento', 'chave de pé', 'pegada', 'guarda',
+    'guarda fechada', 'montada', '100kg', 'costas', 'postura', 'finalização', 'posição', 'contra', 'tesoura']) {
+    ok(`"${p}" sozinha não vira técnica`, grava('', [p]), []);
+  }
+
+  const AULAS = [
+    /* as 13 erradas: não podem se repetir */
+    ['84GMpycm-nQ', 'Jiu-Jitsu: Análise da Pontuação e Movimentos na Luta! #shorts', ['raspagem'], ['raspagem'], []],
+    ['L3pAAUG23Gk', 'Raspagem no Jiu-Jitsu: Análise da Queda e Passagem #shorts', ['raspagem', 'queda', 'passagem'], ['raspagem'], []],
+    ['XTWW1TSxBt8', 'Jiu-Jitsu: o Desequilíbrio! #shorts', ['raspagem'], ['raspagem'], []],
+    ['knbV69KKEuE', 'Como raspar sendo leve e fraco - Dia 14 TIRANDO DÚVIDAS DE FAIXA BRANCA', ['raspagem'], ['raspagem'], []],
+    ['tmOphqi2eN8', 'Guarda Fechada para Raspagem: Domine o Controle Total! #shorts', ['guarda fechada', 'raspagem'], ['raspagem'], []],
+    ['ErBoV-DRQqs', 'Jiu-Jitsu Americana: Técnica Incrível Passo a Passo! #shorts', ['americana'], ['articular'], ['Americana']],
+    ['g-xxfOE8V1Q', 'Domine a Chave de Pé: O Segredo do Jiu-Jitsu Revelado! #shorts', ['chave de pé'], ['articular'], []],
+    ['sxpKGCuESj4', 'Domine a Pegada e Fuja da Mão de Vaca no Jiu-Jitsu! #shorts', ['mão de vaca'], ['defesa', 'pegada'], []],
+    ['t8hstU33nGc', 'O que fazer quando pegam suas costas no jiu jitsu', ['mata-leão', 'chave de braço'], ['escapada', 'defesa'], ['Defesa de mata-leão (mão no queixo)']],
+    ['00Z8B0MuFqI', 'Como DEFENDER o ESTRANGULAMENTO X | Estudando Jiu Jitsu 14', ['estrangulamento x'], ['defesa'], []],
+    ['bw2ZBuDHz64', 'Raspagem de laço #bjj #jiujitsu', ['raspagem de laço'], ['raspagem'], []],
+    ['qMr-tps8s70', 'Como raspar na guarda laço #bjj', ['raspagem', 'guarda laço'], ['raspagem'], []],
+    ['ugbsLRYNcc0', 'Como estourar pegada #bjj', ['pegada'], ['pegada'], []],
+    /* as 5 de defesa marcadas com o golpe: agora gravam a defesa */
+    ['BPDueZf9yTw', 'Escape do Triângulo: Defesa e Contra-Ataque no Jiu-Jitsu #shorts', ['triângulo'], ['defesa', 'escapada'], ['Defesa de triângulo (postura)']],
+    ['dJk_fHf8n00', 'TRIÂNGULO - como sair | Estudando Jiu Jitsu 31', ['triângulo'], ['escapada'], ['Defesa de triângulo (postura)']],
+    ['fxEMhniS2E4', 'Defesa de Triângulo: A Técnica para NÃO Tomar! #shorts', ['triângulo'], ['defesa'], ['Defesa de triângulo (postura)']],
+    ['QvtsIFHkNLI', 'Omoplata Jiu-Jitsu: Aprenda a Escapar e Vencer! #shorts', ['omoplata'], ['escapada'], ['Defesa de omoplata']],
+    ['cZxSnNR1DqU', 'Técnica de Jiu-Jitsu: Domine a Perna e Evite a Omoplata #shorts', ['omoplata'], ['defesa'], ['Defesa de omoplata']],
+    /* incompletas: com o nome inteiro, saem completas */
+    ['9yfsu67OQhw', 'Estudando Jiu Jitsu - arm lock / triângulo / omoplata (parte 2)', ['arm lock', 'triângulo', 'omoplata'], ['articular'], ['Armlock da guarda fechada', 'Triângulo', 'Omoplata']],
+    ['Fb3GwaR8K7M', 'Estudando jiu-jítsu / arm lock / triângulo / omoplata', ['arm lock', 'triângulo', 'omoplata'], ['articular'], ['Armlock da guarda fechada', 'Triângulo', 'Omoplata']],
+    /* família certa e posição errada: o chute some, nunca vira outra técnica */
+    ['i1H-YCombdA', 'Como fazer estrangulamento X na fechada #jiujitsu #bjj', ['estrangulamento x'], ['estrangulamento'], []],
+    ['hfLhraVjF8Q', 'Jiu-Jitsu: Aprenda Chave de Braço e Panturrilha (Fácil!) #shorts', ['chave de braço', 'chave de panturrilha'], ['articular'], []],
+    /* as certas continuam certas */
+    ['7eiYOZVlfXI', 'TARIKOPLATA - como fazer  | Estudando Jiu Jitsu 30', ['tarikoplata'], ['articular'], ['Tarikoplata']],
+    ['BmiTWuRbz1Y', 'Armlock da fechada #bjj #jiujitsu', ['armlock'], ['articular'], ['Armlock da guarda fechada']],
+    ['ULWeNfDD8A0', '3 formas de fazer o ARM LOCK - ESTUDANDO JIU JITSU 46', ['arm lock'], ['articular'], ['Armlock da guarda fechada']],
+    ['hoqDGYEVJRY', 'Armlock Surpreendente: A Técnica Inovadora Revelada! #shorts', ['armlock'], ['articular'], ['Armlock da guarda fechada']],
+    ['CoaV7LorLrQ', 'Como fazer o TRIÂNGULO perfeito da guarda | Estudando Jiu Jitsu 38', ['triângulo'], ['estrangulamento'], ['Triângulo']],
+    ['E4Cbr4o_bjo', 'Estudando TRIÂNGULO / Estudando Jiu Jitsu 10', ['triângulo'], ['estrangulamento'], ['Triângulo']],
+    ['SYLVEhBVSQ0', 'A lógica do triângulo #bjj #jiujitsu', ['triângulo'], ['estrangulamento'], ['Triângulo']],
+    ['qB9IId2sB-U', 'Triângulo Fechado: Finalização e Estratégias Incríveis #shorts', ['triângulo'], ['finalizacao'], ['Triângulo']],
+    ['dNVPGN93cW0', 'Aprenda a fazer omoplata #bjj', ['omoplata'], ['articular'], ['Omoplata']],
+    ['TkjTWJHVbhQ', 'Como fazer omoplata na guarda fechada #bjj #jiujitsu', ['omoplata', 'guarda fechada'], ['articular'], ['Omoplata']],
+    ['zNb_9lyYd8k', 'Domine a Kimura: Técnica Essencial no Jiu Jitsu #shorts', ['kimura'], ['articular'], ['Kimura']],
+    ['NCzLkp-N1yY', 'Jiu-Jitsu: Aprenda a Técnica da Americana Incrível! #shorts', ['americana'], ['articular'], ['Americana']],
+    ['Mnu4Ofju6Uc', 'Estudando MÃO DE VACA / Estudando Jiu Jitsu 12', ['mão de vaca'], ['articular'], ['Mão de vaca (chave de pulso)']],
+    ['gx401p_Dvs0', 'Estudando leg lock  chave de joelho | Estudando Jiu Jitsu 13', ['chave de joelho'], ['articular'], ['Chave de joelho (kneebar)']],
+    ['T4M_8n-RBJQ', 'BOTINHA ou CHAVE DE PÉ reta / Estudando Jiu Jitsu 07', ['botinha'], ['articular'], ['Chave de pé reta (botinha)']],
+    ['f88V688J4u0', 'A logica do jiu jitsu - PARTE 11: A lógica da raspagem tesourinha #bjj', ['raspagem de tesoura'], ['raspagem'], ['Raspagem de tesoura']],
+    ['JlBS2JFn7DM', 'Ouchi Gari: Aprenda Jiu-Jitsu e Economize Agora! #shorts', ['ouchi gari'], ['queda'], ['Ouchi gari']],
+    ['MuhhAAFbTGo', 'Tsuri-goshi: Domine a Técnica de Judô para Quedas! #shorts', ['tsuri-goshi'], ['queda'], ['Tsuri goshi']],
+    /* aula de sair: a fuga é o que ela ensina, não é golpe pra trocar */
+    ['dapGi8OiOE8', 'Fuga de Quadril: Detalhe Simples para Sair dos 100kg! #shorts', ['fuga de quadril'], ['escapada'], ['Fuga de quadril (shrimp)']],
+  ];
+  for (const [id, titulo, tecnicas, habilidades, esperado] of AULAS) {
+    ok(`${id} ${titulo.slice(0, 50)}`, grava(titulo, tecnicas, habilidades), esperado);
+  }
+
+  /* o motor ainda acha pelo nome solto (até o R2) */
+  ok('fora da esteira, o nome solto ainda acha', C.acharTecnicas(['ezequiel'], INDICE_TECNICAS).length, 1);
+}
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);
