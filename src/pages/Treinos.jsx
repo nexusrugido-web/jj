@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, Suspense } from 'react';
 import { lazy } from '../lib/lazy';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { planosDaPessoa, correnteDoPlano, arvoreDoPlano, letraDo, pecaDoRola, caminhosAte, rotuloDoCaminho, paradasDe, marcarPeca, subsDoPlano, juntarSubs } from '../lib/planos';
+import { planosDaPessoa, correnteDoPlano, arvoreDoPlano, letraDo, pecaDoRola, caminhosAte, rotuloDoCaminho, paradasDe, marcarPeca, subsDoPlano, juntarSubs, fugasDe } from '../lib/planos';
 import {
   Plus, Trash2, Pencil, NotebookPen, Timer, ChevronDown, ChevronRight, Copy, Check,
   MessageSquare, Building2, GraduationCap, Trophy, Weight, Mic, Users, History, ShieldAlert, CircleHelp,
@@ -1397,12 +1397,19 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
     const tec = new Map(techniques.map((t) => [t.nome, t]));
     return Object.assign((nome) => pos.get((tec.get(nome) || tec.get(nomeAtual(nome)))?.destinoId) || null, { tecnicas: techniques });
   }, [positions, techniques]);
-  /* R7: o plano do rola muda e as finalizações que ele pôs em "Eu finalizei" acompanham */
+  /* R7: o plano do rola muda e as finalizações que ele pôs em "Eu finalizei"
+     acompanham. A que entra passa pelo mesmo aviso de regra da marcada na
+     mão; a do improviso já passou quando ele foi escolhido. "Não registrar"
+     deixa o rola como estava. */
   const marcarPlano = (i, rp) => {
     const r = rolas[i];
     const plano = rp && meusPlanosDeAtaque.find((x) => x.uid === rp.uid);
     const { subs, entrou } = juntarSubs(r.subsAplicadas || [], r.plano?.entrou || [], plano ? subsDoPlano(plano, rp, destinoDe) : []);
-    setRola(i, { subsAplicadas: subs, plano: rp ? { ...rp, entrou } : null });
+    const aplicar = () => setRola(i, { subsAplicadas: subs, plano: rp ? { ...rp, entrou } : null });
+    const jaChecada = plano && r.plano?.improviso ? subsDoPlano(plano, { improviso: { ...r.plano.improviso, encaixou: true } }, destinoDe) : [];
+    const novas = subs.filter((n) => !(r.subsAplicadas || []).includes(n) && !jaChecada.includes(n));
+    const checarTodas = (lista) => (lista.length ? checarTecnica(lista[0], () => checarTodas(lista.slice(1))) : aplicar());
+    checarTodas(novas);
   };
   /* A REGRA DA TÉCNICA: quando a regra não permite (faixa, idade, Gi ou
      No-Gi), o app avisa e pergunta. Nunca proíbe: o professor pode
@@ -1568,9 +1575,10 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
                       valor={r.subsAplicadas || []}
                       onChange={(v) => {
                         const nova = v.find((x) => !(r.subsAplicadas || []).includes(x));
-                        /* tirou na mão a que o plano pôs: o plano esquece dela */
-                        if (!nova) { setRola(i, { subsAplicadas: v, ...(r.plano?.entrou?.length ? { plano: { ...r.plano, entrou: r.plano.entrou.filter((n) => v.includes(n)) } } : {}) }); return; }
-                        checarTecnica(nova, () => setRola(i, { subsAplicadas: v }));
+                        /* tirou ou trocou na mão a que o plano pôs: o plano esquece dela */
+                        const patch = { subsAplicadas: v, ...(r.plano?.entrou?.length ? { plano: { ...r.plano, entrou: r.plano.entrou.filter((n) => v.includes(n)) } } : {}) };
+                        if (!nova) { setRola(i, patch); return; }
+                        checarTecnica(nova, () => setRola(i, patch));
                       }}
                       sugestoes={[...maisUsadas.apliquei, ...finalizacoes.filter((n) => !maisUsadas.apliquei.includes(n))]} rapidas={maisUsadas.apliquei}
                       golpes={golpesPara(r, 'meu')} variacoesDe={variacoesDe}
@@ -1655,7 +1663,7 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
                             ))}
                             {saiu && <Chip on>{saiu.golpe} (saiu do plano)</Chip>}
                             {golpe && (
-                              <Chip tone={r.plano.encaixou ? 'jade' : ''} on={r.plano.encaixou} onClick={() => marcarPlano(i, { ...r.plano, encaixou: !r.plano.encaixou, parou: '' })}>
+                              <Chip tone={r.plano.encaixou ? 'jade' : ''} on={r.plano.encaixou} onClick={() => marcarPlano(i, { ...r.plano, encaixou: !r.plano.encaixou, parou: '', saida: '' })}>
                                 Encaixou
                               </Chip>
                             )}
@@ -1679,10 +1687,24 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
                             <p className="micro muted" style={{ marginBottom: 6 }}>O rola parou aí porque:</p>
                             <div className="row wrap" style={{ gap: 6 }}>
                               {paradasDe(marcada).map((p) => (
-                                <Chip key={p.id} on={r.plano.parou === p.id} onClick={() => marcarPlano(i, { ...r.plano, parou: r.plano.parou === p.id ? '' : p.id })}>
+                                <Chip key={p.id} on={r.plano.parou === p.id} onClick={() => marcarPlano(i, { ...r.plano, parou: r.plano.parou === p.id ? '' : p.id, saida: '' })}>
                                   {p.nome}
                                 </Chip>
                               ))}
+                            </div>
+                          </div>
+                        )}
+                        {/* ele escapou: o lugar pelas fugas que o plano tem; fora delas, fica sem lugar */}
+                        {marcada && !saiu && r.plano.parou === 'escapou' && fugasDe(plano, marcada.id).length > 0 && (
+                          <div style={{ marginTop: 10 }}>
+                            <p className="micro muted" style={{ marginBottom: 6 }}>Pra onde a luta foi?</p>
+                            <div className="row wrap" style={{ gap: 6 }}>
+                              {fugasDe(plano, marcada.id).map((f) => (
+                                <Chip key={f.lig} on={r.plano.saida === f.lig} onClick={() => marcarPlano(i, { ...r.plano, saida: r.plano.saida === f.lig ? '' : f.lig })}>
+                                  {f.nome}
+                                </Chip>
+                              ))}
+                              <Chip on={!r.plano.saida} onClick={() => marcarPlano(i, { ...r.plano, saida: '' })}>Outro lugar</Chip>
                             </div>
                           </div>
                         )}
@@ -1819,7 +1841,8 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
               /* técnica com uid e o nome da época; família não é técnica */
               const r = rolas[seletor.rola];
               if (tec.familia || !r?.plano) return;
-              marcarPlano(seletor.rola, { ...r.plano, improviso: { nome: tec.nome, uid: uidDaTecnica(tec.nome, techniques), encaixou: false } });
+              const rola = seletor.rola;
+              checarTecnica(tec.nome, () => marcarPlano(rola, { ...r.plano, improviso: { nome: tec.nome, uid: uidDaTecnica(tec.nome, techniques), encaixou: false } }));
             } else {
               /* a vaga daquela vez: escolher a mesma técnica de novo tira */
               const r = rolas[seletor.rola];
@@ -1854,9 +1877,9 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
                   : 'Na academia o professor pode liberar. Quer registrar mesmo assim?'}
               </p>
               <div className="col" style={{ gap: 8 }}>
-                <Btn variant="primary" onClick={() => { aviso.aplicar(); setAviso(null); }}>Registrar mesmo assim</Btn>
+                <Btn variant="primary" onClick={() => { setAviso(null); aviso.aplicar(); }}>Registrar mesmo assim</Btn>
                 {!ehCompeticao(s.tipo) && (
-                  <Btn variant="contorno" onClick={() => { onLiberar?.(aviso.nome); aviso.aplicar(); setAviso(null); }}>
+                  <Btn variant="contorno" onClick={() => { onLiberar?.(aviso.nome); setAviso(null); aviso.aplicar(); }}>
                     Meu professor libera, não avisar mais
                   </Btn>
                 )}

@@ -536,11 +536,12 @@ export const alcancouObjetivo = (plano, r, destinoDe = () => null) => !!r?.plano
 
 /* ---------- R7: o rola pelo caminho ----------
    O rola é o que aconteceu; o plano é a estratégia. O rola guarda
-   { uid, peca, caminho, encaixou, parou, improviso, entrou }:
+   { uid, peca, caminho, encaixou, parou, saida, improviso, entrou }:
    - caminho: as ligações por onde você chegou na peça. Com mais de um
      caminho até ela (convergência), é a pessoa que diz qual; "não sei"
      deixa vazio, nada é inventado;
    - parou: o que ele fez na última peça quando o rola acabou ali;
+   - saida: no "escapou", a ligação da fuga do plano (pra onde a luta foi);
    - improviso: "fiz outra coisa", a técnica fora do plano { nome, uid,
      encaixou }, com o nome da época e o uid. Não é peça do plano;
    - entrou: as finalizações que o plano pôs em "Eu finalizei". */
@@ -592,7 +593,27 @@ export function marcarPeca(plano, rp, pecaId) {
   if (rp?.peca === pecaId && (rp.caminho || []).length) return rp;
   const golpe = tipoDe(peca) === 'golpe';
   const parou = paradasDe(peca).some((p) => p.id === rp?.parou) ? rp.parou : '';
-  return { ...rp, peca: pecaId, caminho: caminhos.length === 1 ? caminhos[0] : [], encaixou: golpe && !!rp?.encaixou, parou };
+  const saida = rp?.peca === pecaId && parou === 'escapou' ? rp.saida || '' : '';
+  return { ...rp, peca: pecaId, caminho: caminhos.length === 1 ? caminhos[0] : [], encaixou: golpe && !!rp?.encaixou, parou, saida };
+}
+
+/* ele escapou: as fugas que o plano tem pra essa peça, cada uma pela
+   ligação (a da árvore até a situação, ou a extra até uma situação que
+   já existe ou de volta pra posição). O rola guarda o id da ligação em
+   "saida": o lugar continua achável mesmo que a fuga saia do plano. */
+export function fugasDe(plano, pecaId) {
+  const c = correnteDoPlano(plano);
+  return ligacoesDo(c.passos, c.ligacoes).filter((l) => l.de === pecaId && l.via === 'escapou')
+    .map((l) => ({ lig: l.id, nome: l.para === null || l.para === undefined ? `Voltou pra ${c.posicao || 'posição do começo'}` : c.passos.find((x) => x.id === l.para)?.golpe || '' }));
+}
+
+/* pra onde a luta foi, pelo que o rola guardou: '' sem fuga marcada */
+export function lugarDaFuga(plano, rp) {
+  if (rp?.parou !== 'escapou' || !rp.saida) return '';
+  const l = caminhoDoRola(plano, [rp.saida]).ligacoes[0];
+  if (!l) return '';
+  if (l.para === null || l.para === undefined) return `Voltou pra ${plano?.posicao || 'posição do começo'}`;
+  return pecaDoRola(plano, { plano: { peca: l.para } })?.golpe || '';
 }
 
 /* as finalizações que o plano põe em "Eu finalizei": a peça que

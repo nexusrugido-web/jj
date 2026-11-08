@@ -932,6 +932,20 @@ ok('finta com nome de finalização não chega no objetivo', chegaNoObjetivo(cor
   ok('R7 desmarcar encaixou tira só a que o plano pôs', juntarSubs(['Armlock', 'Omoplata'], ['Omoplata'], []), { subs: ['Armlock'], entrou: [] });
   ok('R7 repetir não muda nada', juntarSubs(['Armlock', 'Omoplata'], ['Omoplata'], ['Omoplata']), { subs: ['Armlock', 'Omoplata'], entrou: ['Omoplata'] });
   ok('R7 trocar a peça troca a finalização', juntarSubs(['Omoplata'], ['Omoplata'], ['Triângulo']), { subs: ['Triângulo'], entrou: ['Triângulo'] });
+  /* ele escapou: o lugar fica pela ligação da fuga, mesmo se ela sair do plano */
+  const { fugasDe, lugarDaFuga } = await import('../src/lib/planos.js');
+  const fuga = planoNovo({ nome: 'Fuga', objetivo: 'Finalizar', objetivoTipo: 'finalizar', posicao: 'Guarda fechada', passos: [
+    { id: 'g', lig: 'lg', golpe: 'Armlock', pai: null },
+    { id: 'sit', lig: 'lsit', tipo: 'situacao', golpe: 'Meia-guarda', reacao: 'passou a perna', pai: 0, via: 'escapou' },
+  ], ligacoes: [{ id: 'volta', de: 'g', via: 'escapou', gatilho: 'girou', para: null }] });
+  ok('R7 fugas do golpe: a situação e a volta pra posição', fugasDe(fuga, 'g'), [{ lig: 'lsit', nome: 'Meia-guarda' }, { lig: 'volta', nome: 'Voltou pra Guarda fechada' }]);
+  const escapou = { uid: 'F', peca: 'g', caminho: ['lg'], encaixou: false, parou: 'escapou', saida: 'lsit' };
+  ok('R7 o rola diz pra onde a luta foi', [lugarDaFuga(fuga, escapou), lugarDaFuga(fuga, { ...escapou, saida: 'volta' })], ['Meia-guarda', 'Voltou pra Guarda fechada']);
+  ok('R7 sem escapou ou sem lugar: vazio', [lugarDaFuga(fuga, { ...escapou, parou: 'defendeu' }), lugarDaFuga(fuga, { ...escapou, saida: '' })], ['', '']);
+  ok('R7 tocar de novo no golpe guarda o lugar; outra peça apaga', [marcarPeca(fuga, { ...escapou, caminho: [] }, 'g').saida, marcarPeca(rota, { ...escapou, peca: 'arm' }, 'tri').saida], ['lsit', '']);
+  const semSit = planoNovo({ ...fuga, passos: editar(fuga).filter((x) => x.tipo !== 'situacao'), ligacoes: correnteDoPlano(fuga).ligacoes });
+  const histSit = viaSync({ ...semSit, removidos: removidosAoSalvar(fuga, semSit) });
+  ok('R7 a situação saiu do plano: o rola antigo ainda acha o lugar', lugarDaFuga(histSit, escapou), 'Meia-guarda');
   ok('R7 finalizou duas vezes com a mesma: tira uma só', juntarSubs(['Omoplata', 'Omoplata'], ['Omoplata'], []), { subs: ['Omoplata'], entrou: [] });
 }
 
