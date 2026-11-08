@@ -66,7 +66,7 @@ export default function Metas() {
     () => minhasTecnicas(rolls, partners, sessions, techniques, faixa, gradings, settings.graus || 0, { comPosicoes: true }),
     [rolls, partners, sessions, techniques, faixa, gradings, settings.graus]
   );
-  const buracos = useMemo(() => meusBuracos(rolls, partners, sessions, faixa), [rolls, partners, sessions, faixa]);
+  const buracos = useMemo(() => meusBuracos(rolls, partners, sessions, faixa, 8, techniques), [rolls, partners, sessions, faixa, techniques]);
 
   /* só entram aqui as metas que você assumiu */
   const aulas = useLiveQuery(() => db.aulasVistas.toArray(), [], []) || [];

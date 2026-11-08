@@ -90,7 +90,7 @@ export default function Estudo() {
     [rolls, partners, sessions, faixa]
   );
   const estilo = estiloDosRolas || settings.estiloDeclarado;
-  const buracos = useMemo(() => meusBuracos(rolls, partners, sessions, faixa), [rolls, partners, sessions, faixa]);
+  const buracos = useMemo(() => meusBuracos(rolls, partners, sessions, faixa, 8, techniques), [rolls, partners, sessions, faixa, techniques]);
   const todasRecs = useMemo(
     () => recomendacoesDoAluno({ tecnicas, buracos, partners, sessions, rolls, faixa, feitas, limite: RECOMENDACOES_NA_TELA }),
     [tecnicas, buracos, partners, sessions, rolls, faixa, feitas]
@@ -125,7 +125,7 @@ export default function Estudo() {
     };
 
     for (const r of recs) {
-      const pedido = pedidoDaRec(r);
+      const pedido = pedidoDaRec(r, techniques);
       const lista = aulasPara(pedido, {
         faixa,
         vistas,
@@ -169,7 +169,7 @@ export default function Estudo() {
       }
     }
     return blocos;
-  }, [recs, faixa, vistas, estilo, estiloDosRolas, minhas, acervoVer]);
+  }, [recs, faixa, vistas, estilo, estiloDosRolas, minhas, acervoVer, techniques]);
 
   /* quem ainda não registrou nada precisa de algo pra ver hoje,
      e não de um aviso dizendo que a tela enche depois */

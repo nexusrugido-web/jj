@@ -44,7 +44,7 @@ export default function Dominio() {
     () => minhasTecnicas(rolls, partners, sessions, techniques, faixa, gradings, settings.graus || 0, { comPosicoes: true }),
     [rolls, partners, sessions, techniques, faixa, gradings, settings.graus]
   );
-  const buracos = useMemo(() => meusBuracos(rolls, partners, sessions, faixa), [rolls, partners, sessions, faixa]);
+  const buracos = useMemo(() => meusBuracos(rolls, partners, sessions, faixa, 8, techniques), [rolls, partners, sessions, faixa, techniques]);
 
   /* posição (De La Riva, Montada) não é golpe: fica na seção dela, com o
      grau que já tinha guardado, e não entra na conta das técnicas */

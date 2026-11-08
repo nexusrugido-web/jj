@@ -27,7 +27,7 @@ import { Vitrine } from './Plano';
 
 export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFeito, comAula = true, tela = 'painel' }) {
   const toast = useToast();
-  const { acesso } = useApp();
+  const { acesso, techniques } = useApp();
   const { liberarVideo, aviso } = useLimite(acesso);
   const [resposta, setResposta] = useState(null);
   const [tocando, setTocando] = useState(null);
@@ -42,7 +42,7 @@ export default function Recomendacao({ rec, faixa = 'branca', vistas = [], onFei
 
   /* o motor procura pelo que o vídeo ensina, no acervo inteiro.
      Sem nada do assunto, cai no porquê das coisas. */
-  const pedido = pedidoDaRec(rec);
+  const pedido = pedidoDaRec(rec, techniques);
   const aulas = comAula
     ? aulasPara(pedido, {
         faixa,

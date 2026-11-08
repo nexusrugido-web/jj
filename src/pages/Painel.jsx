@@ -104,11 +104,11 @@ export default function Painel() {
 
   const esteira = useMemo(() => minhasTecnicas(rolls, partners, sessions, techniques, settings.faixa, gradings, settings.graus || 0), [rolls, partners, sessions, techniques, settings.faixa, gradings, settings.graus]);
   const recap = useMemo(() => resumoSemana(sessions, rolls, esteira, { faixa: settings.faixa }), [sessions, rolls, esteira, settings.faixa]);
-  const buracos = useMemo(() => meusBuracos(rolls, partners, sessions, settings.faixa), [rolls, partners, sessions, settings.faixa]);
+  const buracos = useMemo(() => meusBuracos(rolls, partners, sessions, settings.faixa, 8, techniques), [rolls, partners, sessions, settings.faixa, techniques]);
   /* a exclusiva do Premium que ensina a sair do que mais te pega */
   const destravaDoBuraco = useMemo(() => (buracos[0] && (buracos[0].vezes || 0) >= 2
-    ? exclusivaPara(pedidoDaRec({ intencao: 'corrigir', alvo: buracos[0].nome }), { faixa: settings.faixa })
-    : null), [buracos, settings.faixa, acervoVer]); // eslint-disable-line react-hooks/exhaustive-deps
+    ? exclusivaPara(pedidoDaRec({ intencao: 'corrigir', alvo: buracos[0].nome, uid: buracos[0].uid }, techniques), { faixa: settings.faixa })
+    : null), [buracos, settings.faixa, acervoVer, techniques]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* o que só o app sabe calcular e os avisos precisam: a técnica perto
      do grau ("falta pouco"), quantas subiram na semana que fechou (o

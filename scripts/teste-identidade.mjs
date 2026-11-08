@@ -11,7 +11,7 @@ import 'fake-indexeddb/auto';
    antes de aplicar e não muda nada na segunda vez.
    ============================================================ */
 const {
-  uidDaTecnica, resolverNome, comTecUid, uidDoGolpe, nomesDoRola, patchesDoRenomeio,
+  uidDaTecnica, resolverNome, comTecUid, uidDoGolpe, nomesDoRola, patchesDoRenomeio, uidNoRegistro,
 } = await import('../src/lib/identidade.js');
 const { passadaDeIdentidade } = await import('../src/lib/compatibilidade.js');
 const { planoNovo, correnteDoPlano } = await import('../src/lib/planos.js');
@@ -122,6 +122,12 @@ const techniques2 = techniques.map((t) => (t.uid === 'pp-minha-kimura' ? { ...t,
 const rolaRenomeado = { ...rolaSalvo, ...de('rolls', 1) };
 ok('salvar depois do renomeio: o uid fica com o nome na época',
   comTecUid(nomesDoRola(rolaRenomeado), techniques2, rolaRenomeado.tecUid)['pp-minha-kimura'], 'Kimura do meu jeito');
+/* R4: a recomendação lê o uid do rola pelo nome da lista, antes e depois do renomeio */
+ok('uidNoRegistro: o nome da lista acha o uid guardado', uidNoRegistro(rolaSalvo, 'Kimura do meu jeito', techniques), 'pp-minha-kimura');
+ok('uidNoRegistro: depois do renomeio, o nome novo acha o mesmo uid', uidNoRegistro(rolaRenomeado, 'Kimura de sempre', techniques2), 'pp-minha-kimura');
+ok('uidNoRegistro: nome que não é do registro não acha', uidNoRegistro(rolaRenomeado, 'Mata-leão', techniques2), null);
+ok('uidNoRegistro: o nome da época de outro jeito acha o mesmo uid', uidNoRegistro(rolaRenomeado, 'Single leg', techniques2), singleLeg.uid);
+ok('uidNoRegistro: rola sem tecUid fica sem uid', uidNoRegistro({ subsSofridas: ['Kimura de sempre'] }, 'Kimura de sempre', techniques2), null);
 
 /* ---------- a passada nos registros antigos ---------- */
 const antigos = {

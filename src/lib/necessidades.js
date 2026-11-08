@@ -39,7 +39,7 @@ const FORMATO_DA_INTENCAO = {
    Técnica sua: a técnica, a família, a habilidade dela e a posição
    de onde ela sai.
    ------------------------------------------------------------ */
-export function pedidoDaRec(rec) {
+export function pedidoDaRec(rec, biblioteca = []) {
   const formatos = FORMATO_DA_INTENCAO[rec.intencao] || ['conceito'];
 
   if (rec.situacao) return { situacoes: [rec.situacao], palavras: PALAVRAS_DA_SITUACAO[rec.situacao] || [], formatos };
@@ -56,16 +56,24 @@ export function pedidoDaRec(rec) {
   }
 
   if (rec.alvo) {
-    const achadas = acharTecnicas([rec.alvo], INDICE_TECNICAS);
-    const t = TECNICA_POR_UID.get(achadas[0]);
+    /* o uid que o rola guardou decide (R4): técnica renomeada continua
+       achando a aula. Sem uid (rola antigo), a busca pelo nome, como sempre */
+    const doCatalogo = rec.uid ? TECNICA_POR_UID.get(rec.uid) : null;
+    const propria = rec.uid && !doCatalogo ? biblioteca.find((x) => x?.propria && x.uid === rec.uid) || null : null;
+    const achadas = doCatalogo ? [doCatalogo.uid] : propria ? [propria.uid] : acharTecnicas([rec.alvo], INDICE_TECNICAS);
+    const t = propria || TECNICA_POR_UID.get(achadas[0]);
     /* técnicas que viraram uma só (o Katagatame da montada e o do
        100kg) continuam com um uid cada: o pedido leva todos */
-    const tecnicas = [...new Set([...achadas, ...CATALOGO_TECNICAS.filter((x) => t && x.nome === t.nome).flatMap((x) => x.uids)])];
-    /* a família (articular, estrangulamento...) é o que impede o motor
-       de responder "defesa contra Americana" com defesa de outra coisa */
-    const familia = t?.cat || null;
-    /* a família de mecânica (fam:armlock): só ela faz a aula ser "da família" no motor */
+    const tecnicas = [...new Set([...achadas, ...CATALOGO_TECNICAS.filter((x) => !propria && t && x.nome === t.nome).flatMap((x) => x.uids)])];
+    /* a família de mecânica (fam:armlock): só ela faz a aula ser "da família" no motor.
+       A própria só entra numa família quando a `fam` dela está confirmada */
     const fam = t?.fam || null;
+    /* a família (articular, estrangulamento...) é o que impede o motor
+       de responder "defesa contra Americana" com defesa de outra coisa.
+       A própria não tem `cat`: vale a da família dela, se tiver */
+    const familia = (propria ? CATALOGO_TECNICAS.find((x) => fam && x.fam === fam)?.cat : t?.cat) || null;
+    /* o nome de hoje também cita no título (rola com o nome antigo) */
+    const nomes = [rec.alvo, ...(rec.uid && t?.nome && t.nome !== rec.alvo ? [t.nome] : [])];
     if (rec.intencao === 'corrigir') {
       /* defesa é defesa: a aula que ensina a aplicar a técnica não
          responde "defesa contra ela". Sem aula de defesa da técnica,
@@ -74,15 +82,15 @@ export function pedidoDaRec(rec) {
       const saidas = [...new Set(tecnicas.map((u) => TECNICA_POR_UID.get(u)?.de).filter(Boolean)
         .map((de) => { const { posicao, lado } = separar(de); return `${posicao}:${lado === 'cima' ? 'baixo' : 'cima'}`; }))];
       /* as defesas do catálogo cujo contra aponta pro golpe ou pra família dele (R3) */
-      const defesas = [...new Set(tecnicas.flatMap((u) => defesasContra(u).flatMap((d) => d.uids)))];
-      return { tecnicas, nomes: [rec.alvo], familia, fam, defesas, habilidades: ['defesa', 'escapada'], defesa: true, posicoes: saidas, formatos };
+      const defesas = [...new Set(tecnicas.flatMap((u) => defesasContra(u, biblioteca).flatMap((d) => d.uids)))];
+      return { tecnicas, nomes, familia, fam, defesas, habilidades: ['defesa', 'escapada'], defesa: true, posicoes: saidas, formatos };
     }
     return {
       tecnicas,
-      nomes: [rec.alvo],
+      nomes,
       familia,
       fam,
-      habilidades: t ? [t.cat] : [],
+      habilidades: familia ? [familia] : [],
       posicoes: t?.de ? [t.de] : [],
       formatos,
     };

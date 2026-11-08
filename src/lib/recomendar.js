@@ -214,6 +214,7 @@ export function gerarRecomendacoes({
     out.push({
       intencao: 'corrigir',
       alvo: buracoQuente.nome,
+      uid: buracoQuente.uid || null,
       titulo: `Defesa contra ${buracoQuente.nome}`,
       texto: falar('corrigir', faixa, {
         nome: buracoQuente.nome,
@@ -262,6 +263,7 @@ export function gerarRecomendacoes({
     out.push({
       intencao: 'adaptar',
       alvo: paraAdaptar.nome,
+      uid: paraAdaptar.uid || null,
       titulo: `Variação de ${paraAdaptar.nome}`,
       texto: falar('adaptar', faixa, {
         nome: paraAdaptar.nome,
@@ -279,6 +281,7 @@ export function gerarRecomendacoes({
     out.push({
       intencao: 'consolidar',
       alvo: paraConsolidar.nome,
+      uid: paraConsolidar.uid || null,
       titulo: `Levar ${paraConsolidar.nome} pro rola`,
       texto: falar('consolidar', faixa, { nome: paraConsolidar.nome }),
       evidencia: `${paraConsolidar.usosDrill} vezes no drill, nenhuma no rola`,
@@ -291,6 +294,7 @@ export function gerarRecomendacoes({
     out.push({
       intencao: 'validar',
       alvo: recemSubiu.nome,
+      uid: recemSubiu.uid || null,
       titulo: `${recemSubiu.nome} virou jogo`,
       texto: falar('validar', faixa, {
         nome: recemSubiu.nome,
@@ -308,6 +312,7 @@ export function gerarRecomendacoes({
     out.push({
       intencao: 'testar',
       alvo: paraTestar.nome,
+      uid: paraTestar.uid || null,
       titulo: `Testar ${paraTestar.nome} fora do grupo`,
       texto: falar('testar', faixa, {
         nome: paraTestar.nome,
@@ -323,6 +328,7 @@ export function gerarRecomendacoes({
     out.push({
       intencao: 'repetir',
       alvo: paraRepetir.nome,
+      uid: paraRepetir.uid || null,
       titulo: `Insistir em ${paraRepetir.nome}`,
       texto: falar('repetir', faixa, { nome: paraRepetir.nome, usos: paraRepetir.usosResistencia }),
       evidencia: `${paraRepetir.usosResistencia} ${paraRepetir.usosResistencia === 1 ? 'uso' : 'usos'} no rola`,
@@ -335,6 +341,7 @@ export function gerarRecomendacoes({
     out.push({
       intencao: 'refinar',
       alvo: paraRefinar.nome,
+      uid: paraRefinar.uid || null,
       titulo: `Detalhe de ${paraRefinar.nome}`,
       texto: falar('refinar', faixa, { nome: paraRefinar.nome, usos: paraRefinar.usosResistencia }),
       evidencia: grauPorN(4).curto,

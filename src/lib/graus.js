@@ -3,6 +3,7 @@ import { periodoDeDados, dentroDoPeriodo } from './periodo';
 import { SEED } from '../db/seed';
 import { pontosPorId, PESO_REL } from '../db/scoring';
 import { ehPosicao } from './posicoes';
+import { uidNoRegistro } from './identidade';
 
 /* ============================================================
    GRAUS POR TÉCNICA
@@ -343,7 +344,7 @@ export function calcularDefesa(sofridas, faixaUsuario = 'branca') {
    LEITURA DO HISTÓRICO
    Separa os eventos em duas listas que nunca se cruzam.
    ============================================================ */
-export function lerHistorico(rolls, partners, sessions) {
+export function lerHistorico(rolls, partners, sessions, tecnicas = []) {
   /* sem parceiro, ou parceiro sem faixa: fica sem faixa, e o cálculo
      trata como alguém da sua. Antes virava branca e quem é azul pra
      cima perdia peso em todo rola sem parceiro marcado. */
@@ -378,14 +379,16 @@ export function lerHistorico(rolls, partners, sessions) {
       sessionId: r.sessionId,
     };
 
-    for (const s of r.subsAplicadas || []) addAtaque(s, { ...base, tipo: 'finalizacao' });
-    for (const s of r.subsSofridas || []) addDefesa(s, { ...base, tipo: 'finalizacao' });
+    /* o uid que o rola guardou pro nome (R4): a recomendação acha a técnica por ele */
+    const uid = (n) => (r.tecUid ? uidNoRegistro(r, n, tecnicas) : null);
+    for (const s of r.subsAplicadas || []) addAtaque(s, { ...base, tipo: 'finalizacao', uid: uid(s) });
+    for (const s of r.subsSofridas || []) addDefesa(s, { ...base, tipo: 'finalizacao', uid: uid(s) });
 
     for (const [ponto, nomes] of Object.entries(r.tecMeus || {})) {
-      for (const n of nomes) addAtaque(n, { ...base, tipo: 'ponto', ponto });
+      for (const n of nomes) addAtaque(n, { ...base, tipo: 'ponto', ponto, uid: uid(n) });
     }
     for (const [ponto, nomes] of Object.entries(r.tecDele || {})) {
-      for (const n of nomes) addDefesa(n, { ...base, tipo: 'ponto', ponto });
+      for (const n of nomes) addDefesa(n, { ...base, tipo: 'ponto', ponto, uid: uid(n) });
     }
   }
 
@@ -509,7 +512,7 @@ export function pertoDoGrau(lista = []) {
    contas e dos marcos. Minhas técnicas (seção Posições) e Metas (meta
    antiga numa posição) pedem com comPosicoes. */
 export function minhasTecnicas(rolls, partners, sessions, techniques, faixaUsuario = 'branca', gradings = [], grausAtuais = 0, { comPosicoes = false } = {}) {
-  const { ataque, defesa } = lerHistorico(rolls, partners, sessions);
+  const { ataque, defesa } = lerHistorico(rolls, partners, sessions, techniques);
   const porNome = new Map(techniques.map((t) => [t.nome.toLowerCase(), t]));
 
   const linhas = [];
@@ -522,6 +525,7 @@ export function minhasTecnicas(rolls, partners, sessions, techniques, faixaUsuar
     if (!comPosicoes && ehPosicao({ nome, tags: tec?.tags })) continue;
     linhas.push({
       nome,
+      uid: usos.find((u) => u.uid)?.uid || null,
       tecnicaId: tec?.id ?? null,
       nomeEn: tec?.nomeEn || '',
       categoriaId: tec?.categoriaId ?? null,
@@ -536,15 +540,15 @@ export function minhasTecnicas(rolls, partners, sessions, techniques, faixaUsuar
 }
 
 /* ---------- onde você apanha ---------- */
-export function meusBuracos(rolls, partners, sessions, faixaUsuario = 'branca', limite = 8) {
-  const { defesa } = lerHistorico(rolls, partners, sessions);
+export function meusBuracos(rolls, partners, sessions, faixaUsuario = 'branca', limite = 8, tecnicas = []) {
+  const { defesa } = lerHistorico(rolls, partners, sessions, tecnicas);
   const linhas = [];
   /* só o que te fez bater: "Onde você apanha", "o que mais te pega" e a
      recomendação de defesa falam a mesma coisa. Passagem sofrida com
      nome virava "você bateu 3 vezes de" uma passagem. */
   for (const [nome, sofridas] of defesa.entries()) {
     const taps = sofridas.filter((s) => s.tipo === 'finalizacao');
-    if (taps.length) linhas.push({ nome, ...calcularDefesa(taps, faixaUsuario) });
+    if (taps.length) linhas.push({ nome, uid: taps.find((s) => s.uid)?.uid || null, ...calcularDefesa(taps, faixaUsuario) });
   }
   return linhas.sort((a, b) => b.recente - a.recente || b.vezes - a.vezes).slice(0, limite);
 }

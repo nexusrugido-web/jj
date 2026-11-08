@@ -292,5 +292,38 @@ const queda = pedidoDaRec({ intencao: 'corrigir', posicao: 'queda_sofrida' });
 ok('quem leva queda não recebe defesa de finalização',
   ids(aulasPara(queda, { lista: [...acervoDef, v('sprawl-na-queda', { posicaoLado: ['em_pe:neutro'], habilidades: ['defesa'] })], quantidade: 5 })).includes('esconder-o-cotovelo'), false);
 
+/* ---------- R4: a recomendação acha a técnica pelo uid do rola ---------- */
+const { meusBuracos } = await import('../src/lib/graus.js');
+const ARM_GF = uidDe('Armlock da guarda fechada');
+const sessaoR4 = [{ id: 1, data: '2026-11-01', tipo: 'livre' }];
+const rolaR4 = (nome, tecUid) => ({ id: Math.random(), sessionId: 1, subsSofridas: [nome], ...(tecUid ? { tecUid } : {}) });
+/* nome que a busca não acha, mas o rola guardou o uid (renomeado na biblioteca do atleta) */
+const renomeada = [{ uid: ARM_GF, nome: 'Armlock que o Zé me pega', criadoEm: 1 }];
+const burR4 = meusBuracos([rolaR4('Armlock que o Zé me pega', { [ARM_GF]: 'Armlock da guarda fechada' }), rolaR4('Armlock que o Zé me pega', { [ARM_GF]: 'Armlock da guarda fechada' })], [], sessaoR4, 'branca', 8, renomeada);
+ok('o buraco leva o uid que o rola guardou', burR4[0].uid, ARM_GF);
+const recR4 = gerarRecomendacoes({ buracos: burR4 }).find((r) => r.intencao === 'corrigir' && r.alvo);
+ok('a recomendação leva o uid do buraco', recR4.uid, ARM_GF);
+ok('a chave da recomendação continua pelo nome (as já feitas valem)', chaveDaRec(recR4), 'corrigir:Armlock que o Zé me pega');
+const pedR4 = pedidoDaRec(recR4, renomeada);
+ok('técnica renomeada continua achando a técnica pelo uid', pedR4.tecnicas.includes(ARM_GF), true);
+ok('e leva a família e as defesas dela', [pedR4.fam, pedR4.defesas.includes(DEF_ARM)], ['fam:armlock', true]);
+ok('técnica renomeada continua achando a aula', ids(aulasPara(pedR4, { lista: acervoDef, quantidade: 1 })), ['esconder-o-cotovelo']);
+ok('sem uid (rola antigo), o mesmo nome não acha técnica nenhuma', pedidoDaRec({ intencao: 'corrigir', alvo: 'Armlock que o Zé me pega' }).tecnicas, []);
+ok('rola antigo sem tecUid: o buraco fica sem uid', meusBuracos([rolaR4('Armlock da guarda fechada'), rolaR4('Armlock da guarda fechada')], [], sessaoR4)[0].uid, null);
+ok('sem uid, a busca pelo nome continua achando', pedidoDaRec({ intencao: 'corrigir', alvo: 'Armlock da guarda fechada' }).tecnicas.includes(ARM_GF), true);
+/* técnica própria do atleta: só entra na família com a fam confirmada */
+const PROP = 'propria-kimura-do-ze';
+const comFam = [{ uid: PROP, nome: 'Kimura do Zé', propria: 1, fam: 'fam:kimura', criadoEm: 1 }];
+const semFam = [{ uid: PROP, nome: 'Kimura do Zé', propria: 1, criadoEm: 1 }];
+const acervoKim = [v('kimura-dos-100kg', { t: 'Chave de ombro por cima', tecnicas: [uidDe('Kimura dos 100kg')], habilidades: ['articular'] })];
+const pedComFam = pedidoDaRec({ intencao: 'repetir', alvo: 'Kimura do Zé', uid: PROP }, comFam);
+ok('própria com fam confirmada leva a família', [pedComFam.tecnicas, pedComFam.fam, pedComFam.familia], [[PROP], 'fam:kimura', 'articular']);
+ok('e a aula da família vem como da família, não em geral', aulasPara(pedComFam, { lista: acervoKim, quantidade: 1 }).map((a) => [a.id, !!a.generico]), [['kimura-dos-100kg', false]]);
+const pedSemFam = pedidoDaRec({ intencao: 'repetir', alvo: 'Kimura do Zé', uid: PROP }, semFam);
+ok('própria sem fam não entra em família nenhuma', [pedSemFam.fam, pedSemFam.familia], [null, null]);
+ok('e a aula de kimura não vem como da família', aulasPara(pedSemFam, { lista: acervoKim, quantidade: 1 }).every((a) => a.generico || a.reserva), true);
+ok('defesa contra a própria com fam: pela família', pedidoDaRec({ intencao: 'corrigir', alvo: 'Kimura do Zé', uid: PROP }, comFam).defesas.length > 0, true);
+ok('defesa contra a própria sem fam: nenhuma defesa do catálogo', pedidoDaRec({ intencao: 'corrigir', alvo: 'Kimura do Zé', uid: PROP }, semFam).defesas, []);
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

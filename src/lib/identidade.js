@@ -137,6 +137,15 @@ export function comTecUid(nomes = [], tecnicas = [], tecUidAntigo = {}) {
   return out;
 }
 
+/* o uid que o registro (rola, meta) guardou pra aquele nome: só o que
+   ainda é dele, como no comTecUid. Registro antigo, sem tecUid: null */
+export function uidNoRegistro(registro, nome, tecnicas = []) {
+  for (const [uid, naEpoca] of Object.entries(registro?.tecUid || {})) {
+    if (aindaE(uid, nome, tecnicas, naEpoca)) return uidOficial(uid, tecnicas);
+  }
+  return null;
+}
+
 /* o uid da peça do plano: o que ela já tinha, se o golpe ainda é dele;
    senão, o que o nome resolve. Finta é texto do atleta: nunca tem uid */
 export function uidDoGolpe(peca, tecnicas = []) {

@@ -187,9 +187,10 @@ export function defende(defesa, tecnica) {
 
 const DEFESAS = CATALOGO_TECNICAS.filter((t) => t.contra.length);
 
-/* as defesas do catálogo que servem contra a técnica (pelo uid dela) */
-export function defesasContra(uid) {
-  const t = TECNICA_POR_UID.get(uid);
+/* as defesas do catálogo que servem contra a técnica (pelo uid dela).
+   A própria do atleta (na biblioteca) só pega defesa pela `fam` dela (R4) */
+export function defesasContra(uid, biblioteca = []) {
+  const t = TECNICA_POR_UID.get(uid) || biblioteca.find((x) => x?.propria && x.uid === uid);
   return t ? DEFESAS.filter((d) => defende(d, t)) : [];
 }
 
