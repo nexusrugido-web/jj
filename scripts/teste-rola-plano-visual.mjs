@@ -3,7 +3,8 @@ import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 
 /* ============================================================
-   R7.1 NO APP DE VERDADE (precisa do npm run dev)
+   R7.1 NO APP DE VERDADE (precisa do npm run dev), em 360, 700 e 1280px.
+   Desde o R7.2 a peça se marca tocando no mapa do rola.
    Registra rolas pelo plano tocando na tela, em 360px, salva o treino
    e confere o que ficou gravado no banco:
    1. entrada certa quando várias levam à mesma peça, e pra onde a
@@ -50,7 +51,10 @@ const ok = (nome, real, esperado) => {
   console.log(`${bom ? 'ok   ' : 'FALHA'} ${nome}: ${JSON.stringify(real)}${bom ? '' : ` (esperado ${JSON.stringify(esperado)})`}`);
 };
 try {
-  const contexto = await browser.newContext({ viewport: { width: 360, height: 800 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, timezoneId: 'America/Sao_Paulo' });
+ for (const largura of [360, 700, 1280]) {
+  console.log(`\n--- ${largura}px ---`);
+  const celular = largura < 800;
+  const contexto = await browser.newContext({ viewport: { width: largura, height: 800 }, deviceScaleFactor: 2, isMobile: celular, hasTouch: celular, timezoneId: 'America/Sao_Paulo' });
   await contexto.route('**/*', (route) => (new URL(route.request().url()).origin === new URL(url).origin ? route.continue() : route.abort()));
   const page = await contexto.newPage();
   const erros = [];
@@ -65,6 +69,8 @@ try {
 
   const botao = (nome) => page.getByRole('button', { name: nome, exact: true });
   const toque = async (nome, qual = 'first') => { await botao(nome)[qual]().click(); await page.waitForTimeout(250); };
+  /* R7.2: a peça se marca no mapa do rola */
+  const peca = async (nome) => { await page.locator('.mapa-rola').getByRole('button', { name: nome, exact: true }).first().click(); await page.waitForTimeout(250); };
   const ligado = async (nome, qual = 'first') => /\bon\b/.test(await botao(nome)[qual]().getAttribute('class') || '');
   const fuga = (nome) => page.getByText('Pra onde a luta foi?').locator('xpath=..').getByRole('button', { name: nome, exact: true });
   const avisoAberto = () => page.getByText('Essa técnica tem regra').isVisible();
@@ -96,17 +102,17 @@ try {
 
   /* 1. entrada e fuga */
   await novoRola('r7-conv');
-  await toque(`A · ${ARM}`);
+  await peca(ARM);
   ok('1 com duas entradas, pergunta por qual (e "Não sei" fica marcado até responder)', [await botao('Pegada na gola e na manga').count(), await ligado('Não sei')], [1, true]);
   await toque('Pegada na gola e na manga');
   await toque('Ele escapou');
   ok('1 pergunta pra onde a luta foi, com as fugas do plano', [await fuga('Meia-guarda').count(), await fuga('Voltou pra Guarda fechada').count(), await ligado('Outro lugar')], [1, 1, true]);
   await fuga('Meia-guarda').click();
   await page.waitForTimeout(250);
-  await toque(`A · ${ARM}`);
+  await peca(ARM);
   ok('1 tocar de novo no golpe não apaga entrada nem lugar', [await ligado('Pegada na gola e na manga'), (await fuga('Meia-guarda').getAttribute('class')).split(' ').includes('on')], [true, true]);
   await page.getByText('Pra onde a luta foi?').scrollIntoViewIfNeeded();
-  await page.screenshot({ path: `${pasta}/1-entrada-e-fuga.png` });
+  await page.screenshot({ path: `${pasta}/1-entrada-e-fuga-${largura}.png` });
   const r1 = await salvar();
   ok('1 gravou a entrada pela preparação', r1.plano.caminho, ['lB', 'cB']);
   ok('1 gravou que ele escapou e pra onde', [r1.plano.parou, r1.plano.saida, await ler('lugarDaFuga', CONV, r1.plano)], ['escapou', 'lsit', 'Meia-guarda']);
@@ -115,7 +121,7 @@ try {
 
   /* 2. marcada na mão não duplica e não sai */
   await novoRola('r7-conv');
-  await toque(`A · ${ARM}`);
+  await peca(ARM);
   await manual(ARM);
   await toque('Encaixou');
   ok('2 encaixou com ela já marcada na mão: não aparece "Já entrou"', await page.getByText('Já entrou em').count(), 0);
@@ -125,7 +131,7 @@ try {
   ok('2 gravou uma só, e como sua', [r2.subs, r2.plano.entrou, r2.plano.encaixou], [[ARM], [], true]);
   ok('2 o rola sai como finalização, com o uid da técnica', [r2.resultado, Object.values(r2.tecUid).includes(ARM)], ['finalizei', true]);
   await novoRola('r7-conv');
-  await toque(`A · ${ARM}`);
+  await peca(ARM);
   await manual(ARM);
   await toque('Encaixou');
   await toque('Encaixou');
@@ -134,7 +140,7 @@ try {
 
   /* 3. a que o plano pôs sai quando desmarca */
   await novoRola('r7-conv');
-  await toque(`A · ${ARM}`);
+  await peca(ARM);
   await toque('Encaixou');
   ok('3 encaixou: entra uma vez e avisa', await page.getByText(`Já entrou em "Eu finalizei": ${ARM}.`).count(), 1);
   await toque('Encaixou');
@@ -142,7 +148,7 @@ try {
   const r3 = await salvar();
   ok('3 liga, desliga, liga: uma só, marcada como do plano', [r3.subs, r3.plano.entrou], [[ARM], [ARM]]);
   await novoRola('r7-conv');
-  await toque(`A · ${ARM}`);
+  await peca(ARM);
   await toque('Encaixou');
   await toque('Encaixou');
   const r3b = await salvar();
@@ -153,10 +159,10 @@ try {
   await manual(HEEL);
   ok('4 na mão: heel hook abre o aviso de regra', await avisoAberto(), true);
   await toque('Não registrar');
-  await toque(`1. ${HEEL}`);
+  await peca(HEEL);
   await toque('Encaixou');
   ok('4 pelo plano: abre o mesmo aviso', await avisoAberto(), true);
-  await page.screenshot({ path: `${pasta}/4-aviso-pelo-plano.png` });
+  await page.screenshot({ path: `${pasta}/4-aviso-pelo-plano-${largura}.png` });
   await toque('Não registrar');
   ok('4 "Não registrar": encaixou e "Eu finalizei" ficam como estavam', [await ligado('Encaixou'), await page.getByText('Já entrou em').count()], [false, 0]);
   await toque('Encaixou');
@@ -167,7 +173,7 @@ try {
 
   /* 5. fiz outra coisa */
   await novoRola('r7-conv');
-  await toque(`A · ${ARM}`);
+  await peca(ARM);
   await toque('Fiz outra coisa');
   await page.getByPlaceholder('Buscar em português ou inglês…').fill('Heel hook interno');
   await page.waitForTimeout(300);
@@ -178,13 +184,15 @@ try {
   await toque('Encaixou', 'last');
   ok('5 encaixou no improviso: não avisa de novo', await avisoAberto(), false);
   await page.getByText('Fez outra coisa, fora do plano?').scrollIntoViewIfNeeded();
-  await page.screenshot({ path: `${pasta}/5-fiz-outra-coisa.png` });
+  await page.screenshot({ path: `${pasta}/5-fiz-outra-coisa-${largura}.png` });
   const r5 = await salvar();
   ok('5 gravou fora do plano, com uid', [r5.plano.improviso?.nome, !!r5.plano.improviso?.uid, r5.plano.improviso?.encaixou, r5.plano.encaixou], [HEEL, true, true, false]);
   ok('5 finalização aplicada, objetivo do plano não alcançado', [r5.subs, r5.resultado, await ler('alcancouObjetivo', CONV, { plano: r5.plano })], [[HEEL], 'finalizei', false]);
 
   ok('nenhum erro na página', erros, []);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, 'a página vaza pro lado');
+  await contexto.close();
+ }
 } finally {
   await browser.close();
 }

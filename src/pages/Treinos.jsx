@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, Suspense } from 'react';
 import { lazy } from '../lib/lazy';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { planosDaPessoa, correnteDoPlano, arvoreDoPlano, letraDo, pecaDoRola, caminhosAte, rotuloDoCaminho, paradasDe, marcarPeca, subsDoPlano, juntarSubs, fugasDe } from '../lib/planos';
+import { planosDaPessoa, correnteDoPlano, pecaDoRola, caminhosAte, rotuloDoCaminho, paradasDe, marcarPeca, subsDoPlano, juntarSubs, fugasDe } from '../lib/planos';
 import {
   Plus, Trash2, Pencil, NotebookPen, Timer, ChevronDown, ChevronRight, Copy, Check,
   MessageSquare, Building2, GraduationCap, Trophy, Weight, Mic, Users, History, ShieldAlert, CircleHelp,
@@ -34,6 +34,7 @@ import { padraoDoTipo } from '../lib/padraoTreino';
 import { avaliarTecnica, idadeDe, modalidadeDoTreino, FONTE_DA_REGRA } from '../lib/regras';
 import { divisaoDaIdade } from '../lib/idade';
 import '../styles/treino-rola.css';
+import MapaDoRola from '../components/MapaDoRola';
 import {
   ORGANIZACOES, DIVISOES, CATEGORIAS_PESO, resultadoPorId, ehPodio,
   competicaoVazia, EU, resultadoDoPodio, podioComEu, atletasDaChave,
@@ -162,6 +163,9 @@ export default function Treinos() {
   const professores = useLiveQuery(() => db.professors.filter((p) => !p.arquivada).toArray(), [], []) || [];
 
   const [editando, setEditando] = useState(null);
+  /* R7.2: o rola que abre com o plano à vista ("Registrar uso") */
+  const [rolaFoco, setRolaFoco] = useState(null);
+  useEffect(() => { if (!editando) setRolaFoco(null); }, [editando]);
   const [salvando, setSalvando] = useState(false);
   /* lesão impeditiva sem prazo, perguntando se passou depois do treino */
   const [lesoesAbertas, setLesoesAbertas] = useState([]);
@@ -198,6 +202,32 @@ export default function Treinos() {
         setRolasEdit([]);
         setTela('hub');
       });
+      return;
+    }
+    /* R7.2: "Registrar uso" no mapa do plano abre o registro de sempre,
+       com o plano marcado no rola escolhido (ou num rola novo) e o mapa
+       aberto. Nada grava antes do "Salvar treino". Rola que já tem um
+       plano fica com o que tem: este mesmo segue como estava, e outro
+       não é trocado por baixo. */
+    const usoPlano = q.get('usoPlano');
+    if (usoPlano) {
+      const treino = Number(q.get('usoTreino'));
+      const rolaId = Number(q.get('usoRola'));
+      (async () => {
+        const s = treino ? await db.sessions.get(treino) : null;
+        const rs = s ? (await db.rolls.where('sessionId').equals(s.id).toArray()).sort((a, b) => a.id - b.id) : [];
+        const sessao = s ? { ...s, nota: notaDaSessao(s) } : novaSessao(settings, 'gi');
+        const plano = { uid: usoPlano, peca: null, caminho: [], encaixou: false, entrou: [] };
+        let k = rs.findIndex((r) => r.id === rolaId);
+        if (k < 0) {
+          rs.push({ ...novaRola(settings.duracaoRolaPadrao || 5, rs[rs.length - 1], sessao.tipo, settings.posInicialPadrao), plano });
+          k = rs.length - 1;
+        } else if (!rs[k].plano) rs[k] = { ...rs[k], plano };
+        setEditando(sessao);
+        setRolasEdit(rs);
+        setRolaFoco(k);
+        setTela('hub');
+      })();
       return;
     }
     const id = Number(q.get('abrir'));
@@ -951,7 +981,7 @@ export default function Treinos() {
           <EditorTreino
             s={editando} setS={setEditando}
             tela={tela} setTela={setTela}
-            rolas={rolasEdit} setRolas={setRolasEdit}
+            rolas={rolasEdit} setRolas={setRolasEdit} rolaFoco={rolaFoco}
             partners={partners} positions={positions} sessions={sessions}
             techniques={techniques} categories={categories}
             finalizacoes={finalizacoes} maisUsadas={maisUsadas}
@@ -1387,7 +1417,7 @@ function BlocoCompeticao({ s, setS, onAbrirRegras }) {
   );
 }
 
-function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions = [], techniques, categories, finalizacoes, maisUsadas, recentesPorPonto, maisNoPonto = { tecMeus: {}, tecDele: {} }, recentesFoco, faixa, academias, professores, duracaoPadrao, posPadrao, parceirosRecentes = [], padraoDe, onSalvarPadrao, idade = null, liberadas = [], onLiberar, tela = 'hub', setTela }) {
+function EditorTreino({ s, setS, rolas, setRolas, rolaFoco = null, partners, positions, sessions = [], techniques, categories, finalizacoes, maisUsadas, recentesPorPonto, maisNoPonto = { tecMeus: {}, tecDele: {} }, recentesFoco, faixa, academias, professores, duracaoPadrao, posPadrao, parceirosRecentes = [], padraoDe, onSalvarPadrao, idade = null, liberadas = [], onLiberar, tela = 'hub', setTela }) {
   const padrao = padraoDe(s.tipo);
   /* os planos de ataque do aluno, pro "usou qual plano?" do rola */
   const meusPlanosDeAtaque = planosDaPessoa(useLiveQuery(() => db.attackPlans.toArray(), [], []) || [], faixa);
@@ -1430,9 +1460,15 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
   const [trocando, setTrocando] = useState(false);
   /* cadastrar academia ou professor sem sair do treino */
   const [cadastro, setCadastro] = useState(null);
-  const [rolaAberta, setRolaAberta] = useState(rolas.length ? 0 : null);
+  const [rolaAberta, setRolaAberta] = useState(rolaFoco ?? (rolas.length ? 0 : null));
   /* "Mais detalhes" de cada rola: fechado por padrão */
-  const [detalhesAbertos, setDetalhesAbertos] = useState({});
+  const [detalhesAbertos, setDetalhesAbertos] = useState(rolaFoco === null ? {} : { [rolaFoco]: true });
+  /* "Registrar uso": o mapa do plano daquele rola já aparece na tela */
+  useEffect(() => {
+    if (rolaFoco === null) return undefined;
+    const t = setTimeout(() => document.querySelector('.mapa-rola')?.scrollIntoView?.({ block: 'center', behavior: 'smooth' }), 400);
+    return () => clearTimeout(t);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [seletor, setSeletor] = useState(null);
   const [parceirosAberto, setParceirosAberto] = useState(false);
   const [ajudaPesoAberta, setAjudaPesoAberta] = useState(false);
@@ -1637,8 +1673,6 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
                   {/* usou um plano de ataque? Opcional: um toque no plano, um na última peça até onde chegou */}
                   {meusPlanosDeAtaque.length > 0 && (() => {
                     const plano = r.plano && meusPlanosDeAtaque.find((x) => x.uid === r.plano.uid);
-                    const golpes = plano ? correnteDoPlano(plano).passos : [];
-                    const arvore = arvoreDoPlano(golpes);
                     /* a peça marcada que já saiu do plano continua aparecendo marcada */
                     const marcada = plano ? pecaDoRola(plano, r) : null;
                     const saiu = marcada?.saiu ? marcada : null;
@@ -1646,7 +1680,6 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
                     const caminhos = marcada && !saiu ? caminhosAte(plano, marcada.id) : [];
                     const mesmo = (a, b) => a.length === b.length && a.every((x, k) => x === b[k]);
                     const golpe = marcada && (marcada.tipo || 'golpe') === 'golpe';
-                    const tipoNome = { finta: 'Finta: ', preparacao: 'Preparação: ' };
                     const im = r.plano?.improviso;
                     return (
                       <Field label="Usou um plano de ataque?" hint={plano ? 'Toque na última peça do plano que você tentou.' : 'Opcional. É daqui que sai a taxa de acerto do plano.'}>
@@ -1655,12 +1688,18 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
                           {meusPlanosDeAtaque.map((x) => <option key={x.uid} value={x.uid}>{x.nome}</option>)}
                         </Select>
                         {plano && (
+                          <MapaDoRola
+                            plano={plano} marcada={r.plano.peca} caminho={r.plano.caminho || []}
+                            onPeca={(id, lig) => {
+                              /* pela ligação extra: a peça já vem com a entrada, quando ela é uma só */
+                              const pela = lig ? caminhosAte(plano, id).filter((c) => c[c.length - 1] === lig) : [];
+                              const rp = marcarPeca(plano, r.plano, id);
+                              marcarPlano(i, pela.length === 1 ? { ...rp, caminho: pela[0] } : rp);
+                            }}
+                          />
+                        )}
+                        {plano && (saiu || golpe) && (
                           <div className="row wrap" style={{ gap: 6, marginTop: 8 }}>
-                            {arvore.ordem.filter((k) => golpes[k].tipo !== 'situacao').map((k, n) => (
-                              <Chip key={golpes[k].id} on={r.plano.peca === golpes[k].id} onClick={() => marcarPlano(i, marcarPeca(plano, r.plano, golpes[k].id))}>
-                                {arvore.trilhos > 1 ? `${letraDo(arvore.trilho[k])} · ` : `${n + 1}. `}{tipoNome[golpes[k].tipo] || ''}{golpes[k].golpe}
-                              </Chip>
-                            ))}
                             {saiu && <Chip on>{saiu.golpe} (saiu do plano)</Chip>}
                             {golpe && (
                               <Chip tone={r.plano.encaixou ? 'jade' : ''} on={r.plano.encaixou} onClick={() => marcarPlano(i, { ...r.plano, encaixou: !r.plano.encaixou, parou: '', saida: '' })}>

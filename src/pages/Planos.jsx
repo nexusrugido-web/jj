@@ -25,6 +25,7 @@ import {
 } from '../lib/planos';
 import { FAIXAS } from '../lib/faixas';
 import { PESO_REL } from '../db/scoring';
+import { hoje } from '../lib/utils';
 
 /* ============================================================
    PLANOS DE ATAQUE
@@ -35,7 +36,7 @@ import { PESO_REL } from '../db/scoring';
    plano seu, o Premium não tem limite e abre a biblioteca inteira.
    ============================================================ */
 export default function Planos() {
-  const { positions = [], techniques = [], categories = [], settings, acesso, rolls = [], partners = [], irPara } = useApp();
+  const { positions = [], techniques = [], categories = [], settings, acesso, rolls = [], partners = [], sessions = [], irPara } = useApp();
   const toast = useToast();
   const todos = useLiveQuery(() => db.attackPlans.toArray(), [], []) || [];
   const meus = useMemo(() => meusPlanos(todos), [todos]);
@@ -159,7 +160,10 @@ export default function Planos() {
         }}
       />
 
-      <AssistirPlano plano={assistindo} destinoDe={destinoDe} onClose={() => setAssistindo(null)} />
+      <AssistirPlano plano={assistindo} destinoDe={destinoDe} onClose={() => setAssistindo(null)}
+        sessions={sessions} rolls={rolls} partners={partners}
+        onRegistrar={assistindo && [...meus, ...exemplos].some((p) => p.uid === assistindo.uid)
+          ? (alvo) => irPara('treinos', { usoPlano: assistindo.uid, ...alvo }) : null} />
 
       <Confirmar
         aberto={!!apagar} onClose={() => setApagar(null)}
@@ -1282,15 +1286,56 @@ function MapaDoPlano({ plano, ate = Infinity, destinoDe, editar = null }) {
   );
 }
 
-function AssistirPlano({ plano, destinoDe, onClose }) {
+/* R7.2: "Registrar uso" leva o plano pro registro de treino de sempre.
+   Com treino hoje, a pessoa escolhe o rola (ou um rola novo naquele
+   treino); sem treino, abre o treino novo. Nada é gravado aqui: o
+   rola só existe depois do "Salvar treino", então não duplica. */
+const NOME_DO_TIPO = { gi: 'Gi', nogi: 'No-Gi', drill: 'Drill', openmat: 'Open mat', privada: 'Aula privada' };
+
+function EscolherRola({ plano, sessions, rolls, partners, onEscolher, onClose }) {
+  return (
+    <Sheet aberto onClose={onClose} titulo="Registrar uso" subtitulo="em qual rola de hoje?">
+      <div className="col" style={{ gap: 16 }}>
+        {sessions.map((s) => {
+          const rs = rolls.filter((r) => r.sessionId === s.id).sort((a, b) => a.id - b.id);
+          return (
+            <div key={s.id}>
+              <p className="micro muted" style={{ marginBottom: 6 }}>Treino de {NOME_DO_TIPO[s.tipo] || s.tipo} · {s.duracao} min</p>
+              <div className="col" style={{ gap: 6 }}>
+                {rs.map((r, n) => {
+                  const nome = partners.find((p) => p.id === r.partnerId)?.nome;
+                  const este = r.plano?.uid === plano.uid;
+                  const outro = !!r.plano && !este;
+                  return (
+                    <Btn key={r.id} variant="contorno" disabled={outro} onClick={() => onEscolher({ usoTreino: s.id, usoRola: r.id })}>
+                      Rola {n + 1}{nome ? ` com ${nome}` : ''}{este ? ' · já está com este plano' : outro ? ' · já tem outro plano' : ''}
+                    </Btn>
+                  );
+                })}
+                <Btn variant="ghost" icon={Plus} onClick={() => onEscolher({ usoTreino: s.id })}>Rola novo neste treino</Btn>
+              </div>
+            </div>
+          );
+        })}
+        <Btn variant="ghost" icon={Plus} onClick={() => onEscolher({})}>Treino novo</Btn>
+      </div>
+    </Sheet>
+  );
+}
+
+function AssistirPlano({ plano, destinoDe, onClose, onRegistrar = null, sessions = [], rolls = [], partners = [] }) {
   /* abre com o mapa inteiro, entrando em cascata; o passo a passo
      revela uma peça por toque, pra ensaiar de cabeça */
   const [ate, setAte] = useState(Infinity);
+  const [escolhendo, setEscolhendo] = useState(false);
   if (!plano) return null;
   const { linhas, temFinta, temPreparacao } = linhasDoMapa(plano, destinoDe);
   const total = linhas.length;
   const trilhos = Math.max(0, ...linhas.filter((l) => l.tipo === 'golpe' || l.tipo === 'finta' || l.tipo === 'preparacao').map((l) => l.trilho)) + 1;
-  const fechar = () => { setAte(Infinity); onClose(); };
+  const fechar = () => { setAte(Infinity); setEscolhendo(false); onClose(); };
+  /* campeonato registra luta por etapa, no fluxo dele: fica de fora */
+  const deHoje = sessions.filter((s) => s.data === hoje() && s.tipo !== 'competicao');
+  const registrar = (alvo) => { fechar(); onRegistrar(alvo); };
   const passoAPasso = ate !== Infinity;
   const acabou = !passoAPasso || ate >= total - 1;
 
@@ -1308,6 +1353,15 @@ function AssistirPlano({ plano, destinoDe, onClose }) {
           </>
         )}
       </div>
+      {onRegistrar && (
+        <Btn variant="primary" icon={Plus} style={{ width: '100%', marginTop: 8 }} onClick={() => (deHoje.length ? setEscolhendo(true) : registrar({}))}>
+          Registrar uso
+        </Btn>
+      )}
+      {escolhendo && (
+        <EscolherRola plano={plano} sessions={deHoje} rolls={rolls} partners={partners}
+          onEscolher={registrar} onClose={() => setEscolhendo(false)} />
+      )}
     </Sheet>
   );
 }

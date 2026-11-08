@@ -379,6 +379,7 @@ export default function App() {
     url.searchParams.delete('novo');
     url.searchParams.delete('abrir');
     url.searchParams.delete('drillPlano');
+    for (const k of ['usoPlano', 'usoTreino', 'usoRola']) url.searchParams.delete(k);
     for (const [k, v] of Object.entries(params)) {
       if (v === null || v === undefined) url.searchParams.delete(k);
       else url.searchParams.set(k, String(v));
