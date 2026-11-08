@@ -683,7 +683,8 @@ export function juntarSubs(subs = [], entrou = [], quer = []) {
 const PONTO_DA_CATEGORIA = { raspagem: 'raspagem', passagem: 'passagem', queda: 'queda' };
 const PONTO_DO_DESTINO = { montada: 'montada', costas: 'costas', joelho_barriga: 'joelho' };
 const CATEGORIAS_DE_PONTO = new Set(['raspagem', 'passagem', 'queda', 'transicao']);
-const chaveDoPonto = (x) => `${x.ponto}|${x.nome || ''}`;
+/* R7.5: o ponto da linha da luta leva o passo (ev): duas raspagens no mesmo rola são duas */
+const chaveDoPonto = (x) => `${x.ponto}|${x.nome || ''}|${x.ev || ''}`;
 
 /* o que encaixou: a última peça (com "Encaixou"), as peças do meio do
    caminho que seguiram pelo "encaixou" e o improviso que encaixou.
@@ -762,7 +763,7 @@ export function porPonto({ ptsMeus = [], tecMeus = {}, pontuou = [] }, x) {
   const meus = pontuouValido(pontuou, ptsMeus, tecMeus);
   const tec = { ...(tecMeus || {}) };
   if (x.nome) tec[x.ponto] = [...(tec[x.ponto] || []), x.nome];
-  return { ptsMeus: [...(ptsMeus || []), x.ponto], tecMeus: tec, pontuou: [...meus, { ponto: x.ponto, nome: x.nome || '' }] };
+  return { ptsMeus: [...(ptsMeus || []), x.ponto], tecMeus: tec, pontuou: [...meus, { ponto: x.ponto, nome: x.nome || '', ...(x.ev ? { ev: x.ev } : {}) }] };
 }
 
 /* tira só o que o plano pôs e não quer mais (desmarcou o "Encaixou",
