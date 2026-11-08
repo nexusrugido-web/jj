@@ -1,7 +1,7 @@
 import Dexie from 'dexie';
 import { SEED } from './seed';
 import { PLANOS_ATAQUE } from './attackPlans';
-import { planoDoRolaAntigo } from '../lib/planos';
+import { planoDoRolaAntigo, removidosAoSalvar } from '../lib/planos';
 import { uidEstavel, chaveNome } from '../lib/uid';
 import { resultadoDoTexto } from '../lib/competicao';
 import { dataLocal } from '../lib/utils';
@@ -413,6 +413,32 @@ export async function ensureSeed() {
     for (const p of PLANOS_ATAQUE) await db.attackPlans.add({ ...p, uid: uidEstavel(chaveNome('attackPlans', p.slug)), favorito: 0, arquivada: 0, pronto: 1, criadoEm: Date.now(), __local: 1 });
     await db.meta.put({ key: 'seeded_v2', value: true });
   }
+  await atualizarProntos();
+}
+
+/* ---------- os prontos de quem já tem ----------
+   O pronto não é editado no lugar ("Ajustar ao meu jogo" faz uma cópia),
+   então o que está no aparelho é a semente de antes. Quando a versão do
+   pronto sobe, o conteúdo vira o novo; favorito, arquivada, id e uid
+   ficam. As peças de antes que saíram vão pra "removidos", e o rola que
+   apontava pra elas continua achando o nome. Pronto intacto (sem
+   favorito, sem arquivar, nunca mexido: a regra de sementeIntacta em
+   sync.js) não vai pra fila: continua só no aparelho. */
+const CONTEUDO_DO_PRONTO = ['nome', 'posicao', 'modo', 'tipo', 'faixa', 'resumo', 'legal', 'aviso', 'objetivo', 'objetivoTipo',
+  'finalizacaoPreferida', 'finalizacoesAceitas', 'passos', 'ligacoes', 'versao'];
+export async function atualizarProntos() {
+  const novos = new Map(PLANOS_ATAQUE.map((p) => [p.slug, p]));
+  let n = 0;
+  for (const p of await db.attackPlans.toArray()) {
+    const novo = p.pronto && p.slug && novos.get(p.slug);
+    if (!novo || (p.versao || 1) >= novo.versao) continue;
+    const patch = Object.fromEntries(CONTEUDO_DO_PRONTO.map((k) => [k, novo[k] ?? (k === 'finalizacoesAceitas' ? [] : k === 'ligacoes' ? [] : '')]));
+    patch.removidos = removidosAoSalvar(p, novo);
+    const intacto = !p.favorito && !p.arquivada && (p.updatedAt || 0) - (p.criadoEm || 0) <= 5000;
+    await db.attackPlans.update(p.id, intacto ? { ...patch, __local: Math.random() } : patch);
+    n++;
+  }
+  return n;
 }
 
 /* ---------- renomeia o que mudou de nome ----------

@@ -10,7 +10,8 @@ register('./como-vite.mjs', import.meta.url);
 const {
   correnteDoPlano, copiaDoPronto, planoNovo, podeCriarPlano, meusPlanos, nomeDaPosicao,
 } = await import('../src/lib/planos.js');
-const { PLANOS_ATAQUE } = await import('../src/db/attackPlans.js');
+const { PLANOS_ATAQUE, VERSAO_DOS_PRONTOS } = await import('../src/db/attackPlans.js');
+const { VIAS } = await import('../src/lib/planos.js');
 
 let falhas = 0;
 const ok = (nome, real, esperado) => {
@@ -159,9 +160,12 @@ ok('tirar o Passar a guarda leva Norte-sul, Armlock e Triângulo', semOGolpe(ca.
 const antigo = correnteDoPlano({ passos: [{ acao: 'Kimura' }, { acao: 'Guilhotina' }] });
 ok('plano antigo do aluno: se defender', antigo.passos.map((p) => [p.pai, p.via]), [[null, null], [0, 'defendeu']]);
 const trindade = correnteDoPlano(PLANOS_ATAQUE.find((p) => p.slug === 'cg-trindade'));
-ok('trindade: quebrou a postura, encaixou o armlock; defendeu, triângulo', trindade.passos.map((p) => p.via), [null, 'encaixou', 'defendeu', 'defendeu']);
+ok('trindade: quebrou a postura (preparação), armlock; defendeu, triângulo; defendeu, omoplata', trindade.passos.map((p) => [p.tipo, p.via]), [['preparacao', null], ['golpe', 'feita'], ['golpe', 'defendeu'], ['golpe', 'defendeu']]);
+/* o formato antigo dos prontos (fila com seFalhar) continua lendo igual */
+const prontoAntigo = correnteDoPlano({ passos: [{ acao: 'Quebrar a postura' }, { acao: 'Armlock', seFalhar: 'ele esconde o braço' }, { acao: 'Triângulo', seFalhar: 'ele posta' }, { acao: 'Omoplata' }] });
+ok('pronto do formato antigo: encaixou, depois defendeu', prontoAntigo.passos.map((p) => p.via), [null, 'encaixou', 'defendeu', 'defendeu']);
 ok('todo pronto vira árvore inteira', PLANOS_ATAQUE.every((p) => arvoreDoPlano(correnteDoPlano(p).passos).ordem.length === correnteDoPlano(p).passos.length), true);
-ok('editar e salvar um pronto mantém o caminho', correnteDoPlano(planoNovo({ passos: trindade.passos })).passos.map((p) => p.via), [null, 'encaixou', 'defendeu', 'defendeu']);
+ok('editar e salvar um pronto mantém o caminho', correnteDoPlano(planoNovo({ passos: trindade.passos })).passos.map((p) => p.via), [null, 'feita', 'defendeu', 'defendeu']);
 
 /* ---------- finta em qualquer ponto ----------
    Golpe → encaixou → finta → finta → golpe; a reação à finta mora no
@@ -413,8 +417,8 @@ const comFinta = fintaAntes(editar(fuga), 3, 'Guilhotina');
 ok('finta antes do volto a atacar: a finta nasce da situação', [comFinta[6].pai, comFinta[6].via, comFinta[3].pai, comFinta[3].via], [2, 'retoma', 6, 'reagiu']);
 ok('tirar essa finta devolve o golpe pra situação', (() => { const s = semAFinta(comFinta, 6); return [s[3].pai, s[3].via]; })(), [2, 'retoma']);
 ok('o rola da Kimura sobrevive à finta nova', pecaDoRola(planoNovo({ passos: comFinta }), rolaFuga)?.golpe, 'Kimura');
-ok('planos prontos não ganham situação nem via nova',
-  PLANOS_ATAQUE.every((p) => correnteDoPlano(p).passos.every((x) => x.tipo !== 'situacao' && [null, 'encaixou', 'defendeu', 'reagiu', 'naoReagiu'].includes(x.via))), true);
+ok('planos prontos só usam as saídas do modelo',
+  PLANOS_ATAQUE.every((p) => correnteDoPlano(p).passos.every((x) => x.via === null || VIAS.includes(x.via))), true);
 ok('plano antigo (fila sem pai) continua lendo igual', correnteDoPlano({ passos: [{ acao: 'A' }, { acao: 'B' }] }).passos.map((x) => [x.tipo, x.pai, x.via]), [['golpe', null, null], ['golpe', 0, 'defendeu']]);
 
 /* ---------- R3: convergência ----------
@@ -500,7 +504,7 @@ const histArm = { ...semArm, removidos: removidosAoSalvar(conv, semArm) };
 ok('rola que passou por um atalho apagado ainda acha as duas pontas (base do R7)',
   (() => { const l = histArm.removidos.ligacoes.find((x) => x.id === 'cB'); return [l.de, l.via, l.para, histArm.removidos.pecas.find((x) => x.id === l.para)?.golpe]; })(),
   ['fB', 'reagiu', 'arm', 'Armlock']);
-ok('plano antigo sem ligações e prontos: lista vazia', [correnteDoPlano({ passos: [{ acao: 'A' }] }).ligacoes, PLANOS_ATAQUE.every((p) => correnteDoPlano(p).ligacoes.length === 0)], [[], true]);
+ok('plano antigo sem ligações: lista vazia; as ligações dos prontos valem todas', [correnteDoPlano({ passos: [{ acao: 'A' }] }).ligacoes, PLANOS_ATAQUE.every((p) => correnteDoPlano(p).ligacoes.length === (p.ligacoes || []).length)], [[], true]);
 ok('ligações malformadas não quebram a leitura', [correnteDoPlano({ passos: [{ acao: 'A' }], ligacoes: 'x' }).ligacoes, correnteDoPlano({ passos: [{ acao: 'A' }], ligacoes: [null, {}] }).ligacoes], [[], []]);
 
 /* o objetivo é uma posição e a fuga deixa a luta nela: a situação é o
@@ -624,9 +628,9 @@ ok('trocar o objetivo pra posição leva embora a preferida e as aceitas',
 const r4Recv = viaSync(r4);
 ok('recarregar e salvar de novo mantém preferida e aceitas',
   (() => { const p = planoNovo({ ...r4Recv, passos: editar(r4Recv) }); return [p.finalizacaoPreferida, p.finalizacoesAceitas]; })(), ['Armlock', ['Triângulo', 'Kimura', 'Omoplata']]);
-ok('plano antigo e os 16 prontos: sem preferida e sem aceitas, nada muda',
+ok('plano antigo sem preferida e sem aceitas, nada muda; nos prontos, preferida só no finalizar',
   [correnteDoPlano({ objetivo: 'Finalizar', objetivoTipo: 'finalizar', passos: [{ acao: 'Kimura' }] }).finalizacoesAceitas,
-    PLANOS_ATAQUE.every((p) => { const k = correnteDoPlano(p); return !k.finalizacaoPreferida && !(k.finalizacoesAceitas || []).length; })],
+    PLANOS_ATAQUE.every((p) => { const k = correnteDoPlano(p); return k.objetivoTipo === 'finalizar' || (!k.finalizacaoPreferida && !(k.finalizacoesAceitas || []).length); })],
   [[], true]);
 ok('campo malformado não quebra', correnteDoPlano({ objetivoTipo: 'finalizar', objetivo: 'Finalizar', finalizacoesAceitas: 'x', passos: [] }).finalizacoesAceitas, []);
 /* com convergência: preferida Armlock, aceita Omoplata */
@@ -817,6 +821,74 @@ ok('finta com nome de finalização não chega no objetivo', chegaNoObjetivo(cor
   ok('plano antigo sem preparação abre igual', JSON.stringify(correnteDoPlano(fintaTexto).passos.map((x) => x.tipo)), JSON.stringify(correnteDoPlano(fintaTexto).passos.map((x) => (x.tipo === 'preparacao' ? 'x' : x.tipo))));
 }
 
+
+/* ---------- R6: os 16 prontos no modelo do jogo do atleta ---------- */
+{
+  const { CATALOGO_TECNICAS } = await import('../src/lib/tecnicas.js');
+  const { SEED } = await import('../src/db/seed.js');
+  const { removidosAoSalvar, pecaDoRola, caminhoDoRola } = await import('../src/lib/planos.js');
+  const tec = new Map(CATALOGO_TECNICAS.map((t) => [t.nome, t]));
+  const posPorSlug = new Map(SEED.positions.map((p) => [p.slug, p]));
+  const nomesDePosicao = new Set(SEED.positions.map((p) => p.nome));
+  /* o destino de cada golpe pelo catálogo, como a tela faz */
+  const destinoR6 = (n) => { const t = tec.get(n); const p = t && posPorSlug.get(t.to); return p ? { slug: p.slug, nome: p.nome } : null; };
+  ok('são 16 prontos, com slug único', [PLANOS_ATAQUE.length, new Set(PLANOS_ATAQUE.map((p) => p.slug)).size], [16, 16]);
+  ok('todos na versão nova', PLANOS_ATAQUE.every((p) => p.versao === VERSAO_DOS_PRONTOS && VERSAO_DOS_PRONTOS >= 2), true);
+  ok('todo golpe tem o nome do catálogo', PLANOS_ATAQUE.flatMap((p) => correnteDoPlano(p).passos.filter((x) => x.tipo === 'golpe' && !tec.has(x.golpe)).map((x) => `${p.slug}: ${x.golpe}`)), []);
+  ok('toda situação é uma posição do catálogo', PLANOS_ATAQUE.flatMap((p) => correnteDoPlano(p).passos.filter((x) => x.tipo === 'situacao' && !nomesDePosicao.has(x.golpe)).map((x) => x.golpe)), []);
+  ok('a posição de onde começa existe', PLANOS_ATAQUE.filter((p) => !nomesDePosicao.has(p.posicao)).map((p) => p.posicao), []);
+  ok('todo pronto tem objetivo', PLANOS_ATAQUE.filter((p) => !p.objetivo || !p.objetivoTipo).map((p) => p.slug), []);
+  ok('objetivo posição é posição do catálogo; técnica é do catálogo', PLANOS_ATAQUE.filter((p) => (p.objetivoTipo === 'posicao' && !nomesDePosicao.has(p.objetivo)) || (p.objetivoTipo === 'tecnica' && !tec.has(p.objetivo))).map((p) => p.slug), []);
+  ok('a preferida é uma finalização do catálogo', PLANOS_ATAQUE.filter((p) => p.finalizacaoPreferida && destinoR6(p.finalizacaoPreferida)?.slug !== 'finalizacao').map((p) => p.slug), []);
+  ok('nenhum caminho fica solto (chega no objetivo, finaliza ou fecha numa situação)',
+    PLANOS_ATAQUE.flatMap((p) => pontasSoltas(p, destinoR6).map((x) => `${p.slug}: ${x.golpe}`)), []);
+  ok('todo pronto chega no objetivo por algum caminho',
+    PLANOS_ATAQUE.filter((p) => { const k = correnteDoPlano(p); return !k.passos.some((x) => chegaNoObjetivo(x, k, destinoR6)); }).map((p) => p.slug), []);
+  ok('toda peça diz o que ele fez quando tem irmã na mesma saída', PLANOS_ATAQUE.flatMap((p) => semGatilho(correnteDoPlano(p).passos).map((x) => `${p.slug}: ${x.golpe}`)), []);
+  ok('ids de peça e de ligação únicos em cada pronto', PLANOS_ATAQUE.filter((p) => {
+    const ids = [...p.passos.map((x) => x.id), ...p.passos.map((x) => x.lig), ...(p.ligacoes || []).map((l) => l.id)];
+    return new Set(ids).size !== ids.length;
+  }).map((p) => p.slug), []);
+  ok('ids novos não repetem os de antes (p0, l0...)', PLANOS_ATAQUE.some((p) => p.passos.some((x) => /^[pl]\d+$/.test(x.id) || /^[pl]\d+$/.test(x.lig))), false);
+  const campos = (l) => l.map((x) => [x.id, x.lig, x.tipo, x.acao || x.descricao, x.prep, x.pai, x.via]);
+  ok('salvar um pronto não muda nada', PLANOS_ATAQUE.filter((p) => {
+    const k = correnteDoPlano(p);
+    return JSON.stringify(campos(planoNovo({ ...p, passos: k.passos, ligacoes: k.ligacoes }).passos)) !== JSON.stringify(campos(p.passos));
+  }).map((p) => p.slug), []);
+  ok('tem preparação, finta e volta pro começo entre os prontos', [
+    PLANOS_ATAQUE.some((p) => p.passos.some((x) => x.tipo === 'preparacao')),
+    PLANOS_ATAQUE.some((p) => p.passos.some((x) => x.tipo === 'finta')),
+    PLANOS_ATAQUE.some((p) => (p.ligacoes || []).some((l) => l.para === null)),
+  ], [true, true, true]);
+  ok('o aviso da chave de pé e da queda continua', ['chave-pe-branca', 'quedas-branca'].map((sl) => !!PLANOS_ATAQUE.find((p) => p.slug === sl).aviso), [true, true]);
+
+  /* quem já tem o pronto antigo: o conteúdo vira o novo, o rola antigo continua achando a peça */
+  await import('fake-indexeddb/auto');
+  const { db, atualizarProntos } = await import('../src/db/db.js');
+  await db.open();
+  const velho = {
+    slug: 'cg-trindade', nome: 'Trindade da Guarda Fechada', posicao: 'Guarda fechada', pronto: 1, uid: 'u-trindade', favorito: 0, arquivada: 0, criadoEm: 1000, updatedAt: 1000,
+    passos: [{ acao: 'Quebrar a postura' }, { acao: 'Armlock da guarda fechada', seFalhar: 'ele esconde o braço' }, { acao: 'Triângulo' }],
+  };
+  const favoritado = { ...velho, slug: 'montada-gi', uid: 'u-montada', favorito: 1, updatedAt: 99999, nome: 'Montada: Cruz na Lapela' };
+  const id1 = await db.attackPlans.add({ ...velho, __local: 1 });
+  const id2 = await db.attackPlans.add({ ...favoritado, __local: 1 });
+  const meu = await db.attackPlans.add({ ...velho, slug: undefined, pronto: 0, nome: 'Meu plano', __local: 1 });
+  ok('atualiza os dois prontos e não toca no plano do atleta', await atualizarProntos(), 2);
+  const a1 = await db.attackPlans.get(id1);
+  const a2 = await db.attackPlans.get(id2);
+  ok('o pronto ganha o conteúdo novo e a versão', [a1.nome, a1.versao, a1.passos.length, a1.objetivoTipo], ['Trindade da guarda fechada', VERSAO_DOS_PRONTOS, 4, 'finalizar']);
+  ok('id, uid e favorito ficam', [a1.uid, a2.uid, a2.favorito], ['u-trindade', 'u-montada', 1]);
+  ok('pronto intacto continua intacto (não vai pra nuvem)', a1.updatedAt, 1000);
+  ok('pronto favoritado sobe com a versão nova', a2.updatedAt > 99999, true);
+  ok('as peças de antes vão pra removidos', a1.removidos.pecas.map((x) => [x.id, x.golpe]), [['p0', 'Quebrar a postura'], ['p1', 'Armlock da guarda fechada'], ['p2', 'Triângulo']]);
+  const rolaVelho = { plano: { uid: 'u-trindade', peca: 'p1', caminho: ['l0', 'l1'], encaixou: true } };
+  ok('o rola antigo continua achando a peça (que saiu)', [pecaDoRola(a1, rolaVelho)?.golpe, pecaDoRola(a1, rolaVelho)?.saiu], ['Armlock da guarda fechada', true]);
+  ok('e o caminho dele', caminhoDoRola(a1, rolaVelho.plano.caminho).ligacoes.map((l) => l && l.saiu), [true, true]);
+  ok('o plano do atleta não muda', (await db.attackPlans.get(meu)).nome, 'Meu plano');
+  ok('rodar de novo não muda nada', await atualizarProntos(), 0);
+  ok('removidos calculado igual pela regra do salvar', JSON.stringify(a1.removidos), JSON.stringify(removidosAoSalvar(velho, PLANOS_ATAQUE.find((p) => p.slug === 'cg-trindade'))));
+}
 
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);
