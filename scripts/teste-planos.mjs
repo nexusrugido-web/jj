@@ -1010,5 +1010,69 @@ ok('finta com nome de finalização não chega no objetivo', chegaNoObjetivo(cor
   ok(`R7.3 plano de 2000 peças em menos de 1,5 s (${Math.round(ms)} ms)`, ms < 1500, true);
 }
 
+/* ---------- R7.4b: o ponto pelo plano, só com um toque ---------- */
+{
+  const { pontosDoPlano, pontuouValido, estadoDosPontos, porPonto, tirarPontos } = await import('../src/lib/planos.js');
+  const { somarPontos } = await import('../src/db/scoring.js');
+  const CAT = { 'Raspagem de tesoura': 'raspagem', 'Raspagem de gancho': 'raspagem', 'Passagem toureando': 'passagem', '100kg para montada': 'transicao',
+    'Baiana (double leg)': 'queda', Armlock: 'finalizacao', Guilhotina: 'finalizacao', 'Fuga da montada': 'fuga', 'Tesoura nova': 'raspagem' };
+  const DEST = { 'Raspagem de tesoura': 'montada', 'Tesoura nova': 'montada', 'Raspagem de gancho': 'cem_quilos', 'Passagem toureando': 'cem_quilos', '100kg para montada': 'montada',
+    'Baiana (double leg)': 'cem_quilos', Armlock: 'finalizacao', Guilhotina: 'finalizacao', 'Fuga da montada': 'montada' };
+  const dest = Object.assign((n) => (DEST[n] ? { slug: DEST[n], nome: DEST[n] } : null), { tecnicas: [{ uid: 'u-tes', nome: 'Tesoura nova' }], categoriaDe: (n) => CAT[n] || null });
+  const pl = planoNovo({ nome: 'Pontos', objetivo: 'Finalizar', objetivoTipo: 'finalizar', posicao: 'Guarda fechada', passos: [
+    { id: 'tes', lig: 'lTes', golpe: 'Raspagem de tesoura', pai: null },
+    { id: 'arm', lig: 'lArm', golpe: 'Armlock', reacao: 'deu o braço', pai: 0, via: 'encaixou' },
+    { id: 'fin', lig: 'lFin', tipo: 'finta', golpe: 'Guilhotina', pai: null },
+    { id: 'pas', lig: 'lPas', golpe: 'Passagem toureando', reacao: 'abriu a guarda', pai: 2, via: 'reagiu' },
+    { id: 'mon', lig: 'lMon', golpe: '100kg para montada', reacao: 'virou de lado', pai: 3, via: 'encaixou' },
+    { id: 'bai', lig: 'lBai', golpe: 'Baiana (double leg)', pai: null },
+    { id: 'fug', lig: 'lFug', golpe: 'Fuga da montada', pai: null },
+  ] });
+  const rp = (o) => ({ uid: 'P', peca: 'tes', caminho: ['lTes'], encaixou: true, entrou: [], ...o });
+  const TES = 'Raspagem de tesoura';
+  ok('R7.4b raspagem que termina na montada: dois pontos, a montada sem técnica', pontosDoPlano(pl, rp(), dest), [{ ponto: 'raspagem', nome: TES }, { ponto: 'montada', nome: '' }]);
+  ok('R7.4b passagem que encaixou', pontosDoPlano(pl, rp({ peca: 'pas', caminho: ['lFin', 'lPas'] }), dest), [{ ponto: 'passagem', nome: 'Passagem toureando' }]);
+  ok('R7.4b queda que encaixou', pontosDoPlano(pl, rp({ peca: 'bai', caminho: ['lBai'] }), dest), [{ ponto: 'queda', nome: 'Baiana (double leg)' }]);
+  ok('R7.4b transição pra montada, com a passagem do meio pelo "encaixou"', pontosDoPlano(pl, rp({ peca: 'mon', caminho: ['lFin', 'lPas', 'lMon'] }), dest),
+    [{ ponto: 'passagem', nome: 'Passagem toureando' }, { ponto: 'montada', nome: '100kg para montada' }]);
+  ok('R7.4b a raspagem do meio conta mesmo com o armlock defendido', pontosDoPlano(pl, rp({ peca: 'arm', caminho: ['lTes', 'lArm'], encaixou: false, parou: 'defendeu' }), dest),
+    [{ ponto: 'raspagem', nome: TES }, { ponto: 'montada', nome: '' }]);
+  ok('R7.4b "Não sei" a entrada: a peça do meio não é inventada', pontosDoPlano(pl, rp({ peca: 'arm', caminho: [], encaixou: true }), dest), []);
+  ok('R7.4b finalização que encaixou não é ponto', pontosDoPlano(pl, rp({ peca: 'bai', caminho: ['lBai'], encaixou: false, improviso: { nome: 'Armlock', uid: null, encaixou: true } }), dest), []);
+  ok('R7.4b ele defendeu: nada de ponto', pontosDoPlano(pl, rp({ encaixou: false, parou: 'defendeu' }), dest), []);
+  ok('R7.4b finta não dá ponto, nem marcada como encaixou', pontosDoPlano(pl, rp({ peca: 'fin', caminho: ['lFin'] }), dest), []);
+  ok('R7.4b categoria sem ponto (fuga que termina na montada) não dá ponto', pontosDoPlano(pl, rp({ peca: 'fug', caminho: ['lFug'] }), dest), []);
+  ok('R7.4b improviso que encaixou: pela categoria', pontosDoPlano(pl, rp({ encaixou: false, improviso: { nome: 'Raspagem de gancho', uid: null, encaixou: true } }), dest), [{ ponto: 'raspagem', nome: 'Raspagem de gancho' }]);
+  ok('R7.4b improviso que não encaixou não dá ponto', pontosDoPlano(pl, rp({ encaixou: false, improviso: { nome: 'Raspagem de gancho', uid: null, encaixou: false } }), dest), []);
+  const renomeado = viaSync(pl);
+  renomeado.passos.find((x) => x.id === 'tes').golpeUid = 'u-tes';
+  ok('R7.4b a técnica com uid vai pelo nome de hoje', pontosDoPlano(renomeado, rp(), dest)[0], { ponto: 'raspagem', nome: 'Tesoura nova' });
+  ok('R7.4b rola sem plano e rola antigo: nada', [pontosDoPlano(pl, null, dest), pontuouValido(undefined, ['raspagem'], {}), pontosDoPlano(pl, { uid: 'P', encaixou: true }, dest)], [[], [], []]);
+
+  const vazio = { ptsMeus: [], tecMeus: {}, pontuou: [] };
+  const um = porPonto(vazio, { ponto: 'raspagem', nome: TES });
+  const dois = porPonto(um, { ponto: 'montada', nome: '' });
+  ok('R7.4b um toque: entra em "Meus lances" com a técnica', um, { ptsMeus: ['raspagem'], tecMeus: { raspagem: [TES] }, pontuou: [{ ponto: 'raspagem', nome: TES }] });
+  ok('R7.4b os dois toques: 6 pontos, a montada sem técnica', [somarPontos(dois.ptsMeus), dois.tecMeus, dois.pontuou.length], [6, { raspagem: [TES] }, 2]);
+  ok('R7.4b o estado: o que o plano pôs aparece como dele', estadoDosPontos([{ ponto: 'raspagem', nome: TES }], dois.pontuou, dois.ptsMeus, dois.tecMeus).map((x) => x.estado), ['meu']);
+  ok('R7.4b já marcada na mão com a mesma técnica: não soma de novo', estadoDosPontos([{ ponto: 'raspagem', nome: TES }], [], ['raspagem'], { raspagem: [TES] })[0].estado, 'ja');
+  ok('R7.4b já marcada na mão sem técnica: conta como a mesma', estadoDosPontos([{ ponto: 'raspagem', nome: TES }], [], ['raspagem'], {})[0].estado, 'ja');
+  ok('R7.4b marcada na mão com outra técnica: é outra raspagem', estadoDosPontos([{ ponto: 'raspagem', nome: TES }], [], ['raspagem'], { raspagem: ['Raspagem de gancho'] })[0].estado, 'livre');
+  ok('R7.4b montada na mão: a do plano não soma de novo', estadoDosPontos([{ ponto: 'montada', nome: '' }], [], ['montada'], { montada: ['100kg para montada'] })[0].estado, 'ja');
+  ok('R7.4b sem nada na mão: livre', estadoDosPontos([{ ponto: 'raspagem', nome: TES }, { ponto: 'montada', nome: '' }], [], [], {}).map((x) => x.estado), ['livre', 'livre']);
+
+  const comMao = porPonto({ ptsMeus: ['raspagem', 'montada'], tecMeus: { raspagem: ['Raspagem de gancho'] }, pontuou: [] }, { ponto: 'raspagem', nome: TES });
+  const comMao2 = porPonto(comMao, { ponto: 'montada', nome: '' });
+  ok('R7.4b desmarcar o encaixou tira só o que o plano pôs', tirarPontos(comMao2, []),
+    { ptsMeus: ['raspagem', 'montada'], tecMeus: { raspagem: ['Raspagem de gancho'] }, pontuou: [] });
+  ok('R7.4b o que ainda serve fica', tirarPontos(comMao2, [{ ponto: 'raspagem', nome: TES }]).pontuou, [{ ponto: 'raspagem', nome: TES }]);
+  ok('R7.4b repetir não muda nada', tirarPontos(comMao2, [{ ponto: 'raspagem', nome: TES }, { ponto: 'montada', nome: '' }]), comMao2);
+  ok('R7.4b apagou o ponto na mão: sai do pontuou e não tira outro', [pontuouValido(um.pontuou, [], {}), tirarPontos({ ...um, ptsMeus: [], tecMeus: {} }, []).ptsMeus], [[], []]);
+  ok('R7.4b trocou a técnica na mão: vira dela e desmarcar não tira', tirarPontos({ ...um, tecMeus: { raspagem: ['Raspagem de gancho'] } }, []),
+    { ptsMeus: ['raspagem'], tecMeus: { raspagem: ['Raspagem de gancho'] }, pontuou: [] });
+  ok('R7.4b versão velha deixou pontuou sobrando: é aparado', pontuouValido([{ ponto: 'raspagem', nome: TES }, { ponto: 'montada', nome: '' }], ['raspagem'], { raspagem: [TES] }), [{ ponto: 'raspagem', nome: TES }]);
+  ok('R7.4b editar o treino: o pontuou copiado com o rola continua valendo', pontuouValido(JSON.parse(JSON.stringify(dois)).pontuou, dois.ptsMeus, dois.tecMeus), dois.pontuou);
+}
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

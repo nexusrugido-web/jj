@@ -645,6 +645,117 @@ export function juntarSubs(subs = [], entrou = [], quer = []) {
   return { subs: [...lista, ...novas], entrou: [...fica, ...novas] };
 }
 
+/* ---------- R7.4b: o ponto pelo plano, só com um toque ----------
+   O plano nunca cria ponto sozinho: ele só diz quais pontos podem ter
+   saído do que encaixou, e a pessoa confirma. O confirmado entra em
+   "Meus lances" (ptsMeus e tecMeus, a lista de sempre) e o plano anota
+   em plano.pontuou [{ ponto, nome }] o que ele pôs, como o "entrou".
+   Só conta a categoria do catálogo (raspagem, passagem, queda) e onde a
+   técnica termina (montada, costas, joelho na barriga); nunca o nome da
+   técnica, o tipo da peça ou o caminho existir no plano. O ponto de
+   posição vai sem técnica: a técnica é da raspagem ou da passagem.
+   Vantagem nunca sai daqui. Finalização continua no subsDoPlano. */
+const PONTO_DA_CATEGORIA = { raspagem: 'raspagem', passagem: 'passagem', queda: 'queda' };
+const PONTO_DO_DESTINO = { montada: 'montada', costas: 'costas', joelho_barriga: 'joelho' };
+const CATEGORIAS_DE_PONTO = new Set(['raspagem', 'passagem', 'queda', 'transicao']);
+const chaveDoPonto = (x) => `${x.ponto}|${x.nome || ''}`;
+
+/* o que encaixou: a última peça (com "Encaixou"), as peças do meio do
+   caminho que seguiram pelo "encaixou" e o improviso que encaixou.
+   destinoDe.categoriaDe(nome) devolve o slug da categoria. */
+export function pontosDoPlano(plano, rp, destinoDe = () => null) {
+  if (!rp) return [];
+  const tecnicas = destinoDe.tecnicas || [];
+  const categoriaDe = destinoDe.categoriaDe || (() => null);
+  const nomes = [];
+  const daPeca = (p) => p && tipoDe(p) === 'golpe' && nomes.push((p.golpeUid && nomeDoUid(p.golpeUid, tecnicas)) || p.golpe);
+  if (rp.peca) {
+    for (const l of caminhoDoRola(plano, rp.caminho || []).ligacoes) {
+      if (l?.via === 'encaixou' && l.de) daPeca(pecaDoRola(plano, { plano: { peca: l.de } }));
+    }
+    if (rp.encaixou) daPeca(pecaDoRola(plano, { plano: rp }));
+  }
+  const im = rp.improviso;
+  if (im?.encaixou) nomes.push((im.uid && nomeDoUid(im.uid, tecnicas)) || im.nome);
+  const out = [];
+  for (const nome of nomes) {
+    const cat = categoriaDe(nome);
+    if (!CATEGORIAS_DE_PONTO.has(cat)) continue;
+    if (PONTO_DA_CATEGORIA[cat]) out.push({ ponto: PONTO_DA_CATEGORIA[cat], nome });
+    const pos = PONTO_DO_DESTINO[destinoDe(nome)?.slug];
+    if (pos) out.push({ ponto: pos, nome: cat === 'transicao' ? nome : '' });
+  }
+  return out.filter((x, k) => out.findIndex((y) => chaveDoPonto(y) === chaveDoPonto(x)) === k);
+}
+
+/* "Meus lances" guarda, por ponto, a quantidade (ptsMeus) e os nomes
+   das vagas (tecMeus, sem buraco: o resto da quantidade é sem nome).
+   O que o plano pôs só vale enquanto ainda está lá: a pessoa pode ter
+   apagado o ponto ou trocado a técnica na mão (ou numa versão velha do
+   app). O que não está mais lá sai do pontuou e passa a ser dela. */
+export function pontuouValido(pontuou = [], ptsMeus = [], tecMeus = {}) {
+  const sobra = {};
+  const vagas = (p) => {
+    if (!sobra[p]) {
+      const nomes = [...(tecMeus?.[p] || [])];
+      sobra[p] = { nomes, semNome: Math.max(0, (ptsMeus || []).filter((x) => x === p).length - nomes.length) };
+    }
+    return sobra[p];
+  };
+  return (pontuou || []).filter((x) => {
+    const v = vagas(x.ponto);
+    if (x.nome) {
+      const k = v.nomes.indexOf(x.nome);
+      if (k < 0) return false;
+      v.nomes.splice(k, 1);
+      return true;
+    }
+    if (v.semNome < 1) return false;
+    v.semNome -= 1;
+    return true;
+  });
+}
+
+/* como cada ponto possível aparece: 'meu' (o plano pôs), 'ja' (já tem
+   um igual marcado na mão: mesma técnica ou vaga sem nome) ou 'livre' */
+export function estadoDosPontos(quer = [], pontuou = [], ptsMeus = [], tecMeus = {}) {
+  const meus = pontuouValido(pontuou, ptsMeus, tecMeus);
+  return quer.map((x) => {
+    if (meus.some((y) => chaveDoPonto(y) === chaveDoPonto(x))) return { ...x, estado: 'meu' };
+    const doPlano = meus.filter((y) => y.ponto === x.ponto);
+    const nomes = [...(tecMeus?.[x.ponto] || [])];
+    for (const y of doPlano) if (y.nome) nomes.splice(nomes.indexOf(y.nome), 1);
+    const total = (ptsMeus || []).filter((p) => p === x.ponto).length - doPlano.length;
+    const semNome = total - nomes.length;
+    const ja = x.nome ? nomes.includes(x.nome) || semNome > 0 : total > 0;
+    return { ...x, estado: ja ? 'ja' : 'livre' };
+  });
+}
+
+/* um toque: põe o ponto em "Meus lances" e anota no pontuou */
+export function porPonto({ ptsMeus = [], tecMeus = {}, pontuou = [] }, x) {
+  const meus = pontuouValido(pontuou, ptsMeus, tecMeus);
+  const tec = { ...(tecMeus || {}) };
+  if (x.nome) tec[x.ponto] = [...(tec[x.ponto] || []), x.nome];
+  return { ptsMeus: [...(ptsMeus || []), x.ponto], tecMeus: tec, pontuou: [...meus, { ponto: x.ponto, nome: x.nome || '' }] };
+}
+
+/* tira só o que o plano pôs e não quer mais (desmarcou o "Encaixou",
+   trocou de peça ou de plano, tocou de novo no chip). O ponto marcado
+   na mão nunca sai. */
+export function tirarPontos({ ptsMeus = [], tecMeus = {}, pontuou = [] }, quer = []) {
+  const pts = [...(ptsMeus || [])];
+  const tec = Object.fromEntries(Object.entries(tecMeus || {}).map(([k, v]) => [k, [...(v || [])]]));
+  const fica = [];
+  for (const x of pontuouValido(pontuou, ptsMeus, tecMeus)) {
+    if (quer.some((y) => chaveDoPonto(y) === chaveDoPonto(x))) { fica.push(x); continue; }
+    const k = pts.lastIndexOf(x.ponto);
+    if (k >= 0) pts.splice(k, 1);
+    if (x.nome) tec[x.ponto].splice(tec[x.ponto].lastIndexOf(x.nome), 1);
+  }
+  return { ptsMeus: pts, tecMeus: tec, pontuou: fica };
+}
+
 /* o rola de antes guardava "ate": a posição do golpe na lista. Ela só
    aponta pra peça certa se o plano não mudou depois da última vez que
    o rola foi salvo (o registro mostrava a marca em cima desse plano).

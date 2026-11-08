@@ -322,5 +322,14 @@ const noAparelhoS4 = new Map([...(await db.rolls.toArray()), ...(await db.sessio
 ok('S4: cada item da fila é o registro corrigido como ficou', filaS4.every((i) => JSON.stringify(i.dados) === JSON.stringify(noAparelhoS4.get(i.uid))), true);
 ok('S4: o que sobe leva o treino certo', (await comReferencias('rolls', filaS4.find((i) => i.uid === 'r1').dados)).refs.sessionId, 's1');
 
+/* R7.4b: o ponto que o plano pôs viaja dentro do rola, sem coluna nova */
+{
+  const rola = { uid: 'r74b', sessionId: 1, ptsMeus: ['raspagem', 'montada'], tecMeus: { raspagem: ['Raspagem de tesoura'] },
+    plano: { uid: 'P', peca: 'tes', caminho: ['lTes'], encaixou: true, entrou: [], pontuou: [{ ponto: 'raspagem', nome: 'Raspagem de tesoura' }, { ponto: 'montada', nome: '' }] } };
+  const sobe = paraRegistros([{ tabela: 'rolls', op: 'upsert', uid: 'r74b', dados: rola, updatedAt: T }], 'conta-A')[0];
+  const ida = JSON.parse(JSON.stringify(sobe.dados));
+  ok('R7.4b o pontuou sobe junto com o rola', [ida.plano.pontuou, ida.ptsMeus, ida.tecMeus], [rola.plano.pontuou, rola.ptsMeus, rola.tecMeus]);
+}
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

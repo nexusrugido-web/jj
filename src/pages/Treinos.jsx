@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, Suspense } from 'react';
 import { lazy } from '../lib/lazy';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { planosDaPessoa, correnteDoPlano, pecaDoRola, caminhosAte, rotuloDoCaminho, paradasDe, marcarPeca, subsDoPlano, juntarSubs, fugasDe, rodizio } from '../lib/planos';
+import { planosDaPessoa, correnteDoPlano, pecaDoRola, caminhosAte, rotuloDoCaminho, paradasDe, marcarPeca, subsDoPlano, juntarSubs, fugasDe, rodizio, pontosDoPlano, estadoDosPontos, porPonto, tirarPontos, pontuouValido } from '../lib/planos';
 import {
   Plus, Trash2, Pencil, NotebookPen, Timer, ChevronDown, ChevronRight, Copy, Check,
   MessageSquare, Building2, GraduationCap, Trophy, Weight, Mic, Users, History, ShieldAlert, CircleHelp, Route,
@@ -1432,8 +1432,11 @@ function EditorTreino({ s, setS, rolas, setRolas, rolaFoco = null, partners, pos
   const destinoDe = useMemo(() => {
     const pos = new Map(positions.map((x) => [x.id, x]));
     const tec = new Map(techniques.map((t) => [t.nome, t]));
-    return Object.assign((nome) => pos.get((tec.get(nome) || tec.get(nomeAtual(nome)))?.destinoId) || null, { tecnicas: techniques });
-  }, [positions, techniques]);
+    const cat = new Map((categories || []).map((c) => [c.id, c.slug]));
+    const achar = (nome) => tec.get(nome) || tec.get(nomeAtual(nome));
+    /* R7.4b: a categoria diz se o que encaixou pode valer ponto */
+    return Object.assign((nome) => pos.get(achar(nome)?.destinoId) || null, { tecnicas: techniques, categoriaDe: (nome) => cat.get(achar(nome)?.categoriaId) || null });
+  }, [positions, techniques, categories]);
   /* R7: o plano do rola muda e as finalizações que ele pôs em "Eu finalizei"
      acompanham. A que entra passa pelo mesmo aviso de regra da marcada na
      mão; a do improviso já passou quando ele foi escolhido. "Não registrar"
@@ -1442,11 +1445,28 @@ function EditorTreino({ s, setS, rolas, setRolas, rolaFoco = null, partners, pos
     const r = rolas[i];
     const plano = rp && meusPlanosDeAtaque.find((x) => x.uid === rp.uid);
     const { subs, entrou } = juntarSubs(r.subsAplicadas || [], r.plano?.entrou || [], plano ? subsDoPlano(plano, rp, destinoDe) : []);
-    const aplicar = () => setRola(i, { subsAplicadas: subs, plano: rp ? { ...rp, entrou } : null, ...extra });
+    /* R7.4b: o ponto que o plano pôs e não serve mais sai; o resto fica (o marcado na mão nunca sai) */
+    const pts = tirarPontos({ ptsMeus: r.ptsMeus, tecMeus: r.tecMeus, pontuou: r.plano?.pontuou }, plano && !forma.lutas ? pontosDoPlano(plano, rp, destinoDe) : []);
+    const aplicar = () => setRola(i, { subsAplicadas: subs, ptsMeus: pts.ptsMeus, tecMeus: pts.tecMeus, plano: rp ? { ...rp, entrou, pontuou: pts.pontuou } : null, ...extra });
     const jaChecada = plano && r.plano?.improviso ? subsDoPlano(plano, { improviso: { ...r.plano.improviso, encaixou: true } }, destinoDe) : [];
     const novas = subs.filter((n) => !(r.subsAplicadas || []).includes(n) && !jaChecada.includes(n));
     const checarTodas = (lista) => (lista.length ? checarTecnica(lista[0], () => checarTodas(lista.slice(1))) : aplicar());
     checarTodas(novas);
+  };
+  /* R7.4b: um toque no ponto que o plano sugere põe em "Meus lances"; de novo, tira só ele.
+     A técnica nomeada passa pelo mesmo aviso de regra do ponto marcado na mão. */
+  const tocarPonto = (i, x) => {
+    const r = rolas[i];
+    const atual = { ptsMeus: r.ptsMeus, tecMeus: r.tecMeus, pontuou: r.plano?.pontuou };
+    if (x.estado === 'meu') {
+      const quer = pontuouValido(atual.pontuou, r.ptsMeus, r.tecMeus).filter((y) => !(y.ponto === x.ponto && (y.nome || '') === (x.nome || '')));
+      const t = tirarPontos(atual, quer);
+      setRola(i, { ptsMeus: t.ptsMeus, tecMeus: t.tecMeus, plano: { ...r.plano, pontuou: t.pontuou } });
+      return;
+    }
+    const n = porPonto(atual, x);
+    const aplicar = () => setRola(i, { ptsMeus: n.ptsMeus, tecMeus: n.tecMeus, plano: { ...r.plano, pontuou: n.pontuou } });
+    if (x.nome) checarTecnica(x.nome, aplicar); else aplicar();
   };
   /* A REGRA DA TÉCNICA: quando a regra não permite (faixa, idade, Gi ou
      No-Gi), o app avisa e pergunta. Nunca proíbe: o professor pode
@@ -1592,6 +1612,7 @@ function EditorTreino({ s, setS, rolas, setRolas, rolaFoco = null, partners, pos
                     const mesmo = (a, b) => a.length === b.length && a.every((x, k) => x === b[k]);
                     const golpe = marcada && (marcada.tipo || 'golpe') === 'golpe';
                     const im = r.plano?.improviso;
+                    const pontosPossiveis = plano ? estadoDosPontos(pontosDoPlano(plano, r.plano, destinoDe), r.plano.pontuou, r.ptsMeus, r.tecMeus) : [];
                     /* recolhido: o caminho em uma linha, só com o que foi marcado ("Não sei" não vira caminho) */
                     const antes = (r.plano?.caminho || []).length ? rotuloDoCaminho(plano, r.plano.caminho) : '';
                     const deu = r.plano?.encaixou ? 'encaixou' : marcada ? paradasDe(marcada).find((p) => p.id === r.plano.parou)?.nome.toLowerCase() : '';
@@ -1700,6 +1721,20 @@ function EditorTreino({ s, setS, rolas, setRolas, rolaFoco = null, partners, pos
                             </div>
                           </div>
                         )}
+                        {/* R7.4b: o que encaixou pode ter valido ponto; só entra com o toque (no campeonato o placar é do árbitro) */}
+                        {!forma.lutas && pontosPossiveis.length > 0 && (
+                          <div className="pontos-do-plano" style={{ marginTop: 10 }}>
+                            <p className="micro muted" style={{ marginBottom: 6 }}>Contou ponto?</p>
+                            <div className="row wrap" style={{ gap: 6 }}>
+                              {pontosPossiveis.map((x) => {
+                                const pt = PONTOS.find((p) => p.id === x.ponto);
+                                const rotulo = `${pt.nome} +${pt.pts}${x.nome ? ` · ${x.nome}` : ''}`;
+                                if (x.estado === 'ja') return <Chip key={`${x.ponto}|${x.nome}`} tone="muted">{pt.nome}: já está nos lances</Chip>;
+                                return <Chip key={`${x.ponto}|${x.nome}`} tone={x.estado === 'meu' ? 'jade' : ''} on={x.estado === 'meu'} onClick={() => tocarPonto(i, x)}>{rotulo}</Chip>;
+                              })}
+                            </div>
+                          </div>
+                        )}
                         {(r.plano?.entrou || []).length > 0 && (
                           <p className="micro muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
                             Já entrou em "Eu finalizei": {r.plano.entrou.join(', ')}.
@@ -1722,7 +1757,11 @@ function EditorTreino({ s, setS, rolas, setRolas, rolaFoco = null, partners, pos
                       <span className="num micro">{somarPontos(r.ptsMeus)} pts</span>
                     </div>
                     <PontosInput
-                      valor={r.ptsMeus || []} onChange={(v) => setRola(i, { ptsMeus: v, tecMeus: aparar(r.tecMeus, v) })}
+                      valor={r.ptsMeus || []} onChange={(v) => {
+                      /* apagou na mão o ponto que o plano pôs: ele sai do pontuou também */
+                      const tecMeus = aparar(r.tecMeus, v);
+                      setRola(i, { ptsMeus: v, tecMeus, ...(r.plano?.pontuou?.length ? { plano: { ...r.plano, pontuou: pontuouValido(r.plano.pontuou, v, tecMeus) } } : {}) });
+                    }}
                       catalogo={PONTOS} tone="jade"
                       nomes={r.tecMeus || {}}
                       onNomear={(p, vaga) => setSeletor({ tipo: 'ponto', rola: i, lado: 'tecMeus', ponto: p, vaga })}
