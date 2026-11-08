@@ -111,7 +111,9 @@ const rs = [
 const tA = taxaDoPlano(A, rs);
 ok('taxa: 1 de 3, drill fora', [tA.usos, tA.encaixes, tA.taxa], [3, 1, 33]);
 ok('morre mais no Armlock (pela peça)', tA.morreNo, { peca: 'a', golpe: 'Armlock', saiu: false, vezes: 2 });
-ok('por tipo: contra pesado', taxaPorTipo(A, rs, [{ id: 7, alturaRel: 'alto' }]).pesado, { usos: 1, encaixes: 1 });
+const comObj = { ...A, objetivo: 'Triângulo', objetivoTipo: 'tecnica' };
+ok('por tipo: conta o objetivo alcançado, contra pesado e contra alto', [taxaPorTipo(comObj, rs, [{ id: 7, alturaRel: 'alto' }]).pesado, taxaPorTipo(comObj, rs, [{ id: 7, alturaRel: 'alto' }]).alto], [{ usos: 1, objetivo: 1 }, { usos: 3, objetivo: 1 }]);
+ok('por tipo: encaixou fora do objetivo não conta', taxaPorTipo({ ...A, objetivo: 'Armlock', objetivoTipo: 'tecnica' }, rs, []).pesado, { usos: 1, objetivo: 0 });
 const rod = rodizio([A, B, C], rs, sess, { id: 7 });
 ok('rodízio: último contra ele foi A', rod.ultimo?.uid, 'A');
 ok('rodízio: o próximo é um que ele ainda não viu', ['B', 'C'].includes(rod.proximo?.uid), true);
@@ -947,6 +949,65 @@ ok('finta com nome de finalização não chega no objetivo', chegaNoObjetivo(cor
   const histSit = viaSync({ ...semSit, removidos: removidosAoSalvar(fuga, semSit) });
   ok('R7 a situação saiu do plano: o rola antigo ainda acha o lugar', lugarDaFuga(histSit, escapou), 'Meia-guarda');
   ok('R7 finalizou duas vezes com a mesma: tira uma só', juntarSubs(['Omoplata', 'Omoplata'], ['Omoplata'], []), { subs: ['Omoplata'], entrou: [] });
+}
+
+/* R7.3: a taxa por etapa. Só lê; cada rola conta uma vez por peça; o
+   meio do caminho só com o caminho inteiro; "não sei" e rola antigo só
+   na última peça; drill e outro plano fora; improviso fora das peças;
+   objetivo pela mesma regra do alcancouObjetivo. */
+{
+  const { taxaPorEtapa, POUCO_ROLA } = await import('../src/lib/planos.js');
+  const P = { ...rota, uid: 'R' };
+  const rp = (x) => ({ plano: { uid: 'R', caminho: [], encaixou: false, parou: '', ...x } });
+  const rolas = [
+    rp({ peca: 'omo', caminho: ['lA', 'lArm', 'lTri', 'lOmo'], encaixou: true }),
+    rp({ peca: 'tri', caminho: ['lB', 'cB', 'lTri'], parou: 'defendeu' }),
+    rp({ peca: 'arm', caminho: [], parou: 'escapou' }),
+    rp({ peca: null, ateAntigo: 2 }),
+    { ...rp({ peca: 'omo', caminho: ['lA', 'lArm', 'lTri', 'lOmo'], encaixou: true }), contexto: 'drill' },
+    rp({ peca: 'fC', caminho: ['lC'], parou: 'naoReagiu', improviso: { nome: 'Kimura', uid: null, encaixou: true } }),
+    { plano: { uid: 'OUTRO', peca: 'omo', caminho: ['lA', 'lArm', 'lTri', 'lOmo'], encaixou: true } },
+    rp({ peca: 'arm', caminho: ['lA', 'cB'], encaixou: true }),
+  ];
+  const antes = JSON.stringify([P, rolas]);
+  const t = taxaPorEtapa(P, rolas, destRota);
+  ok('R7.3 não mexe no plano nem nos rolas', JSON.stringify([P, rolas]) === antes, true);
+  ok('R7.3 usos: drill e outro plano fora; antigo sem peça é uso fora das etapas', [t.usos, t.semPeca], [6, 1]);
+  ok('R7.3 objetivo: a mesma conta do alcancouObjetivo', [t.objetivo, rolas.filter((r) => (r.contexto || 'rola') !== 'drill' && r.plano.uid === 'R' && alcancouObjetivo(P, r, destRota)).length], [2, 2]);
+  ok('R7.3 fiz outra coisa: contado à parte, a finalização dele não é objetivo', [t.improviso, t.pecas.fC.vias, t.objetivo], [1, { naoReagiu: 1 }, 2]);
+  ok('R7.3 convergência: cada entrada conta na sua finta', [t.pecas.fA.vias, t.pecas.fA.ligacoes, t.pecas.fB.vias, t.pecas.fB.ligacoes], [{ reagiu: 1 }, { lArm: 1 }, { reagiu: 1 }, { cB: 1 }]);
+  ok('R7.3 a peça onde converge conta uma vez por rola', [t.pecas.arm.tentativas, t.pecas.arm.vias], [4, { defendeu: 2, escapou: 1, encaixou: 1 }]);
+  ok('R7.3 defesa por jeito: a ligação de defesa que a luta tomou', [t.pecas.arm.ligacoes, t.pecas.tri.ligacoes, t.pecas.tri.vias], [{ lTri: 2 }, { lOmo: 1 }, { defendeu: 2 }]);
+  ok('R7.3 "não sei" e caminho quebrado: só a última peça', [t.pecas.fC.tentativas, !!t.pecas.fA && t.pecas.fA.tentativas], [1, 1]);
+  ok('R7.3 última peça encaixou', t.pecas.omo, { tipo: 'golpe', golpe: 'Omoplata', saiu: false, tentativas: 1, vias: { encaixou: 1 }, ligacoes: {}, semResultado: 0 });
+  ok('R7.3 peça sem rola não aparece (sem 0%)', t.pecas.fZ, undefined);
+  ok('R7.3 sem marcar o que aconteceu: tentativa sem resultado', taxaPorEtapa(P, [rp({ peca: 'tri', caminho: ['lA', 'lArm', 'lTri'] })], destRota).pecas.tri, { tipo: 'golpe', golpe: 'Triângulo', saiu: false, tentativas: 1, vias: {}, ligacoes: {}, semResultado: 1 });
+  const fuga = planoNovo({ nome: 'Fuga', objetivo: 'Finalizar', objetivoTipo: 'finalizar', posicao: 'Guarda fechada', passos: [
+    { id: 'g', lig: 'lg', golpe: 'Armlock', pai: null },
+    { id: 'sit', lig: 'lsit', tipo: 'situacao', golpe: 'Meia-guarda', reacao: 'passou a perna', pai: 0, via: 'escapou' },
+  ] });
+  ok('R7.3 escapou pra uma fuga do plano: o jeito vem da saída', taxaPorEtapa({ ...fuga, uid: 'F' }, [{ plano: { uid: 'F', peca: 'g', caminho: ['lg'], encaixou: false, parou: 'escapou', saida: 'lsit' } }], destRota).pecas.g.ligacoes, { lsit: 1 });
+  ok('R7.3 rola antigo (ate) migrado sem confiança: uso, fora das etapas', (() => { const x = taxaPorEtapa(P, [rp({ peca: null, ateAntigo: 0 })], destRota); return [x.usos, x.semPeca, Object.keys(x.pecas)]; })(), [1, 1, []]);
+  /* encaixou, objetivo alcançado e finalização aplicada são três coisas */
+  const pos = { ...rota, uid: 'R', objetivo: 'Montada', objetivoTipo: 'posicao' };
+  const tp = taxaPorEtapa(pos, [rp({ peca: 'omo', caminho: ['lA', 'lArm', 'lTri', 'lOmo'], encaixou: true })], destRota);
+  ok('R7.3 encaixou a finalização, objetivo era a Montada: encaixou sem objetivo', [tp.pecas.omo.vias.encaixou, tp.objetivo], [1, 0]);
+  /* a peça saiu do plano: continua contando, marcada */
+  const semOmo = planoNovo({ ...rota, passos: editar(rota).filter((x) => x.id !== 'omo'), ligacoes: correnteDoPlano(rota).ligacoes });
+  const histOmo = viaSync({ ...semOmo, uid: 'R', removidos: removidosAoSalvar(rota, semOmo) });
+  const th = taxaPorEtapa(histOmo, [rolas[0]], destRota);
+  ok('R7.3 peça que saiu do plano continua no histórico, marcada', [th.pecas.omo?.saiu, th.pecas.omo?.vias, th.pecas.tri.ligacoes, th.objetivo], [true, { encaixou: 1 }, { lOmo: 1 }, 1]);
+  ok('R7.3 o aviso de pouco rola é abaixo de 5', POUCO_ROLA, 5);
+  /* plano grande: 2000 peças em fila, 300 rolas com o caminho inteiro */
+  const grandes = Array.from({ length: 2000 }, (_, i) => ({ id: `g${i}`, lig: `l${i}`, golpe: `Golpe ${i}`, pai: i ? i - 1 : null, ...(i ? { via: 'defendeu', reacao: `r${i}` } : {}) }));
+  const G = { ...planoNovo({ nome: 'Grande', objetivo: 'Golpe 1999', objetivoTipo: 'tecnica', posicao: 'Guarda', passos: grandes }), uid: 'G' };
+  const cg = correnteDoPlano(G).passos;
+  const rg = Array.from({ length: 300 }, (_, n) => { const k = (n * 7) % 2000; return { plano: { uid: 'G', peca: cg[k].id, caminho: caminhoAte(cg, k), encaixou: k === 1999 || n % 3 === 0 } }; });
+  const t0 = performance.now();
+  const tg = taxaPorEtapa(G, rg, () => null);
+  const ms = performance.now() - t0;
+  ok('R7.3 plano de 2000 peças: conta tudo', [cg.length, tg.usos, tg.pecas.g0.tentativas], [2000, 300, 300]);
+  ok(`R7.3 plano de 2000 peças em menos de 1,5 s (${Math.round(ms)} ms)`, ms < 1500, true);
 }
 
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');

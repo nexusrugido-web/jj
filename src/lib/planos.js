@@ -797,16 +797,73 @@ export function taxaDoPlano(plano, rolls = []) {
   };
 }
 
-/* contra que tipo de adversário: pelo peso e pela altura do parceiro */
-export function taxaPorTipo(plano, rolls = [], partners = []) {
+/* ---------- R7.3: a taxa por etapa ----------
+   Só leitura: cruza o plano com os rolas de luta que usaram ele, na
+   hora, sem guardar nada. Cada rola conta no máximo uma vez em cada
+   peça por onde passou. Com o caminho inteiro até a peça marcada, a
+   peça do meio tem o resultado na ligação seguinte (a saída que a luta
+   tomou); a última, no encaixou ou no "parou". "Não sei", caminho
+   quebrado e rola antigo contam só a última peça: nada é deduzido.
+   Rola antigo sem peça conta como uso e fica fora das etapas. O
+   improviso fica fora das peças. O objetivo segue a regra do
+   alcancouObjetivo: encaixou na peça que chega nele. */
+export const POUCO_ROLA = 5;
+export function taxaPorEtapa(plano, rolls = [], destinoDe = () => null) {
+  const usos = usosDo(plano, rolls);
+  const c = correnteDoPlano(plano);
+  const vivas = new Map(c.passos.map((x) => [x.id, { ...x, saiu: false }]));
+  const mortas = new Map((plano?.removidos?.pecas || []).map((x) => [x.id, { ...x, saiu: true }]));
+  const pecaDe = (id) => vivas.get(id) || mortas.get(id) || null;
+  const ligsVivas = new Map(ligacoesDo(c.passos, c.ligacoes).map((l) => [l.id, l]));
+  const ligsMortas = new Map((plano?.removidos?.ligacoes || []).map((l) => [l.id, l]));
+  const pecas = {};
+  const conta = (p, via, lig) => {
+    const t = pecas[p.id] || (pecas[p.id] = { tipo: tipoDe(p), golpe: p.golpe, saiu: p.saiu, tentativas: 0, vias: {}, ligacoes: {}, semResultado: 0 });
+    t.tentativas++;
+    if (via) t.vias[via] = (t.vias[via] || 0) + 1; else t.semResultado++;
+    if (lig) t.ligacoes[lig] = (t.ligacoes[lig] || 0) + 1;
+  };
+  let objetivo = 0;
+  let improviso = 0;
+  let semPeca = 0;
+  for (const r of usos) {
+    const rp = r.plano;
+    if (rp.improviso) improviso++;
+    const ultima = rp.peca ? pecaDe(rp.peca) : null;
+    if (!ultima) { semPeca++; continue; }
+    const golpe = tipoDe(ultima) === 'golpe';
+    if (rp.encaixou && chegaNoObjetivo(ultima, c, destinoDe)) objetivo++;
+    /* o caminho, com a mesma regra do caminhoDoRola, e chegando na peça marcada */
+    const ligs = (rp.caminho || []).map((id) => ligsVivas.get(id) || ligsMortas.get(id) || null);
+    const inteiro = ligs.length > 0 && ligs.every((l, k) => l && (l.de ?? null) === (k ? ligs[k - 1].para ?? null : null))
+      && ligs[ligs.length - 1].para === ultima.id;
+    const vistas = new Set([ultima.id]);
+    if (inteiro) {
+      for (let k = 0; k < ligs.length - 1; k++) {
+        const p = pecaDe(ligs[k].para);
+        if (!p || vistas.has(p.id)) continue;
+        vistas.add(p.id);
+        conta(p, ligs[k + 1].via, ligs[k + 1].id);
+      }
+    }
+    const parou = paradasDe(ultima).some((x) => x.id === rp.parou) ? rp.parou : '';
+    conta(ultima, golpe && rp.encaixou ? 'encaixou' : parou, parou === 'escapou' ? rp.saida || '' : '');
+  }
+  return { usos: usos.length, objetivo, improviso, semPeca, pecas };
+}
+
+/* contra que tipo de adversário: pelo peso e pela altura do parceiro.
+   Conta o objetivo alcançado, a mesma conta do resumo do cartão. */
+export function taxaPorTipo(plano, rolls = [], partners = [], destinoDe = () => null) {
   const parceiro = new Map(partners.map((p) => [p.id, p]));
   const conta = {};
   for (const r of usosDo(plano, rolls)) {
     const p = parceiro.get(r.partnerId);
+    const chegou = alcancouObjetivo(plano, r, destinoDe);
     for (const chave of [r.pesoRel || p?.pesoRel, p?.alturaRel].filter(Boolean)) {
-      conta[chave] = conta[chave] || { usos: 0, encaixes: 0 };
+      conta[chave] = conta[chave] || { usos: 0, objetivo: 0 };
       conta[chave].usos++;
-      if (r.plano.encaixou) conta[chave].encaixes++;
+      if (chegou) conta[chave].objetivo++;
     }
   }
   return conta;

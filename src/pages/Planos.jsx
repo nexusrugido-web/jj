@@ -22,6 +22,7 @@ import {
   semAFinta, fintaAntes, moverPasso, chegaNoObjetivo, finaliza, pontasSoltas, semGatilho, OBJETIVO_FINALIZAR,
   destinosDaLigacao, comLigacao, situacaoNoObjetivo, continua, escolhaDaFinalizacao, jaCoberta, limparAceitas,
   nomeDaPosicao, FINTA_MAX, QUALQUER, escolherPraQuem, PREPARACOES, ehTexto,
+  taxaPorEtapa, POUCO_ROLA, ligacoesDo,
 } from '../lib/planos';
 import { FAIXAS } from '../lib/faixas';
 import { PESO_REL } from '../db/scoring';
@@ -108,7 +109,7 @@ export default function Planos() {
         <div className="col" style={{ gap: 12 }}>
           {meus.map((p) => (
             <CartaoPlano key={p.id} p={p} onAssistir={() => setAssistindo(p)}
-              acerto={<AcertoDoPlano p={p} rolls={rolls} partners={partners} porTipo={premium} />}>
+              acerto={<AcertoDoPlano p={p} rolls={rolls} partners={partners} porTipo={premium} destinoDe={destinoDe} />}>
               <Btn size="sm" variant="ghost" icon={Repeat} onClick={() => irPara('treinos', { drillPlano: p.uid })}>Drill do plano</Btn>
               <Btn size="sm" variant="ghost" icon={Pencil} onClick={() => setEdit(paraEditar(p))}>Editar</Btn>
               <Btn size="sm" variant="ghost" icon={Trash2} onClick={() => setApagar(p)} aria-label="Apagar" />
@@ -116,7 +117,7 @@ export default function Planos() {
           ))}
           {exemplos.map((p) => (
             <CartaoPlano key={p.id} p={p} exemplo onAssistir={() => setAssistindo(p)}
-              acerto={<AcertoDoPlano p={p} rolls={rolls} partners={partners} porTipo={premium} />}>
+              acerto={<AcertoDoPlano p={p} rolls={rolls} partners={partners} porTipo={premium} destinoDe={destinoDe} />}>
               {acoesDoPronto(p)}
             </CartaoPlano>
           ))}
@@ -326,18 +327,72 @@ const GUIA_DO_PLANO = [
   },
 ];
 
-/* a taxa de acerto do plano: de graça; contra que tipo de adversário, no Premium */
+/* a taxa do plano: de graça; contra que tipo de adversário, no Premium.
+   Sempre "x de y"; a porcentagem só aparece a partir de 5 rolas. */
 const NOME_TIPO = { leve: 'mais leve', similar: 'peso parecido', pesado: 'mais pesado', alto: 'mais alto', parecida: 'altura parecida', baixo: 'mais baixo' };
-function AcertoDoPlano({ p, rolls, partners, porTipo }) {
+const rolas = (n) => (n === 1 ? 'rola' : 'rolas');
+const deX = (x, y) => `${x} de ${y}${y >= POUCO_ROLA ? ` (${Math.round((x / y) * 100)}%)` : ''}`;
+const POUCO = 'Ainda é pouco rola pra tirar conclusão.';
+function AcertoDoPlano({ p, rolls, partners, porTipo, destinoDe }) {
+  const e = taxaPorEtapa(p, rolls, destinoDe);
+  if (!e.usos) return <p className="micro muted" style={{ marginTop: 8 }}>Ainda sem rola com ele. Marque no registro do rola quando usar.</p>;
   const t = taxaDoPlano(p, rolls);
-  if (!t.usos) return <p className="micro muted" style={{ marginTop: 8 }}>Ainda sem rola com ele. Marque no registro do rola quando usar.</p>;
   const c = correnteDoPlano(p);
-  const tipos = porTipo ? Object.entries(taxaPorTipo(p, rolls, partners)) : [];
+  const tipos = porTipo ? Object.entries(taxaPorTipo(p, rolls, partners, destinoDe)) : [];
   return (
     <div className="micro muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
-      Encaixou em <b style={{ color: 'var(--chalk)' }}>{t.encaixes} de {t.usos}</b> {t.usos === 1 ? 'rola' : 'rolas'} ({t.taxa}%)
+      {c.objetivo
+        ? <>Objetivo alcançado em <b style={{ color: 'var(--chalk)' }}>{deX(e.objetivo, e.usos)}</b> {rolas(e.usos)}</>
+        : <>Usado em <b style={{ color: 'var(--chalk)' }}>{e.usos}</b> {rolas(e.usos)}</>}
       {t.morreNo ? ` · para mais no ${t.morreNo.golpe}${t.morreNo.saiu ? ' (já saiu do plano)' : ''}` : ''}
-      {tipos.length > 0 && <div>{tipos.map(([k, v]) => `${NOME_TIPO[k] || k}: ${v.encaixes} de ${v.usos}`).join(' · ')}</div>}
+      {e.improviso ? ` · fez outra coisa em ${e.improviso} ${rolas(e.improviso)}` : ''}
+      {e.usos < POUCO_ROLA && <div>{POUCO}</div>}
+      {c.objetivo && tipos.length > 0 && <div>{tipos.map(([k, v]) => `${NOME_TIPO[k] || k}: ${v.objetivo} de ${v.usos}`).join(' · ')}</div>}
+    </div>
+  );
+}
+
+/* R7.3: o que aconteceu em cada peça, pelos rolas. Só lê. */
+const PRINCIPAL = { golpe: ['encaixou', 'encaixou'], finta: ['reagiu', 'reagiu'], preparacao: ['feita', 'montou'], situacao: ['retoma', 'voltou a atacar'] };
+const taxaCurta = (e) => `${PRINCIPAL[e.tipo][1]} ${e.vias[PRINCIPAL[e.tipo][0]] || 0} de ${e.tentativas}`;
+const RESULTADOS = {
+  golpe: [['encaixou', 'Encaixou'], ['defendeu', 'Ele defendeu'], ['escapou', 'Ele escapou']],
+  finta: [['reagiu', 'Ele reagiu'], ['naoReagiu', 'Ele não reagiu']],
+  preparacao: [['feita', 'Montou'], ['impediu', 'Ele não deixou']],
+  situacao: [['retoma', 'Voltou a atacar']],
+};
+/* de que jeito ele defendeu (ou pra onde escapou): a ligação que a luta tomou */
+function jeitosDa(plano, e, via) {
+  const c = correnteDoPlano(plano);
+  const todas = [...ligacoesDo(c.passos, c.ligacoes), ...(plano.removidos?.ligacoes || []).map((l) => ({ ...l, saiu: true }))];
+  const nome = (id) => (id === null || id === undefined ? `voltou pra ${c.posicao || 'posição do começo'}`
+    : c.passos.find((x) => x.id === id)?.golpe || (plano.removidos?.pecas || []).find((x) => x.id === id)?.golpe || '');
+  return Object.entries(e.ligacoes).map(([id, n]) => ({ l: todas.find((x) => x.id === id), n }))
+    .filter((x) => x.l?.via === via)
+    .map(({ l, n }) => ({ n, texto: `${l.gatilho ? `${l.gatilho} → ` : ''}${nome(l.para)}${l.saiu ? ' (já saiu do plano)' : ''}` }));
+}
+function TaxaDaPeca({ plano, e }) {
+  if (!e) return <p className="micro muted" style={{ marginTop: 8 }}>Nos seus rolas: ainda sem rola por aqui.</p>;
+  const jeitos = (via, titulo) => {
+    const lista = jeitosDa(plano, e, via);
+    const sem = (e.vias[via] || 0) - lista.reduce((s, x) => s + x.n, 0);
+    if (!e.vias[via]) return null;
+    return (
+      <div style={{ marginTop: 4 }}>
+        <b>{titulo}</b>
+        {lista.map((x) => <div key={x.texto}>{x.texto}: {x.n}</div>)}
+        {sem > 0 && <div>Sem dizer o jeito: {sem}</div>}
+      </div>
+    );
+  };
+  return (
+    <div className="micro muted mente-taxa-detalhe">
+      <div>Nos seus rolas, passou por aqui em <b style={{ color: 'var(--chalk)' }}>{e.tentativas} {rolas(e.tentativas)}</b>{e.saiu ? ' (já saiu do plano)' : ''}:</div>
+      {RESULTADOS[e.tipo].map(([via, nome]) => <div key={via}>{nome}: {deX(e.vias[via] || 0, e.tentativas)}</div>)}
+      {e.semResultado > 0 && <div>{e.tipo === 'situacao' ? 'O rola acabou aqui' : 'Sem marcar o que aconteceu'}: {deX(e.semResultado, e.tentativas)}</div>}
+      {e.tipo === 'golpe' && jeitos('defendeu', 'Como ele defendeu')}
+      {e.tipo === 'golpe' && jeitos('escapou', 'Pra onde ele escapou')}
+      {e.tentativas < POUCO_ROLA && <div style={{ marginTop: 4 }}>{POUCO}</div>}
     </div>
   );
 }
@@ -942,7 +997,7 @@ const TEXTO_DE_MAIS = { raiz: 'Outra entrada', encaixou: 'Outra opção daqui', 
 /* a saída que pede o que ele fez: sem texto, o mapa diz que falta, sem inventar */
 const VIA_COM_REACAO = new Set(['reagiu', 'naoReagiu', 'defendeu', 'escapou', 'impediu']);
 
-function NoDoMapa({ l, guardar, aberto, onTocar, pega, editar = false, vaga = '' }) {
+function NoDoMapa({ l, guardar, aberto, onTocar, pega, editar = false, vaga = '', etapa = null }) {
   if (l.tipo === 'vaga') {
     return (
       <button type="button" ref={guardar(l.n)} data-vaga={l.n} className={`mente-vaga ${l.via}${l.mais ? ' mais' : ''}${vaga}`} onClick={onTocar}>
@@ -981,13 +1036,14 @@ function NoDoMapa({ l, guardar, aberto, onTocar, pega, editar = false, vaga = ''
       {l.busca?.length > 0 && <span className="mente-deixa">A reação que você busca: {l.busca.join(' ou ')}</span>}
       {l.deixa ? <span className="mente-deixa">{l.deixa}</span>
         : editar && VIA_COM_REACAO.has(l.via) && <span className="mente-deixa mente-sem-reacao">reação não descrita</span>}
+      {etapa && <span className={`mente-taxa${etapa.tentativas < POUCO_ROLA ? ' pouco' : ''}`}>{taxaCurta(etapa)}</span>}
       {pega && <span className="mente-pega" aria-label="Arrastar pra outro galho" {...pega}><GripVertical size={14} /></span>}
     </button>
   );
 }
 
 /* o que abre embaixo do mapa quando toca num golpe */
-function DetalheDoNo({ l, objetivo, onIr }) {
+function DetalheDoNo({ l, objetivo, onIr, plano = null, taxa = null, etapa = null }) {
   if (l.tipo === 'atalho') {
     return (
       <div className={`mente-detalhe ${corDoAlvo(l)}`}>
@@ -1033,11 +1089,12 @@ function DetalheDoNo({ l, objetivo, onIr }) {
           <GitMerge size={11} /> Também chega aqui por outro caminho: depois de {juntar(l.chegam)}.
         </p>
       )}
+      {taxa?.usos > 0 && l.tipo !== 'posicao' && <TaxaDaPeca plano={plano} e={etapa} />}
     </div>
   );
 }
 
-function MapaDoPlano({ plano, ate = Infinity, destinoDe, editar = null }) {
+function MapaDoPlano({ plano, ate = Infinity, destinoDe, editar = null, taxa = null }) {
   const editando = !!editar;
   const { objetivo, passos, linhas } = useMemo(() => linhasDoMapa(plano, destinoDe, editando), [plano, destinoDe, editando]);
   const filhos = useMemo(() => {
@@ -1255,6 +1312,7 @@ function MapaDoPlano({ plano, ate = Infinity, destinoDe, editar = null }) {
                       l={l} guardar={guardar} aberto={!editar && aberto === l.n} vaga={solta} editar={!!editar}
                       onTocar={l.tipo === 'folha' || (editar && l.tipo === 'posicao') ? undefined : tocar(l)}
                       pega={editar && (l.tipo === 'golpe' || l.tipo === 'finta' || l.tipo === 'preparacao' || l.tipo === 'situacao') && l.via !== 'raiz' ? pega(l) : null}
+                      etapa={!editar && taxa && l.i !== undefined ? taxa.pecas[passos[l.i]?.id] || null : null}
                     />
                   </div>
                 );
@@ -1281,7 +1339,8 @@ function MapaDoPlano({ plano, ate = Infinity, destinoDe, editar = null }) {
           : 'Arraste pra andar pelo mapa e toque num golpe pra ler tudo dele.'}
       </p>
       {levando && createPortal(<div className="mente-fantasma" style={{ left: levando.x, top: levando.y }}>{levando.titulo}</div>, document.body)}
-      {!editar && aberto !== null && linhas[aberto] && <DetalheDoNo l={linhas[aberto]} objetivo={objetivo} onIr={() => irPara(linhas[aberto].alvo)} />}
+      {!editar && aberto !== null && linhas[aberto] && <DetalheDoNo l={linhas[aberto]} objetivo={objetivo} onIr={() => irPara(linhas[aberto].alvo)}
+        plano={plano} taxa={taxa} etapa={taxa && linhas[aberto].i !== undefined ? taxa.pecas[passos[linhas[aberto].i]?.id] || null : null} />}
     </>
   );
 }
@@ -1328,7 +1387,10 @@ function AssistirPlano({ plano, destinoDe, onClose, onRegistrar = null, sessions
      revela uma peça por toque, pra ensaiar de cabeça */
   const [ate, setAte] = useState(Infinity);
   const [escolhendo, setEscolhendo] = useState(false);
+  /* R7.3: a taxa por etapa, calculada na hora; nada é gravado */
+  const taxa = useMemo(() => (plano ? taxaPorEtapa(plano, rolls, destinoDe) : null), [plano, rolls, destinoDe]);
   if (!plano) return null;
+  const sairam = taxa ? Object.values(taxa.pecas).filter((e) => e.saiu) : [];
   const { linhas, temFinta, temPreparacao } = linhasDoMapa(plano, destinoDe);
   const total = linhas.length;
   const trilhos = Math.max(0, ...linhas.filter((l) => l.tipo === 'golpe' || l.tipo === 'finta' || l.tipo === 'preparacao').map((l) => l.trilho)) + 1;
@@ -1342,7 +1404,13 @@ function AssistirPlano({ plano, destinoDe, onClose, onRegistrar = null, sessions
   return (
     <Sheet aberto onClose={fechar} titulo={plano.nome} subtitulo="o mapa do plano" wide>
       <LegendaDoMapa trilhos={trilhos} finta={temFinta} preparacao={temPreparacao} />
-      <MapaDoPlano key={passoAPasso ? 'passo' : 'tudo'} plano={plano} ate={ate} destinoDe={destinoDe} />
+      <MapaDoPlano key={passoAPasso ? 'passo' : 'tudo'} plano={plano} ate={ate} destinoDe={destinoDe} taxa={taxa} />
+      {taxa?.usos > 0 && (
+        <p className="micro muted" style={{ marginTop: 6, lineHeight: 1.5 }}>
+          O número na peça é o que aconteceu nela nos seus rolas de luta (drill não conta). Toque na peça pra ver tudo.
+          {sairam.length > 0 && ` Peças que já saíram do plano: ${sairam.map((e) => `${e.golpe} (${taxaCurta(e)})`).join(', ')}.`}
+        </p>
+      )}
       <div className="row" style={{ gap: 8, marginTop: 14 }}>
         {acabou ? (
           <Btn variant="contorno" icon={RotateCcw} style={{ flex: 1 }} onClick={() => setAte(0)}>Ver passo a passo</Btn>
