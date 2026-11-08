@@ -770,6 +770,53 @@ ok('salvar duas vezes não muda a finta',
   (() => { const k = correnteDoPlano(fintaTexto); return JSON.stringify(planoNovo({ ...fintaTexto, passos: k.passos }).passos) === JSON.stringify(fintaTexto.passos); })(), true);
 ok('finta com nome de finalização não chega no objetivo', chegaNoObjetivo(correnteDoPlano({ passos: [{ tipo: 'finta', descricao: 'Armlock', pai: null }] }).passos[0], { objetivo: 'Armlock', objetivoTipo: 'tecnica' }, destinoDe), false);
 
+/* ---------- R5: a preparação é peça própria, separada da finta ---------- */
+{
+  const { PREPARACOES, convergenciasValidas, caminhoAte } = await import('../src/lib/planos.js');
+  const { uidDoGolpe } = await import('../src/lib/identidade.js');
+  ok('os três jeitos de preparação', PREPARACOES.map((p) => p.id), ['pegada', 'desequilibrio', 'pressao']);
+  ok('a preparação abre "montei" e "não deixou"', viasDa({ tipo: 'preparacao' }), ['feita', 'impediu']);
+  /* pegada → raspagem; ele quebrou a pegada → outra pegada → raspagem */
+  const passosP = [
+    { id: 'p1', lig: 'l1', tipo: 'preparacao', prep: 'pegada', golpe: 'gola e manga do mesmo lado', reacao: '', pai: null, via: null },
+    { id: 'g1', lig: 'l2', golpe: 'Raspagem de tesoura', reacao: 'pesou pra frente', pai: 0, via: 'feita' },
+    { id: 'p2', lig: 'l3', tipo: 'preparacao', prep: 'desequilibrio', golpe: 'puxo a manga e empurro o joelho', reacao: 'quebrou a pegada da gola', pai: 0, via: 'impediu' },
+    { id: 'g2', lig: 'l4', golpe: 'Raspagem de gancho', reacao: '', pai: 2, via: 'feita' },
+  ];
+  const salvoP = planoNovo({ nome: 'Preparação', objetivo: 'Montada', objetivoTipo: 'posicao', passos: passosP, tecnicas: [] });
+  ok('salva a preparação com texto, jeito e sem acao', salvoP.passos.map((x) => [x.tipo || 'golpe', x.descricao || x.acao, x.prep || '', x.via]),
+    [['preparacao', 'gola e manga do mesmo lado', 'pegada', null], ['golpe', 'Raspagem de tesoura', '', 'feita'],
+      ['preparacao', 'puxo a manga e empurro o joelho', 'desequilibrio', 'impediu'], ['golpe', 'Raspagem de gancho', '', 'feita']]);
+  ok('preparação nunca ganha uid de técnica', salvoP.passos.filter((x) => x.tipo === 'preparacao').every((x) => !x.golpeUid), true);
+  ok('uidDoGolpe da preparação é nulo, mesmo com nome de técnica', uidDoGolpe({ tipo: 'preparacao', golpe: 'Raspagem de tesoura' }, []), null);
+  const cp = correnteDoPlano(salvoP);
+  ok('recarregar: tipo, jeito, ids e vias iguais', cp.passos.map((x) => [x.id, x.tipo, x.prep ?? null, x.via]),
+    [['p1', 'preparacao', 'pegada', null], ['g1', 'golpe', null, 'feita'], ['p2', 'preparacao', 'desequilibrio', 'impediu'], ['g2', 'golpe', null, 'feita']]);
+  ok('salvar de novo não muda nada', JSON.stringify(planoNovo({ ...salvoP, passos: cp.passos, tecnicas: [] }).passos), JSON.stringify(salvoP.passos));
+  ok('jeito inválido não é guardado', planoNovo({ passos: [{ tipo: 'preparacao', golpe: 'x', prep: 'chute', pai: null }] }).passos[0].prep, undefined);
+  const ap = arvoreDoPlano(cp.passos);
+  ok('"montei" segue no mesmo plano, "não deixou" abre o B', [ap.trilho[1], ap.trilho[2], ap.trilho[3]], [0, 1, 1]);
+  ok('a reação do "não deixou" fica guardada', cp.passos[2].reacao, 'quebrou a pegada da gola');
+  ok('preparação sem golpe depois é ponta solta', pontasSoltas({ objetivo: 'Montada', objetivoTipo: 'posicao', passos: [{ tipo: 'preparacao', descricao: 'pegada', pai: null }] }, destinoDe).length, 1);
+  ok('preparação com nome de técnica não chega no objetivo', chegaNoObjetivo({ tipo: 'preparacao', golpe: 'Montada' }, { objetivo: 'Montada', objetivoTipo: 'tecnica' }, destinoDe), false);
+  /* pôr a preparação antes de um golpe: ele passa a nascer do "montei" */
+  const antesP = fintaAntes(cp.passos, 1, 'pé no quadril', { tipo: 'preparacao', prep: 'pressao' });
+  ok('preparação antes do golpe entra no lugar dele', antesP.slice(-1).map((x) => [x.tipo, x.prep, x.pai, x.via]), [['preparacao', 'pressao', 0, 'feita']]);
+  ok('e o golpe passa a vir do "montei", com ligação nova', [antesP[1].pai, antesP[1].via, antesP[1].lig !== 'l2'], [4, 'feita', true]);
+  ok('finta antes continua igual', fintaAntes(cp.passos, 1, 'ameaço o armlock').slice(-1).map((x) => [x.tipo, x.via, 'prep' in x]), [['finta', 'feita', false]]);
+  /* tirar a preparação devolve o golpe pro lugar dela e leva o "não deixou" junto */
+  const semP = semAFinta(cp.passos, 0);
+  ok('tirar a preparação: o golpe volta pro lugar dela, o "não deixou" sai', semP.map((x) => [x.golpe, x.pai, x.via]), [['Raspagem de tesoura', null, null]]);
+  ok('arrastar pra "não deixou" vale; pra "defendeu" de preparação não', [!!moverPasso(cp.passos, 3, 0, 'impediu'), moverPasso(cp.passos, 3, 0, 'defendeu')], [true, null]);
+  ok('situação não entra no "não deixou"', vagaLivre(cp.passos, 0, 'impediu', 'situacao'), false);
+  ok('dois "não deixou" sem dizer o que ele fez: avisa', semGatilho([...cp.passos, { tipo: 'golpe', golpe: 'Omoplata', reacao: '', pai: 0, via: 'impediu' }, { tipo: 'golpe', golpe: 'Triângulo', reacao: '', pai: 0, via: 'impediu' }]).map((x) => x.golpe), ['Omoplata', 'Triângulo']);
+  /* convergência: o "não deixou" liga na raspagem que já está no mapa; a raspagem liga na preparação */
+  const ligs = convergenciasValidas(cp.passos, [{ id: 'x1', de: 'p2', via: 'impediu', para: 'g1' }, { id: 'x2', de: 'g2', via: 'defendeu', para: 'p1' }, { id: 'x3', de: 'p1', via: 'escapou', para: null }]);
+  ok('convergência: preparação liga e recebe ligação; escapou não é dela', ligs.map((l) => l.id), ['x1', 'x2']);
+  ok('o caminho do rola passa pela preparação', caminhoAte(cp.passos, 3), ['l1', 'l3', 'l4']);
+  ok('plano antigo sem preparação abre igual', JSON.stringify(correnteDoPlano(fintaTexto).passos.map((x) => x.tipo)), JSON.stringify(correnteDoPlano(fintaTexto).passos.map((x) => (x.tipo === 'preparacao' ? 'x' : x.tipo))));
+}
+
 
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

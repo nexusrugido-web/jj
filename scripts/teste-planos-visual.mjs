@@ -107,6 +107,17 @@ const FAMP = {
 };
 const FAMF = { ...FAMP, nome: 'Finalizar com família', objetivo: 'Finalizar', objetivoTipo: 'finalizar', finalizacaoPreferida: '', finalizacoesAceitas: [] };
 
+/* R5: a pegada abre a raspagem; ele quebrou a pegada, e o desequilíbrio abre a outra */
+const PREP = {
+  ...PLANO, nome: 'Pegada antes da raspagem', ligacoes: [], passos: [
+    { id: 'p0', lig: 'q0', tipo: 'preparacao', prep: 'pegada', descricao: 'gola e manga do mesmo lado', gatilho: '', pai: null, via: null },
+    { id: 'p1', lig: 'q1', acao: 'Raspagem de tesoura', gatilho: 'pesou pra frente', pai: 0, via: 'feita' },
+    { id: 'p2', lig: 'q2', tipo: 'preparacao', prep: 'desequilibrio', descricao: 'puxo a manga e empurro o joelho', gatilho: 'quebrou a pegada da gola', pai: 0, via: 'impediu' },
+    { id: 'p3', lig: 'q3', acao: 'Raspagem de quadril (hip bump)', gatilho: '', pai: 2, via: 'feita' },
+    { id: 'p4', lig: 'q4', acao: 'Kimura', gatilho: 'apoiou a mão', pai: 1, via: 'encaixou' },
+  ].map((x) => ({ seFalhar: '', proxima: '', detalhe: '', ...x })),
+};
+
 /* cada cartão do mapa com tamanho, e quantos estão dentro do quadro */
 const medirMapa = (s) => {
   const quadro = document.querySelector(s).getBoundingClientRect();
@@ -143,7 +154,7 @@ try {
       const { VERSAO_DOCS } = await import('/src/components/Aceite.jsx');
       await setMeta('settings', { ...(await getMeta('settings', {})), nome: 'Praticante de teste', anoNascimento: 1995, faixa: 'branca', onboardingFeito: 1, tourVisto: 1, celebrar: false, aceite: { versao: VERSAO_DOCS, em: new Date().toISOString() } });
       for (const p of plano) await db.attackPlans.add({ ...p, criadoEm: Date.now() });
-    }, [PLANO, GRANDE, FUGA, CONV, PREF, FAMP, FAMF]);
+    }, [PLANO, GRANDE, FUGA, CONV, PREF, FAMP, FAMF, PREP]);
     await page.goto(`${url}/?go=planos`, { waitUntil: 'networkidle' });
     await page.getByText(PLANO.nome).first().waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `lista de planos vaza em ${nome}`);
@@ -487,6 +498,57 @@ try {
     console.log(`${nome} família salva:`, JSON.stringify(fx));
     assert.deepEqual(fx, { preferida: 'Armlock da guarda fechada', aceitas: ['fam:kimura', 'fam:armlock'], ids: ['a0', 'a1', 'a2', 'a3'] }, 'prefiro uma técnica, aceito a família dela');
     assert.equal(erros.length, 0, `erros na página: ${erros.join(' | ')}`);
+
+    /* R5: a preparação no mapa e no editor */
+    await page.goto(`${url}/?go=planos`, { waitUntil: 'networkidle' });
+    await page.getByText(PREP.nome).first().waitFor();
+    await page.locator('.plano-cartao', { hasText: PREP.nome }).first().getByRole('button', { name: 'Ver o mapa' }).first().click();
+    await page.locator('.mente-tela .mente-no').first().waitFor();
+    await page.waitForTimeout(400);
+    const mp = await page.evaluate(medirMapa, '.mente-tela');
+    console.log(`${nome} preparação, ver:`, JSON.stringify(mp));
+    await page.screenshot({ path: `${pasta}/${nome}-preparacao-ver.png` });
+    assert.equal(mp.nos, 6, 'preparação: posição + 5 peças');
+    assert.equal(mp.sobrepostos, 0, 'preparação: cartões sobrepostos');
+    assert.equal(mp.vaza, false, 'preparação: vaza a página');
+    assert.equal(await page.locator('.mente-tela .mente-no.preparacao .mente-titulo', { hasText: 'Pegada: gola e manga do mesmo lado' }).count(), 1, 'a preparação diz o jeito e o que monta');
+    assert.equal(await page.locator('.mente-tela .mente-no.preparacao .mente-titulo', { hasText: 'Desequilíbrio: puxo a manga' }).count(), 1, 'o desequilíbrio também');
+    assert.ok(await page.locator('.mente-tela .mapa-rotulo.impediu', { hasText: 'Não deixou' }).count() >= 1, 'o "não deixou" tem rótulo');
+    assert.ok(await page.locator('.mente-tela .mapa-rotulo.feita', { hasText: 'Montou' }).count() >= 1, 'o "montou" tem rótulo');
+    assert.equal(await page.locator('.mapa-legenda .t-preparacao').count(), 1, 'a legenda mostra a preparação');
+    await page.keyboard.press('Escape');
+    await page.goto(`${url}/?go=planos`, { waitUntil: 'networkidle' });
+    await page.getByText(PREP.nome).first().waitFor();
+    await page.locator('.plano-cartao', { hasText: PREP.nome }).first().getByRole('button', { name: 'Editar' }).first().click();
+    await page.getByRole('button', { name: 'Montar o caminho' }).click();
+    await page.locator('.mente-tela .mente-vaga').first().waitFor();
+    assert.ok(await page.getByText('Não deixou de outro jeito').count() >= 1, 'o "não deixou" aceita outro caminho');
+    await page.locator('.mente-tela .mente-no', { hasText: 'Kimura' }).first().click();
+    await page.getByRole('button', { name: 'Pôr uma preparação antes', exact: true }).click();
+    await page.locator('.chip', { hasText: 'Ajuste de pressão' }).last().click();
+    await page.getByPlaceholder('Ex.: pegada na gola e na manga do mesmo lado').last().fill('peso no quadril dele');
+    await page.screenshot({ path: `${pasta}/${nome}-preparacao-antes.png` });
+    await page.getByRole('button', { name: 'Pôr a preparação', exact: true }).click();
+    await page.waitForTimeout(400);
+    const me = await page.evaluate(medirMapa, '.mente-tela');
+    console.log(`${nome} preparação, editor:`, JSON.stringify(me));
+    await page.screenshot({ path: `${pasta}/${nome}-preparacao-editor.png` });
+    assert.equal(me.sobrepostos, 0, 'preparação: sobrepostos no editor');
+    await page.getByRole('button', { name: 'Voltar às respostas' }).click();
+    await page.locator('.sheet.cheia').waitFor({ state: 'detached' });
+    await page.getByRole('button', { name: 'Salvar plano' }).click();
+    await page.getByText('Plano salvo').first().waitFor();
+    const ps = await page.evaluate(async (n) => {
+      const { db } = await import('/src/db/db.js');
+      const p = (await db.attackPlans.toArray()).find((x) => x.nome === n);
+      const nova = p.passos.find((x) => x.descricao === 'peso no quadril dele');
+      const kim = p.passos.find((x) => x.acao === 'Kimura');
+      return { nova: nova && [nova.tipo, nova.prep, nova.via, !!nova.golpeUid], kim: [p.passos[kim.pai]?.descricao, kim.via, kim.id], ids: p.passos.map((x) => x.id).slice(0, 5) };
+    }, PREP.nome);
+    console.log(`${nome} preparação salva:`, JSON.stringify(ps));
+    assert.deepEqual(ps.nova, ['preparacao', 'pressao', 'encaixou', false], 'a preparação nova entra no lugar da Kimura');
+    assert.deepEqual(ps.kim, ['peso no quadril dele', 'feita', 'p4'], 'a Kimura passa a vir do "montou", com o mesmo id');
+    assert.deepEqual(ps.ids, ['p0', 'p1', 'p2', 'p3', 'p4'], 'as peças de antes mantêm o id');
 
     /* o plano grande: mais de 16 peças, vendo e editando */
     for (const modo of ['Ver o mapa', 'Editar']) {

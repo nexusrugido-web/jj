@@ -147,10 +147,10 @@ export function uidNoRegistro(registro, nome, tecnicas = []) {
 }
 
 /* o uid da peça do plano: o que ela já tinha, se o golpe ainda é dele;
-   senão, o que o nome resolve. Finta é texto do atleta: nunca tem uid */
+   senão, o que o nome resolve. Finta e preparação são texto do atleta: nunca têm uid */
 export function uidDoGolpe(peca, tecnicas = []) {
   /* finta é texto e situação é posição (Montada é as duas coisas): só o golpe é técnica */
-  if (peca?.tipo === 'finta' || peca?.tipo === 'situacao') return null;
+  if (peca?.tipo === 'finta' || peca?.tipo === 'situacao' || peca?.tipo === 'preparacao') return null;
   const nome = peca?.golpe ?? peca?.acao;
   if (peca?.golpeUid && aindaE(peca.golpeUid, nome, tecnicas)) return uidOficial(peca.golpeUid, tecnicas);
   return uidDaTecnica(nome, tecnicas);

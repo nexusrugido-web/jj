@@ -39,7 +39,15 @@ import { comTecUid, uidDoGolpe, nomesDoPlano } from './identidade';
    fio tracejado até a peça. Por isso voltar pra trás (ciclo) não trava
    nada: quem anda pela árvore nunca segue ligação extra. Ligação que
    perdeu uma ponta (a peça saiu) cai na leitura e vai pra "removidos"
-   ao salvar. Pra frente: a preparação é mais um tipo de peça.
+   ao salvar.
+   PREPARAÇÃO (R5): o que você monta antes do golpe (pegada,
+   desequilíbrio, ajuste de pressão). Não é finta: ninguém é enganado,
+   ela não busca reação, ela deixa o golpe possível. É peça própria
+   (tipo 'preparacao'), texto do atleta como a finta (descricao), com o
+   jeito dela em "prep" (PREPARACOES). Abre "montei" (via 'feita', segue
+   no mesmo plano) e "ele não deixou" (via 'impediu': quebrou a pegada,
+   afastou o quadril), que aceita vários caminhos, cada um com o que ele
+   fez. Nunca tem uid de técnica nem entra no registro do rola.
    O objetivo (finalizar, uma posição ou um golpe) é obrigatório: o
    golpe que chega nele fecha o caminho com a bandeira.
 
@@ -71,14 +79,24 @@ export function letraDo(t) {
 }
 export const novoId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 10);
 /* as saídas, na ordem do mapa (de cima pra baixo) */
-export const VIAS = ['encaixou', 'reagiu', 'retoma', 'naoReagiu', 'defendeu', 'escapou'];
-export const continua = (via) => via === 'encaixou' || via === 'reagiu' || via === 'retoma';
-const tipoDe = (x) => (x?.tipo === 'finta' || x?.tipo === 'situacao' ? x.tipo : 'golpe');
+export const VIAS = ['encaixou', 'reagiu', 'feita', 'retoma', 'naoReagiu', 'impediu', 'defendeu', 'escapou'];
+export const continua = (via) => via === 'encaixou' || via === 'reagiu' || via === 'feita' || via === 'retoma';
+const tipoDe = (x) => (x?.tipo === 'finta' || x?.tipo === 'situacao' || x?.tipo === 'preparacao' ? x.tipo : 'golpe');
+/* peça que é texto do atleta (nunca técnica): finta e preparação */
+export const ehTexto = (x) => tipoDe(x) === 'finta' || tipoDe(x) === 'preparacao';
+/* R5: o jeito da preparação */
+export const PREPARACOES = [
+  { id: 'pegada', nome: 'Pegada' },
+  { id: 'desequilibrio', nome: 'Desequilíbrio' },
+  { id: 'pressao', nome: 'Ajuste de pressão' },
+];
+const prepValida = (id) => (PREPARACOES.some((p) => p.id === id) ? id : '');
 /* por onde o passo nasce, pelo tipo do pai: da finta, "reagiu" ou "não
    reagiu"; do golpe, "encaixou", "defendeu" ou "escapou" (só a
    situação nasce do escapou); da situação, "volto a atacar" */
 function viaPeloPai(pai, x) {
   if (tipoDe(pai) === 'finta') return x.via === 'naoReagiu' ? 'naoReagiu' : 'reagiu';
+  if (tipoDe(pai) === 'preparacao') return x.via === 'impediu' ? 'impediu' : 'feita';
   if (tipoDe(pai) === 'situacao') return 'retoma';
   if (tipoDe(x) === 'situacao') return 'escapou';
   return x.via === 'encaixou' ? 'encaixou' : 'defendeu';
@@ -167,7 +185,7 @@ function viaDe(brutos, i, pai) {
    sem acao. A finta de antes (acao com nome de técnica) vira o texto.
    Na tela, golpe é o texto da peça, como o nome da posição na situação. */
 export const FINTA_MAX = 120;
-const textoGuardado = (x) => (tipoDe(x) === 'finta' ? x.descricao || x.acao || '' : x.acao);
+const textoGuardado = (x) => (ehTexto(x) ? x.descricao || x.acao || '' : x.acao);
 
 /* o que a tela desenha, venha do pronto ou do aluno */
 export function correnteDoPlano(p) {
@@ -177,6 +195,7 @@ export function correnteDoPlano(p) {
     id: brutos[i].id || `p${i}`, lig: brutos[i].lig || `l${i}`,
     tipo: tipoDe(brutos[i]),
     reacao: brutos[i].gatilho || '', golpe: textoGuardado(brutos[i]), detalhe: brutos[i].detalhe || '', defesa: brutos[i].seFalhar || '',
+    ...(tipoDe(brutos[i]) === 'preparacao' ? { prep: prepValida(brutos[i].prep) } : {}),
     pai: pai[i] === null ? null : novo.get(pai[i]),
     via: viaDe(brutos, i, pai[i]),
     /* a identidade da técnica da peça anda junto pro editor e volta no salvar */
@@ -261,28 +280,30 @@ function semOs(passos, fora) {
 export const semOGolpe = (passos, i) => semOs(passos, galhoDe(passos, i));
 
 /* tirar a finta não leva o golpe: ele volta pro lugar dela. O que
-   nascia do "não reagiu" sai junto: sem finta, não tem do que reagir. */
+   nascia do "não reagiu" sai junto: sem finta, não tem do que reagir.
+   A preparação é igual: o que nascia do "não deixou" sai junto. */
 export function semAFinta(passos, i) {
   const f = passos[i];
   const fora = new Set([i]);
-  passos.forEach((x, k) => { if (x.pai === i && x.via === 'naoReagiu') galhoDe(passos, k).forEach((g) => fora.add(g)); });
+  passos.forEach((x, k) => { if (x.pai === i && (x.via === 'naoReagiu' || x.via === 'impediu')) galhoDe(passos, k).forEach((g) => fora.add(g)); });
   const religado = passos.map((x) => (x.pai === i ? { ...x, pai: f.pai, via: f.via, lig: novoId() } : x));
   return semOs(religado, fora);
 }
 
 /* finta antes do passo i: entra no fim da lista, no lugar dele, e
-   ele passa a nascer da reação à finta */
-export function fintaAntes(passos, i, nome) {
+   ele passa a nascer da reação à finta. Com tipo 'preparacao', é a
+   preparação que entra, e ele passa a nascer do "montei" */
+export function fintaAntes(passos, i, nome, { tipo = 'finta', prep = '' } = {}) {
   const x = passos[i];
-  const nova = { id: novoId(), lig: novoId(), tipo: 'finta', reacao: '', golpe: nome, pai: x.pai, via: x.via };
-  return [...passos.map((y, k) => (k === i ? { ...y, pai: passos.length, via: 'reagiu', lig: novoId() } : y)), nova];
+  const nova = { id: novoId(), lig: novoId(), tipo, reacao: '', golpe: nome, pai: x.pai, via: x.via, ...(tipo === 'preparacao' ? { prep: prepValida(prep) } : {}) };
+  return [...passos.map((y, k) => (k === i ? { ...y, pai: passos.length, via: tipo === 'preparacao' ? 'feita' : 'reagiu', lig: novoId() } : y)), nova];
 }
 
 /* as saídas de cada peça: o golpe tem encaixou, defendeu e escapou; a
    finta, reagiu e não reagiu; a situação, volto a atacar. Todas aceitam
    mais de um caminho: no "não reagiu", cada um é outra ameaça pra
    trocar. No escapou só entra situação, e situação só entra no escapou. */
-const VIAS_DO_TIPO = { golpe: ['encaixou', 'defendeu', 'escapou'], finta: ['reagiu', 'naoReagiu'], situacao: ['retoma'] };
+const VIAS_DO_TIPO = { golpe: ['encaixou', 'defendeu', 'escapou'], finta: ['reagiu', 'naoReagiu'], preparacao: ['feita', 'impediu'], situacao: ['retoma'] };
 export const viasDa = (peca) => VIAS_DO_TIPO[tipoDe(peca)];
 export const vagaLivre = (passos, pai, via, tipo = 'golpe') => !!passos[pai] && viasDa(passos[pai]).includes(via)
   && (via === 'escapou') === (tipo === 'situacao');
@@ -433,7 +454,7 @@ export function pontasSoltas(plano, destinoDe = () => null) {
   const porLigacao = new Set(c.ligacoes.filter((l) => continua(l.via)).map((l) => l.de));
   return c.passos.map((x, i) => ({ ...x, i })).filter((x) => segue[x.i] === undefined && !porLigacao.has(x.id)
     && (x.tipo === 'situacao' ? situacaoNoObjetivo(x, c)
-      : x.tipo === 'finta' || (!chegaNoObjetivo(x, c, destinoDe) && !finaliza(x, destinoDe))));
+      : ehTexto(x) || (!chegaNoObjetivo(x, c, destinoDe) && !finaliza(x, destinoDe))));
 }
 
 /* caminho sem motivo: quando duas defesas (ou duas reações) saem da
@@ -444,7 +465,7 @@ export const semGatilho = (passos = []) => passos.map((x, i) => ({ ...x, i })).f
   if (String(x.reacao || '').trim()) return false;
   const irmaos = passos.filter((y) => y.pai === x.pai && y.via === x.via);
   if (x.via === 'escapou') return irmaos.filter((y) => y.golpe === x.golpe).length > 1;
-  return (x.via === 'defendeu' || x.via === 'reagiu') && irmaos.length > 1;
+  return (x.via === 'defendeu' || x.via === 'reagiu' || x.via === 'impediu') && irmaos.length > 1;
 });
 
 /* ---------- identidade e histórico ---------- */
@@ -561,7 +582,7 @@ export function planoNovo({ nome, posicao, posicaoId = null, finta = '', objetiv
   const aceitas = fin ? limparAceitas(preferida, (Array.isArray(finalizacoesAceitas) ? finalizacoesAceitas : [])
     .map((n) => String(n || '').trim()), tecnicas) : [];
   const fintaDe = (x) => String(x.golpe || '').trim().slice(0, FINTA_MAX);
-  const { lista, pai, novo } = podar(passos, (x) => (tipoDe(x) === 'finta' ? fintaDe(x) : x.golpe));
+  const { lista, pai, novo } = podar(passos, (x) => (ehTexto(x) ? fintaDe(x) : x.golpe));
   const guardados = lista.map((i) => {
     const x = passos[i];
     const p = pai[i] === null ? null : novo.get(pai[i]);
@@ -569,7 +590,8 @@ export function planoNovo({ nome, posicao, posicaoId = null, finta = '', objetiv
       id: x.id || novoId(), lig: x.lig || novoId(),
       ...(tipoDe(x) !== 'golpe' ? { tipo: x.tipo } : {}),
       gatilho: String(x.reacao || '').trim(),
-      ...(tipoDe(x) === 'finta' ? { descricao: fintaDe(x) } : { acao: x.golpe }),
+      ...(ehTexto(x) ? { descricao: fintaDe(x) } : { acao: x.golpe }),
+      ...(tipoDe(x) === 'preparacao' && prepValida(x.prep) ? { prep: x.prep } : {}),
       seFalhar: '', proxima: '', detalhe: x.detalhe || '',
       pai: p,
       via: p === null ? null : viaPeloPai(passos[pai[i]], x),
