@@ -55,9 +55,13 @@ try {
       await db.attackPlans.add({ ...plano, criadoEm: Date.now() });
     }, CONV);
 
-    const mapaRola = () => page.locator('.mapa-rola');
-    const pecaRola = (nome) => mapaRola().getByRole('button', { name: nome, exact: true });
-    const chip = (pergunta, nome) => page.getByText(pergunta).locator('xpath=..').getByRole('button', { name: nome, exact: true });
+    /* R7.5: o rola se conta na linha da luta */
+    const agora = () => page.locator('.fluxo-agora');
+    const opcao = async (nome) => {
+      await agora().locator('.fluxo-opcao', { has: page.locator('.fluxo-opcao-nome', { hasText: new RegExp(`^${nome}$`) }) }).first().click();
+      await page.waitForTimeout(250);
+    };
+    const voltar = async () => { await page.getByRole('button', { name: 'Voltar pro treino' }).click(); await page.waitForTimeout(300); };
     const vaza = () => page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
     /* o banco inteiro: todas as tabelas, linha por linha */
     const fotoDoBanco = () => page.evaluate(async () => {
@@ -97,15 +101,17 @@ try {
     await page.keyboard.press('Escape');
     await page.waitForTimeout(300);
 
-    /* 2a. R7.2: Registrar uso, sem treino hoje: armlock pela finta, encaixou */
+    /* 2a. R7.2: Registrar uso, sem treino hoje: abre a linha; a finta, reagiu, armlock, encaixou */
     await abrirMapa();
     await page.getByRole('button', { name: 'Registrar uso' }).click();
     await page.waitForTimeout(1200);
-    await pecaRola(ARM).click();
-    await page.waitForTimeout(250);
-    await chip('Por qual entrada você chegou?', 'Ameaço a guilhotina').click();
-    await page.getByRole('button', { name: 'Encaixou', exact: true }).first().click();
-    await page.waitForTimeout(250);
+    await opcao('Guarda fechada');
+    await opcao('Ameaço a guilhotina');
+    await opcao('Ele reagiu');
+    await opcao(ARM);
+    await opcao('Encaixou');
+    await opcao('Não, acabou aí');
+    await voltar();
     await salvar();
     /* 2b. R7.2 com treino hoje: rola novo, a preparação e ele não deixou */
     await irPraPlanos();
@@ -114,10 +120,10 @@ try {
     await page.waitForTimeout(500);
     await page.getByRole('button', { name: 'Rola novo neste treino' }).click();
     await page.waitForTimeout(1200);
-    await pecaRola('Preparação: Pegada na gola e na manga').click();
-    await page.waitForTimeout(250);
-    await page.getByRole('button', { name: 'Ele não deixou', exact: true }).click();
-    await page.waitForTimeout(250);
+    await opcao('Guarda fechada');
+    await opcao('Pegada na gola e na manga');
+    await opcao('Ele não deixou');
+    await voltar();
     await salvar();
   /* R7.4a: o plano se escolhe no chip do bloco "Plano de ataque" ou no "Outro plano…" */
   const escolherPlano = async (nome) => {
@@ -127,19 +133,20 @@ try {
     else { await bloco.getByRole('button', { name: 'Outro plano…', exact: true }).click(); await page.waitForTimeout(300); await page.getByRole('button', { name: nome, exact: true }).last().click(); }
     await page.waitForTimeout(250);
   };
-  const planoMarcado = async () => (await page.locator('.plano-rola').first().locator('.chip.on').allTextContents()).join('|');
-    /* 2c. R7.1: o registro do treino; armlock, "Não sei", ele escapou pra meia-guarda */
+    /* 2c. o registro do treino: armlock fora da ordem do plano (caminho não dito), ele escapou pra meia-guarda */
     await page.goto(`${url}/?go=treinos&novo=1`, { waitUntil: 'networkidle' });
     await page.getByRole('button', { name: /Adicionar rola/ }).first().click();
     await escolherPlano(CONV.nome);
+    await page.locator('.plano-rola').getByRole('button', { name: 'Contar a luta' }).click();
     await page.waitForTimeout(300);
-    await pecaRola(ARM).click();
+    await opcao('Guarda fechada');
+    await agora().getByRole('button', { name: 'Outra peça do plano' }).click();
+    await page.waitForTimeout(300);
+    await page.locator('.sheet').last().locator('.fluxo-opcao', { has: page.locator('.fluxo-opcao-nome', { hasText: new RegExp(`^${ARM}$`) }) }).click();
     await page.waitForTimeout(250);
-    await chip('Por qual entrada você chegou?', 'Não sei').click();
-    await page.getByRole('button', { name: 'Ele escapou', exact: true }).click();
-    await page.waitForTimeout(250);
-    await chip('Pra onde a luta foi?', 'Meia-guarda').click();
-    await page.waitForTimeout(250);
+    await opcao('Ele escapou');
+    await opcao('Meia-guarda');
+    await voltar();
     await salvar();
     const rs = await rolasDoBanco();
     ok('2 três rolas gravados com o plano', rs.map((r) => [r.plano?.peca, r.plano?.caminho, !!r.plano?.encaixou, r.plano?.parou || '', r.plano?.saida || '']),

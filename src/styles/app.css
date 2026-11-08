@@ -4194,43 +4194,9 @@ body::after {
   .sheet.cheia { height: 100dvh; border-radius: 0; }
 }
 
-/* ============================================================
-   MAPA DO ROLA (R7.2, 08/11/2026)
-   O mapa do plano em pé, dentro do registro do rola: cada plano
-   é uma trilha com um fio na esquerda; a peça é um botão do
-   tamanho do dedo, com a cor dela; a saída fica no fio, entre
-   uma peça e a próxima.
-   ============================================================ */
-.mapa-rola { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
-.mapa-rola-trilha { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding-left: 12px; border-left: 2px solid var(--seam); }
-.mapa-rola-de { font-size: 12px; color: var(--dim); line-height: 1.4; margin: 0 0 2px; }
-.mapa-rola-de b { color: var(--chalk); font-weight: 600; }
-.mapa-rola-via { font-size: 11px; color: var(--dim); padding-left: 14px; }
-.mapa-rola-via::before { content: '↓ '; }
-.mapa-rola-peca {
-  display: inline-flex; align-items: center; gap: 8px; max-width: 100%; min-height: 44px; padding: 8px 12px;
-  border-radius: 12px; border: 1px solid color-mix(in srgb, var(--c, var(--jade)) 45%, var(--seam));
-  background: color-mix(in srgb, var(--c, var(--jade)) 7%, transparent); color: var(--chalk);
-  font-size: var(--fs-sec, 14px); text-align: left; line-height: 1.35;
-}
-.mapa-rola-peca > i { flex: none; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--c, var(--jade)); color: #0b0b0b; }
-.mapa-rola-peca.on { border-color: var(--c, var(--jade)); background: color-mix(in srgb, var(--c, var(--jade)) 20%, transparent); font-weight: 600; }
-.mapa-rola-peca.on > i { background: var(--c, var(--jade)); }
-.mapa-rola-junta { flex: none; color: var(--dim); }
-.mapa-rola-lugar { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #e2a76f; padding: 4px 0; }
-@media (hover: hover) { .mapa-rola-peca:hover { border-color: var(--c, var(--jade)); } }
-.mapa-rola-peca.atalho { min-height: 40px; padding: 6px 12px; border-style: dashed; font-size: 13px; }
-.mapa-rola-peca.atalho.on { border-style: solid; }
 /* R7.3: o número da peça no "Ver o mapa" (o que aconteceu nela nos rolas) e o detalhe ao tocar */
 .mente-taxa { justify-self: start; font-size: 11px; font-weight: 700; line-height: 1.3; color: var(--c); font-variant-numeric: tabular-nums; }
 .mente-taxa.pouco { color: var(--dim); }
 .mente-taxa-detalhe { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--seam); line-height: 1.6; }
 /* R7.4a: o plano de ataque no cartão do rola, antes do placar */
 .bloco-cor.plano-rola { --cor: var(--ice); }
-.plano-rola-resumo {
-  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
-  padding: 10px 12px; border-radius: var(--r-sm); border: 1px solid var(--seam);
-  background: var(--void); color: var(--chalk); font-size: 13px; line-height: 1.5; cursor: pointer;
-}
-.plano-rola-resumo > .micro { display: inline-flex; align-items: center; gap: 3px; color: var(--cor); font-weight: 600; }
-.plano-rola-recolher { flex: none; background: none; border: 0; padding: 0; color: var(--cor); font-weight: 600; cursor: pointer; }

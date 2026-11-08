@@ -45,3 +45,117 @@
   border: 1px solid color-mix(in srgb, var(--roar) 60%, var(--seam)); border-radius: 11px;
   background: color-mix(in srgb, var(--roar) 7%, var(--void));
 }
+
+/* ---------- R7.5: linha da luta ----------
+   Fluxograma em pé: cada quadro tem a cor da natureza dele (objetivo
+   verde, posição ciano, finta roxa, técnica azul, ele vermelho); o
+   resultado vai na seta. Sugestão é quadro tracejado: só vira fato
+   com o toque. A pergunta da vez fica embaixo, perto do polegar. */
+.fluxo, .sheet {
+  --n-objetivo: #2ed3a0; --n-posicao: #4fd1d9; --n-finta: #a78bfa; --n-preparacao: #cbd5e1;
+  --n-tecnica: #60a5fa; --n-ele: #f07a6a; --n-fora: #c084fc; --n-neutro: var(--dim);
+}
+.fluxo {
+  list-style: none; margin: 0 auto; padding: 0 0 6px; max-width: 520px; width: 100%;
+  display: flex; flex-direction: column; align-items: stretch;
+}
+@media (max-width: 780px) { .sheet:has(> .sheet-body > .fluxo) { height: 96dvh; } }
+.fluxo > li { min-width: 0; }
+.fluxo-no {
+  --c: var(--n-neutro);
+  position: relative; display: flex; flex-direction: column; gap: 2px;
+  padding: 9px 12px 10px 16px; border: 1.5px solid var(--c); border-radius: 12px;
+  background: color-mix(in srgb, var(--c) 13%, var(--mat));
+}
+.fluxo-no::before { content: ""; position: absolute; left: 7px; top: 11px; width: 3px; height: 11px; border-radius: 2px; background: var(--c); }
+.fluxo-rotulo { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--c); }
+.fluxo-nome { font-size: 15px; font-weight: 650; line-height: 1.3; color: var(--chalk); overflow-wrap: anywhere; }
+.fluxo-sub { font-size: 12px; color: var(--dim); line-height: 1.35; }
+.n-objetivo { --c: var(--n-objetivo); }
+.n-posicao { --c: var(--n-posicao); }
+.n-finta { --c: var(--n-finta); }
+.n-preparacao { --c: var(--n-preparacao); }
+.n-tecnica { --c: var(--n-tecnica); }
+.n-ele { --c: var(--n-ele); }
+.n-fora { --c: var(--n-fora); }
+.n-neutro { --c: var(--n-neutro); }
+.n-res-bom { --c: var(--jade); }
+.n-res-meio { --c: var(--roar); }
+.n-res-ruim { --c: var(--blood-claro); }
+.n-res-neutro { --c: var(--n-neutro); }
+.fluxo-no.fin { box-shadow: 0 0 0 3px color-mix(in srgb, var(--n-objetivo) 22%, transparent); }
+.fluxo-seta {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 3px 0; color: var(--seam-hi); line-height: 1;
+}
+.fluxo-seta::before { content: ""; width: 2px; height: 8px; background: currentColor; }
+.fluxo-seta-res {
+  max-width: 92%; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 650; line-height: 1.35; text-align: center;
+  color: var(--chalk); background: var(--mat-top); border: 1px solid var(--seam-hi); overflow-wrap: anywhere;
+}
+.fluxo-seta.bom { color: var(--jade); }
+.fluxo-seta.bom .fluxo-seta-res { color: var(--jade); border-color: color-mix(in srgb, var(--jade) 50%, transparent); background: color-mix(in srgb, var(--jade) 12%, var(--mat)); }
+.fluxo-seta.meio { color: var(--roar); }
+.fluxo-seta.meio .fluxo-seta-res { color: var(--roar-soft); border-color: color-mix(in srgb, var(--roar) 50%, transparent); background: color-mix(in srgb, var(--roar) 12%, var(--mat)); }
+.fluxo-seta.ruim { color: var(--blood); }
+.fluxo-seta.ruim .fluxo-seta-res { color: var(--blood-claro); border-color: color-mix(in srgb, var(--blood) 50%, transparent); background: color-mix(in srgb, var(--blood) 12%, var(--mat)); }
+.fluxo-tentativa {
+  margin: 4px 0 2px; padding: 6px 10px; border-radius: 8px; text-align: center;
+  font-size: 12px; font-weight: 650; color: var(--roar-soft); background: color-mix(in srgb, var(--roar) 9%, var(--void));
+  border: 1px dashed color-mix(in srgb, var(--roar) 45%, var(--seam));
+}
+.fluxo-pontos { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; padding-top: 7px; border-top: 1px solid color-mix(in srgb, var(--c) 30%, var(--seam)); }
+.fluxo-pontos > .micro { color: var(--roar-soft); }
+.fluxo-agora {
+  display: flex; flex-direction: column; gap: 10px; padding: 14px 13px;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 75%, var(--seam)); border-radius: 14px;
+  background: var(--mat-hi); scroll-margin-bottom: 12px;
+}
+.fluxo-agora.fim { border-color: var(--seam-hi); }
+.fluxo-pergunta { margin: 0; font-family: var(--display); font-size: 18px; font-weight: 700; line-height: 1.25; color: var(--chalk); }
+.fluxo-grupo { margin: 2px 0 -3px; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--dim); }
+.fluxo-opcoes { display: flex; flex-direction: column; gap: 7px; }
+.fluxo-opcoes:empty { display: none; }
+.fluxo-opcao {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 50px; padding: 9px 12px;
+  border: 1.5px solid color-mix(in srgb, var(--c, var(--n-neutro)) 70%, var(--seam)); border-radius: 12px;
+  background: color-mix(in srgb, var(--c, var(--n-neutro)) 9%, var(--void)); color: var(--chalk); font: inherit; text-align: left; cursor: pointer;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.fluxo-opcao.fantasma { border-style: dashed; background: transparent; }
+.fluxo-opcao:focus-visible { outline: 2px solid var(--c); outline-offset: 2px; }
+@media (hover: hover) { .fluxo-opcao:hover { border-color: var(--c); background: color-mix(in srgb, var(--c) 16%, var(--void)); } }
+.fluxo-opcao:active { background: color-mix(in srgb, var(--c) 22%, var(--void)); }
+.fluxo-opcao-ico { flex: none; color: var(--c); }
+.fluxo-opcao-txt { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+.fluxo-opcao-tag { font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--c); }
+.fluxo-opcao-nome { font-size: 15px; font-weight: 650; line-height: 1.3; overflow-wrap: anywhere; }
+.fluxo-opcao-sub { font-size: 12px; color: var(--dim); line-height: 1.35; }
+.fluxo-opcao-mais { flex: none; color: var(--c); opacity: .8; }
+.fluxo-como { display: flex; flex-direction: column; gap: 6px; padding: 9px 10px; border-radius: 10px; background: color-mix(in srgb, var(--roar) 8%, var(--void)); }
+.fluxo-como > .micro { color: var(--roar-soft); font-weight: 600; }
+.fluxo-texto { display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 10px; border: 1px dashed color-mix(in srgb, var(--n-finta) 55%, var(--seam)); }
+.fluxo-acoes, .fluxo-fecho { display: flex; flex-wrap: wrap; gap: 6px; }
+.fluxo-fecho { padding-top: 8px; border-top: 1px solid var(--seam); }
+.fluxo-mais {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 8px 12px;
+  border: 1px dashed var(--seam-hi); border-radius: 10px; background: transparent;
+  color: var(--chalk); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.fluxo-mais:focus-visible { outline: 2px solid var(--jade); outline-offset: 2px; }
+@media (hover: hover) { .fluxo-mais:hover { border-color: var(--jade); } }
+.fluxo-mais.ele { border-color: color-mix(in srgb, var(--blood) 45%, var(--seam-hi)); color: var(--blood-claro); }
+.fluxo-dele { display: flex; flex-direction: column; gap: 6px; }
+.fluxo-rodape { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
+.fluxo-placar { font-size: 12.5px; font-weight: 650; color: var(--jade); }
+/* o resumo no cartão do rola */
+.linha-resumo { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.linha-resumo > li { display: flex; gap: 6px; font-size: 12.5px; line-height: 1.45; min-width: 0; }
+.linha-resumo-n { flex: none; min-width: 18px; color: var(--dim); font-weight: 650; }
+.linha-resumo-txt { min-width: 0; overflow-wrap: anywhere; }
+.linha-resumo-bom, .linha-resumo-fin { color: var(--jade); }
+.linha-resumo-fin { font-weight: 700; }
+.linha-resumo-meio { color: var(--roar); }
+.linha-resumo-ruim { color: var(--blood-claro); }
+.linha-resumo-lugar { color: #4fd1d9; }
+.linha-abrir { display: flex; flex-direction: column; gap: 9px; }
