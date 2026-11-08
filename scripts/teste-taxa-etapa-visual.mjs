@@ -119,11 +119,19 @@ try {
     await page.getByRole('button', { name: 'Ele não deixou', exact: true }).click();
     await page.waitForTimeout(250);
     await salvar();
+  /* R7.4a: o plano se escolhe no chip do bloco "Plano de ataque" ou no "Outro plano…" */
+  const escolherPlano = async (nome) => {
+    const bloco = page.locator('.plano-rola').first();
+    const chip = bloco.getByRole('button', { name: nome, exact: true });
+    if (await chip.count()) await chip.first().click();
+    else { await bloco.getByRole('button', { name: 'Outro plano…', exact: true }).click(); await page.waitForTimeout(300); await page.getByRole('button', { name: nome, exact: true }).last().click(); }
+    await page.waitForTimeout(250);
+  };
+  const planoMarcado = async () => (await page.locator('.plano-rola').first().locator('.chip.on').allTextContents()).join('|');
     /* 2c. R7.1: o registro do treino; armlock, "Não sei", ele escapou pra meia-guarda */
     await page.goto(`${url}/?go=treinos&novo=1`, { waitUntil: 'networkidle' });
     await page.getByRole('button', { name: /Adicionar rola/ }).first().click();
-    await page.getByText('Mais detalhes').first().click();
-    await page.locator('select').filter({ has: page.locator('option', { hasText: 'Não usei' }) }).first().selectOption(CONV.uid);
+    await escolherPlano(CONV.nome);
     await page.waitForTimeout(300);
     await pecaRola(ARM).click();
     await page.waitForTimeout(250);

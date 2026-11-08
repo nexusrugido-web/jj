@@ -4225,3 +4225,12 @@ body::after {
 .mente-taxa { justify-self: start; font-size: 11px; font-weight: 700; line-height: 1.3; color: var(--c); font-variant-numeric: tabular-nums; }
 .mente-taxa.pouco { color: var(--dim); }
 .mente-taxa-detalhe { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--seam); line-height: 1.6; }
+/* R7.4a: o plano de ataque no cartão do rola, antes do placar */
+.bloco-cor.plano-rola { --cor: var(--ice); }
+.plano-rola-resumo {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  padding: 10px 12px; border-radius: var(--r-sm); border: 1px solid var(--seam);
+  background: var(--void); color: var(--chalk); font-size: 13px; line-height: 1.5; cursor: pointer;
+}
+.plano-rola-resumo > .micro { display: inline-flex; align-items: center; gap: 3px; color: var(--cor); font-weight: 600; }
+.plano-rola-recolher { flex: none; background: none; border: 0; padding: 0; color: var(--cor); font-weight: 600; cursor: pointer; }

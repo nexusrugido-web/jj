@@ -74,11 +74,19 @@ try {
   const ligado = async (nome, qual = 'first') => /\bon\b/.test(await botao(nome)[qual]().getAttribute('class') || '');
   const fuga = (nome) => page.getByText('Pra onde a luta foi?').locator('xpath=..').getByRole('button', { name: nome, exact: true });
   const avisoAberto = () => page.getByText('Essa técnica tem regra').isVisible();
+  /* R7.4a: o plano se escolhe no chip do bloco "Plano de ataque" ou no "Outro plano…" */
+  const escolherPlano = async (nome) => {
+    const bloco = page.locator('.plano-rola').first();
+    const chip = bloco.getByRole('button', { name: nome, exact: true });
+    if (await chip.count()) await chip.first().click();
+    else { await bloco.getByRole('button', { name: 'Outro plano…', exact: true }).click(); await page.waitForTimeout(300); await page.getByRole('button', { name: nome, exact: true }).last().click(); }
+    await page.waitForTimeout(250);
+  };
+  const planoMarcado = async () => (await page.locator('.plano-rola').first().locator('.chip.on').allTextContents()).join('|');
   const novoRola = async (uid) => {
     await page.goto(`${url}/?go=treinos&novo=1`, { waitUntil: 'networkidle' });
     await page.getByRole('button', { name: /Adicionar rola/ }).first().click();
-    await page.getByText('Mais detalhes').first().click();
-    await page.locator('select').filter({ has: page.locator('option', { hasText: 'Não usei' }) }).first().selectOption(uid);
+    await escolherPlano({ 'r7-conv': CONV.nome, 'r7-regra': REGRA.nome }[uid]);
     await page.waitForTimeout(250);
   };
   const manual = async (nome) => {

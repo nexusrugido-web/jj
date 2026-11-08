@@ -81,11 +81,19 @@ try {
       await page.waitForTimeout(1200);
     };
 
+  /* R7.4a: o plano se escolhe no chip do bloco "Plano de ataque" ou no "Outro plano…" */
+  const escolherPlano = async (nome) => {
+    const bloco = page.locator('.plano-rola').first();
+    const chip = bloco.getByRole('button', { name: nome, exact: true });
+    if (await chip.count()) await chip.first().click();
+    else { await bloco.getByRole('button', { name: 'Outro plano…', exact: true }).click(); await page.waitForTimeout(300); await page.getByRole('button', { name: nome, exact: true }).last().click(); }
+    await page.waitForTimeout(250);
+  };
+  const planoMarcado = async () => (await page.locator('.plano-rola').first().locator('.chip.on').allTextContents()).join('|');
     /* 1. o mapa do rola */
     await page.goto(`${url}/?go=treinos&novo=1`, { waitUntil: 'networkidle' });
     await page.getByRole('button', { name: /Adicionar rola/ }).first().click();
-    await page.getByText('Mais detalhes').first().click();
-    await page.locator('select').filter({ has: page.locator('option', { hasText: 'Não usei' }) }).first().selectOption('r7-conv');
+    await escolherPlano(CONV.nome);
     await page.waitForTimeout(300);
     ok('1 as peças do plano são botões no mapa', [await peca('Finta: Ameaço a guilhotina').count(), await peca('Preparação: Pegada na gola e na manga').count(), await peca(ARM).count()], [1, 1, 1]);
     ok('1 a fuga aparece como lugar, sem botão', [await mapa().getByText('Meia-guarda').count(), await mapa().getByRole('button', { name: /Meia-guarda/ }).count()], [1, 0]);
@@ -111,7 +119,7 @@ try {
     await page.getByRole('button', { name: 'Registrar uso' }).click();
     await page.waitForTimeout(1200);
     ok('2 sem treino hoje: abre o treino novo', await page.getByText('Novo treino').first().isVisible(), true);
-    ok('2 o rola já vem com o plano e o mapa aberto', [await mapa().count(), await page.locator('select').filter({ has: page.locator('option', { hasText: 'Não usei' }) }).first().inputValue()], [1, 'r7-conv']);
+    ok('2 o rola já vem com o plano e o mapa aberto', [await mapa().count(), await planoMarcado()], [1, CONV.nome]);
     ok('2 nada gravado antes do Salvar', (await banco()).rolas.length, 0);
     ok('2 o mapa aparece na tela', await mapa().isVisible(), true);
     await page.screenshot({ path: `${pasta}/2-registrar-uso-novo-${largura}.png` });
