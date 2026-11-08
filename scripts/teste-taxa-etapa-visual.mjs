@@ -95,6 +95,7 @@ try {
 
     /* 1. sem rola */
     await irPraPlanos();
+    await cartao().waitFor({ timeout: 8000 });
     ok('1 cartão sem rola', await cartao().getByText('Ainda sem rola com ele').count(), 1);
     await abrirMapa();
     ok('1 nenhuma peça com número', await page.locator('.mente-taxa').count(), 0);

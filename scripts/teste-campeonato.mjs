@@ -192,7 +192,7 @@ const banco = async () => {
 
 w.history.pushState({}, '', '/?go=treinos'); w.dispatchEvent(new w.PopStateEvent('popstate')); await esperar(1500);
 clicar([...raiz.querySelectorAll('button.chip')].find((b) => b.textContent.trim() === 'Competição')); await esperar(600);
-clicar(botao('novo treino')); await esperar(900);
+clicar(botao('novo treino')); for (let i = 0; i < 30 && !folha(); i++) await esperar(200); await esperar(400);
 ok('campeonato novo abre pelo campeonato', titulo(), 'O campeonato');
 ok('campeonato não pergunta tempo', /Duração/.test(folha().textContent), false);
 ok('sem o nome do campeonato não segue', botao('salvar e seguir')?.disabled, true);
