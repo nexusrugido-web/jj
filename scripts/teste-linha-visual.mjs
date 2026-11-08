@@ -13,7 +13,10 @@ import fs from 'node:fs/promises';
    4. salvar: a linha, o r.plano tirado dela, a finalização e o ponto
       no rola, sem duplicar ao reabrir e salvar de novo;
    5. o rola antigo (sem linha) abre pelo que ele dizia, sem mudar nada;
-   6. nada vaza pro lado e nenhum erro na página.
+   6. nada vaza pro lado e nenhum erro na página;
+   7. outro rola: escapou, a luta recomeçou, duas finalizações; no
+      desktop as opções vão pra linha arrastando e soltando, no celular
+      pelo toque (sem arraste).
    ============================================================ */
 const url = process.env.APP_TEST_URL || 'http://127.0.0.1:5173';
 const pasta = process.env.APP_SCREENSHOTS || 'artifacts/linha-da-luta';
@@ -82,6 +85,25 @@ try {
       await folha().getByPlaceholder('Buscar posição').fill(nome);
       await toque(folha().getByRole('button', { name: nome, exact: true }));
     };
+    /* desktop: arrasta a opção até a área de soltar (que só aparece no arraste) */
+    let fotoDoArraste = false;
+    const arraste = async (loc) => {
+      await page.waitForTimeout(500); /* espera a rolagem suave da pergunta nova */
+      await loc.scrollIntoViewIfNeeded();
+      const a = await loc.boundingBox();
+      await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(a.x + a.width / 2 + 8, a.y + a.height / 2 - 8, { steps: 4 });
+      const alvo = page.locator('.fluxo-solta');
+      await alvo.waitFor({ timeout: 2000 });
+      await alvo.scrollIntoViewIfNeeded();
+      const b = await alvo.boundingBox();
+      await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 8 });
+      if (!fotoDoArraste) { fotoDoArraste = true; await page.screenshot({ path: `${pasta}/8-arrastando-${largura}.png` }); }
+      await page.mouse.up();
+      await page.waitForTimeout(300);
+    };
+    const pela = (loc) => (celular ? toque(loc) : arraste(loc));
     const foto = async (nome) => {
       await agora().evaluate((e) => e.scrollIntoView({ block: 'end' }));
       await page.waitForTimeout(250);
@@ -181,6 +203,43 @@ try {
     await page.waitForTimeout(400);
     const igual = (await banco()).find((x) => x.id === antigo);
     ok('5 abrir e fechar não mexe no rola antigo', [igual.linha ?? null, igual.plano.parou, igual.plano.saida], [null, 'defendeu', 'lEst']);
+    /* 7: escapou, recomeçou e duas finalizações; arrastando no desktop */
+    await page.goto(`${url}/?go=treinos&novo=1`, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: /Adicionar rola/ }).first().click();
+    await page.waitForTimeout(300);
+    await toque(page.locator('.parceiro-chips').getByRole('button', { name: 'Zé', exact: true }).first());
+    await toque(page.locator('.plano-rola').getByRole('button', { name: PLANO.nome, exact: true }));
+    await toque(page.locator('.plano-rola').getByRole('button', { name: 'Contar a luta' }));
+    ok('7 arraste só com mouse (celular: toque)', await opcao('Norte-sul').getAttribute('draggable'), celular ? null : 'true');
+    ok('7 a área de soltar não aparece parada', await page.locator('.fluxo-solta').count(), 0);
+    await pela(opcao('Norte-sul'));
+    const kim = () => agora().locator('.fluxo-opcao.fantasma', { has: page.locator('.fluxo-opcao-nome', { hasText: KIM }) }).first();
+    await pela(kim());
+    ok('7 a kimura entrou (tocando ou arrastando)', [await pergunta(), (await rotulos()).slice(-1)[0]], ['O que aconteceu?', KIM]);
+    await pela(opcao('Ele escapou'));
+    ok('7 escapou: pergunta onde a luta ficou', await pergunta(), 'Onde a luta ficou?');
+    await toque(agora().getByRole('button', { name: /Outra posição/ }));
+    await posicao('Combatendo a guarda, por cima');
+    await toque(agora().getByRole('button', { name: 'A luta recomeçou' }));
+    ok('7 recomeçou: pergunta de onde', await pergunta(), 'Onde a luta recomeçou?');
+    await pela(opcao('Norte-sul'));
+    await pela(kim());
+    await pela(opcao('Encaixou'));
+    await pela(opcao('Sim, recomeçou'));
+    await pela(opcao('Norte-sul'));
+    await pela(kim());
+    await pela(opcao('Encaixou'));
+    await pela(opcao('Não, acabou aí'));
+    ok('7 três tentativas, a anterior guardada', await fluxo().locator('.fluxo-tentativa').count(), 2);
+    ok('7 os resultados nas setas', await fluxo().locator('.fluxo-seta-res').allTextContents(), ['Ele escapou', 'Finalizou', 'Finalizou']);
+    ok('7 nada vaza pro lado', await vaza(), false);
+    await foto('7-recomeco-e-duas-finalizacoes');
+    await toque(page.getByRole('button', { name: 'Voltar pro treino' }));
+    await page.getByRole('button', { name: /Salvar treino/ }).click();
+    await page.waitForTimeout(1200);
+    r = (await banco()).slice(-1)[0];
+    ok('7 gravou: três tentativas e duas finalizações (iguais contam duas)', [r.linha?.seqs?.length, r.subsAplicadas, r.linha?.entrou], [3, [KIM, KIM], [KIM, KIM]]);
+
     ok('nenhum erro na página', erros, []);
     await contexto.close();
   }

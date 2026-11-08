@@ -112,6 +112,13 @@
   background: var(--mat-hi); scroll-margin-bottom: 12px;
 }
 .fluxo-agora.fim { border-color: var(--seam-hi); }
+.fluxo-solta {
+  display: flex; align-items: center; justify-content: center; min-height: 64px; padding: 10px;
+  border: 2px dashed color-mix(in srgb, var(--accent) 60%, var(--seam)); border-radius: 14px;
+  color: var(--dim); font-size: 14px; font-weight: 600; text-align: center;
+}
+.fluxo-solta.sobre { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--void)); color: var(--chalk); }
+.fluxo-opcao[draggable="true"] { cursor: grab; }
 .fluxo-pergunta { margin: 0; font-family: var(--display); font-size: 18px; font-weight: 700; line-height: 1.25; color: var(--chalk); }
 .fluxo-grupo { margin: 2px 0 -3px; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--dim); }
 .fluxo-opcoes { display: flex; flex-direction: column; gap: 7px; }

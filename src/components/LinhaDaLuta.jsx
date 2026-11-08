@@ -104,10 +104,18 @@ const Seta = ({ res = '', tom = '' }) => (
     <ArrowDown size={14} strokeWidth={2.5} />
   </li>
 );
+/* no desktop (mouse) a opção também se arrasta até a linha; tocar e
+   clicar continuam valendo. Soltar faz o mesmo que o toque. */
+let acaoArrastada = null;
+const comMouse = () => typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: fine)').matches;
 /* opção da pergunta: sugestão (tracejada) ou resposta */
-function Opcao({ children, sub, tag, nat = '', fantasma = false, onClick, icon: Icon }) {
+function Opcao({ children, sub, tag, nat = '', fantasma = false, onClick, icon: Icon, arrastavel = true }) {
+  const arrasta = arrastavel && !!onClick && comMouse();
   return (
-    <button type="button" className={`fluxo-opcao n-${nat || 'neutro'}${fantasma ? ' fantasma' : ''}`} onClick={onClick}>
+    <button type="button" className={`fluxo-opcao n-${nat || 'neutro'}${fantasma ? ' fantasma' : ''}`} onClick={onClick}
+      draggable={arrasta || undefined}
+      onDragStart={arrasta ? (e) => { acaoArrastada = onClick; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', 'linha'); } : undefined}
+      onDragEnd={arrasta ? () => { acaoArrastada = null; } : undefined}>
       {Icon && <Icon size={16} className="fluxo-opcao-ico" aria-hidden="true" />}
       <span className="fluxo-opcao-txt">
         {tag && <span className="fluxo-opcao-tag">{tag}</span>}
@@ -129,6 +137,7 @@ export default function LinhaDaLuta({
   const [deleAberto, setDeleAberto] = useState(false);
   const [pecasAberto, setPecasAberto] = useState(false);
   const [texto, setTexto] = useState(null); /* finta ou preparação em texto: { tipo, valor } */
+  const [solta, setSolta] = useState(''); /* arraste: '' | 'arrastando' | 'sobre' */
   const l = linha;
   const q = pergunta(l, planoDe, destinoDe);
   const seqs = l?.seqs || [];
@@ -147,6 +156,22 @@ export default function LinhaDaLuta({
     const t = setTimeout(() => fim.current?.scrollIntoView?.({ block: 'end', behavior: 'smooth' }), 60);
     return () => clearTimeout(t);
   }, [passosAgora, aberto]);
+
+  /* a área de soltar aparece só enquanto uma opção está sendo arrastada */
+  useEffect(() => {
+    if (!aberto) return undefined;
+    const ini = () => { if (acaoArrastada) setSolta('arrastando'); };
+    const fimDoArraste = () => setSolta('');
+    document.addEventListener('dragstart', ini);
+    document.addEventListener('dragend', fimDoArraste);
+    return () => { document.removeEventListener('dragstart', ini); document.removeEventListener('dragend', fimDoArraste); };
+  }, [aberto]);
+  const soltar = (e) => {
+    e.preventDefault();
+    const f = acaoArrastada;
+    acaoArrastada = null; setSolta('');
+    f?.();
+  };
 
   const mudar = (nova) => onMudar(nova);
   const quer = pontos ? pontosDaLinha(l, planoDe, destinoDe) : [];
@@ -417,6 +442,14 @@ export default function LinhaDaLuta({
           </React.Fragment>
         ))}
         {(seqs.length > 0 || objetivo) && <Seta {...resFinal(seq)} />}
+        {solta && (
+          <li className={`fluxo-solta${solta === 'sobre' ? ' sobre' : ''}`}
+            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (solta !== 'sobre') setSolta('sobre'); }}
+            onDragLeave={() => setSolta('arrastando')}
+            onDrop={soltar}>
+            Solte aqui pra pôr na linha
+          </li>
+        )}
         <li className={`fluxo-agora${q.tipo === 'fim' ? ' fim' : ''}`} ref={fim}>
           {q.tipo === 'fim' ? (
             <>
@@ -430,7 +463,7 @@ export default function LinhaDaLuta({
       <Sheet aberto={pecasAberto} onClose={() => setPecasAberto(false)} titulo="Outra peça do plano" subtitulo="Fora da ordem do plano: o caminho não é deduzido">
         <div className="fluxo-opcoes">
           {pecasDoPlano(plano).map((x) => (
-            <Opcao key={x.id} fantasma nat={NATUREZA[x.tipo] || 'tecnica'} tag={`${ROTULO[NATUREZA[x.tipo]] || 'Técnica'} · Plano ${x.letra}`}
+            <Opcao key={x.id} fantasma arrastavel={false} nat={NATUREZA[x.tipo] || 'tecnica'} tag={`${ROTULO[NATUREZA[x.tipo]] || 'Técnica'} · Plano ${x.letra}`}
               onClick={() => {
                 const pela = proximasDoPlano(plano, seq, destinoDe).find((y) => y.peca === x.id);
                 mudar(fazer(l, { peca: x.id, lig: pela?.lig || '' }, plano));
