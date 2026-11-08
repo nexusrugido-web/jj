@@ -890,5 +890,50 @@ ok('finta com nome de finalização não chega no objetivo', chegaNoObjetivo(cor
   ok('removidos calculado igual pela regra do salvar', JSON.stringify(a1.removidos), JSON.stringify(removidosAoSalvar(velho, PLANOS_ATAQUE.find((p) => p.slug === 'cg-trindade'))));
 }
 
+/* ---------- R7.1: o rola pelo caminho ---------- */
+{
+  const { caminhosAte, rotuloDoCaminho, paradasDe, marcarPeca, subsDoPlano, juntarSubs } = await import('../src/lib/planos.js');
+  ok('R7 três entradas até o Armlock, a da árvore primeiro', caminhosAte(rota, 'arm'), [['lA', 'lArm'], ['lB', 'cB'], ['lC', 'cC']]);
+  ok('R7 depois da convergência, os três seguem iguais', caminhosAte(rota, 'omo').map((c) => c.slice(-2)), [['lTri', 'lOmo'], ['lTri', 'lOmo'], ['lTri', 'lOmo']]);
+  ok('R7 peça com um caminho só', caminhosAte(rota, 'fA'), [['lA']]);
+  ok('R7 cada caminho achado fecha da posição até a peça', caminhosAte(rota, 'omo').map((c) => caminhoDoRola(rota, c).inteiro), [true, true, true]);
+  /* ciclo: a Omoplata defendida volta pro Armlock; e uma fuga que volta pra posição */
+  const comVolta = planoNovo({ ...rota, passos: editar(rota), ligacoes: [...correnteDoPlano(rota).ligacoes,
+    { id: 'vArm', de: 'omo', via: 'defendeu', gatilho: 'girou', para: 'arm' }] });
+  ok('R7 ligação que volta (ciclo) não trava nem repete peça', caminhosAte(comVolta, 'arm').length, 3);
+  ok('R7 o ciclo não cria caminho novo até o Triângulo', caminhosAte(comVolta, 'tri').length, 3);
+  ok('R7 rótulo: as peças antes da última', [rotuloDoCaminho(rota, ['lB', 'cB']), rotuloDoCaminho(rota, ['lA', 'lArm', 'lTri', 'lOmo']), rotuloDoCaminho(rota, ['lA'])],
+    ['Raspagem de tesoura', 'Guilhotina → Armlock → Triângulo', 'Direto da posição']);
+  ok('R7 o que ele fez, pelo tipo da peça', ['golpe', 'finta', 'preparacao', 'situacao'].map((tipo) => paradasDe({ tipo }).map((p) => p.id)),
+    [['defendeu', 'escapou'], ['naoReagiu'], ['impediu'], []]);
+  const base = { uid: 'R', peca: null, caminho: [], encaixou: true, parou: 'escapou', improviso: { nome: 'Kimura', uid: null, encaixou: false } };
+  ok('R7 marcar peça com várias entradas: caminho fica pra pessoa dizer', marcarPeca(rota, base, 'arm').caminho, []);
+  ok('R7 marcar peça com um caminho: sai sozinho', marcarPeca(rota, base, 'fA').caminho, ['lA']);
+  ok('R7 tocar de novo na mesma peça não apaga a entrada dita', marcarPeca(rota, { ...base, peca: 'arm', caminho: ['lB', 'cB'] }, 'arm').caminho, ['lB', 'cB']);
+  ok('R7 finta não encaixa e o "escapou" de golpe sai', [marcarPeca(rota, base, 'fA').encaixou, marcarPeca(rota, base, 'fA').parou], [false, '']);
+  ok('R7 golpe mantém encaixou, parou e o improviso', [marcarPeca(rota, base, 'tri').encaixou, marcarPeca(rota, base, 'tri').parou, marcarPeca(rota, base, 'tri').improviso.nome], [true, 'escapou', 'Kimura']);
+  /* finalização entra sozinha, uma vez, e não é objetivo alcançado */
+  const rp = (o) => ({ uid: 'R', peca: 'omo', caminho: ['lA', 'lArm', 'lTri', 'lOmo'], encaixou: false, ...o });
+  ok('R7 a Omoplata que encaixou vai pra "Eu finalizei"', subsDoPlano(rota, rp({ encaixou: true }), destRota), ['Omoplata']);
+  ok('R7 tentativa que não encaixou não entra', subsDoPlano(rota, rp({ parou: 'defendeu' }), destRota), []);
+  ok('R7 finta marcada não entra', subsDoPlano(rota, rp({ peca: 'fA', caminho: ['lA'], encaixou: true }), destRota), []);
+  ok('R7 improviso que é finalização e encaixou entra', subsDoPlano(rota, rp({ improviso: { nome: 'Kimura', uid: null, encaixou: true } }), destRota), ['Kimura']);
+  ok('R7 improviso que não é finalização não entra', subsDoPlano(rota, rp({ improviso: { nome: 'Raspagem de tesoura', uid: null, encaixou: true } }), destRota), []);
+  ok('R7 a mesma finalização pelo plano e pelo improviso entra uma vez', subsDoPlano(rota, rp({ encaixou: true, improviso: { nome: 'Omoplata', uid: null, encaixou: true } }), destRota), ['Omoplata']);
+  ok('R7 finalizou no improviso: aplicada, mas o objetivo do plano não foi alcançado',
+    alcancouObjetivo(rota, { plano: rp({ improviso: { nome: 'Kimura', uid: null, encaixou: true } }) }, destRota), false);
+  const renomeado = viaSync(rota);
+  renomeado.passos.find((x) => x.id === 'omo').golpeUid = 'u-teste-omo';
+  const destU = Object.assign((n) => destRota(n), { tecnicas: [{ uid: 'u-teste-omo', nome: 'Omoplata nova' }] });
+  ok('R7 peça com uid entra pelo nome de hoje da técnica', subsDoPlano(renomeado, rp({ encaixou: true }), destU), ['Omoplata nova']);
+  ok('R7 entra o que não estava', juntarSubs([], [], ['Omoplata']), { subs: ['Omoplata'], entrou: ['Omoplata'] });
+  ok('R7 já marcada na mão: não duplica e não vira do plano', juntarSubs(['Omoplata'], [], ['Omoplata']), { subs: ['Omoplata'], entrou: [] });
+  ok('R7 desmarcar encaixou não tira a marcada na mão', juntarSubs(['Omoplata'], [], []), { subs: ['Omoplata'], entrou: [] });
+  ok('R7 desmarcar encaixou tira só a que o plano pôs', juntarSubs(['Armlock', 'Omoplata'], ['Omoplata'], []), { subs: ['Armlock'], entrou: [] });
+  ok('R7 repetir não muda nada', juntarSubs(['Armlock', 'Omoplata'], ['Omoplata'], ['Omoplata']), { subs: ['Armlock', 'Omoplata'], entrou: ['Omoplata'] });
+  ok('R7 trocar a peça troca a finalização', juntarSubs(['Omoplata'], ['Omoplata'], ['Triângulo']), { subs: ['Triângulo'], entrou: ['Triângulo'] });
+  ok('R7 finalizou duas vezes com a mesma: tira uma só', juntarSubs(['Omoplata', 'Omoplata'], ['Omoplata'], []), { subs: ['Omoplata'], entrou: [] });
+}
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

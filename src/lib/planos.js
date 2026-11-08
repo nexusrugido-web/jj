@@ -1,5 +1,5 @@
 import { ehFamilia, familiaDoGolpe } from './familias';
-import { comTecUid, uidDoGolpe, nomesDoPlano } from './identidade';
+import { comTecUid, uidDoGolpe, nomesDoPlano, nomeDoUid } from './identidade';
 
 /* ============================================================
    PLANOS DE ATAQUE
@@ -533,6 +533,96 @@ export function caminhoDoRola(plano, caminho = []) {
    na peça que chega nele */
 export const alcancouObjetivo = (plano, r, destinoDe = () => null) => !!r?.plano?.encaixou
   && chegaNoObjetivo(pecaDoRola(plano, r), correnteDoPlano(plano), destinoDe);
+
+/* ---------- R7: o rola pelo caminho ----------
+   O rola é o que aconteceu; o plano é a estratégia. O rola guarda
+   { uid, peca, caminho, encaixou, parou, improviso, entrou }:
+   - caminho: as ligações por onde você chegou na peça. Com mais de um
+     caminho até ela (convergência), é a pessoa que diz qual; "não sei"
+     deixa vazio, nada é inventado;
+   - parou: o que ele fez na última peça quando o rola acabou ali;
+   - improviso: "fiz outra coisa", a técnica fora do plano { nome, uid,
+     encaixou }, com o nome da época e o uid. Não é peça do plano;
+   - entrou: as finalizações que o plano pôs em "Eu finalizei". */
+
+/* todos os caminhos da posição até a peça, pela árvore e pelas
+   ligações extras, sem passar duas vezes pela mesma peça. O da árvore
+   vem primeiro. Ligação que volta pra posição é recomeço, não entra. */
+export function caminhosAte(plano, pecaId) {
+  const c = correnteDoPlano(plano);
+  const chegam = new Map();
+  for (const l of ligacoesDo(c.passos, c.ligacoes)) {
+    if (l.para === null || l.para === undefined) continue;
+    if (!chegam.has(l.para)) chegam.set(l.para, []);
+    chegam.get(l.para).push(l);
+  }
+  const out = [];
+  const andar = (id, depois, vistas) => {
+    for (const l of chegam.get(id) || []) {
+      if (l.de === null) out.push([l.id, ...depois]);
+      else if (!vistas.has(l.de)) andar(l.de, [l.id, ...depois], new Set([...vistas, l.de]));
+    }
+  };
+  andar(pecaId, [], new Set([pecaId]));
+  return out;
+}
+
+/* o caminho em palavras: as peças antes da última, na ordem */
+export function rotuloDoCaminho(plano, caminho = []) {
+  const passos = correnteDoPlano(plano).passos;
+  const nomes = caminhoDoRola(plano, caminho).ligacoes.slice(0, -1)
+    .map((l) => passos.find((x) => x.id === l?.para)?.golpe).filter(Boolean);
+  return nomes.length ? nomes.join(' → ') : 'Direto da posição';
+}
+
+/* o que ele fez na última peça, pelo tipo dela */
+export const PARADAS = {
+  golpe: [{ id: 'defendeu', nome: 'Ele defendeu' }, { id: 'escapou', nome: 'Ele escapou' }],
+  finta: [{ id: 'naoReagiu', nome: 'Ele não reagiu' }],
+  preparacao: [{ id: 'impediu', nome: 'Ele não deixou' }],
+};
+export const paradasDe = (peca) => PARADAS[tipoDe(peca)] || [];
+
+/* marcar a última peça: o caminho sai sozinho quando é um só. Encaixou
+   é só do golpe; o "parou" que não serve pra peça nova sai. Tocar de
+   novo na mesma peça não apaga a entrada que a pessoa já disse. */
+export function marcarPeca(plano, rp, pecaId) {
+  const peca = correnteDoPlano(plano).passos.find((x) => x.id === pecaId);
+  const caminhos = caminhosAte(plano, pecaId);
+  if (rp?.peca === pecaId && (rp.caminho || []).length) return rp;
+  const golpe = tipoDe(peca) === 'golpe';
+  const parou = paradasDe(peca).some((p) => p.id === rp?.parou) ? rp.parou : '';
+  return { ...rp, peca: pecaId, caminho: caminhos.length === 1 ? caminhos[0] : [], encaixou: golpe && !!rp?.encaixou, parou };
+}
+
+/* as finalizações que o plano põe em "Eu finalizei": a peça que
+   encaixou, se é finalização, e o improviso que encaixou, se é. Pelo
+   nome de hoje da técnica (o uid acha). Pôr não diz que o objetivo do
+   plano foi alcançado: isso continua sendo o alcancouObjetivo. */
+export function subsDoPlano(plano, rp, destinoDe = () => null) {
+  if (!rp) return [];
+  const tecnicas = destinoDe.tecnicas || [];
+  const out = [];
+  const p = rp.encaixou ? pecaDoRola(plano, { plano: rp }) : null;
+  if (p && finaliza(p, destinoDe)) out.push((p.golpeUid && nomeDoUid(p.golpeUid, tecnicas)) || p.golpe);
+  const im = rp.improviso;
+  if (im?.encaixou && destinoDe(im.nome)?.slug === 'finalizacao') out.push((im.uid && nomeDoUid(im.uid, tecnicas)) || im.nome);
+  return [...new Set(out)];
+}
+
+/* junta com as aplicadas: entra o que o plano quer e não estava, sai o
+   que ele tinha posto e não quer mais. A que já estava marcada na mão
+   não vira "entrou", então desmarcar o encaixou não tira ela. */
+export function juntarSubs(subs = [], entrou = [], quer = []) {
+  const lista = [...subs];
+  for (const n of entrou) {
+    const k = quer.includes(n) ? -1 : lista.lastIndexOf(n);
+    if (k >= 0) lista.splice(k, 1);
+  }
+  const fica = entrou.filter((n) => quer.includes(n) && lista.includes(n));
+  const novas = quer.filter((n) => !lista.includes(n));
+  return { subs: [...lista, ...novas], entrou: [...fica, ...novas] };
+}
 
 /* o rola de antes guardava "ate": a posição do golpe na lista. Ela só
    aponta pra peça certa se o plano não mudou depois da última vez que

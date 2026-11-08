@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, Suspense } from 'react';
 import { lazy } from '../lib/lazy';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { planosDaPessoa, correnteDoPlano, arvoreDoPlano, letraDo, caminhoAte, pecaDoRola } from '../lib/planos';
+import { planosDaPessoa, correnteDoPlano, arvoreDoPlano, letraDo, pecaDoRola, caminhosAte, rotuloDoCaminho, paradasDe, marcarPeca, subsDoPlano, juntarSubs } from '../lib/planos';
 import {
   Plus, Trash2, Pencil, NotebookPen, Timer, ChevronDown, ChevronRight, Copy, Check,
   MessageSquare, Building2, GraduationCap, Trophy, Weight, Mic, Users, History, ShieldAlert, CircleHelp,
@@ -39,7 +39,7 @@ import {
   competicaoVazia, EU, resultadoDoPodio, podioComEu, atletasDaChave,
   situacaoDoCampeonato, tempoDaLuta, ordinal, podioSugerido, colocarNoPodio, lugarNoPodio,
 } from '../lib/competicao';
-import { comTecUid, nomesDoRola } from '../lib/identidade';
+import { comTecUid, nomesDoRola, uidDaTecnica } from '../lib/identidade';
 
 const TIPOS = [
   { id: 'gi', nome: 'Gi' },
@@ -1391,6 +1391,19 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
   const padrao = padraoDe(s.tipo);
   /* os planos de ataque do aluno, pro "usou qual plano?" do rola */
   const meusPlanosDeAtaque = planosDaPessoa(useLiveQuery(() => db.attackPlans.toArray(), [], []) || [], faixa);
+  /* onde cada técnica termina: diz se a peça que encaixou é finalização (como na tela de Planos) */
+  const destinoDe = useMemo(() => {
+    const pos = new Map(positions.map((x) => [x.id, x]));
+    const tec = new Map(techniques.map((t) => [t.nome, t]));
+    return Object.assign((nome) => pos.get((tec.get(nome) || tec.get(nomeAtual(nome)))?.destinoId) || null, { tecnicas: techniques });
+  }, [positions, techniques]);
+  /* R7: o plano do rola muda e as finalizações que ele pôs em "Eu finalizei" acompanham */
+  const marcarPlano = (i, rp) => {
+    const r = rolas[i];
+    const plano = rp && meusPlanosDeAtaque.find((x) => x.uid === rp.uid);
+    const { subs, entrou } = juntarSubs(r.subsAplicadas || [], r.plano?.entrou || [], plano ? subsDoPlano(plano, rp, destinoDe) : []);
+    setRola(i, { subsAplicadas: subs, plano: rp ? { ...rp, entrou } : null });
+  };
   /* A REGRA DA TÉCNICA: quando a regra não permite (faixa, idade, Gi ou
      No-Gi), o app avisa e pergunta. Nunca proíbe: o professor pode
      liberar, e "não avisar mais" guarda isso pra aquela técnica. */
@@ -1555,7 +1568,8 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
                       valor={r.subsAplicadas || []}
                       onChange={(v) => {
                         const nova = v.find((x) => !(r.subsAplicadas || []).includes(x));
-                        if (!nova) { setRola(i, { subsAplicadas: v }); return; }
+                        /* tirou na mão a que o plano pôs: o plano esquece dela */
+                        if (!nova) { setRola(i, { subsAplicadas: v, ...(r.plano?.entrou?.length ? { plano: { ...r.plano, entrou: r.plano.entrou.filter((n) => v.includes(n)) } } : {}) }); return; }
                         checarTecnica(nova, () => setRola(i, { subsAplicadas: v }));
                       }}
                       sugestoes={[...maisUsadas.apliquei, ...finalizacoes.filter((n) => !maisUsadas.apliquei.includes(n))]} rapidas={maisUsadas.apliquei}
@@ -1612,31 +1626,86 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
                     </Field>
                   </div>
 
-                  {/* usou um plano de ataque? Opcional: um toque no plano, um no golpe até onde chegou */}
+                  {/* usou um plano de ataque? Opcional: um toque no plano, um na última peça até onde chegou */}
                   {meusPlanosDeAtaque.length > 0 && (() => {
                     const plano = r.plano && meusPlanosDeAtaque.find((x) => x.uid === r.plano.uid);
                     const golpes = plano ? correnteDoPlano(plano).passos : [];
                     const arvore = arvoreDoPlano(golpes);
                     /* a peça marcada que já saiu do plano continua aparecendo marcada */
-                    const saiu = plano && pecaDoRola(plano, r)?.saiu ? pecaDoRola(plano, r) : null;
+                    const marcada = plano ? pecaDoRola(plano, r) : null;
+                    const saiu = marcada?.saiu ? marcada : null;
+                    /* por qual entrada: só pergunta quando tem mais de um caminho até a peça */
+                    const caminhos = marcada && !saiu ? caminhosAte(plano, marcada.id) : [];
+                    const mesmo = (a, b) => a.length === b.length && a.every((x, k) => x === b[k]);
+                    const golpe = marcada && (marcada.tipo || 'golpe') === 'golpe';
+                    const tipoNome = { finta: 'Finta: ', preparacao: 'Preparação: ' };
+                    const im = r.plano?.improviso;
                     return (
-                      <Field label="Usou um plano de ataque?" hint={plano ? 'Toque no último golpe do plano que você tentou.' : 'Opcional. É daqui que sai a taxa de acerto do plano.'}>
-                        <Select value={plano ? plano.uid : ''} onChange={(e) => setRola(i, { plano: e.target.value ? { uid: e.target.value, peca: null, caminho: [], encaixou: false } : null })}>
+                      <Field label="Usou um plano de ataque?" hint={plano ? 'Toque na última peça do plano que você tentou.' : 'Opcional. É daqui que sai a taxa de acerto do plano.'}>
+                        <Select value={plano ? plano.uid : ''} onChange={(e) => marcarPlano(i, e.target.value ? { uid: e.target.value, peca: null, caminho: [], encaixou: false } : null)}>
                           <option value="">Não usei</option>
                           {meusPlanosDeAtaque.map((x) => <option key={x.uid} value={x.uid}>{x.nome}</option>)}
                         </Select>
                         {plano && (
                           <div className="row wrap" style={{ gap: 6, marginTop: 8 }}>
-                            {arvore.ordem.filter((k) => golpes[k].tipo === 'golpe').map((k, n) => (
-                              <Chip key={golpes[k].id} on={r.plano.peca === golpes[k].id} onClick={() => setRola(i, { plano: { uid: r.plano.uid, peca: golpes[k].id, caminho: caminhoAte(golpes, k), encaixou: r.plano.encaixou } })}>
-                                {arvore.trilhos > 1 ? `${letraDo(arvore.trilho[k])} · ` : `${n + 1}. `}{golpes[k].golpe}
+                            {arvore.ordem.filter((k) => golpes[k].tipo !== 'situacao').map((k, n) => (
+                              <Chip key={golpes[k].id} on={r.plano.peca === golpes[k].id} onClick={() => marcarPlano(i, marcarPeca(plano, r.plano, golpes[k].id))}>
+                                {arvore.trilhos > 1 ? `${letraDo(arvore.trilho[k])} · ` : `${n + 1}. `}{tipoNome[golpes[k].tipo] || ''}{golpes[k].golpe}
                               </Chip>
                             ))}
                             {saiu && <Chip on>{saiu.golpe} (saiu do plano)</Chip>}
-                            <Chip tone={r.plano.encaixou ? 'jade' : ''} on={r.plano.encaixou} onClick={() => setRola(i, { plano: { ...r.plano, encaixou: !r.plano.encaixou } })}>
-                              Encaixou
-                            </Chip>
+                            {golpe && (
+                              <Chip tone={r.plano.encaixou ? 'jade' : ''} on={r.plano.encaixou} onClick={() => marcarPlano(i, { ...r.plano, encaixou: !r.plano.encaixou, parou: '' })}>
+                                Encaixou
+                              </Chip>
+                            )}
                           </div>
+                        )}
+                        {caminhos.length > 1 && (
+                          <div style={{ marginTop: 10 }}>
+                            <p className="micro muted" style={{ marginBottom: 6 }}>Por qual entrada você chegou?</p>
+                            <div className="row wrap" style={{ gap: 6 }}>
+                              {caminhos.map((c) => (
+                                <Chip key={c.join('.')} on={mesmo(r.plano.caminho || [], c)} onClick={() => marcarPlano(i, { ...r.plano, caminho: c })}>
+                                  {rotuloDoCaminho(plano, c)}
+                                </Chip>
+                              ))}
+                              <Chip on={!(r.plano.caminho || []).length} onClick={() => marcarPlano(i, { ...r.plano, caminho: [] })}>Não sei</Chip>
+                            </div>
+                          </div>
+                        )}
+                        {marcada && !saiu && !r.plano.encaixou && paradasDe(marcada).length > 0 && (
+                          <div style={{ marginTop: 10 }}>
+                            <p className="micro muted" style={{ marginBottom: 6 }}>O rola parou aí porque:</p>
+                            <div className="row wrap" style={{ gap: 6 }}>
+                              {paradasDe(marcada).map((p) => (
+                                <Chip key={p.id} on={r.plano.parou === p.id} onClick={() => marcarPlano(i, { ...r.plano, parou: r.plano.parou === p.id ? '' : p.id })}>
+                                  {p.nome}
+                                </Chip>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {/* fiz outra coisa: a oportunidade fora do plano, com a técnica do catálogo */}
+                        {plano && (
+                          <div style={{ marginTop: 10 }}>
+                            <p className="micro muted" style={{ marginBottom: 6 }}>Fez outra coisa, fora do plano?</p>
+                            <div className="row wrap" style={{ gap: 6 }}>
+                              <Chip on={!!im} onClick={() => (im ? marcarPlano(i, { ...r.plano, improviso: null }) : setSeletor({ tipo: 'improviso', rola: i }))}>
+                                {im ? `Fora do plano: ${im.nome}` : 'Fiz outra coisa'}
+                              </Chip>
+                              {im && (
+                                <Chip tone={im.encaixou ? 'jade' : ''} on={!!im.encaixou} onClick={() => marcarPlano(i, { ...r.plano, improviso: { ...im, encaixou: !im.encaixou } })}>
+                                  Encaixou
+                                </Chip>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        {(r.plano?.entrou || []).length > 0 && (
+                          <p className="micro muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
+                            Já entrou em "Eu finalizei": {r.plano.entrou.join(', ')}.
+                          </p>
                         )}
                       </Field>
                     );
@@ -1731,12 +1800,14 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
           liberadas={liberadas}
           multiplo={seletor?.tipo === 'foco'}
           semPosicoes={seletor?.tipo === 'foco'}
-          titulo={seletor?.tipo === 'foco' ? 'Técnicas da aula' : `Qual ${seletor?.ponto?.nome?.toLowerCase() || 'técnica'}?`}
+          titulo={seletor?.tipo === 'foco' ? 'Técnicas da aula' : seletor?.tipo === 'improviso' ? 'O que você fez fora do plano?' : `Qual ${seletor?.ponto?.nome?.toLowerCase() || 'técnica'}?`}
           categoriaFiltro={seletor?.tipo === 'ponto' ? CAT_DO_PONTO[seletor.ponto.id] : null}
           recentes={seletor?.tipo === 'ponto' ? [...(recentesPorPonto[seletor.ponto.id] || []), ...daAula] : recentesFoco}
           jaEscolhidas={
             seletor?.tipo === 'foco'
               ? (s.focoTecnicas || []).map((x) => x.nome)
+              : seletor?.tipo === 'improviso'
+                ? [rolas[seletor.rola]?.plano?.improviso?.nome].filter(Boolean)
               : seletor
                 ? [((rolas[seletor.rola]?.[seletor.lado] || {})[seletor.ponto.id] || [])[seletor.vaga]].filter(Boolean)
                 : []
@@ -1744,6 +1815,11 @@ function EditorTreino({ s, setS, rolas, setRolas, partners, positions, sessions 
           onEscolher={(tec) => {
             if (seletor.tipo === 'foco') {
               alternarFoco(tec);
+            } else if (seletor.tipo === 'improviso') {
+              /* técnica com uid e o nome da época; família não é técnica */
+              const r = rolas[seletor.rola];
+              if (tec.familia || !r?.plano) return;
+              marcarPlano(seletor.rola, { ...r.plano, improviso: { nome: tec.nome, uid: uidDaTecnica(tec.nome, techniques), encaixou: false } });
             } else {
               /* a vaga daquela vez: escolher a mesma técnica de novo tira */
               const r = rolas[seletor.rola];
