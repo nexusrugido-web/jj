@@ -1,4 +1,5 @@
 import { acharTecnicas } from './classificar';
+import { defesasContra } from './assuntos';
 import { INDICE_TECNICAS, TECNICA_POR_UID, CATALOGO_TECNICAS } from './tecnicas';
 import {
   DE_POSICAO_SOFRIDA, HABILIDADES, SITUACOES, FORMATOS, POSICOES, nomeDe, nomePosicaoLado, separar,
@@ -63,6 +64,8 @@ export function pedidoDaRec(rec) {
     /* a família (articular, estrangulamento...) é o que impede o motor
        de responder "defesa contra Americana" com defesa de outra coisa */
     const familia = t?.cat || null;
+    /* a família de mecânica (fam:armlock): só ela faz a aula ser "da família" no motor */
+    const fam = t?.fam || null;
     if (rec.intencao === 'corrigir') {
       /* defesa é defesa: a aula que ensina a aplicar a técnica não
          responde "defesa contra ela". Sem aula de defesa da técnica,
@@ -70,12 +73,15 @@ export function pedidoDaRec(rec) {
          vista do lado de quem está sendo atacado. */
       const saidas = [...new Set(tecnicas.map((u) => TECNICA_POR_UID.get(u)?.de).filter(Boolean)
         .map((de) => { const { posicao, lado } = separar(de); return `${posicao}:${lado === 'cima' ? 'baixo' : 'cima'}`; }))];
-      return { tecnicas, nomes: [rec.alvo], familia, habilidades: ['defesa', 'escapada'], defesa: true, posicoes: saidas, formatos };
+      /* as defesas do catálogo cujo contra aponta pro golpe ou pra família dele (R3) */
+      const defesas = [...new Set(tecnicas.flatMap((u) => defesasContra(u).flatMap((d) => d.uids)))];
+      return { tecnicas, nomes: [rec.alvo], familia, fam, defesas, habilidades: ['defesa', 'escapada'], defesa: true, posicoes: saidas, formatos };
     }
     return {
       tecnicas,
       nomes: [rec.alvo],
       familia,
+      fam,
       habilidades: t ? [t.cat] : [],
       posicoes: t?.de ? [t.de] : [],
       formatos,
@@ -105,7 +111,10 @@ export function rotuloDaAula(aula, pedido, alvo) {
   if (pedido?.defesa && alvo) {
     /* aula de defesa de outra técnica da mesma categoria (a do Banana
        split pra quem toma Bicep slicer): diz isso, sem fingir que é dela */
-    const daTecnica = !(pedido.tecnicas || []).length || (pedido.tecnicas || []).some((u) => (aula.tecnicas || []).includes(u));
+    const marcadas = aula.tecnicas || [];
+    const daTecnica = !(pedido.tecnicas || []).length || aula.peloContra
+      || [...(pedido.tecnicas || []), ...(pedido.defesas || [])].some((u) => marcadas.includes(u))
+      || (!!pedido.fam && marcadas.some((u) => TECNICA_POR_UID.get(u)?.fam === pedido.fam));
     if (!aula.generico && !daTecnica && OUTRA_DA_CATEGORIA[pedido.familia]) return `ainda não há aula de defesa de ${alvo} · esta ensina a defesa de ${OUTRA_DA_CATEGORIA[pedido.familia]}`;
     if (!aula.generico) return `ensina a defesa de ${alvo}`;
     if (aula.saidaDe) return `ainda não há aula de defesa de ${alvo} · esta ensina a sair ${sairDe(aula.saidaDe)}, de onde ela costuma sair`;

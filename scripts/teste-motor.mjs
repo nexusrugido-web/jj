@@ -46,7 +46,8 @@ const acervoPosicao = [
 const presoNo100kg = pedidoDaRec({ intencao: 'corrigir', posicao: 'cem_baixo' });
 ok('preso embaixo do 100kg vira pedido com lado', presoNo100kg.posicoes, ['cem:baixo']);
 const saiu = aulasPara(presoNo100kg, { lista: acervoPosicao, quantidade: 5 });
-ok('o vídeo do lado certo vem primeiro, depois o antigo sem lado, depois outra posição de escapada', ids(saiu), ['sair-100kg', '100kg-antigo', 'sair-montada']);
+/* R3: a saída de outra posição não completa a lista (relatório de 07/11: costas recebia 50/50) */
+ok('o vídeo do lado certo vem primeiro, depois o antigo sem lado, e a saída de outra posição não entra', ids(saiu), ['sair-100kg', '100kg-antigo']);
 ok('a aula de segurar por cima não entra pra quem quer sair de baixo', ids(saiu).includes('segurar-100kg'), false);
 ok('cada vídeo diz por que foi escolhido', saiu[0].porque, ['100kg por baixo', 'Escapada']);
 
@@ -115,8 +116,31 @@ const pedidoBicep = pedidoDaRec({ intencao: 'corrigir', alvo: 'Chave de bíceps 
 ok('o pedido do Bicep slicer leva a família compressão', pedidoBicep.familia, 'compressao');
 const bicepAulas = aulasPara(pedidoBicep, { lista: [...acervoCadeira, v('defesa-banana-split', { tecnicas: [uid('Banana split')], habilidades: ['defesa'] })], quantidade: 1, soAula: true });
 ok('quem toma Bicep slicer recebe a defesa de outra compressão', ids(bicepAulas), ['defesa-banana-split']);
+/* compressão não tem família de mecânica: a mesma categoria é só "em geral" (decisão do dono, 07/11) */
 ok('e a tela não finge que a aula é do Bicep slicer', rotuloDaAula(bicepAulas[0], pedidoBicep, 'Chave de bíceps (bicep slicer)'),
-  'ainda não há aula de defesa de Chave de bíceps (bicep slicer) · esta ensina a defesa de outra compressão, com a mesma mecânica');
+  'ainda não há aula de defesa de Chave de bíceps (bicep slicer) · esta é de defesa em geral');
+
+/* ---------- R2: família de mecânica (fam), nunca a categoria ---------- */
+const { CATALOGO_TECNICAS } = await import('../src/lib/tecnicas.js');
+const uidDe = (nome) => CATALOGO_TECNICAS.find((t) => t.nome === nome).uid;
+const pedidoArm = pedidoDaRec({ intencao: 'repetir', alvo: 'Armlock da guarda fechada' });
+ok('o pedido do armlock leva a família de mecânica', pedidoArm.fam, 'fam:armlock');
+const acervoArm = [
+  v('chave-de-ombro-da-guarda', { tecnicas: [uidDe('Kimura')], habilidades: ['articular'], classificacao: 'automatica' }),
+  v('armlock-montada', { tecnicas: [uidDe('Armlock da montada')], habilidades: ['articular'] }),
+];
+const arm = aulasPara(pedidoArm, { lista: acervoArm });
+ok('pedir Armlock da guarda fechada traz o da montada antes da Kimura', ids(arm), ['armlock-montada', 'chave-de-ombro-da-guarda']);
+ok('o da montada é da família, a Kimura é em geral', arm.map((a) => !!a.generico), [false, true]);
+ok('a tela diz que a Kimura é em geral', rotuloDaAula(arm[1], pedidoArm, 'Armlock da guarda fechada'),
+  'ainda não há aula de Armlock da guarda fechada · esta é de chave articular em geral');
+ok('a aula exclusiva não aceita a Kimura (só aula que não é em geral destrava)',
+  aulasPara(pedidoArm, { lista: [acervoArm[0]], quantidade: 1 }).every((a) => a.generico), true);
+const tesoura = pedidoDaRec({ intencao: 'repetir', alvo: 'Raspagem de tesoura' });
+ok('título com "raspagem" e mais nada não é da Raspagem de tesoura',
+  aulasPara(tesoura, { lista: [v('Raspagem simples da guarda', { habilidades: ['raspagem'] })] }).map((a) => !!a.generico), [true]);
+ok('título com "tesoura" é',
+  aulasPara(tesoura, { lista: [v('Raspagem de tesoura detalhada', { habilidades: ['raspagem'] })] }).map((a) => !!a.generico), [false]);
 
 /* ---------- katagatame: o caso do Painel (25/09) ----------
    A sugestão "Defesa contra Katagatame" trazia "O katagatame que
@@ -240,6 +264,33 @@ ok('vira recomendação com nome', recPesado?.titulo, 'Contra quem é mais pesad
 ok('sem contar derrota no texto', /\d/.test(`${recPesado?.texto} ${recPesado?.evidencia}`), false);
 ok('com chave própria, que não se confunde com a da posição', chaveDaRec(recPesado), 'corrigir:contra_pesado');
 ok('e puxa vídeo pela situação', pedidoDaRec(recPesado).situacoes, ['contra_pesado']);
+
+/* ---------- R3: defesa pelo contra ---------- */
+const tomaArm = pedidoDaRec({ intencao: 'corrigir', alvo: 'Armlock da guarda fechada' });
+const DEF_ARM = uidDe('Defesa de armlock (esconder o cotovelo)');
+const DEF_TRI = uidDe('Defesa de triângulo (postura)');
+ok('o pedido de quem toma armlock leva as defesas pelo contra', tomaArm.defesas.includes(DEF_ARM), true);
+ok('e nunca a defesa de triângulo', tomaArm.defesas.includes(DEF_TRI), false);
+const acervoDef = [
+  v('defesa-em-geral', { habilidades: ['defesa'] }),
+  v('sair-de-baixo-da-guarda', { posicaoLado: ['guarda_fechada:cima'], habilidades: ['escapada'] }),
+  v('esconder-o-cotovelo', { tecnicas: [DEF_ARM] }),
+  v('Aula completa de ataques da guarda fechada', { tecnicas: [uidDe('Armlock da guarda fechada')], habilidades: ['finalizacao', 'defesa'] }),
+  v('postura-no-triangulo', { tecnicas: [DEF_TRI], habilidades: ['defesa'] }),
+];
+const defArm = aulasPara(tomaArm, { lista: acervoDef, quantidade: 5 });
+ok('quem toma armlock recebe a defesa de armlock primeiro, depois a saída, depois a geral', ids(defArm), ['esconder-o-cotovelo', 'sair-de-baixo-da-guarda', 'defesa-em-geral']);
+ok('a aula de ataques não entra num pedido de defesa', ids(defArm).includes('Aula completa de ataques da guarda fechada'), false);
+ok('a tela diz que ensina a defesa do armlock', rotuloDaAula(defArm[0], tomaArm, 'Armlock da guarda fechada'), 'ensina a defesa de Armlock da guarda fechada');
+const daMontada = v('defender-armlock-da-montada', { tecnicas: [uidDe('Armlock da montada')], habilidades: ['defesa'] });
+ok('defesa de outro armlock (mesma família) não vira "defesa de outra chave"',
+  rotuloDaAula(aulasPara(tomaArm, { lista: [daMontada], quantidade: 1 })[0], tomaArm, 'Armlock da guarda fechada'), 'ensina a defesa de Armlock da guarda fechada');
+const tomaTri = pedidoDaRec({ intencao: 'corrigir', alvo: 'Triângulo' });
+ok('quem toma triângulo não recebe a defesa de armlock', ids(aulasPara(tomaTri, { lista: acervoDef, quantidade: 5 })).includes('esconder-o-cotovelo'), false);
+ok('e recebe a de triângulo primeiro', ids(aulasPara(tomaTri, { lista: acervoDef, quantidade: 5 }))[0], 'postura-no-triangulo');
+const queda = pedidoDaRec({ intencao: 'corrigir', posicao: 'queda_sofrida' });
+ok('quem leva queda não recebe defesa de finalização',
+  ids(aulasPara(queda, { lista: [...acervoDef, v('sprawl-na-queda', { posicaoLado: ['em_pe:neutro'], habilidades: ['defesa'] })], quantidade: 5 })).includes('esconder-o-cotovelo'), false);
 
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);

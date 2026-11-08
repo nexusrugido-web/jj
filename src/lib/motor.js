@@ -1,7 +1,8 @@
 import { acervo } from './acervo';
 import { palavrasFortes } from './aulas';
-import { semAcento, TECNICAS_DISTINTAS, grafiasDe, ehAulaDeDefesa } from './classificar';
-import { familiaDaTecnica, FAMILIAS_DE_FINALIZACAO } from './tecnicas';
+import { semAcento, TECNICAS_DISTINTAS, grafiasDe, ehAulaDeDefesa, ehAulaDeAtaque } from './classificar';
+import { familiaDaTecnica, FAMILIAS_DE_FINALIZACAO, TECNICA_POR_UID } from './tecnicas';
+import { FAMILIA_POR_ID } from './familias';
 import { faixaDeConteudo } from './faixas';
 import {
   POSICOES, HABILIDADES, SITUACOES, FORMATOS, DE_FAIXA,
@@ -62,14 +63,25 @@ function ajusteDoNivel(nivelDoVideo, faixa) {
    ------------------------------------------------------------ */
 const temPalavra = (texto, termo) => new RegExp(`(^| )${termo}( |$)`).test(texto);
 
+/* palavra de categoria ou de posição: está no nome de muitas técnicas
+   e sozinha não diz qual é ("raspagem", "montada", "guard") */
+const DE_CATEGORIA = new Set([
+  'raspagem', 'passagem', 'escapada', 'estrangulamento', 'retencao', 'finalizacao', 'queda',
+  'montada', 'costas', 'tartaruga', 'meia', 'fechada', 'aberta', 'joelho', 'barriga', 'norte',
+  'borboleta', 'aranha', 'lapela', 'contra', 'guard', 'pass', 'sweep', 'escape', 'choke',
+]);
+
 export function tituloCita(titulo, nome) {
   const t = semAcento(titulo);
   if (grafiasDe(nome).some((g) => temPalavra(t, g))) return true;
-  /* a maioria das palavras que identificam a técnica: "Raspagem de
-     gancho" pede "raspagem" e "gancho", não qualquer raspagem */
+  /* a maioria das palavras que identificam a técnica, e ao menos uma
+     que não seja de categoria quando o nome tem: "Raspagem de tesoura"
+     pede "tesoura", não qualquer raspagem; "queda" pede "queda" */
   const fortes = palavrasFortes(nome);
-  const achadas = fortes.filter((w) => temPalavra(t, semAcento(w))).length;
-  return fortes.length > 0 && achadas >= Math.ceil(fortes.length / 2);
+  const achadas = fortes.filter((w) => temPalavra(t, semAcento(w)));
+  const temPropria = fortes.some((w) => !DE_CATEGORIA.has(w));
+  return fortes.length > 0 && achadas.length >= Math.ceil(fortes.length / 2)
+    && (!temPropria || achadas.some((w) => !DE_CATEGORIA.has(w)));
 }
 
 /* o título anuncia outra técnica, que não é a pedida */
@@ -100,6 +112,15 @@ function familiasDoVideo(a) {
   return f;
 }
 
+/* a família de mecânica (fam:armlock...), a do catálogo, nunca a categoria */
+const famsDoVideo = (a) => new Set((a.tecnicas || []).map((u) => TECNICA_POR_UID.get(u)?.fam).filter(Boolean));
+
+function deOutroLugar(a, posicoes) {
+  const pedidas = new Set(posicoes.map((pl) => separar(pl).posicao));
+  if ((a.posicaoLado || []).some((pl) => pedidas.has(separar(pl).posicao))) return false;
+  return (a.posicaoLado || []).length > 0 || (a.tecnicas || []).length > 0 || familiasDoVideo(a).size > 0;
+}
+
 function deOutraTecnica(a, pedido) {
   if (!pedido.familia) return false;
   if ((a.tecnicas || []).some((u) => (pedido.tecnicas || []).includes(u))) return false;
@@ -114,7 +135,9 @@ function deOutraTecnica(a, pedido) {
    pedido:
      tecnicas   uids da biblioteca
      nomes      os mesmos, por nome, pra achar no título
-     familia    a família da técnica pedida (articular...)
+     familia    a categoria da técnica pedida (articular...)
+     fam        a família de mecânica dela (fam:armlock), quando tem
+     defesas    uids das defesas do catálogo contra ela (contra), no corrigir
      palavras   termos do assunto no título ("pesado", "força")
      posicoes   ['cem:baixo']
      habilidades, situacoes
@@ -133,20 +156,31 @@ function relevancia(a, pedido) {
   const tecnicas = pedido.tecnicas || [];
   const nomes = pedido.nomes || [];
   const tecnico = tecnicas.length > 0 || nomes.length > 0;
-  if (tecnico && deOutraTecnica(a, pedido)) return { r: 0, porque: [] };
+  /* marcada com a defesa cujo contra aponta pro golpe: é a resposta
+     certa, mesmo sendo de outra categoria (defesa) */
+  const peloContra = (pedido.defesas || []).some((u) => (a.tecnicas || []).includes(u));
+  if (tecnico && !peloContra && deOutraTecnica(a, pedido)) return { r: 0, porque: [] };
   if (nomes.length && tituloDeOutraTecnica(a.t, nomes)) return { r: 0, porque: [] };
   /* "Defesa contra Katagatame" não se responde com a aula de aplicar
      o katagatame: vídeo que não ensina defesa nem saída não entra */
-  if (pedido.defesa && !ensinaDefesa(a)) return { r: 0, porque: [] };
+  if (pedido.defesa && !peloContra && (!ensinaDefesa(a) || ehAulaDeAtaque(a))) return { r: 0, porque: [] };
+  /* sair de uma posição ou evitar a queda: aula que é de outro lugar ou
+     de outra técnica não completa a lista ("costas" não recebe 50/50) */
+  if (!tecnicas.length && (pedido.posicoes || []).length && deOutroLugar(a, pedido.posicoes)) return { r: 0, porque: [] };
   /* e o contrário: quem quer aprender o golpe não recebe a aula de se
      defender dele (escapada e retenção são técnica de defesa, essas pode) */
   if (!pedido.defesa && tecnico && !['escapada', 'defesa', 'retencao'].includes(pedido.familia) && ehAulaDeDefesa(a)) return { r: 0, porque: [] };
 
-  /* especifico: o vídeo é da técnica pedida, ou ao menos da família
-     dela. Sem isso, num pedido de técnica, ele é resposta geral. */
+  /* especifico: o vídeo é da técnica pedida, ou ao menos da família de
+     mecânica dela (fam). Só a mesma categoria (Kimura pra quem pediu
+     armlock) é resposta em geral, com nota menor. */
   let especifico = false;
   let saidaDe = null;
-  if (tecnicas.some((u) => (a.tecnicas || []).includes(u))) {
+  if (peloContra) {
+    r += 34;
+    especifico = true;
+    porque.push(nomes[0] || 'a técnica');
+  } else if (tecnicas.some((u) => (a.tecnicas || []).includes(u))) {
     r += 30;
     especifico = true;
     porque.push(nomes[0] || 'a técnica');
@@ -154,9 +188,12 @@ function relevancia(a, pedido) {
     r += 20;
     especifico = true;
     porque.push(nomes[0]);
-  } else if (pedido.familia && familiasDoVideo(a).has(pedido.familia)) {
+  } else if (pedido.fam && famsDoVideo(a).has(pedido.fam)) {
     r += 8;
     especifico = true;
+    porque.push(FAMILIA_POR_ID.get(pedido.fam)?.nome || nomeDe(HABILIDADES, pedido.familia));
+  } else if (pedido.familia && familiasDoVideo(a).has(pedido.familia)) {
+    r += 3;
     porque.push(nomeDe(HABILIDADES, pedido.familia));
   }
 
@@ -211,7 +248,7 @@ function relevancia(a, pedido) {
     porque.push(nomeDe(FORMATOS, a.formato));
   }
 
-  return { r, porque: [...new Set(porque)], generico: (tecnico && !especifico) || (posicional && !naPosicao), saidaDe };
+  return { r, porque: [...new Set(porque)], generico: (tecnico && !especifico) || (posicional && !naPosicao), saidaDe, peloContra };
 }
 
 /* embaralhamento estável da semana: dentro da mesma nota, a ordem
@@ -264,7 +301,7 @@ export function aulasPara(pedido, {
   const notadas = lista
     .filter((a) => !fora.has(a.id) && (!soAula || preferirAula || a.k === 'aula'))
     .map((a) => {
-      const { r, porque, generico, saidaDe } = relevancia(a, pedido);
+      const { r, porque, generico, saidaDe, peloContra } = relevancia(a, pedido);
       if (r <= 0) return null;
       let nota = r * (PESO_DA_CLASSIFICACAO[a.classificacao] ?? 0.85);
       if (preferirAula && a.k !== 'aula') nota -= 6;
@@ -273,7 +310,7 @@ export function aulasPara(pedido, {
       else if (i > 0) nota += 2;
       nota += ajusteDoNivel(a.nivel, faixa);
       if (a.ordem != null) nota += 1;
-      return { ...a, nota, porque, generico, saidaDe, sorteio: semente(`${a.id}:${chave}`) };
+      return { ...a, nota, porque, generico, saidaDe, peloContra, sorteio: semente(`${a.id}:${chave}`) };
     })
     .filter(Boolean);
 
@@ -300,11 +337,12 @@ export function aulasPara(pedido, {
     .sort((a, b) => (querCurto ? a.d - b.d : b.d - a.d));
   const longe = resto.filter((a) => !perto.includes(a));
 
-  /* na defesa, a saída da posição de onde a técnica sai vem antes da
-     defesa em geral: ela responde ao caso da pessoa */
+  /* na defesa: a defesa pelo contra, depois a aula de defesa marcada
+     com o golpe, depois a saída da posição de onde ele sai, e por
+     último a defesa em geral */
   const final = [melhor, ...perto, ...longe];
   if (pedido.defesa) {
-    const lugar = (a) => (!a.generico ? 0 : a.saidaDe ? 1 : 2);
+    const lugar = (a) => (a.peloContra ? 0 : !a.generico ? 1 : a.saidaDe ? 2 : 3);
     final.sort((a, b) => lugar(a) - lugar(b));
   }
   return final.slice(0, quantidade)

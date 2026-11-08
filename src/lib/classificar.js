@@ -386,6 +386,14 @@ export function ehAulaDeDefesa(aula) {
   return TITULO_DE_DEFESA.test(t) && !TITULO_DE_ATAQUE.test(t);
 }
 
+/* aula de atacar, dita no título ("Aula completa de ataques da guarda
+   fechada"): não responde a um pedido de defesa, mesmo que a IA tenha
+   marcado defesa entre as habilidades */
+export function ehAulaDeAtaque(aula) {
+  const t = semAcento(aula?.t || aula?.titulo || '');
+  return TITULO_DE_ATAQUE.test(t) && !TITULO_DE_DEFESA.test(t);
+}
+
 /* a esteira: aula de defesa grava a defesa, não o golpe. Vale o título
    só de defesa, ou o título que fala em defender ("DEFENDER o
    ESTRANGULAMENTO X") com a IA dizendo defesa ou escapada e nenhum ataque */
