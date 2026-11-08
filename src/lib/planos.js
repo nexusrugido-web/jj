@@ -593,7 +593,7 @@ export function marcarPeca(plano, rp, pecaId) {
   if (rp?.peca === pecaId && (rp.caminho || []).length) return rp;
   const golpe = tipoDe(peca) === 'golpe';
   const parou = paradasDe(peca).some((p) => p.id === rp?.parou) ? rp.parou : '';
-  const saida = rp?.peca === pecaId && parou === 'escapou' ? rp.saida || '' : '';
+  const saida = rp?.peca === pecaId && (parou === 'escapou' || parou === 'defendeu') ? rp.saida || '' : '';
   return { ...rp, peca: pecaId, caminho: caminhos.length === 1 ? caminhos[0] : [], encaixou: golpe && !!rp?.encaixou, parou, saida };
 }
 
@@ -614,6 +614,31 @@ export function lugarDaFuga(plano, rp) {
   if (!l) return '';
   if (l.para === null || l.para === undefined) return `Voltou pra ${plano?.posicao || 'posição do começo'}`;
   return pecaDoRola(plano, { plano: { peca: l.para } })?.golpe || '';
+}
+
+/* R7.4c: como ele defendeu. São as defesas que o plano já tem pra essa
+   peça: as ligações "defendeu" que saem dela (da árvore ou extras), cada
+   uma com a reação (gatilho) e pra onde ela leva. O rola guarda o id da
+   ligação em "saida", como a fuga do "escapou"; sem "saida" é "sem dizer
+   como". Escolher a defesa não muda a peça marcada: o caminho não anda
+   sozinho pra peça seguinte. */
+const nomeDaDefesa = (l, pecaDe) => {
+  const pra = pecaDe(l.para)?.golpe || '';
+  return l.gatilho ? `${l.gatilho} → ${pra}` : `Defesa que leva pra ${pra}`;
+};
+export function defesasDe(plano, pecaId) {
+  const c = correnteDoPlano(plano);
+  const pecaDe = (id) => c.passos.find((x) => x.id === id);
+  return ligacoesDo(c.passos, c.ligacoes).filter((l) => l.de === pecaId && l.via === 'defendeu')
+    .map((l) => ({ lig: l.id, nome: nomeDaDefesa(l, pecaDe) }));
+}
+
+/* a defesa que o rola guardou, mesmo que já tenha saído do plano: null sem defesa dita */
+export function defesaDoRola(plano, rp) {
+  if (rp?.parou !== 'defendeu' || !rp.saida) return null;
+  const l = caminhoDoRola(plano, [rp.saida]).ligacoes[0];
+  if (!l || l.via !== 'defendeu') return null;
+  return { lig: l.id, nome: nomeDaDefesa(l, (id) => pecaDoRola(plano, { plano: { peca: id } })), saiu: l.saiu };
 }
 
 /* as finalizações que o plano põe em "Eu finalizei": a peça que
@@ -958,7 +983,7 @@ export function taxaPorEtapa(plano, rolls = [], destinoDe = () => null) {
       }
     }
     const parou = paradasDe(ultima).some((x) => x.id === rp.parou) ? rp.parou : '';
-    conta(ultima, golpe && rp.encaixou ? 'encaixou' : parou, parou === 'escapou' ? rp.saida || '' : '');
+    conta(ultima, golpe && rp.encaixou ? 'encaixou' : parou, parou === 'escapou' || parou === 'defendeu' ? rp.saida || '' : '');
   }
   return { usos: usos.length, objetivo, improviso, semPeca, pecas };
 }

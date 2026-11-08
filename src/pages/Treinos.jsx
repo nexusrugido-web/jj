@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, Suspense } from 'react';
 import { lazy } from '../lib/lazy';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { planosDaPessoa, correnteDoPlano, pecaDoRola, caminhosAte, rotuloDoCaminho, paradasDe, marcarPeca, subsDoPlano, juntarSubs, fugasDe, rodizio, pontosDoPlano, estadoDosPontos, porPonto, tirarPontos, pontuouValido } from '../lib/planos';
+import { planosDaPessoa, correnteDoPlano, pecaDoRola, caminhosAte, rotuloDoCaminho, paradasDe, marcarPeca, subsDoPlano, juntarSubs, fugasDe, defesasDe, defesaDoRola, rodizio, pontosDoPlano, estadoDosPontos, porPonto, tirarPontos, pontuouValido } from '../lib/planos';
 import {
   Plus, Trash2, Pencil, NotebookPen, Timer, ChevronDown, ChevronRight, Copy, Check,
   MessageSquare, Building2, GraduationCap, Trophy, Weight, Mic, Users, History, ShieldAlert, CircleHelp, Route,
@@ -1615,7 +1615,8 @@ function EditorTreino({ s, setS, rolas, setRolas, rolaFoco = null, partners, pos
                     const pontosPossiveis = plano ? estadoDosPontos(pontosDoPlano(plano, r.plano, destinoDe), r.plano.pontuou, r.ptsMeus, r.tecMeus) : [];
                     /* recolhido: o caminho em uma linha, só com o que foi marcado ("Não sei" não vira caminho) */
                     const antes = (r.plano?.caminho || []).length ? rotuloDoCaminho(plano, r.plano.caminho) : '';
-                    const deu = r.plano?.encaixou ? 'encaixou' : marcada ? paradasDe(marcada).find((p) => p.id === r.plano.parou)?.nome.toLowerCase() : '';
+                    const defesa = plano ? defesaDoRola(plano, r.plano) : null;
+                    const deu = r.plano?.encaixou ? 'encaixou' : marcada ? [paradasDe(marcada).find((p) => p.id === r.plano.parou)?.nome.toLowerCase(), defesa?.nome].filter(Boolean).join(': ') : '';
                     const resumoDoPlano = marcada ? [
                       `${antes && antes !== 'Direto da posição' ? `${antes} → ` : ''}${marcada.golpe}${saiu ? ' (saiu do plano)' : ''}`,
                       deu, im && `fora do plano: ${im.nome}`,
@@ -1688,6 +1689,21 @@ function EditorTreino({ s, setS, rolas, setRolas, rolaFoco = null, partners, pos
                                   {p.nome}
                                 </Chip>
                               ))}
+                            </div>
+                          </div>
+                        )}
+                        {/* R7.4c: ele defendeu, mas como? Só as defesas que o plano tem pra essa peça; "Não sei" fica sem dizer */}
+                        {marcada && !saiu && r.plano.parou === 'defendeu' && (defesasDe(plano, marcada.id).length > 0 || defesa?.saiu) && (
+                          <div className="defesas-do-rola" style={{ marginTop: 10 }}>
+                            <p className="micro muted" style={{ marginBottom: 6 }}>Como ele defendeu?</p>
+                            <div className="row wrap" style={{ gap: 6 }}>
+                              {defesasDe(plano, marcada.id).map((d) => (
+                                <Chip key={d.lig} on={r.plano.saida === d.lig} onClick={() => marcarPlano(i, { ...r.plano, saida: r.plano.saida === d.lig ? '' : d.lig })}>
+                                  {d.nome}
+                                </Chip>
+                              ))}
+                              {defesa?.saiu && <Chip on>{defesa.nome} (saiu do plano)</Chip>}
+                              <Chip on={!r.plano.saida} onClick={() => marcarPlano(i, { ...r.plano, saida: '' })}>Não sei</Chip>
                             </div>
                           </div>
                         )}

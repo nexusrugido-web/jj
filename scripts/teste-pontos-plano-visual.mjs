@@ -123,9 +123,13 @@ try {
     await pontos().first().evaluate((e) => e.scrollIntoView({ block: 'center' }));
     await page.waitForTimeout(200);
     await page.screenshot({ path: `${pasta}/3-ja-esta-${largura}.png` });
+    /* foram duas raspagens de verdade: a segunda entra na mão, como sempre */
+    await meus().locator('.pts-item').filter({ hasText: 'Raspagem' }).first().getByRole('button', { name: 'Mais um' }).click();
+    await page.waitForTimeout(250);
+    ok('4 a segunda raspagem entra na mão', await total(), '10 pts');
     await salvar();
     let r = await ultimo();
-    ok('4 gravou: a do plano no pontuou, a da mão fora', [r.ptsMeus, r.plano?.pontuou], [['queda', 'raspagem', 'montada'], [{ ponto: 'montada', nome: '' }]]);
+    ok('4 gravou: a do plano no pontuou, as da mão fora', [r.ptsMeus, r.plano?.pontuou], [['queda', 'raspagem', 'montada', 'raspagem'], [{ ponto: 'montada', nome: '' }]]);
 
     /* 5: um rola só com o plano; salvar, reabrir e apagar na mão */
     await novo();

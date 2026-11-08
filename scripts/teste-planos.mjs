@@ -1074,5 +1074,50 @@ ok('finta com nome de finalização não chega no objetivo', chegaNoObjetivo(cor
   ok('R7.4b editar o treino: o pontuou copiado com o rola continua valendo', pontuouValido(JSON.parse(JSON.stringify(dois)).pontuou, dois.ptsMeus, dois.tecMeus), dois.pontuou);
 }
 
+/* ---------- R7.4c: como ele defendeu ---------- */
+{
+  const { defesasDe, defesaDoRola, marcarPeca, taxaPorEtapa, removidosAoSalvar } = await import('../src/lib/planos.js');
+  const P = { ...rota, uid: 'R' };
+  ok('R7.4c defesa única: a do plano pra essa peça, com a reação e pra onde leva', defesasDe(P, 'arm'), [{ lig: 'lTri', nome: 'puxou o braço → Triângulo' }]);
+  ok('R7.4c só as defesas daquela peça, não as de outra', defesasDe(P, 'tri').map((d) => d.lig), ['lOmo']);
+  ok('R7.4c peça sem defesa cadastrada: nada pra escolher', defesasDe(P, 'omo'), []);
+  const varias = { ...planoNovo({ ...rota, passos: editar(rota), ligacoes: [...correnteDoPlano(rota).ligacoes,
+    { id: 'dEmp', de: 'arm', via: 'defendeu', gatilho: 'empilhou', para: 'omo' },
+    { id: 'eArm', de: 'arm', via: 'escapou', gatilho: 'saiu de lado', para: null }] }), uid: 'R' };
+  ok('R7.4c várias defesas: a da árvore primeiro, as extras depois, fuga fora',
+    defesasDe(varias, 'arm'), [{ lig: 'lTri', nome: 'puxou o braço → Triângulo' }, { lig: 'dEmp', nome: 'empilhou → Omoplata' }]);
+  const semGatilho = { ...planoNovo({ ...rota, passos: editar(rota).map((x) => (x.id === 'tri' ? { ...x, reacao: '' } : x)) }), uid: 'R' };
+  ok('R7.4c plano antigo sem a reação escrita: a defesa vai pelo lugar', defesasDe(semGatilho, 'arm'), [{ lig: 'lTri', nome: 'Defesa que leva pra Triângulo' }]);
+
+  const rp = (o) => ({ uid: 'R', peca: 'arm', caminho: ['lA', 'lArm'], encaixou: false, parou: 'defendeu', saida: '', ...o });
+  ok('R7.4c defendeu sem dizer como: sem defesa', defesaDoRola(varias, rp()), null);
+  ok('R7.4c defendeu com a defesa escolhida', defesaDoRola(varias, rp({ saida: 'dEmp' })), { lig: 'dEmp', nome: 'empilhou → Omoplata', saiu: false });
+  ok('R7.4c escolher a defesa não anda o caminho nem marca a peça seguinte', [rp({ saida: 'dEmp' }).peca, rp({ saida: 'dEmp' }).caminho], ['arm', ['lA', 'lArm']]);
+  ok('R7.4c fuga gravada no escapou não vira defesa', defesaDoRola(varias, rp({ parou: 'escapou', saida: 'eArm' })), null);
+  ok('R7.4c "saida" de fuga com parou defendeu não vira defesa', defesaDoRola(varias, rp({ saida: 'eArm' })), null);
+  ok('R7.4c rola antigo (sem parou e sem saida): nada', [defesaDoRola(varias, { uid: 'R', peca: 'arm', encaixou: false }), defesaDoRola(varias, null)], [null, null]);
+  ok('R7.4c tocar de novo na mesma peça mantém a defesa dita', marcarPeca(varias, rp({ saida: 'dEmp' }), 'arm').saida, 'dEmp');
+  ok('R7.4c trocar de peça tira a defesa', marcarPeca(varias, rp({ saida: 'dEmp' }), 'tri').saida, '');
+
+  /* histórico: a defesa sai do plano e o rola continua dizendo qual foi */
+  const semEmp = { ...planoNovo({ ...varias, passos: editar(varias), ligacoes: correnteDoPlano(varias).ligacoes.filter((l) => l.id !== 'dEmp') }), uid: 'R' };
+  const comHist2 = { ...semEmp, removidos: removidosAoSalvar(varias, semEmp) };
+  ok('R7.4c a defesa que saiu do plano some da escolha', defesasDe(comHist2, 'arm').map((d) => d.lig), ['lTri']);
+  ok('R7.4c o rola antigo continua achando a defesa que saiu', defesaDoRola(comHist2, rp({ saida: 'dEmp' })), { lig: 'dEmp', nome: 'empilhou → Omoplata', saiu: true });
+
+  /* a taxa por etapa lê a defesa da última peça, sem inventar */
+  const rolas = [
+    { plano: rp({ saida: 'lTri' }) },
+    { plano: rp({ saida: 'dEmp' }) },
+    { plano: rp() },
+    { plano: rp({ caminho: [] }) },
+  ];
+  const antes = JSON.stringify(rolas);
+  const t = taxaPorEtapa(comHist2, rolas, destRota).pecas.arm;
+  ok('R7.4c taxa: defendeu 4, com o jeito de 2 (uma já saiu do plano), 2 sem dizer', [t.vias.defendeu, t.ligacoes], [4, { lTri: 1, dEmp: 1 }]);
+  ok('R7.4c taxa: a defesa não conta tentativa na peça seguinte', taxaPorEtapa(comHist2, rolas, destRota).pecas.tri, undefined);
+  ok('R7.4c taxa não mexe nos rolas', JSON.stringify(rolas) === antes, true);
+}
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
 process.exit(falhas ? 1 : 0);
